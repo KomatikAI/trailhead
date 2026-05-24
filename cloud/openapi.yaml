@@ -1,0 +1,217 @@
+openapi: 3.1.0
+info:
+  title: Trailhead Cloud API
+  version: 4.1.0
+  description: |
+    First-party evaluation store for Trailhead Cloud tier.
+    Authenticate with `Authorization: Bearer <trailhead-api-key>`.
+servers:
+  - url: https://api.trailhead.dev
+    description: Production
+  - url: http://localhost:3101
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+
+  /v1/evaluations:
+    post:
+      summary: Ingest gate evaluation
+      operationId: createEvaluation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+          description: Duplicate POST with the same key returns the original record (defaults to evaluation.id)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Evaluation"
+      responses:
+        "201":
+          description: Evaluation created
+          headers:
+            RateLimit-Limit:
+              schema: { type: integer }
+            RateLimit-Remaining:
+              schema: { type: integer }
+            RateLimit-Reset:
+              schema: { type: integer }
+        "200":
+          description: Idempotent replay — evaluation already stored
+        "401":
+          description: Missing or invalid API key
+        "429":
+          description: Rate limit exceeded
+    get:
+      summary: List evaluations for the authenticated org
+      operationId: listEvaluations
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: repo_id
+          schema:
+            type: string
+          description: Filter by repository (owner/name)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Evaluation list
+
+  /v1/deploy-events:
+    post:
+      summary: Record deploy outcome for CFR correlation
+      operationId: createDeployEvent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeployEvent"
+      responses:
+        "201":
+          description: Deploy event recorded
+
+  /v1/orgs:
+    get:
+      summary: Get org metadata for the authenticated API key
+      operationId: getOrg
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Org record
+
+  /v1/repos:
+    get:
+      summary: List repos registered for the authenticated org
+      operationId: listRepos
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Repo list (auto-registered on first evaluation)
+
+  /v1/analytics/dashboard:
+    get:
+      summary: Dashboard analytics bundle (trends, release ready, DORA proxy, CFR)
+      operationId: getDashboardAnalytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: repo_id
+          schema:
+            type: string
+        - in: query
+          name: days
+          schema:
+            type: integer
+            enum: [30, 90]
+            default: 30
+      responses:
+        "200":
+          description: Analytics payload for hosted dashboard
+
+  /v1/evaluations/{id}:
+    get:
+      summary: Single evaluation drill-down (CI + risk breakdown)
+      operationId: getEvaluation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full evaluation record
+        "404":
+          description: Not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Trailhead Cloud API key (`trailhead-api-key` action input)
+
+  schemas:
+    Evaluation:
+      type: object
+      required:
+        - id
+        - repoId
+        - commitSha
+        - healthScore
+        - riskScore
+        - gateDecision
+        - evaluationMs
+      properties:
+        id:
+          type: string
+        repoId:
+          type: string
+          example: KomatikAI/trailhead
+        commitSha:
+          type: string
+        prNumber:
+          type: integer
+        healthScore:
+          type: number
+        riskScore:
+          type: number
+        gateDecision:
+          type: string
+          enum: [allow, warn, block]
+        releaseReady:
+          type: boolean
+        gateMode:
+          type: string
+        evaluationMs:
+          type: integer
+
+    DeployEvent:
+      type: object
+      required:
+        - deploymentId
+        - environment
+        - status
+        - timestamp
+      properties:
+        deploymentId:
+          type: string
+        environment:
+          type: string
+        status:
+          type: string
+          enum: [success, failure, cancelled]
+        timestamp:
+          type: string
+          format: date-time
+        repoId:
+          type: string
+        commitSha:
+          type: string
+        source:
+          type: string
+          enum: [vercel, generic]

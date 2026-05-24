@@ -146,6 +146,7 @@ describe("storeEvaluation", () => {
 
     const headers = vi.mocked(fetch).mock.calls[0][1]!.headers as Record<string, string>;
     expect(headers["Authorization"]).toBe("Bearer my-secret");
+    expect(headers["Idempotency-Key"]).toBe("dg-test");
   });
 
   it("sends x-vercel-protection-bypass when VERCEL_AUTOMATION_BYPASS_SECRET is set", async () => {

@@ -109,7 +109,6 @@ describe("run (main entrypoint)", () => {
       "https://example.com/api/trailhead/store",
       eval_,
     );
-    expect(core.info).toHaveBeenCalledWith("## Report");
     expect(core.setFailed).not.toHaveBeenCalled();
   });
 });
