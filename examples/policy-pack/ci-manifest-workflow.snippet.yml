@@ -1,0 +1,78 @@
+# Snippet: emit ci-manifest.json for path-filtered jobs
+#
+# Pair with Trailhead gate step:
+#   ci-manifest-path: ci-manifest.json
+#
+# See docs/ci-manifest.md
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        id: paths
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            app:
+              - "src/**"
+            e2e:
+              - "src/**"
+              - "e2e/**"
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Playwright (app changes only)
+        if: steps.paths.outputs.app == 'true'
+        run: npm run test:e2e
+
+      - name: Write CI manifest
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const jobs = [
+            { name: "CI Gate", outcome: "ran" },
+            {
+              name: "Playwright",
+              outcome: process.env.E2E_RAN === "true" ? "ran" : "skipped",
+              reason: process.env.E2E_RAN === "true" ? undefined : "paths-filter",
+            },
+          ].map((j) => (j.reason ? j : { name: j.name, outcome: j.outcome }));
+          fs.writeFileSync(
+            "ci-manifest.json",
+            JSON.stringify(
+              {
+                schema_version: 1,
+                generated_at: new Date().toISOString(),
+                commit_sha: process.env.GITHUB_SHA,
+                workflow: process.env.GITHUB_WORKFLOW,
+                run_id: Number(process.env.GITHUB_RUN_ID),
+                jobs,
+              },
+              null,
+              2,
+            ),
+          );
+          NODE
+        env:
+          E2E_RAN: ${{ steps.paths.outputs.e2e == 'true' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-manifest
+          path: ci-manifest.json
+
+  trailhead:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-manifest
+      - uses: KomatikAI/trailhead@v4
+        with:
+          gate-mode: release-ready
+          ci-manifest-path: ci-manifest.json

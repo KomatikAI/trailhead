@@ -4,6 +4,14 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- **CI manifest (E15)** — `ci-manifest.json` schema, `ci-manifest-path` action input, and orchestrator merge so path-filter job skips do not count as missing required checks. See [docs/ci-manifest.md](docs/ci-manifest.md).
+
+### Changed
+
+- **Repository branch sync** — `main` is the active/default branch (`CHANGELOG` v4.0.0 note corrected).
+
 ## [4.1.0] - 2026-05-23
 
 ### Added — Trailhead Cloud (E11–E14)
@@ -49,7 +57,7 @@ All notable changes to Trailhead will be documented in this file.
 - **Migration guide** — See `docs/migration-v3-to-v4.md` for upgrading from `@v3`.
 - **Trailhead canonical naming** — Completed the canonical naming migration across action metadata, docs, examples, package metadata, telemetry attributes, risk labels, and persisted evaluation targets.
 - **Compatibility preserved** — legacy v1 config/env aliases remain supported as fallbacks.
-- **Repository branch sync** — `dev` is the active/default branch; `main` and `staging` are kept fast-forwarded to `dev`.
+- **Repository branch sync** — `main` is the active/default branch; `dev` and `staging` are kept in sync with `main`.
 
 ### Fixed
 

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-24T12:00:00Z",
+  "commit_sha": "0000000000000000000000000000000000000000",
+  "workflow": "CI",
+  "jobs": [
+    { "name": "CI Gate", "outcome": "ran" },
+    { "name": "Build", "outcome": "ran" },
+    { "name": "Playwright", "outcome": "skipped", "reason": "paths-filter" },
+    { "name": "Storybook", "outcome": "skipped", "reason": "paths-filter" }
+  ]
+}

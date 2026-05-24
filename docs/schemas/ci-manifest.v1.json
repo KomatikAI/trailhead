@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trailhead.dev/schemas/ci-manifest.v1.json",
+  "title": "Trailhead CI Manifest",
+  "description": "Declares which workflow jobs ran or were skipped (e.g. paths-filter) so Trailhead can score release-ready without false missing checks.",
+  "type": "object",
+  "required": ["schema_version", "jobs"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "commit_sha": { "type": "string" },
+    "workflow": { "type": "string" },
+    "run_id": { "type": "integer", "minimum": 1 },
+    "jobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "outcome"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "outcome": {
+            "type": "string",
+            "enum": ["ran", "skipped", "failed", "pending", "cancelled"]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "paths-filter",
+              "paths-ignore",
+              "manual",
+              "condition",
+              "concurrency",
+              "workflow_dispatch",
+              "other"
+            ]
+          },
+          "check_run_id": { "type": "integer", "minimum": 1 },
+          "details_url": { "type": "string", "format": "uri" }
+        }
+      }
+    }
+  }
+}

@@ -1836,6 +1836,7 @@ export async function evaluateGate(
         "Trailhead",
         "Trailhead — Release Ready",
       ];
+      const ciManifest = config.ciManifest ?? null;
 
       if (config.waitForChecks && ciConfig.required_checks.length > 0) {
         ciSummary = await waitForChecks({
@@ -1846,6 +1847,7 @@ export async function evaluateGate(
           ciConfig,
           excludeCheckNames,
           timeoutMinutes: config.waitTimeoutMinutes ?? 30,
+          manifest: ciManifest,
         });
       } else {
         const checks = await fetchCheckRuns(octokit, {
@@ -1854,7 +1856,7 @@ export async function evaluateGate(
           headSha: commitSha,
           excludeCheckNames,
         });
-        ciSummary = evaluateRequiredChecks(checks, ciConfig);
+        ciSummary = evaluateRequiredChecks(checks, ciConfig, ciManifest);
       }
       localEvaluation.ci = ciSummary;
     } catch (error) {
