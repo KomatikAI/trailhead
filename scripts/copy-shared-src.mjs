@@ -22,6 +22,7 @@ const sharedFiles = [
   "context-matcher.ts",
   "release-ready.ts",
   "ci-core.ts",
+  "ci-manifest.ts",
   "config-core.ts",
   "deployment-gate.ts",
 ];
