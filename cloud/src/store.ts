@@ -111,6 +111,22 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       rows.sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
       return rows.slice(0, limit);
     },
+
+    getEvaluation(orgId: string, id: string): StoredEvaluation | null {
+      const row = evaluations.get(id);
+      if (!row || row.orgId !== orgId) return null;
+      return row;
+    },
+
+    listAllEvaluations(orgId: string): StoredEvaluation[] {
+      return [...evaluations.values()]
+        .filter((e) => e.orgId === orgId)
+        .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+    },
+
+    listDeployEvents(orgId: string): Array<{ orgId: string; payload: DeployEventPayload }> {
+      return deployEvents.filter((e) => e.orgId === orgId);
+    },
   };
 }
 

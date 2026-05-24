@@ -77,6 +77,9 @@ export interface CloudStore {
   listOrgs(): OrgRecord[];
   listRepos(orgId: string): RepoRecord[];
   listEvaluations(orgId: string, repoId?: string, limit?: number): StoredEvaluation[];
+  getEvaluation(orgId: string, id: string): StoredEvaluation | null;
+  listAllEvaluations(orgId: string): StoredEvaluation[];
+  listDeployEvents(orgId: string): Array<{ orgId: string; payload: DeployEventPayload }>;
   getOrgForKey(apiKey: string): ApiKeyRecord | null;
 }
 

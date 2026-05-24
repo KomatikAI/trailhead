@@ -18,8 +18,8 @@ Transform Trailhead from a risk-scoring sidecar into a **Release Readiness Gate*
 
 | Epic | Status     | Description                             |
 | ---- | ---------- | --------------------------------------- |
-| E11  | 🔶 Started | Trailhead Cloud API (`cloud/`, OpenAPI) |
-| E12  | ⏳         | Hosted dashboard panels                 |
+| E11  | ✅ Done | Trailhead Cloud API (`cloud/`, OpenAPI) |
+| E12  | ✅ Done | Hosted dashboard + analytics API        |
 | E13  | ⏳         | Finding feedback + detector noise       |
 | E14  | ⏳         | Marketplace tiers + metering            |
 

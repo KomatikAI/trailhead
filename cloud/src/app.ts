@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { serveStatic } from "@hono/node-server/serve-static";
+import { buildDashboardAnalytics } from "./analytics.js";
 import { createMemoryStore, parseSeedKeys } from "./store.js";
 import type { ApiKeyRecord, CloudStore, RateLimitState } from "./types.js";
 import { DeployEventPayload, EvaluationPayload } from "./types.js";
@@ -49,6 +51,9 @@ export function createCloudApp(options: CloudAppOptions = {}): Hono {
   const app = new Hono();
 
   app.get("/health", (c) => c.json({ status: "ok", service: "trailhead-cloud" }));
+
+  app.use("/dashboard/*", serveStatic({ root: "./public" }));
+  app.get("/dashboard", (c) => c.redirect("/dashboard/dashboard.html"));
 
   app.use("/v1/*", async (c, next) => {
     const auth = c.req.header("Authorization") ?? "";
@@ -111,6 +116,32 @@ export function createCloudApp(options: CloudAppOptions = {}): Hono {
     const limit = limitRaw ? parseInt(limitRaw, 10) : 100;
     const rows = store.listEvaluations(orgId, repoId, limit);
     return c.json({ evaluations: rows, count: rows.length });
+  });
+
+  app.get("/v1/evaluations/:id", (c) => {
+    const orgId = c.get("orgId") as string;
+    const row = store.getEvaluation(orgId, c.req.param("id"));
+    if (!row) {
+      return c.json({ error: "evaluation not found" }, 404);
+    }
+    return c.json({ evaluation: row });
+  });
+
+  app.get("/v1/analytics/dashboard", (c) => {
+    const orgId = c.get("orgId") as string;
+    const repoId = c.req.query("repo_id");
+    const daysRaw = c.req.query("days");
+    const days = daysRaw ? parseInt(daysRaw, 10) : 30;
+    const windowDays = Number.isFinite(days) && days > 0 ? days : 30;
+
+    const analytics = buildDashboardAnalytics(
+      store.listAllEvaluations(orgId),
+      store.listDeployEvents(orgId),
+      { repoId: repoId || undefined, days: windowDays },
+    );
+
+    const recentEvaluations = store.listEvaluations(orgId, repoId || undefined, 50);
+    return c.json({ ...analytics, recentEvaluations });
   });
 
   app.post("/v1/deploy-events", async (c) => {

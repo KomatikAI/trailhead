@@ -22,7 +22,7 @@ When `trailhead-api-key` is set:
 | Deploy events | `https://api.trailhead.dev/v1/deploy-events`                                               |
 | Idempotency   | `Idempotency-Key: <evaluation.id>` on every POST                                           |
 
-Repos are **auto-registered** on first evaluation. See [cloud/openapi.yaml](../cloud/openapi.yaml) for the full API.
+Repos are **auto-registered** on first evaluation. Open the hosted dashboard at `/dashboard` on the Cloud API (e.g. `https://api.trailhead.dev/dashboard`). See [cloud/openapi.yaml](../cloud/openapi.yaml) for the full API.
 
 ### Local Cloud API
 

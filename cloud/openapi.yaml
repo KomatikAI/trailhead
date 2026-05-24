@@ -109,6 +109,45 @@ paths:
         "200":
           description: Repo list (auto-registered on first evaluation)
 
+  /v1/analytics/dashboard:
+    get:
+      summary: Dashboard analytics bundle (trends, release ready, DORA proxy, CFR)
+      operationId: getDashboardAnalytics
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: repo_id
+          schema:
+            type: string
+        - in: query
+          name: days
+          schema:
+            type: integer
+            enum: [30, 90]
+            default: 30
+      responses:
+        "200":
+          description: Analytics payload for hosted dashboard
+
+  /v1/evaluations/{id}:
+    get:
+      summary: Single evaluation drill-down (CI + risk breakdown)
+      operationId: getEvaluation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full evaluation record
+        "404":
+          description: Not found
+
 components:
   securitySchemes:
     bearerAuth:

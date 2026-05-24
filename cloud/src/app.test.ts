@@ -108,4 +108,58 @@ describe("Trailhead Cloud API", () => {
     const body = (await res.json()) as { orgs: Array<{ id: string }> };
     expect(body.orgs).toEqual([expect.objectContaining({ id: "komatik" })]);
   });
+
+  it("returns dashboard analytics", async () => {
+    await app.request("/v1/evaluations", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        ...sampleEvaluation("analytics-1"),
+        releaseReady: true,
+        context: { name: "main-pr" },
+        ci: { failedCount: 0, checks: [] },
+      }),
+    });
+    await app.request("/v1/deploy-events", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        deploymentId: "d-analytics",
+        environment: "production",
+        status: "failure",
+        timestamp: new Date().toISOString(),
+        repoId: "KomatikAI/trailhead",
+      }),
+    });
+
+    const res = await app.request("/v1/analytics/dashboard?days=30", {
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      releaseReady: { pass: number };
+      cfr: { failures: number };
+      recentEvaluations: unknown[];
+    };
+    expect(body.releaseReady.pass).toBeGreaterThan(0);
+    expect(body.cfr.failures).toBe(1);
+    expect(body.recentEvaluations.length).toBeGreaterThan(0);
+  });
+
+  it("returns evaluation drill-down by id", async () => {
+    await app.request("/v1/evaluations", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        ...sampleEvaluation("drill-1"),
+        riskFactors: [{ type: "code_churn", score: 42 }],
+        ci: { failedCount: 1, checks: [{ name: "CI", status: "fail", required: true }] },
+      }),
+    });
+
+    const res = await app.request("/v1/evaluations/drill-1", { headers: authHeaders() });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { evaluation: { id: string } };
+    expect(body.evaluation.id).toBe("drill-1");
+  });
 });
