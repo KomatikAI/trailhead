@@ -96,6 +96,7 @@ async function storeViaApiOnce(
   if (storeSecret) {
     headers["Authorization"] = `Bearer ${storeSecret}`;
   }
+  headers["Idempotency-Key"] = evaluation.id;
 
   const vercelBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   if (vercelBypass) {

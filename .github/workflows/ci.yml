@@ -41,6 +41,14 @@ jobs:
         run: |
           cd mcp && npm ci && npm run prebuild && npx tsc --noEmit
 
+      - name: Typecheck cloud/
+        run: |
+          cd cloud && npm ci && npm run prebuild && npx tsc --noEmit
+
+      - name: Cloud API tests
+        run: |
+          cd cloud && npm run prebuild && npm test
+
       - name: Tests with coverage
         run: npx vitest run --coverage
 

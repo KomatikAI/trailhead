@@ -75,12 +75,16 @@ inputs:
     description: "Which decisions trigger the webhook: comma-separated list of allow, warn, block."
     required: false
     default: "warn,block"
+  trailhead-api-key:
+    description: "Trailhead Cloud API key — auto-configures evaluation store URL and auth. Replaces evaluation-store-url + evaluation-store-secret for cloud tier."
+    required: false
+    default: ""
   evaluation-store-url:
-    description: "URL to POST evaluations for historical trend analysis. Omit to disable."
+    description: "URL to POST evaluations for historical trend analysis. Omit to disable (or use trailhead-api-key for Trailhead Cloud)."
     required: false
     default: ""
   evaluation-store-secret:
-    description: "Bearer token for authenticating with the evaluation store endpoint."
+    description: "Bearer token for authenticating with the evaluation store endpoint. Not needed when trailhead-api-key is set."
     required: false
     default: ""
   dora-metrics:

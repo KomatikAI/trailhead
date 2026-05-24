@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trailhead Cloud Dashboard</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --border: #30363d;
+        --text: #c9d1d9;
+        --text-muted: #8b949e;
+        --accent: #58a6ff;
+        --green: #3fb950;
+        --yellow: #d29922;
+        --red: #f85149;
+        --radius: 8px;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        padding: 24px;
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+      .subtitle {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        margin: 4px 0 24px;
+      }
+      .config-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+      .config-bar label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        gap: 4px;
+      }
+      .config-bar input,
+      .config-bar select {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: var(--radius);
+        padding: 6px 10px;
+        font-size: 0.875rem;
+        min-width: 180px;
+      }
+      .config-bar button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        padding: 8px 16px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .stat-card,
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+      }
+      .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+      .stat-sub {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .panel h3 {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+      .bar-chart {
+        display: flex;
+        align-items: end;
+        gap: 4px;
+        height: 100px;
+      }
+      .bar {
+        flex: 1;
+        border-radius: 2px 2px 0 0;
+        min-width: 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        font-size: 0.875rem;
+      }
+      th,
+      td {
+        padding: 10px 14px;
+        border-top: 1px solid var(--border);
+        text-align: left;
+      }
+      thead th {
+        border-top: none;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+      tr.clickable {
+        cursor: pointer;
+      }
+      tr.clickable:hover td {
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+      .badge-pass {
+        background: rgba(63, 185, 80, 0.15);
+        color: var(--green);
+      }
+      .badge-fail {
+        background: rgba(248, 81, 73, 0.15);
+        color: var(--red);
+      }
+      .badge-warn {
+        background: rgba(210, 153, 34, 0.15);
+        color: var(--yellow);
+      }
+      .empty-state {
+        text-align: center;
+        padding: 48px 24px;
+        color: var(--text-muted);
+      }
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .modal-backdrop.open {
+        display: flex;
+      }
+      .modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        max-width: 720px;
+        width: 100%;
+        max-height: 85vh;
+        overflow: auto;
+        padding: 20px;
+      }
+      .modal h2 {
+        font-size: 1.125rem;
+        margin-bottom: 12px;
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .detail-grid dt {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+      }
+      .detail-grid dd {
+        margin: 0 0 8px;
+      }
+      pre {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px;
+        overflow: auto;
+        font-size: 0.75rem;
+      }
+      .allow {
+        color: var(--green);
+      }
+      .warn {
+        color: var(--yellow);
+      }
+      .block {
+        color: var(--red);
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .tabs button {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        border-radius: var(--radius);
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      .tabs button.active {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+      .danger-btn {
+        background: var(--red);
+      }
+      textarea,
+      .config-bar textarea {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: var(--radius);
+        padding: 8px;
+        min-height: 80px;
+        width: 100%;
+      }
+      @media (max-width: 900px) {
+        .grid-2,
+        .grid-3,
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Trailhead Cloud</h1>
+    <p class="subtitle" id="orgLabel">Release readiness analytics</p>
+
+    <div class="config-bar">
+      <label>
+        API Base
+        <input type="text" id="apiBase" placeholder="https://api.trailhead.dev" />
+      </label>
+      <label>
+        API Key
+        <input type="password" id="apiKey" placeholder="thk_..." />
+      </label>
+      <label>
+        Repository
+        <select id="repoSelect">
+          <option value="">All repos</option>
+        </select>
+      </label>
+      <label>
+        Window
+        <select id="window">
+          <option value="30" selected>30 days</option>
+          <option value="90">90 days</option>
+        </select>
+      </label>
+      <button type="button" id="loadBtn">Load</button>
+    </div>
+
+    <div class="tabs" id="tabs" style="display: none">
+      <button type="button" class="active" data-tab="analytics">Analytics</button>
+      <button type="button" data-tab="feedback">Feedback</button>
+      <button type="button" data-tab="settings">Settings</button>
+    </div>
+
+    <div id="content" style="display: none">
+      <div class="tab-panel active" id="tab-analytics">
+        <div class="stats" id="stats"></div>
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Risk trend (daily avg)</h3>
+            <div class="bar-chart" id="riskChart"></div>
+          </div>
+          <div class="panel">
+            <h3>Release Ready pass rate</h3>
+            <div id="releaseReadyPanel"></div>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="panel">
+            <h3>CI failure correlation</h3>
+            <div id="ciPanel"></div>
+          </div>
+          <div class="panel">
+            <h3>DORA proxy</h3>
+            <div id="doraPanel"></div>
+          </div>
+          <div class="panel">
+            <h3>Deploy outcomes (CFR)</h3>
+            <div id="cfrPanel"></div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Repo</th>
+              <th>PR</th>
+              <th>Risk</th>
+              <th>Decision</th>
+              <th>Release Ready</th>
+              <th>Context</th>
+            </tr>
+          </thead>
+          <tbody id="evalBody"></tbody>
+        </table>
+      </div>
+
+      <div class="tab-panel" id="tab-feedback">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Detector noise (&gt;15% FP flagged)</h3>
+            <div id="noisePanel"></div>
+          </div>
+          <div class="panel">
+            <h3>Policy tuning proposal</h3>
+            <pre id="tuningYaml"></pre>
+            <button type="button" id="copyYamlBtn">Copy YAML</button>
+          </div>
+        </div>
+        <div class="panel" style="margin-top: 16px">
+          <h3>Digest preview (weekly noisy detectors)</h3>
+          <pre id="digestPreview"></pre>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-settings">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Plan &amp; quota</h3>
+            <div id="planPanel"></div>
+          </div>
+          <div class="panel">
+            <h3>API keys</h3>
+            <div id="keysPanel"></div>
+            <button type="button" id="createKeyBtn" style="margin-top: 12px">
+              Create key
+            </button>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top: 16px">
+          <div class="panel">
+            <h3>SSO (Team plan)</h3>
+            <label
+              >Provider
+              <select id="ssoProvider">
+                <option value="oidc">OIDC</option>
+                <option value="saml">SAML</option>
+              </select>
+            </label>
+            <label style="margin-top: 8px; display: block"
+              >Issuer URL
+              <input type="url" id="ssoIssuer" placeholder="https://idp.example.com" />
+            </label>
+            <label style="margin-top: 8px; display: block"
+              >Client ID
+              <input type="text" id="ssoClientId" />
+            </label>
+            <button type="button" id="saveSsoBtn" style="margin-top: 12px">
+              Save SSO config
+            </button>
+          </div>
+          <div class="panel">
+            <h3>Digest subscription</h3>
+            <label
+              ><input type="checkbox" id="digestEnabled" /> Enable weekly digest</label
+            >
+            <label style="margin-top: 8px; display: block"
+              >Channel
+              <select id="digestChannel">
+                <option value="slack">Slack</option>
+                <option value="email">Email</option>
+              </select>
+            </label>
+            <label style="margin-top: 8px; display: block"
+              >Destination
+              <input
+                type="text"
+                id="digestDestination"
+                placeholder="#channel or email@org.com"
+              />
+            </label>
+            <button type="button" id="saveDigestBtn" style="margin-top: 12px">
+              Save digest settings
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      Enter your Trailhead Cloud API key and click <strong>Load</strong>.
+    </div>
+
+    <div class="modal-backdrop" id="modal">
+      <div class="modal">
+        <h2>Evaluation drill-down</h2>
+        <div id="modalBody"></div>
+        <div id="dismissPanel" style="margin-top: 16px; display: none">
+          <h3>Dismiss finding</h3>
+          <label>Detector <input type="text" id="dismissDetector" /></label>
+          <label style="display: block; margin-top: 8px"
+            >Reason
+            <textarea
+              id="dismissReason"
+              placeholder="Why is this a false positive?"
+            ></textarea>
+          </label>
+          <button type="button" id="submitDismissBtn" style="margin-top: 8px">
+            Submit feedback
+          </button>
+        </div>
+        <button type="button" id="closeModal" style="margin-top: 16px">Close</button>
+      </div>
+    </div>
+
+    <script>
+      const DEFAULT_BASE = window.location.origin.includes("localhost")
+        ? window.location.origin
+        : "https://api.trailhead.dev";
+
+      function authHeaders() {
+        return {
+          Authorization: "Bearer " + document.getElementById("apiKey").value.trim(),
+          Accept: "application/json",
+        };
+      }
+
+      function apiBase() {
+        return document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+      }
+
+      async function apiFetch(path, options) {
+        const res = await fetch(apiBase() + path, {
+          headers: {
+            ...authHeaders(),
+            ...(options && options.body ? { "Content-Type": "application/json" } : {}),
+          },
+          ...options,
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error("HTTP " + res.status + ": " + err);
+        }
+        return res.json();
+      }
+
+      function apiPost(path, body) {
+        return apiFetch(path, { method: "POST", body: JSON.stringify(body) });
+      }
+
+      function apiPut(path, body) {
+        return apiFetch(path, { method: "PUT", body: JSON.stringify(body) });
+      }
+
+      function apiDelete(path) {
+        return apiFetch(path, { method: "DELETE" });
+      }
+
+      let currentEval = null;
+      let latestTuningYaml = "";
+
+      function scoreColor(score) {
+        if (score > 70) return "var(--red)";
+        if (score > 55) return "var(--yellow)";
+        return "var(--green)";
+      }
+
+      function badge(text, kind) {
+        return '<span class="badge badge-' + kind + '">' + text + "</span>";
+      }
+
+      function relativeTime(dateStr) {
+        const diff = Date.now() - new Date(dateStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 60) return mins + "m ago";
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return hours + "h ago";
+        return Math.floor(hours / 24) + "d ago";
+      }
+
+      async function loadRepos() {
+        const data = await apiFetch("/v1/repos");
+        const select = document.getElementById("repoSelect");
+        const current = select.value;
+        select.innerHTML = '<option value="">All repos</option>';
+        for (const repo of data.repos || []) {
+          const opt = document.createElement("option");
+          opt.value = repo.fullName;
+          opt.textContent = repo.fullName + " (" + repo.evaluationCount + ")";
+          select.appendChild(opt);
+        }
+        if (current) select.value = current;
+      }
+
+      function renderRiskChart(trend) {
+        const el = document.getElementById("riskChart");
+        if (!trend.length) {
+          el.innerHTML = '<p class="stat-sub">No data in window</p>';
+          return;
+        }
+        el.innerHTML = trend
+          .slice(-14)
+          .map(function (point) {
+            return (
+              '<div class="bar" style="height:' +
+              point.avgRisk +
+              "%;background:" +
+              scoreColor(point.avgRisk) +
+              '" title="' +
+              point.date +
+              ": " +
+              point.avgRisk +
+              '"></div>'
+            );
+          })
+          .join("");
+      }
+
+      function renderReleaseReady(rr) {
+        document.getElementById("releaseReadyPanel").innerHTML =
+          '<div class="stat-value" style="color:var(--green)">' +
+          rr.passRate +
+          "%</div>" +
+          '<div class="stat-sub">' +
+          rr.pass +
+          " pass / " +
+          rr.fail +
+          " fail" +
+          (rr.unknown ? " / " + rr.unknown + " unknown" : "") +
+          "</div>" +
+          Object.entries(rr.byContext || {})
+            .map(function (entry) {
+              const name = entry[0];
+              const stats = entry[1];
+              const total = stats.pass + stats.fail;
+              const rate = total ? Math.round((stats.pass / total) * 100) : 0;
+              return (
+                "<div class='stat-sub'>" + name + ": " + rate + "% (" + total + ")</div>"
+              );
+            })
+            .join("");
+      }
+
+      function renderCi(ci) {
+        document.getElementById("ciPanel").innerHTML =
+          "<div class='stat-sub'>CI failed: <strong>" +
+          ci.ciFailed +
+          "</strong></div>" +
+          "<div class='stat-sub'>Release Ready failed: <strong>" +
+          ci.releaseReadyFailed +
+          "</strong></div>" +
+          "<div class='stat-sub'>Both: <strong>" +
+          ci.both +
+          "</strong></div>" +
+          "<div class='stat-sub'>RR failed without CI fail: <strong>" +
+          ci.releaseReadyFailedOnly +
+          "</strong></div>";
+      }
+
+      function renderDora(dora) {
+        document.getElementById("doraPanel").innerHTML =
+          "<div class='stat-value'>" +
+          dora.rating +
+          "</div>" +
+          "<div class='stat-sub'>Deploy freq: " +
+          dora.deploymentFrequencyPerWeek +
+          "/wk</div>" +
+          "<div class='stat-sub'>CFR: " +
+          dora.changeFailureRate +
+          "%</div>" +
+          "<div class='stat-sub'>Avg risk: " +
+          dora.avgRiskScore +
+          "</div>";
+      }
+
+      function renderCfr(cfr) {
+        document.getElementById("cfrPanel").innerHTML =
+          "<div class='stat-value' style='color:" +
+          (cfr.cfr > 15 ? "var(--red)" : cfr.cfr > 5 ? "var(--yellow)" : "var(--green)") +
+          "'>" +
+          cfr.cfr +
+          "%</div>" +
+          "<div class='stat-sub'>" +
+          cfr.failures +
+          " failures / " +
+          (cfr.successes + cfr.failures) +
+          " deploys</div>";
+      }
+
+      function renderStats(data) {
+        const rr = data.releaseReady;
+        const avgRisk =
+          data.riskTrend.length > 0
+            ? Math.round(
+                data.riskTrend.reduce(function (s, p) {
+                  return s + p.avgRisk;
+                }, 0) / data.riskTrend.length,
+              )
+            : 0;
+        document.getElementById("stats").innerHTML =
+          "<div class='stat-card'><div class='stat-label'>Evaluations</div><div class='stat-value'>" +
+          data.recentEvaluations.length +
+          "+</div><div class='stat-sub'>" +
+          data.windowDays +
+          "d window</div></div>" +
+          "<div class='stat-card'><div class='stat-label'>Avg Risk</div><div class='stat-value' style='color:" +
+          scoreColor(avgRisk) +
+          "'>" +
+          avgRisk +
+          "</div></div>" +
+          "<div class='stat-card'><div class='stat-label'>Release Ready</div><div class='stat-value allow'>" +
+          rr.passRate +
+          "%</div></div>" +
+          "<div class='stat-card'><div class='stat-label'>CFR</div><div class='stat-value'>" +
+          data.cfr.cfr +
+          "%</div></div>" +
+          "<div class='stat-card'><div class='stat-label'>DORA Rating</div><div class='stat-value'>" +
+          data.dora.rating +
+          "</div></div>";
+      }
+
+      function renderNoise(noise) {
+        const rows = (noise && noise.detectors) || [];
+        if (!rows.length) {
+          document.getElementById("noisePanel").innerHTML =
+            "<p class='stat-sub'>No feedback yet</p>";
+          return;
+        }
+        document.getElementById("noisePanel").innerHTML = rows
+          .map(function (d) {
+            return (
+              "<div class='stat-sub'>" +
+              d.detector +
+              ": " +
+              d.falsePositiveRate +
+              "% FP (" +
+              d.falsePositive +
+              "/" +
+              d.total +
+              ")" +
+              (d.noisy ? " " + badge("NOISY", "fail") : "") +
+              "</div>"
+            );
+          })
+          .join("");
+      }
+
+      function renderTuning(tuning) {
+        latestTuningYaml = (tuning && tuning.yamlSnippet) || "# No tuning proposals";
+        document.getElementById("tuningYaml").textContent = latestTuningYaml;
+      }
+
+      async function renderDigestPreview() {
+        const digest = await apiFetch("/v1/digest/preview");
+        document.getElementById("digestPreview").textContent =
+          digest.subject + "\n\n" + digest.body;
+      }
+
+      async function renderSettings() {
+        const data = await apiFetch("/v1/org/settings");
+        const q = data.quota;
+        document.getElementById("planPanel").innerHTML =
+          "<div class='stat-value'>" +
+          (data.settings.plan || "pro").toUpperCase() +
+          "</div>" +
+          "<div class='stat-sub'>Quota: " +
+          q.used +
+          " / " +
+          q.limit +
+          " evaluations this month</div>" +
+          "<div class='stat-sub'>Seats: " +
+          data.settings.seatsUsed +
+          " / " +
+          data.settings.seats +
+          "</div>";
+
+        const keys = await apiFetch("/v1/api-keys");
+        document.getElementById("keysPanel").innerHTML = (keys.keys || [])
+          .map(function (k) {
+            return (
+              "<div class='stat-sub'>" +
+              k.label +
+              " — <code>" +
+              k.keyPreview +
+              "</code> " +
+              "<button type='button' data-revoke='" +
+              k.id +
+              "' class='danger-btn' style='margin-left:8px;padding:2px 8px;font-size:0.75rem'>Revoke</button></div>"
+            );
+          })
+          .join("");
+
+        document.querySelectorAll("[data-revoke]").forEach(function (btn) {
+          btn.addEventListener("click", async function () {
+            await apiDelete("/v1/api-keys/" + btn.getAttribute("data-revoke"));
+            await renderSettings();
+          });
+        });
+
+        if (data.settings.sso) {
+          document.getElementById("ssoProvider").value =
+            data.settings.sso.provider || "oidc";
+          document.getElementById("ssoIssuer").value = data.settings.sso.issuerUrl || "";
+          document.getElementById("ssoClientId").value = data.settings.sso.clientId || "";
+        }
+        if (data.settings.digest) {
+          document.getElementById("digestEnabled").checked =
+            !!data.settings.digest.enabled;
+          document.getElementById("digestChannel").value =
+            data.settings.digest.channel || "slack";
+          document.getElementById("digestDestination").value =
+            data.settings.digest.destination || "";
+        }
+      }
+
+      function setupTabs() {
+        document.getElementById("tabs").style.display = "flex";
+        document.querySelectorAll(".tabs button").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            document.querySelectorAll(".tabs button").forEach(function (b) {
+              b.classList.remove("active");
+            });
+            document.querySelectorAll(".tab-panel").forEach(function (p) {
+              p.classList.remove("active");
+            });
+            btn.classList.add("active");
+            document
+              .getElementById("tab-" + btn.getAttribute("data-tab"))
+              .classList.add("active");
+          });
+        });
+      }
+
+      function renderTable(rows) {
+        document.getElementById("evalBody").innerHTML = rows
+          .map(function (row) {
+            const ctx = row.context && row.context.name ? row.context.name : "—";
+            const rr =
+              row.releaseReady === true
+                ? badge("PASS", "pass")
+                : row.releaseReady === false
+                  ? badge("FAIL", "fail")
+                  : "—";
+            return (
+              '<tr class="clickable" data-id="' +
+              row.id +
+              '"><td title="' +
+              row.receivedAt +
+              '">' +
+              relativeTime(row.receivedAt) +
+              "</td><td>" +
+              row.repoId +
+              "</td><td>" +
+              (row.prNumber ? "#" + row.prNumber : "—") +
+              "</td><td style='color:" +
+              scoreColor(row.riskScore) +
+              "'>" +
+              row.riskScore +
+              "</td><td>" +
+              row.gateDecision +
+              "</td><td>" +
+              rr +
+              "</td><td>" +
+              ctx +
+              "</td></tr>"
+            );
+          })
+          .join("");
+
+        document.querySelectorAll("tr.clickable").forEach(function (tr) {
+          tr.addEventListener("click", function () {
+            openDrillDown(tr.getAttribute("data-id"));
+          });
+        });
+      }
+
+      async function openDrillDown(id) {
+        const data = await apiFetch("/v1/evaluations/" + encodeURIComponent(id));
+        const e = data.evaluation;
+        currentEval = e;
+        const ciChecks =
+          e.ci && e.ci.checks
+            ? e.ci.checks
+                .map(function (c) {
+                  return c.name + ": " + c.status + (c.required ? " (required)" : "");
+                })
+                .join("\n")
+            : "—";
+        const reasons = (e.releaseReadyReasons || []).join("\n") || "—";
+        const factors = (e.riskFactors || [])
+          .map(function (f) {
+            return (
+              f.type +
+              ": " +
+              f.score +
+              ' <button type="button" data-detector="' +
+              f.type +
+              '" class="dismiss-factor-btn" style="margin-left:6px;font-size:0.7rem">Dismiss</button>'
+            );
+          })
+          .join("\n");
+
+        document.getElementById("modalBody").innerHTML =
+          "<dl class='detail-grid'>" +
+          "<dt>Commit</dt><dd><code>" +
+          e.commitSha.substring(0, 7) +
+          "</code></dd>" +
+          "<dt>PR</dt><dd>" +
+          (e.prNumber ? "#" + e.prNumber : "—") +
+          "</dd>" +
+          "<dt>Risk / Health</dt><dd>" +
+          e.riskScore +
+          " / " +
+          e.healthScore +
+          "</dd>" +
+          "<dt>Gate mode</dt><dd>" +
+          (e.gateMode || "—") +
+          "</dd></dl>" +
+          "<h3>CI checks</h3><pre>" +
+          ciChecks +
+          "</pre>" +
+          "<h3>Release Ready reasons</h3><pre>" +
+          reasons +
+          "</pre>" +
+          "<h3>Risk factors</h3><pre id='factorList'>" +
+          (factors || "—") +
+          "</pre>";
+        document.getElementById("dismissPanel").style.display = "block";
+        document.getElementById("dismissDetector").value = "";
+        document.getElementById("dismissReason").value = "";
+        document.querySelectorAll(".dismiss-factor-btn").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            document.getElementById("dismissDetector").value =
+              btn.getAttribute("data-detector");
+          });
+        });
+        document.getElementById("modal").classList.add("open");
+      }
+
+      async function loadData() {
+        const key = document.getElementById("apiKey").value.trim();
+        if (!key) {
+          alert("Please enter your Trailhead API key");
+          return;
+        }
+
+        localStorage.setItem("th_cloud_base", apiBase());
+        localStorage.setItem("th_cloud_key", key);
+
+        try {
+          const orgs = await apiFetch("/v1/orgs");
+          if (orgs.orgs && orgs.orgs[0]) {
+            document.getElementById("orgLabel").textContent = "Org: " + orgs.orgs[0].name;
+          }
+
+          await loadRepos();
+
+          const repo = document.getElementById("repoSelect").value;
+          const days = document.getElementById("window").value;
+          const qs =
+            "?days=" + days + (repo ? "&repo_id=" + encodeURIComponent(repo) : "");
+          const data = await apiFetch("/v1/analytics/dashboard" + qs);
+
+          document.getElementById("emptyState").style.display = "none";
+          document.getElementById("content").style.display = "block";
+          setupTabs();
+
+          renderStats(data);
+          renderRiskChart(data.riskTrend);
+          renderReleaseReady(data.releaseReady);
+          renderCi(data.ciCorrelation);
+          renderDora(data.dora);
+          renderCfr(data.cfr);
+          renderTable(data.recentEvaluations);
+          renderNoise(data.detectorNoise);
+          renderTuning(data.tuningProposal);
+          await renderDigestPreview();
+          await renderSettings();
+        } catch (err) {
+          alert("Load failed: " + err.message);
+        }
+      }
+
+      document.getElementById("loadBtn").addEventListener("click", loadData);
+      document.getElementById("copyYamlBtn").addEventListener("click", function () {
+        navigator.clipboard.writeText(latestTuningYaml);
+      });
+      document
+        .getElementById("createKeyBtn")
+        .addEventListener("click", async function () {
+          const label = prompt("Key label", "CI rotation key");
+          const created = await apiPost("/v1/api-keys", { label: label || "API key" });
+          alert("Copy this key now — it won't be shown again:\n\n" + created.secret);
+          await renderSettings();
+        });
+      document.getElementById("saveSsoBtn").addEventListener("click", async function () {
+        await apiPut("/v1/org/settings", {
+          sso: {
+            enabled: true,
+            provider: document.getElementById("ssoProvider").value,
+            issuerUrl: document.getElementById("ssoIssuer").value || undefined,
+            clientId: document.getElementById("ssoClientId").value || undefined,
+          },
+        });
+        alert("SSO configuration saved");
+      });
+      document
+        .getElementById("saveDigestBtn")
+        .addEventListener("click", async function () {
+          await apiPut("/v1/digest/subscribe", {
+            enabled: document.getElementById("digestEnabled").checked,
+            channel: document.getElementById("digestChannel").value,
+            destination: document.getElementById("digestDestination").value,
+            fpThreshold: 15,
+          });
+          await renderDigestPreview();
+          alert("Digest settings saved");
+        });
+      document
+        .getElementById("submitDismissBtn")
+        .addEventListener("click", async function () {
+          if (!currentEval) return;
+          await apiPost("/v1/feedback", {
+            detector: document.getElementById("dismissDetector").value,
+            disposition: "false_positive",
+            repo: currentEval.repoId,
+            reason: document.getElementById("dismissReason").value,
+            evaluationId: currentEval.id,
+          });
+          alert("Feedback recorded");
+          document.getElementById("modal").classList.remove("open");
+          await loadData();
+        });
+      document.getElementById("closeModal").addEventListener("click", function () {
+        document.getElementById("modal").classList.remove("open");
+      });
+      document.getElementById("modal").addEventListener("click", function (e) {
+        if (e.target.id === "modal")
+          document.getElementById("modal").classList.remove("open");
+      });
+
+      const savedBase = localStorage.getItem("th_cloud_base");
+      const savedKey = localStorage.getItem("th_cloud_key");
+      document.getElementById("apiBase").value = savedBase || DEFAULT_BASE;
+      if (savedKey) document.getElementById("apiKey").value = savedKey;
+      if (savedKey) loadData();
+    </script>
+  </body>
+</html>

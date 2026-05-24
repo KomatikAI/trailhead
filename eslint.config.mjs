@@ -37,6 +37,7 @@ export default tseslint.config(
       "scripts/",
       "mcp/",
       "app/",
+      "cloud/",
     ],
   },
 );

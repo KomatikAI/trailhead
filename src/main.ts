@@ -22,6 +22,7 @@ import { jestHealer } from "./healers/jest.js";
 import { playwrightHealer } from "./healers/playwright.js";
 import { cypressHealer } from "./healers/cypress.js";
 import { fetchCodeScanningAlerts, formatSecuritySection } from "./security.js";
+import { resolveEvaluationStoreUrl } from "./cloud-config.js";
 import type { TrailheadConfig, TestRepairResult } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -286,6 +287,12 @@ async function run(): Promise<void> {
         ? gateModeInput
         : undefined;
 
+    const trailheadApiKey = core.getInput("trailhead-api-key") || "";
+    const evaluationStoreUrl = resolveEvaluationStoreUrl({
+      trailheadApiKey: trailheadApiKey || undefined,
+      evaluationStoreUrl: core.getInput("evaluation-store-url") || undefined,
+    });
+
     const config: TrailheadConfig = {
       apiKey: core.getInput("api-key") || "",
       apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
@@ -313,7 +320,8 @@ async function run(): Promise<void> {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
-      evaluationStoreUrl: core.getInput("evaluation-store-url") || undefined,
+      evaluationStoreUrl,
+      trailheadApiKey: trailheadApiKey || undefined,
       environment,
       securityGate: core.getInput("security-gate") !== "false",
       gateMode,
@@ -449,6 +457,9 @@ async function run(): Promise<void> {
       const storeSecretInput = core.getInput("evaluation-store-secret");
       if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
         process.env.EVALUATION_STORE_SECRET = storeSecretInput;
+      }
+      if (config.trailheadApiKey && !process.env.EVALUATION_STORE_SECRET) {
+        process.env.EVALUATION_STORE_SECRET = config.trailheadApiKey;
       }
       const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation);
       evaluation.storePersisted = stored;

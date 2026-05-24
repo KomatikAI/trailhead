@@ -11,8 +11,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const targetName = process.argv[2];
 
-if (targetName !== "app" && targetName !== "mcp") {
-  console.error("Usage: node scripts/copy-shared-src.mjs <app|mcp>");
+if (targetName !== "app" && targetName !== "mcp" && targetName !== "cloud") {
+  console.error("Usage: node scripts/copy-shared-src.mjs <app|mcp|cloud>");
   process.exit(1);
 }
 
@@ -26,10 +26,19 @@ const sharedFiles = [
   "deployment-gate.ts",
 ];
 
+const cloudOnlyFiles = ["feedback-core.ts"];
+
+const filesToCopy =
+  targetName === "cloud"
+    ? cloudOnlyFiles
+    : targetName === "mcp"
+      ? [...sharedFiles, ...cloudOnlyFiles]
+      : sharedFiles;
+
 const targetDir = path.join(root, targetName, "src");
 fs.mkdirSync(targetDir, { recursive: true });
 
-for (const file of sharedFiles) {
+for (const file of filesToCopy) {
   fs.copyFileSync(path.join(root, "src", file), path.join(targetDir, file));
 }
 
@@ -53,4 +62,4 @@ if (targetName === "mcp") {
   }
 }
 
-console.log(`Copied ${sharedFiles.length} shared modules to ${targetName}/src/`);
+console.log(`Copied ${filesToCopy.length} shared modules to ${targetName}/src/`);

@@ -1,4 +1,5 @@
 import * as core from "@actions/core";
+import { resolveDeployEventsUrl } from "./cloud-config.js";
 import type { CanaryConfig } from "./types.js";
 import {
   computeDeploymentHistoryFactor,
@@ -153,6 +154,10 @@ export function parseGenericWebhook(
 // Record deploy outcome to store
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Record deploy outcome to store
+// ---------------------------------------------------------------------------
+
 export async function recordDeployOutcome(
   storeUrl: string,
   outcome: DeployOutcome,
@@ -172,7 +177,7 @@ export async function recordDeployOutcome(
       headers["x-vercel-protection-bypass"] = bypassSecret;
     }
 
-    const url = storeUrl.replace(/\/store\/?$/, "/deploy-event");
+    const url = resolveDeployEventsUrl(storeUrl);
 
     const response = await fetch(url, {
       method: "POST",
