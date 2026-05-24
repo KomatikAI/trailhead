@@ -19,6 +19,7 @@ vi.mock("@actions/github", () => ({
 import * as github from "@actions/github";
 import * as core from "@actions/core";
 import { loadRepoConfig, matchesGlobs } from "../config.js";
+import { RepoConfig } from "../types.js";
 
 function encodeYaml(yaml: string): string {
   return Buffer.from(yaml, "utf-8").toString("base64");
@@ -208,14 +209,14 @@ unexpected_key: true`,
 
   it("returns null for unsupported schema_version with migration warning", async () => {
     mockOctokit(
-      `schema_version: 2
+      `schema_version: 99
 thresholds:
   risk: 80`,
     );
     const config = await loadRepoConfig("ghp_test");
     expect(config).toBeNull();
     expect(vi.mocked(core.warning)).toHaveBeenCalledWith(
-      expect.stringContaining("unsupported schema_version=2"),
+      expect.stringContaining("unsupported schema_version=99"),
     );
   });
 
@@ -335,6 +336,42 @@ policies:
     expect(config!.policies.pr_scope.max_files).toBe(40);
     expect(config!.policies.pr_scope.mode).toBe("block");
     expect(config!.policies.cross_repo_impact.mode).toBe("block");
+  });
+
+  it("parses v2 schema with gate and contexts", () => {
+    const parsed = RepoConfig.safeParse({
+      schema_version: 2,
+      gate: { mode: "release-ready", check_name: "Trailhead — Release Ready" },
+      contexts: [
+        {
+          name: "feature",
+          match: { base_branch: ["dev"], head_branch: [], labels: [] },
+          thresholds: { risk: 70 },
+          ci: {
+            required_checks: ["CI Gate"],
+            optional_checks: [],
+            missing_required: "skip",
+          },
+        },
+      ],
+    });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.schema_version).toBe(2);
+    expect(parsed.data.gate.mode).toBe("release-ready");
+    expect(parsed.data.contexts).toHaveLength(1);
+    expect(parsed.data.contexts[0].name).toBe("feature");
+    expect(parsed.data.contexts[0].thresholds.risk).toBe(70);
+    expect(parsed.data.contexts[0].ci.required_checks).toEqual(["CI Gate"]);
+  });
+
+  it("defaults v1 schema without gate section", () => {
+    const parsed = RepoConfig.safeParse({ thresholds: { risk: 80 } });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.schema_version).toBe(1);
+    expect(parsed.data.gate.mode).toBe("risk-only");
+    expect(parsed.data.contexts).toEqual([]);
   });
 });
 

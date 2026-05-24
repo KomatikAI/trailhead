@@ -4,8 +4,27 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.0.0] - 2026-05-23
+
+### Added
+
+- **Release Readiness Gate (v4)** — Composite merge gate combining CI orchestration, risk scoring, freeze windows, and health checks into a single `release-ready` decision (ADR-006).
+- **Gate modes** — `release-ready` (default for v2 configs), `advisory` (never blocks), and `risk-only` (v3 compatibility).
+- **CI orchestrator** — Polls GitHub Checks API, classifies check conclusions (ADR-009), and evaluates required checks from branch-aware `contexts[]` in `.trailhead.yml`.
+- **Context matcher** — First-match `contexts[]` resolution by base branch, head branch, and labels.
+- **Schema v2** — `schema_version: 2` in `.trailhead.yml` with `gate`, `contexts`, and per-context CI/threshold overrides.
+- **CLI v4 wizard** — `npx trailhead init` generates v2 config and `@v4` workflow with `gate-mode` and `wait-for-checks`.
+- **Reusable workflow** — `.github/workflows/release-ready.yml` for consumers.
+- **MCP `get-pr-release-status`** — Returns `releaseReady`, CI summary, and risk for agent workflows.
+- **Store POST retry** — Evaluation store retries up to 3 times with 1s/4s/16s backoff on 429/502/503/504 and network errors.
+- **GitHub App composite gate** — Deployment protection handler uses the same `evaluateDeploymentGate` logic as the Action.
+- **Self-test fixtures** — 15 CI check scenarios and 8 context-matcher cases; self-test workflow runs in `release-ready` mode.
+
 ### Changed
 
+- **Default check name** — `Trailhead — Release Ready` in release-ready mode; `Trailhead` preserved in risk-only mode.
+- **README and marketplace listing** — Repositioned as a one-stop release readiness gate, not a risk sidecar.
+- **Migration guide** — See `docs/migration-v3-to-v4.md` for upgrading from `@v3`.
 - **Trailhead canonical naming** — Completed the canonical naming migration across action metadata, docs, examples, package metadata, telemetry attributes, risk labels, and persisted evaluation targets.
 - **Compatibility preserved** — legacy v1 config/env aliases remain supported as fallbacks.
 - **Repository branch sync** — `dev` is the active/default branch; `main` and `staging` are kept fast-forwarded to `dev`.
@@ -18,6 +37,7 @@ All notable changes to Trailhead will be documented in this file.
 
 ### Notes
 
+- v1 `.trailhead.yml` configs continue to default to `risk-only` mode — no breaking change for existing `@v3` consumers until you opt into v2 schema or `gate-mode: release-ready`.
 - The legacy supply-chain experiment branch remains unpromoted. Its targeted tests pass, but `app` and `mcp` builds fail until their prebuild scripts copy the new `supply-chain` module alongside `risk-engine.ts`.
 
 ## [3.0.2] - 2026-04-16

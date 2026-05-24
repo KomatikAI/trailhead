@@ -40603,6 +40603,33 @@ const PrProvenance = objectType({
     confidence: numberType().min(0).max(1),
     source: stringType().optional(),
 });
+const GateMode = enumType(["release-ready", "advisory", "risk-only"]);
+const CiCheckStatusEnum = enumType([
+    "pass",
+    "fail",
+    "skip",
+    "pending",
+    "stale",
+    "missing",
+]);
+const CiCheck = objectType({
+    name: stringType(),
+    status: CiCheckStatusEnum,
+    conclusion: stringType().optional(),
+    detailsUrl: stringType().url().optional(),
+    required: booleanType(),
+});
+const CiSummary = objectType({
+    checks: arrayType(CiCheck),
+    allRequiredPassed: booleanType(),
+    pendingCount: numberType().int().min(0),
+    failedCount: numberType().int().min(0),
+    missingCount: numberType().int().min(0),
+});
+const MatchedContext = objectType({
+    name: stringType(),
+    environment: stringType().optional(),
+});
 const GateEvaluation = objectType({
     id: stringType(),
     repoId: stringType(),
@@ -40654,6 +40681,12 @@ const GateEvaluation = objectType({
             .default({}),
     })
         .optional(),
+    releaseReady: booleanType().optional(),
+    releaseReadyReasons: arrayType(stringType()).optional(),
+    ci: CiSummary.optional(),
+    context: MatchedContext.optional(),
+    gateMode: GateMode.optional(),
+    storePersisted: booleanType().optional(),
 });
 const GateApiResponse = objectType({
     id: stringType().optional(),
@@ -40692,8 +40725,46 @@ const CanaryConfig = objectType({
     field_map: recordType(stringType()).optional(),
     rollback_on_failure: booleanType().default(false),
 });
+const RiskProfileMatch = objectType({
+    files_include: arrayType(stringType()).default([]),
+    files_exclude: arrayType(stringType()).default([]),
+    min_files: numberType().int().min(1).optional(),
+    max_files: numberType().int().min(1).optional(),
+});
+const RiskProfile = objectType({
+    name: stringType().optional(),
+    match: RiskProfileMatch,
+    weights: recordType(numberType().min(0).max(10)).default({}),
+});
+const ContextMatch = objectType({
+    base_branch: arrayType(stringType()).default([]),
+    head_branch: arrayType(stringType()).default([]),
+    labels: arrayType(stringType()).default([]),
+});
+const ContextCiConfig = objectType({
+    required_checks: arrayType(stringType()).default([]),
+    optional_checks: arrayType(stringType()).default([]),
+    missing_required: enumType(["fail", "skip"]).default("fail"),
+});
+const TrailheadContext = objectType({
+    name: stringType(),
+    match: ContextMatch,
+    environment: stringType().optional(),
+    thresholds: objectType({
+        risk: numberType().min(0).max(100).optional(),
+        warn: numberType().min(0).max(100).optional(),
+    })
+        .default({}),
+    ci: ContextCiConfig.default({}),
+});
+const GateConfig = objectType({
+    mode: GateMode.default("risk-only"),
+    check_name: stringType().default("Trailhead — Release Ready"),
+});
 const RepoConfig = objectType({
     schema_version: numberType().int().positive().default(1),
+    gate: GateConfig.default({}),
+    contexts: arrayType(TrailheadContext).default([]),
     sensitivity: objectType({
         high: arrayType(stringType()).default([]),
         medium: arrayType(stringType()).default([]),
@@ -40701,6 +40772,7 @@ const RepoConfig = objectType({
     })
         .default({}),
     weights: recordType(numberType().min(0).max(10)).default({}),
+    profiles: arrayType(RiskProfile).default([]),
     thresholds: objectType({
         risk: numberType().min(0).max(100).optional(),
         warn: numberType().min(0).max(100).optional(),
@@ -40785,6 +40857,95 @@ const promises_namespaceObject = require("node:fs/promises");
 ;// CONCATENATED MODULE: external "node:path"
 const external_node_path_namespaceObject = require("node:path");
 var external_node_path_default = /*#__PURE__*/__nccwpck_require__.n(external_node_path_namespaceObject);
+;// CONCATENATED MODULE: ./src/config-core.ts
+
+const SUPPORTED_CONFIG_SCHEMA_VERSIONS = new Set([1, 2]);
+const CURRENT_CONFIG_SCHEMA_VERSION = 2;
+function parseYaml(input) {
+    const lines = input
+        .split("\n")
+        .map((line) => line.replace(/\r$/, ""))
+        .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"));
+    const root = {};
+    const stack = [{ indent: -1, value: root }];
+    const parseScalar = (value) => {
+        const v = value.trim();
+        if ((v.startsWith('"') && v.endsWith('"')) ||
+            (v.startsWith("'") && v.endsWith("'"))) {
+            return v.slice(1, -1);
+        }
+        if (v === "true")
+            return true;
+        if (v === "false")
+            return false;
+        if (v === "null")
+            return null;
+        const n = Number(v);
+        if (!Number.isNaN(n) && v !== "")
+            return n;
+        return v;
+    };
+    const findNextSignificantLine = (fromIndex) => {
+        for (let i = fromIndex + 1; i < lines.length; i += 1) {
+            const candidate = lines[i];
+            if (candidate.trim() !== "" && !candidate.trim().startsWith("#")) {
+                return candidate;
+            }
+        }
+        return null;
+    };
+    for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        const indent = line.match(/^ */)?.[0].length ?? 0;
+        const trimmed = line.trim();
+        while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
+            stack.pop();
+        }
+        const container = stack[stack.length - 1].value;
+        if (trimmed.startsWith("- ")) {
+            if (!Array.isArray(container))
+                continue;
+            const itemRaw = trimmed.slice(2).trim();
+            if (itemRaw === "") {
+                const child = {};
+                container.push(child);
+                stack.push({ indent, value: child });
+            }
+            else {
+                container.push(parseScalar(itemRaw));
+            }
+            continue;
+        }
+        const keyMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+        if (!keyMatch ||
+            typeof container !== "object" ||
+            container === null ||
+            Array.isArray(container)) {
+            continue;
+        }
+        const [, key, rawVal] = keyMatch;
+        if (rawVal !== "") {
+            container[key] = parseScalar(rawVal);
+            continue;
+        }
+        const nextLine = findNextSignificantLine(i);
+        const nextIndent = nextLine?.match(/^ */)?.[0].length ?? -1;
+        const nextTrimmed = nextLine?.trim() ?? "";
+        const useArray = nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
+        const child = useArray ? [] : {};
+        container[key] = child;
+        stack.push({ indent, value: child });
+    }
+    return root;
+}
+function parseRepoConfigContent(content) {
+    const raw = parseYaml(content);
+    const parsed = RepoConfig.safeParse(raw);
+    if (!parsed.success)
+        return null;
+    return parsed.data;
+}
+
 ;// CONCATENATED MODULE: ./src/risk-engine.ts
 // Pure risk scoring engine — no framework dependencies.
 // Shared across the GitHub Action, MCP server, and GitHub App.
@@ -40821,6 +40982,13 @@ const DEPENDENCY_FILES = [
     /^Cargo\.lock$/,
     /^composer\.lock$/,
 ];
+const PACKAGE_JSON_DEPENDENCY_FIELDS = new Set([
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies",
+    "bundledDependencies",
+]);
 // ---------------------------------------------------------------------------
 // Factor weights (v3: includes security_alerts, deployment_history, canary_status)
 // ---------------------------------------------------------------------------
@@ -40857,6 +41025,30 @@ function globToRegex(pattern) {
 }
 function matchesGlobs(filename, patterns) {
     return patterns.some((p) => globToRegex(p).test(filename));
+}
+// ---------------------------------------------------------------------------
+// Risk profile matching
+// ---------------------------------------------------------------------------
+function matchRiskProfile(filenames, profiles) {
+    if (profiles.length === 0)
+        return null;
+    for (const profile of profiles) {
+        const m = profile.match;
+        if (m.min_files !== undefined && filenames.length < m.min_files)
+            continue;
+        if (m.max_files !== undefined && filenames.length > m.max_files)
+            continue;
+        if (m.files_include.length > 0 &&
+            !m.files_include.every((pattern) => filenames.some((f) => matchesGlobs(f, [pattern])))) {
+            continue;
+        }
+        if (m.files_exclude.length > 0 &&
+            m.files_exclude.some((pattern) => filenames.some((f) => matchesGlobs(f, [pattern])))) {
+            continue;
+        }
+        return profile;
+    }
+    return null;
 }
 // ---------------------------------------------------------------------------
 // File classification helpers
@@ -40949,7 +41141,9 @@ function computeRiskScore(files, config) {
     const sourceFileCount = effectiveFiles.length - testFileCount - nonSourceCount;
     if (sourceFileCount > 0) {
         const testRatio = testFileCount / sourceFileCount;
-        const testCoverageScore = Math.round(Math.max(0, 100 - testRatio * 200));
+        const testCoverageScore = testFileCount === 0
+            ? 100
+            : Math.round(Math.max(0, 100 - testRatio * 100 - Math.min(testFileCount, 5) * 10));
         factors.push({
             type: "test_coverage",
             score: testCoverageScore,
@@ -40992,20 +41186,68 @@ function detectDependencyChanges(files) {
     const depFiles = files.filter((f) => DEPENDENCY_FILES.some((p) => p.test(f.filename.replace(/.*\//, ""))));
     if (depFiles.length === 0)
         return null;
-    const hasLockfile = depFiles.some((f) => /\.(lock|sum)$|lock\.(json|yaml)$/.test(f.filename));
-    const hasManifest = depFiles.some((f) => !/\.(lock|sum)$|lock\.(json|yaml)$/.test(f.filename));
-    const totalChanges = depFiles.reduce((s, f) => s + f.changes, 0);
+    const isLockfile = (filename) => /\.(lock|sum)$|lock\.(json|yaml)$/.test(filename);
+    const packageJsonTouchesDependencies = (patch) => {
+        if (!patch)
+            return true;
+        let activeSection = null;
+        let sectionDepth = 0;
+        for (const rawLine of patch.split("\n")) {
+            if (rawLine.startsWith("@@"))
+                continue;
+            const prefix = rawLine[0];
+            if (prefix !== " " && prefix !== "+" && prefix !== "-")
+                continue;
+            const line = rawLine.slice(1);
+            const sectionMatch = line.match(/^\s*"([^"]+)"\s*:\s*\{\s*$/);
+            if (sectionMatch) {
+                const key = sectionMatch[1];
+                if (PACKAGE_JSON_DEPENDENCY_FIELDS.has(key)) {
+                    activeSection = key;
+                    sectionDepth = 1;
+                    if (prefix !== " ")
+                        return true;
+                    continue;
+                }
+            }
+            if (!activeSection)
+                continue;
+            const openCount = (line.match(/\{/g) ?? []).length;
+            const closeCount = (line.match(/\}/g) ?? []).length;
+            sectionDepth += openCount - closeCount;
+            if (prefix !== " " && /^\s*"[^"]+"\s*:\s*".*"\s*,?\s*$/.test(line)) {
+                return true;
+            }
+            if (sectionDepth <= 0) {
+                activeSection = null;
+                sectionDepth = 0;
+            }
+        }
+        return false;
+    };
+    const relevantDepFiles = depFiles.filter((f) => {
+        const base = f.filename.replace(/.*\//, "");
+        if (base === "package.json") {
+            return packageJsonTouchesDependencies(f.patch);
+        }
+        return true;
+    });
+    if (relevantDepFiles.length === 0)
+        return null;
+    const hasLockfile = relevantDepFiles.some((f) => isLockfile(f.filename));
+    const hasManifest = relevantDepFiles.some((f) => !isLockfile(f.filename));
+    const totalChanges = relevantDepFiles.reduce((s, f) => s + f.changes, 0);
     const score = Math.min(100, (hasManifest && hasLockfile ? 40 : hasManifest ? 60 : 20) +
         Math.min(30, Math.round(totalChanges / 100)));
     return {
         type: "dependency_changes",
         score,
         detail: {
-            files: depFiles.map((f) => f.filename),
+            files: relevantDepFiles.map((f) => f.filename),
             hasManifest,
             hasLockfile,
             totalChanges,
-            description: "Dependencies added or updated",
+            description: "Dependency manifests/lockfiles changed",
         },
     };
 }
@@ -41116,13 +41358,14 @@ function isRollback(prTitle) {
 
 
 
-const yamlParse = null;
-const CURRENT_CONFIG_SCHEMA_VERSION = 1;
-const CONFIG_MIGRATION_GUIDE_URL = "https://github.com/KomatikAI/trailhead/blob/main/docs/roadmap-agent-qa.md";
+const CONFIG_MIGRATION_GUIDE_URL = "https://github.com/KomatikAI/trailhead/blob/main/docs/migration-v3-to-v4.md";
 const KNOWN_TOP_LEVEL_KEYS = new Set([
     "schema_version",
+    "gate",
+    "contexts",
     "sensitivity",
     "weights",
+    "profiles",
     "thresholds",
     "ignore",
     "freeze",
@@ -41133,85 +41376,6 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
     "escalation",
     "policies",
 ]);
-function parseYaml(input) {
-    if (yamlParse)
-        return yamlParse(input);
-    const lines = input
-        .split("\n")
-        .map((line) => line.replace(/\r$/, ""))
-        .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"));
-    const root = {};
-    const stack = [{ indent: -1, value: root }];
-    const parseScalar = (value) => {
-        const v = value.trim();
-        if ((v.startsWith('"') && v.endsWith('"')) ||
-            (v.startsWith("'") && v.endsWith("'"))) {
-            return v.slice(1, -1);
-        }
-        if (v === "true")
-            return true;
-        if (v === "false")
-            return false;
-        if (v === "null")
-            return null;
-        const n = Number(v);
-        if (!Number.isNaN(n) && v !== "")
-            return n;
-        return v;
-    };
-    const findNextSignificantLine = (fromIndex) => {
-        for (let i = fromIndex + 1; i < lines.length; i += 1) {
-            const candidate = lines[i];
-            if (candidate.trim() !== "" && !candidate.trim().startsWith("#")) {
-                return candidate;
-            }
-        }
-        return null;
-    };
-    for (let i = 0; i < lines.length; i += 1) {
-        const line = lines[i];
-        const indent = line.match(/^ */)?.[0].length ?? 0;
-        const trimmed = line.trim();
-        while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
-            stack.pop();
-        }
-        const container = stack[stack.length - 1].value;
-        if (trimmed.startsWith("- ")) {
-            if (!Array.isArray(container))
-                continue;
-            const itemRaw = trimmed.slice(2).trim();
-            if (itemRaw === "") {
-                const child = {};
-                container.push(child);
-                stack.push({ indent, value: child });
-            }
-            else {
-                container.push(parseScalar(itemRaw));
-            }
-            continue;
-        }
-        const keyMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-        if (!keyMatch ||
-            typeof container !== "object" ||
-            container === null ||
-            Array.isArray(container)) {
-            continue;
-        }
-        const [, key, rawVal] = keyMatch;
-        if (rawVal !== "") {
-            container[key] = parseScalar(rawVal);
-            continue;
-        }
-        const nextLine = findNextSignificantLine(i);
-        const nextIndent = nextLine?.match(/^ */)?.[0].length ?? -1;
-        const nextTrimmed = nextLine?.trim() ?? "";
-        const useArray = nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
-        const child = useArray ? [] : {};
-        container[key] = child;
-        stack.push({ indent, value: child });
-    }
-    return root;
-}
 function warnUnknownTopLevelKeys(raw, configPath) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw))
         return;
@@ -41223,11 +41387,15 @@ function warnUnknownTopLevelKeys(raw, configPath) {
     }
 }
 function validateSchemaVersion(parsedConfig, configPath) {
-    if (parsedConfig.schema_version !== CURRENT_CONFIG_SCHEMA_VERSION) {
+    if (!SUPPORTED_CONFIG_SCHEMA_VERSIONS.has(parsedConfig.schema_version)) {
         warning(`${configPath}: unsupported schema_version=${parsedConfig.schema_version}. ` +
-            `Expected ${CURRENT_CONFIG_SCHEMA_VERSION}. ` +
+            `Supported: ${[...SUPPORTED_CONFIG_SCHEMA_VERSIONS].join(", ")}. ` +
             `Migration guide: ${CONFIG_MIGRATION_GUIDE_URL}`);
         return null;
+    }
+    if (parsedConfig.schema_version > CURRENT_CONFIG_SCHEMA_VERSION) {
+        warning(`${configPath}: schema_version=${parsedConfig.schema_version} is newer than ` +
+            `supported ${CURRENT_CONFIG_SCHEMA_VERSION}. Some features may be ignored.`);
     }
     return parsedConfig;
 }
@@ -41254,12 +41422,12 @@ async function loadRepoConfig(token) {
         const content = Buffer.from(data.content, "base64").toString("utf-8");
         const raw = parseYaml(content);
         warnUnknownTopLevelKeys(raw, configPath);
-        const parsed = RepoConfig.safeParse(raw);
-        if (!parsed.success) {
-            warning(`${configPath} parse error: ${parsed.error.message} — using defaults`);
+        const parsedConfig = parseRepoConfigContent(content);
+        if (!parsedConfig) {
+            warning(`${configPath} parse error — using defaults`);
             return null;
         }
-        const validated = validateSchemaVersion(parsed.data, configPath);
+        const validated = validateSchemaVersion(parsedConfig, configPath);
         if (!validated)
             return null;
         core_debug(`Loaded ${configPath}: ${JSON.stringify(validated)}`);
@@ -41282,12 +41450,12 @@ async function loadLocalRepoConfig() {
             const content = await (0,promises_namespaceObject.readFile)(external_node_path_default().join(workspace, configPath), "utf-8");
             const raw = parseYaml(content);
             warnUnknownTopLevelKeys(raw, configPath);
-            const parsed = RepoConfig.safeParse(raw);
-            if (!parsed.success) {
-                warning(`${configPath} parse error: ${parsed.error.message} — using defaults`);
+            const parsedConfig = parseRepoConfigContent(content);
+            if (!parsedConfig) {
+                warning(`${configPath} parse error — using defaults`);
                 return null;
             }
-            const validated = validateSchemaVersion(parsed.data, configPath);
+            const validated = validateSchemaVersion(parsedConfig, configPath);
             if (!validated)
                 return null;
             core_debug(`Loaded local ${configPath}: ${JSON.stringify(validated)}`);
@@ -41319,6 +41487,334 @@ async function findConfigPath(octokit, owner, repo) {
     return null;
 }
 
+
+;// CONCATENATED MODULE: ./src/context-matcher.ts
+
+function branchMatches(patterns, branch) {
+    if (patterns.length === 0)
+        return true;
+    return matchesGlobs(branch, patterns);
+}
+function labelsMatch(required, prLabels) {
+    if (required.length === 0)
+        return true;
+    const normalized = new Set(prLabels.map((l) => l.toLowerCase()));
+    return required.every((label) => normalized.has(label.toLowerCase()));
+}
+function contextMatches(ctx, pr) {
+    const { match } = ctx;
+    if (!branchMatches(match.base_branch, pr.baseRef))
+        return false;
+    if (!branchMatches(match.head_branch, pr.headRef))
+        return false;
+    if (!labelsMatch(match.labels, pr.labels))
+        return false;
+    return true;
+}
+/**
+ * Returns the first matching context (declaration order wins).
+ */
+function matchContext(contexts, pr) {
+    for (const ctx of contexts) {
+        if (!contextMatches(ctx, pr))
+            continue;
+        return {
+            context: ctx,
+            matched: {
+                name: ctx.name,
+                environment: ctx.environment,
+            },
+        };
+    }
+    return null;
+}
+function resolveGateMode(repoGateMode, schemaVersion, inputGateMode) {
+    if (inputGateMode === "release-ready" ||
+        inputGateMode === "advisory" ||
+        inputGateMode === "risk-only") {
+        return inputGateMode;
+    }
+    if (repoGateMode === "release-ready" ||
+        repoGateMode === "advisory" ||
+        repoGateMode === "risk-only") {
+        return repoGateMode;
+    }
+    return schemaVersion >= 2 ? "release-ready" : "risk-only";
+}
+
+;// CONCATENATED MODULE: ./src/ci-core.ts
+const DEFAULT_SELF_CHECK_NAMES = ["Trailhead", "Trailhead — Release Ready"];
+/**
+ * Map GitHub check conclusion/status to Trailhead CI status (ADR-009).
+ */
+function classifyCheck(status, conclusion) {
+    if (status === "completed") {
+        switch (conclusion) {
+            case "success":
+                return "pass";
+            case "skipped":
+            case "neutral":
+                return "skip";
+            case "failure":
+            case "timed_out":
+            case "action_required":
+            case "cancelled":
+                return "fail";
+            default:
+                return "pending";
+        }
+    }
+    if (status === "in_progress" || status === "queued" || status === "pending") {
+        return "pending";
+    }
+    return "pending";
+}
+function isSelfCheck(name, excludeNames) {
+    const lower = name.toLowerCase();
+    return excludeNames.some((n) => n.toLowerCase() === lower);
+}
+function checkNameMatches(configured, actual) {
+    if (configured === actual)
+        return true;
+    if (configured.toLowerCase() === actual.toLowerCase())
+        return true;
+    return actual.toLowerCase().startsWith(configured.toLowerCase());
+}
+function normalizeCheckRuns(runs, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES) {
+    return runs
+        .filter((r) => !isSelfCheck(r.name, excludeCheckNames))
+        .map((r) => ({
+        name: r.name,
+        status: classifyCheck(r.status, r.conclusion),
+        conclusion: r.conclusion ?? undefined,
+        detailsUrl: r.details_url ?? r.html_url ?? undefined,
+        required: false,
+    }));
+}
+function evaluateRequiredChecks(allChecks, ciConfig) {
+    const requiredNames = ciConfig.required_checks;
+    const optionalNames = ciConfig.optional_checks;
+    const missingPolicy = ciConfig.missing_required;
+    const evaluated = [];
+    const seen = new Set();
+    for (const reqName of requiredNames) {
+        const match = allChecks.find((c) => checkNameMatches(reqName, c.name));
+        if (match) {
+            evaluated.push({ ...match, name: reqName, required: true });
+            seen.add(match.name);
+        }
+        else {
+            evaluated.push({
+                name: reqName,
+                status: missingPolicy === "skip" ? "skip" : "missing",
+                required: true,
+            });
+        }
+    }
+    for (const optName of optionalNames) {
+        const match = allChecks.find((c) => checkNameMatches(optName, c.name));
+        if (match) {
+            evaluated.push({ ...match, name: optName, required: false });
+            seen.add(match.name);
+        }
+        else {
+            evaluated.push({
+                name: optName,
+                status: "missing",
+                required: false,
+            });
+        }
+    }
+    for (const check of allChecks) {
+        if (!seen.has(check.name)) {
+            evaluated.push({ ...check, required: false });
+        }
+    }
+    const requiredChecks = evaluated.filter((c) => c.required);
+    const pendingCount = requiredChecks.filter((c) => c.status === "pending").length;
+    const failedCount = requiredChecks.filter((c) => c.status === "fail" || c.status === "missing" || c.status === "stale").length;
+    const missingCount = requiredChecks.filter((c) => c.status === "missing").length;
+    const allRequiredPassed = requiredNames.length === 0 ||
+        requiredChecks.every((c) => c.status === "pass" || c.status === "skip");
+    return {
+        checks: evaluated,
+        allRequiredPassed,
+        pendingCount,
+        failedCount,
+        missingCount,
+    };
+}
+function formatCiStatusIcon(status) {
+    switch (status) {
+        case "pass":
+            return "✅";
+        case "fail":
+            return "❌";
+        case "skip":
+            return "⏭️";
+        case "pending":
+            return "⏳";
+        case "stale":
+            return "⚠️";
+        case "missing":
+            return "❓";
+        default: {
+            const _exhaustive = status;
+            return "•";
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/ci-orchestrator.ts
+
+
+
+async function fetchCheckRuns(octokit, options) {
+    const { owner, repo, headSha, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES } = options;
+    const runs = [];
+    let page = 1;
+    while (true) {
+        const { data } = await octokit.rest.checks.listForRef({
+            owner,
+            repo,
+            ref: headSha,
+            per_page: 100,
+            page,
+        });
+        for (const check of data.check_runs) {
+            runs.push({
+                name: check.name,
+                status: check.status,
+                conclusion: check.conclusion,
+                html_url: check.html_url,
+                details_url: check.details_url,
+            });
+        }
+        if (data.check_runs.length < 100)
+            break;
+        page += 1;
+    }
+    return normalizeCheckRuns(runs, excludeCheckNames);
+}
+async function waitForChecks(options) {
+    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, } = options;
+    const deadline = Date.now() + timeoutMinutes * 60 * 1000;
+    while (true) {
+        const allChecks = await fetchCheckRuns(octokit, {
+            owner,
+            repo,
+            headSha,
+            excludeCheckNames,
+        });
+        const summary = evaluateRequiredChecks(allChecks, ciConfig);
+        if (summary.pendingCount === 0 || Date.now() >= deadline) {
+            if (summary.pendingCount > 0) {
+                warning(`CI wait timed out after ${timeoutMinutes}m with ${summary.pendingCount} check(s) still pending`);
+            }
+            return summary;
+        }
+        info(`Waiting for ${summary.pendingCount} CI check(s) — polling again in ${pollIntervalSeconds}s`);
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalSeconds * 1000));
+    }
+}
+
+;// CONCATENATED MODULE: ./src/release-ready.ts
+/**
+ * Composite release readiness decision (ADR-006).
+ */
+function computeReleaseReady(input) {
+    const reasons = [];
+    if (input.gateMode === "risk-only") {
+        if (input.gateDecision === "block") {
+            reasons.push("Risk/policy gate decision is BLOCK");
+        }
+        else if (input.gateDecision === "warn") {
+            reasons.push("Risk/policy gate decision is WARN (non-blocking in risk-only mode)");
+        }
+        return {
+            releaseReady: input.gateDecision !== "block",
+            reasons,
+        };
+    }
+    if (input.ciSummary) {
+        if (!input.ciSummary.allRequiredPassed) {
+            const failed = input.ciSummary.checks.filter((c) => c.required &&
+                (c.status === "fail" || c.status === "missing" || c.status === "stale"));
+            for (const check of failed) {
+                reasons.push(`Required CI check "${check.name}" is ${check.status.toUpperCase()}`);
+            }
+        }
+        if (input.ciSummary.pendingCount > 0) {
+            reasons.push(`${input.ciSummary.pendingCount} required CI check(s) still pending`);
+        }
+    }
+    if (input.gateDecision === "block") {
+        reasons.push("Risk/policy gate decision is BLOCK");
+    }
+    if (input.riskScore > input.riskThreshold) {
+        reasons.push(`Risk score ${input.riskScore} exceeds threshold ${input.riskThreshold}`);
+    }
+    if (input.freezeActive) {
+        reasons.push(`Release freeze active${input.freezeMessage ? `: ${input.freezeMessage}` : ""}`);
+    }
+    if (input.healthChecksConfigured && input.healthScore < 50) {
+        reasons.push(`Health score ${input.healthScore} below minimum (50)`);
+    }
+    if (input.requireSecurityClear && input.securityBlocked) {
+        reasons.push("Security gate requires clearance — blocking alerts present");
+    }
+    const blockingFindings = (input.policyFindings ?? []).filter((f) => /blocking|requires|exceeds|configured to block/i.test(f));
+    if (blockingFindings.length > 0 && input.gateDecision === "block") {
+        for (const finding of blockingFindings.slice(0, 3)) {
+            if (!reasons.includes(finding))
+                reasons.push(finding);
+        }
+    }
+    const releaseReady = reasons.length === 0;
+    return { releaseReady, reasons };
+}
+function applyReleaseReadyToEvaluation(evaluation, result, gateMode) {
+    return {
+        ...evaluation,
+        releaseReady: result.releaseReady,
+        releaseReadyReasons: result.reasons.length > 0 ? result.reasons : undefined,
+        gateMode,
+    };
+}
+function checkConclusionForEvaluation(evaluation) {
+    const mode = evaluation.gateMode ?? "risk-only";
+    if (mode === "advisory") {
+        return "neutral";
+    }
+    if (mode === "release-ready") {
+        return evaluation.releaseReady ? "success" : "failure";
+    }
+    switch (evaluation.gateDecision) {
+        case "allow":
+            return "success";
+        case "warn":
+            return "neutral";
+        case "block":
+            return "failure";
+        default: {
+            const _exhaustive = evaluation.gateDecision;
+            return "failure";
+        }
+    }
+}
+function shouldBlockMerge(evaluation) {
+    const mode = evaluation.gateMode ?? "risk-only";
+    if (mode === "advisory")
+        return false;
+    if (mode === "release-ready")
+        return evaluation.releaseReady === false;
+    return evaluation.gateDecision === "block";
+}
+function resolveCheckName(gateMode, configuredName) {
+    if (gateMode === "risk-only")
+        return "Trailhead";
+    return configuredName ?? "Trailhead — Release Ready";
+}
 
 ;// CONCATENATED MODULE: ./src/security.ts
 
@@ -41475,6 +41971,9 @@ function formatSecuritySection(alerts) {
 
 
 
+
+
+
 // Re-export sensitivityWeight with the RepoConfig-compatible signature
 function gate_sensitivityWeight(filename, repoConfig) {
     return sensitivityWeightShared(filename, repoConfig ?? null);
@@ -41620,16 +42119,54 @@ async function computeAuthorHistory(prNumber, token) {
                 },
             };
         }
+        const authorEmails = new Set();
+        try {
+            const { data: prCommits } = await octokit.rest.pulls.listCommits({
+                owner,
+                repo,
+                pull_number: prNumber,
+                per_page: 100,
+            });
+            for (const commit of prCommits) {
+                const email = commit.commit?.author?.email?.trim().toLowerCase();
+                if (email)
+                    authorEmails.add(email);
+            }
+        }
+        catch (error) {
+            core_debug(`Unable to collect PR author emails for history: ${error}`);
+        }
         const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-        const { data: commits } = await octokit.rest.repos.listCommits({
+        const commitShas = new Set();
+        const { data: commitsByLogin } = await octokit.rest.repos.listCommits({
             owner,
             repo,
             author,
             since,
             per_page: 100,
         });
-        const commitCount = commits.length;
-        const score = Math.max(0, 100 - commitCount * 2);
+        for (const c of commitsByLogin)
+            commitShas.add(c.sha);
+        for (const email of authorEmails) {
+            if (commitShas.size >= 50)
+                break;
+            try {
+                const { data: commitsByEmail } = await octokit.rest.repos.listCommits({
+                    owner,
+                    repo,
+                    author: email,
+                    since,
+                    per_page: 100,
+                });
+                for (const c of commitsByEmail)
+                    commitShas.add(c.sha);
+            }
+            catch {
+                core_debug(`Email-based commit lookup failed for ${email}`);
+            }
+        }
+        const commitCount = commitShas.size;
+        const score = commitCount === 0 ? 100 : Math.max(5, Math.round(100 / (1 + commitCount / 10)));
         return {
             type: "author_history",
             score,
@@ -41637,7 +42174,7 @@ async function computeAuthorHistory(prNumber, token) {
                 author,
                 commitCount,
                 dayRange: 90,
-                description: "Author repo familiarity (90-day commits)",
+                description: "Author familiarity risk (90-day commits, lower is better)",
             },
         };
     }
@@ -42452,6 +42989,17 @@ async function callGateApi(config, localEvaluation) {
     }
 }
 // ---------------------------------------------------------------------------
+// PR context for v4 context matching
+// ---------------------------------------------------------------------------
+function getPrMatchContext() {
+    const pr = github_context.payload?.pull_request;
+    return {
+        baseRef: pr?.base?.ref ?? github_context.ref?.replace("refs/heads/", "") ?? "main",
+        headRef: pr?.head?.ref ?? github_context.ref?.replace("refs/heads/", "") ?? "main",
+        labels: (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
+    };
+}
+// ---------------------------------------------------------------------------
 // Main evaluation entry point
 // ---------------------------------------------------------------------------
 async function evaluateGate(config, commitSha, prNumber) {
@@ -42483,11 +43031,27 @@ async function evaluateGate(config, commitSha, prNumber) {
             ? fetchCodeScanningAlerts(config.githubToken)
             : Promise.resolve(null),
     ]);
-    const envConfig = config.environment
-        ? repoConfig?.environments?.[config.environment]
+    const gateMode = resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, config.gateMode);
+    const prMatchCtx = getPrMatchContext();
+    const matchedContext = repoConfig?.contexts && repoConfig.contexts.length > 0
+        ? matchContext(repoConfig.contexts, prMatchCtx)
+        : null;
+    if (matchedContext) {
+        info(`Matched context "${matchedContext.matched.name}" for base=${prMatchCtx.baseRef}`);
+    }
+    const effectiveEnvironment = config.environment ?? matchedContext?.matched.environment ?? undefined;
+    const envConfig = effectiveEnvironment
+        ? repoConfig?.environments?.[effectiveEnvironment]
         : undefined;
-    const effectiveRiskThreshold = envConfig?.risk ?? repoConfig?.thresholds.risk ?? config.riskThreshold;
-    const effectiveWarnThreshold = envConfig?.warn ?? repoConfig?.thresholds.warn ?? config.warnThreshold;
+    const contextThresholds = matchedContext?.context.thresholds;
+    const effectiveRiskThreshold = contextThresholds?.risk ??
+        envConfig?.risk ??
+        repoConfig?.thresholds.risk ??
+        config.riskThreshold;
+    const effectiveWarnThreshold = contextThresholds?.warn ??
+        envConfig?.warn ??
+        repoConfig?.thresholds.warn ??
+        config.warnThreshold;
     let adjustedRiskThreshold = effectiveRiskThreshold;
     const policyFindings = [];
     const freezeCheck = isInFreezeWindow(repoConfig?.freeze ?? []);
@@ -42507,7 +43071,19 @@ async function evaluateGate(config, commitSha, prNumber) {
         if (secFactor)
             riskFactors.push(secFactor);
     }
-    const customWeights = repoConfig?.weights ?? {};
+    const fileNames = files.map((f) => f.filename);
+    const matchedProfile = matchRiskProfile(fileNames, repoConfig?.profiles ?? []);
+    const customWeights = {
+        ...(repoConfig?.weights ?? {}),
+        ...(matchedProfile?.weights ?? {}),
+    };
+    if (matchedProfile) {
+        const label = matchedProfile.name ?? "unnamed";
+        info(`Risk profile "${label}" matched — weight overrides applied: ${JSON.stringify(matchedProfile.weights)}`);
+        policyFindings.push(`Risk profile "${label}" matched (${Object.entries(matchedProfile.weights)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(", ")}).`);
+    }
     const ciIntegrityConfig = repoConfig?.policies?.ci_integrity;
     const ciIntegrity = ciIntegrityConfig?.enabled === false
         ? { factor: null, blockingPatterns: [] }
@@ -42667,7 +43243,6 @@ async function evaluateGate(config, commitSha, prNumber) {
             policyFindings.push(`Potential downstream impact for: ${crossRepoImpact.affectedConsumers.join(", ")}.`);
         }
     }
-    const fileNames = files.map((f) => f.filename);
     const escalationCfg = repoConfig?.escalation;
     const escalationStatus = gateDecision === "block" && escalationCfg
         ? {
@@ -42706,7 +43281,7 @@ async function evaluateGate(config, commitSha, prNumber) {
         riskFactors,
         files: fileNames.length > 0 ? fileNames : undefined,
         evaluationMs: Date.now() - start,
-        environment: config.environment,
+        environment: effectiveEnvironment,
         policyFindings: policyFindings.length > 0 ? policyFindings : undefined,
         pr: prNumber
             ? {
@@ -42726,7 +43301,69 @@ async function evaluateGate(config, commitSha, prNumber) {
             : undefined,
         escalation_status: escalationStatus,
         trust_profile: trustProfile,
+        gateMode,
+        context: matchedContext?.matched,
     };
+    let ciSummary = null;
+    if (gateMode !== "risk-only" && config.githubToken) {
+        try {
+            const octokit = getOctokit(config.githubToken);
+            const { owner, repo } = github_context.repo;
+            const ciConfig = matchedContext?.context.ci ?? {
+                required_checks: [],
+                optional_checks: [],
+                missing_required: "fail",
+            };
+            const excludeCheckNames = [
+                resolveCheckName(gateMode, repoConfig?.gate?.check_name ?? config.checkName),
+                "Trailhead",
+                "Trailhead — Release Ready",
+            ];
+            if (config.waitForChecks && ciConfig.required_checks.length > 0) {
+                ciSummary = await waitForChecks({
+                    octokit,
+                    owner,
+                    repo,
+                    headSha: commitSha,
+                    ciConfig,
+                    excludeCheckNames,
+                    timeoutMinutes: config.waitTimeoutMinutes ?? 30,
+                });
+            }
+            else {
+                const checks = await fetchCheckRuns(octokit, {
+                    owner,
+                    repo,
+                    headSha: commitSha,
+                    excludeCheckNames,
+                });
+                ciSummary = evaluateRequiredChecks(checks, ciConfig);
+            }
+            localEvaluation.ci = ciSummary;
+        }
+        catch (error) {
+            warning(`CI orchestration failed (non-blocking): ${error}`);
+        }
+    }
+    const securityBlocked = securityAlerts !== null &&
+        securityAlerts.total > 0 &&
+        (envConfig?.require_security_clear === true ||
+            repoConfig?.security?.block_on_critical === true);
+    const releaseResult = computeReleaseReady({
+        gateMode,
+        gateDecision,
+        riskScore,
+        riskThreshold: adjustedRiskThreshold,
+        healthScore,
+        healthChecksConfigured: healthChecks.length > 0,
+        ciSummary,
+        freezeActive: freezeCheck.frozen,
+        freezeMessage: freezeCheck.message,
+        policyFindings,
+        requireSecurityClear: envConfig?.require_security_clear,
+        securityBlocked,
+    });
+    localEvaluation = applyReleaseReadyToEvaluation(localEvaluation, releaseResult, gateMode);
     if (config.apiKey) {
         const apiResponse = await callGateApi(config, localEvaluation);
         if (apiResponse) {
@@ -42780,24 +43417,27 @@ async function postPrComment(report, prNumber, token) {
 // ---------------------------------------------------------------------------
 // GitHub Check Run
 // ---------------------------------------------------------------------------
-const CONCLUSION_MAP = {
-    allow: "success",
-    warn: "neutral",
-    block: "failure",
-};
-async function createCheckRun(evaluation, report, token) {
+async function createCheckRun(evaluation, report, token, checkName) {
     try {
         const octokit = getOctokit(token);
         const { owner, repo } = github_context.repo;
+        const mode = evaluation.gateMode ?? "risk-only";
+        const name = checkName ?? resolveCheckName(mode);
+        const conclusion = checkConclusionForEvaluation(evaluation);
+        const titleSuffix = mode === "release-ready"
+            ? evaluation.releaseReady
+                ? "RELEASE READY"
+                : "NOT READY"
+            : evaluation.gateDecision.toUpperCase();
         await octokit.rest.checks.create({
             owner,
             repo,
-            name: "Trailhead",
+            name,
             head_sha: evaluation.commitSha,
             status: "completed",
-            conclusion: CONCLUSION_MAP[evaluation.gateDecision],
+            conclusion,
             output: {
-                title: `Trailhead: ${evaluation.gateDecision.toUpperCase()}`,
+                title: `${name}: ${titleSuffix}`,
                 summary: report,
             },
         });
@@ -42806,6 +43446,7 @@ async function createCheckRun(evaluation, report, token) {
         core_debug(`Failed to create check run: ${error}`);
     }
 }
+
 // ---------------------------------------------------------------------------
 // PR risk labels
 // ---------------------------------------------------------------------------
@@ -43024,7 +43665,12 @@ function buildGuidance(evaluation) {
             `Long-lived PRs accumulate risk from merge conflicts and context loss.`);
     }
     if (lines.length === 2) {
-        lines.push(`- Risk score exceeds threshold. Review the risk factors above before proceeding.`);
+        if (evaluation.gateDecision === "warn") {
+            lines.push(`- Advisory warning only: review the risk factors above and proceed with normal caution.`);
+        }
+        else {
+            lines.push(`- Risk score exceeds threshold. Review the risk factors above before merging.`);
+        }
     }
     lines.push(``);
     return lines;
@@ -43063,28 +43709,57 @@ function buildFactorChart(factors) {
     return lines;
 }
 function formatGateReport(evaluation, riskThreshold) {
-    const icon = decisionIcon(evaluation.gateDecision);
+    const mode = evaluation.gateMode ?? "risk-only";
+    const icon = mode === "release-ready"
+        ? evaluation.releaseReady
+            ? "✅"
+            : "🚫"
+        : decisionIcon(evaluation.gateDecision);
     const threshold = riskThreshold ?? 70;
     const healthDisplay = evaluation.healthChecks.length > 0
         ? `${evaluation.healthScore}/100`
         : "n/a (not configured)";
     const envLabel = evaluation.environment ? ` (${evaluation.environment})` : "";
+    const contextLabel = evaluation.context?.name
+        ? ` · context: **${evaluation.context.name}**`
+        : "";
+    const headline = mode === "release-ready"
+        ? evaluation.releaseReady
+            ? "RELEASE READY"
+            : "NOT RELEASE READY"
+        : evaluation.gateDecision.toUpperCase();
     const lines = [
-        `## ${icon} Trailhead — ${evaluation.gateDecision.toUpperCase()}${envLabel}`,
-        ``,
-        riskBadge(evaluation.riskScore, threshold) +
-            " " +
-            (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""),
-        ``,
-        `| Metric | Score |`,
-        `|--------|-------|`,
-        `| Health | ${healthDisplay} |`,
-        `| Risk   | ${evaluation.riskScore}/100 |`,
-        `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`,
+        `## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`,
         ``,
     ];
-    if (riskThreshold !== undefined) {
-        lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+    if (mode === "release-ready" || mode === "advisory") {
+        lines.push(`| Dimension | Status |`, `|-----------|--------|`, `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`, `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`, `| Health | ${healthDisplay} |`, `| Gate | ${evaluation.gateDecision.toUpperCase()} |`, ``);
+        if (evaluation.ci && evaluation.ci.checks.length > 0) {
+            lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
+            for (const check of evaluation.ci.checks) {
+                const link = check.detailsUrl
+                    ? `[${check.name}](${check.detailsUrl})`
+                    : check.name;
+                const req = check.required ? " *(required)*" : "";
+                lines.push(`| ${link}${req} | ${formatCiStatusIcon(check.status)} ${check.status} |`);
+            }
+            lines.push(``);
+        }
+        if (evaluation.releaseReadyReasons && evaluation.releaseReadyReasons.length > 0) {
+            lines.push(`### Release Readiness Issues`, ``);
+            for (const reason of evaluation.releaseReadyReasons) {
+                lines.push(`- ${reason}`);
+            }
+            lines.push(``);
+        }
+    }
+    else {
+        lines.push(riskBadge(evaluation.riskScore, threshold) +
+            " " +
+            (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""), ``, `| Metric | Score |`, `|--------|-------|`, `| Health | ${healthDisplay} |`, `| Risk   | ${evaluation.riskScore}/100 |`, `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`, ``);
+        if (riskThreshold !== undefined) {
+            lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+        }
     }
     if (evaluation.pr?.provenance) {
         lines.push(`### PR Provenance`, ``, `- Type: \`${evaluation.pr.provenance.type}\``, `- Confidence: \`${evaluation.pr.provenance.confidence}\``, ...(evaluation.pr.provenance.source
@@ -43170,6 +43845,22 @@ function formatGateReport(evaluation, riskThreshold) {
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 const STORE_TIMEOUT_MS = 10_000;
+const STORE_RETRY_BACKOFF_MS = [1_000, 4_000, 16_000];
+const STORE_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function isRetryableNetworkError(error) {
+    if (!(error instanceof Error))
+        return false;
+    const msg = error.message.toLowerCase();
+    return (error.name === "AbortError" ||
+        msg.includes("fetch failed") ||
+        msg.includes("network") ||
+        msg.includes("econnrefused") ||
+        msg.includes("etimedout") ||
+        msg.includes("enotfound"));
+}
 async function sendWebhook(url, evaluation) {
     const { owner, repo } = github_context.repo;
     const prUrl = evaluation.prNumber
@@ -43216,7 +43907,7 @@ async function sendWebhook(url, evaluation) {
         core_debug(`Webhook delivery failed: ${error}`);
     }
 }
-async function storeViaApi(url, evaluation) {
+async function storeViaApiOnce(url, evaluation) {
     const storeSecret = process.env.EVALUATION_STORE_SECRET;
     const headers = {
         "Content-Type": "application/json",
@@ -43238,7 +43929,12 @@ async function storeViaApi(url, evaluation) {
     const contentType = response.headers.get("content-type") ?? "";
     if (response.ok && contentType.includes("application/json")) {
         info(`Evaluation stored successfully at ${url}`);
-        return true;
+        return { ok: true, retryable: false };
+    }
+    const nonRetryableClientErrors = new Set([400, 401, 403]);
+    if (nonRetryableClientErrors.has(response.status)) {
+        warning(`Evaluation store returned HTTP ${response.status} — not retrying`);
+        return { ok: false, retryable: false };
     }
     if (!contentType.includes("application/json")) {
         warning(`Evaluation store at ${url} returned HTML instead of JSON (HTTP ${response.status}). ` +
@@ -43246,6 +43942,33 @@ async function storeViaApi(url, evaluation) {
     }
     else {
         warning(`Evaluation store returned HTTP ${response.status} — data may not be persisted`);
+    }
+    return {
+        ok: false,
+        retryable: STORE_RETRYABLE_STATUSES.has(response.status),
+    };
+}
+async function storeViaApi(url, evaluation) {
+    const maxAttempts = STORE_RETRY_BACKOFF_MS.length + 1;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+            const result = await storeViaApiOnce(url, evaluation);
+            if (result.ok)
+                return true;
+            if (!result.retryable || attempt >= maxAttempts - 1)
+                return false;
+            const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
+            warning(`Evaluation store attempt ${attempt + 1}/${maxAttempts} failed — retrying in ${delayMs}ms`);
+            await sleep(delayMs);
+        }
+        catch (error) {
+            if (!isRetryableNetworkError(error) || attempt >= maxAttempts - 1) {
+                throw error;
+            }
+            const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
+            warning(`Evaluation store network error on attempt ${attempt + 1}/${maxAttempts} — retrying in ${delayMs}ms`);
+            await sleep(delayMs);
+        }
     }
     return false;
 }
@@ -43293,7 +44016,7 @@ async function storeEvaluation(url, evaluation) {
     try {
         const stored = await storeViaApi(url, evaluation);
         if (stored)
-            return;
+            return true;
     }
     catch (error) {
         warning(`Evaluation store API failed: ${error}`);
@@ -43301,13 +44024,14 @@ async function storeEvaluation(url, evaluation) {
     try {
         const fallback = await storeViaSupabase(evaluation);
         if (fallback)
-            return;
+            return true;
     }
     catch (error) {
         warning(`Supabase direct fallback also failed: ${error}`);
     }
     warning("Evaluation could not be stored. To fix: either set VERCEL_AUTOMATION_BYPASS_SECRET " +
         "or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in your workflow env.");
+    return false;
 }
 
 ;// CONCATENATED MODULE: ./src/dora.ts
@@ -44279,6 +45003,21 @@ class PolicyOverrideError extends Error {
 function computeRolloutReadiness(evaluation) {
     let score = Math.max(0, Math.min(100, 100 - evaluation.riskScore));
     const reasons = [];
+    const mode = evaluation.gateMode ?? "risk-only";
+    if (mode === "release-ready" || mode === "advisory") {
+        if (evaluation.releaseReady === false) {
+            score -= 40;
+            reasons.push("Release readiness check failed");
+        }
+        if (evaluation.ci && !evaluation.ci.allRequiredPassed) {
+            score -= 25;
+            reasons.push(`${evaluation.ci.failedCount} required CI check(s) failed or missing`);
+        }
+        if (evaluation.ci && evaluation.ci.pendingCount > 0) {
+            score -= 15;
+            reasons.push(`${evaluation.ci.pendingCount} CI check(s) still pending`);
+        }
+    }
     if (evaluation.gateDecision === "warn") {
         score -= 10;
         reasons.push("Gate decision is WARN");
@@ -44311,11 +45050,13 @@ function computeRolloutReadiness(evaluation) {
         reasons.push("Escalation targets configured");
     }
     score = Math.max(0, Math.min(100, score));
-    const band = evaluation.gateDecision === "allow" && score >= 70
-        ? "go"
-        : evaluation.gateDecision !== "block" && score >= 45
-            ? "review"
-            : "hold";
+    const band = mode !== "risk-only" && evaluation.releaseReady === false
+        ? "hold"
+        : evaluation.gateDecision === "allow" && score >= 70
+            ? "go"
+            : evaluation.gateDecision !== "block" && score >= 45
+                ? "review"
+                : "hold";
     return {
         ready: band === "go",
         band,
@@ -44441,6 +45182,12 @@ async function run() {
         const environment = getInput("environment") || undefined;
         const policyOverride = resolvePolicyOverride();
         const failMode = resolveFailMode(getInput("fail-mode"), environment);
+        const gateModeInput = getInput("gate-mode");
+        const gateMode = gateModeInput === "release-ready" ||
+            gateModeInput === "advisory" ||
+            gateModeInput === "risk-only"
+            ? gateModeInput
+            : undefined;
         const config = {
             apiKey: getInput("api-key") || "",
             apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
@@ -44470,6 +45217,13 @@ async function run() {
             evaluationStoreUrl: getInput("evaluation-store-url") || undefined,
             environment,
             securityGate: getInput("security-gate") !== "false",
+            gateMode,
+            waitForChecks: getInput("wait-for-checks") === "true" ||
+                (gateMode === "release-ready" && getInput("wait-for-checks") !== "false"),
+            waitTimeoutMinutes: getInput("wait-timeout-minutes")
+                ? parseInt(getInput("wait-timeout-minutes"), 10)
+                : 30,
+            checkName: getInput("check-name") || undefined,
         };
         if (policyOverride?.changes.riskThreshold !== undefined) {
             config.riskThreshold = policyOverride.changes.riskThreshold;
@@ -44494,6 +45248,7 @@ async function run() {
         setOutput("health-score", evaluation.healthScore.toString());
         setOutput("risk-score", evaluation.riskScore.toString());
         setOutput("gate-decision", evaluation.gateDecision);
+        setOutput("release-ready", evaluation.releaseReady !== undefined ? String(evaluation.releaseReady) : "");
         setOutput("evaluation-json", JSON.stringify(evaluation));
         setOutput("rollout-readiness-json", JSON.stringify(computeRolloutReadiness(evaluation)));
         if (evaluation.reportUrl) {
@@ -44559,32 +45314,36 @@ async function run() {
             reportParts.push(securityReport);
         if (doraReport)
             reportParts.push(doraReport);
-        const fullReport = reportParts.join("\n---\n\n");
+        let fullReport = reportParts.join("\n---\n\n");
+        if (config.evaluationStoreUrl) {
+            const storeSecretInput = getInput("evaluation-store-secret");
+            if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
+                process.env.EVALUATION_STORE_SECRET = storeSecretInput;
+            }
+            const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation);
+            evaluation.storePersisted = stored;
+            if (!stored) {
+                const persistWarning = "> ⚠️ **Evaluation not persisted** — dashboard and DORA correlation may be incomplete.";
+                fullReport = `${persistWarning}\n\n${fullReport}`;
+            }
+        }
         await summary.addRaw(fullReport).write();
+        const checkName = resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);
         if (config.githubToken) {
             if (prNumber) {
                 await postPrComment(fullReport, prNumber, config.githubToken);
             }
-            await createCheckRun(evaluation, fullReport, config.githubToken);
-            if (prNumber && config.addRiskLabels) {
+            await createCheckRun(evaluation, fullReport, config.githubToken, checkName);
+            if (prNumber && config.addRiskLabels && evaluation.gateMode !== "advisory") {
                 await managePrLabels(prNumber, evaluation.gateDecision, config.githubToken);
             }
         }
         if (config.webhookUrl && config.webhookEvents.includes(evaluation.gateDecision)) {
             await sendWebhook(config.webhookUrl, evaluation);
         }
-        if (config.evaluationStoreUrl) {
-            const storeSecretInput = getInput("evaluation-store-secret");
-            if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
-                process.env.EVALUATION_STORE_SECRET = storeSecretInput;
-            }
-            await storeEvaluation(config.evaluationStoreUrl, evaluation);
-        }
-        switch (evaluation.gateDecision) {
-            case "allow":
-                info(fullReport);
-                break;
-            case "warn":
+        const blockMerge = shouldBlockMerge(evaluation);
+        if (!blockMerge) {
+            if (evaluation.gateDecision === "warn") {
                 warning(fullReport);
                 if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
                     await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
@@ -44596,27 +45355,28 @@ async function run() {
                             `${repairs.filter((r) => r.success).length} succeeded`);
                     }
                 }
-                break;
-            case "block":
-                if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
-                    await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
-                }
-                if (config.selfHeal && prNumber) {
-                    const repairs = await runSelfHeal(config, prNumber);
-                    const successes = repairs.filter((r) => r.success);
-                    if (successes.length > 0) {
-                        info(`Self-heal repaired ${successes.length}/${repairs.length} test failure(s) — ` +
-                            `review suggestions in PR comments`);
-                    }
-                }
-                setFailed(`Deployment blocked: health=${evaluation.healthScore}, ` +
-                    `risk=${evaluation.riskScore} (threshold: ${config.riskThreshold})`);
-                break;
-            default: {
-                const _exhaustive = evaluation.gateDecision;
-                throw new Error(`Unknown gate decision: ${_exhaustive}`);
+            }
+            else {
+                info(fullReport);
+            }
+            return;
+        }
+        if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
+            await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
+        }
+        if (config.selfHeal && prNumber) {
+            const repairs = await runSelfHeal(config, prNumber);
+            const successes = repairs.filter((r) => r.success);
+            if (successes.length > 0) {
+                info(`Self-heal repaired ${successes.length}/${repairs.length} test failure(s) — ` +
+                    `review suggestions in PR comments`);
             }
         }
+        const blockReason = evaluation.gateMode === "release-ready"
+            ? `Release not ready: ${(evaluation.releaseReadyReasons ?? []).join("; ") || "composite check failed"}`
+            : `Deployment blocked: health=${evaluation.healthScore}, ` +
+                `risk=${evaluation.riskScore} (threshold: ${config.riskThreshold})`;
+        setFailed(blockReason);
     }
     catch (error) {
         if (error instanceof PolicyOverrideError) {

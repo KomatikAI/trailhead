@@ -7,6 +7,8 @@ import {
   createCheckRun,
   managePrLabels,
   requestHighRiskReviewers,
+  shouldBlockMerge,
+  resolveCheckName,
 } from "./gate.js";
 import { sendWebhook, storeEvaluation } from "./notify.js";
 import {
@@ -47,8 +49,11 @@ function computeRolloutReadiness(evaluation: {
   riskScore: number;
   healthScore: number;
   policyFindings?: string[];
-  trust_profile?: { strictness: "baseline" | "elevated" | "strict"; reason: string };
+  trust_profile?: { strictness: "baseline" | "elevated" | "strict" };
   escalation_status?: { enabled: boolean; target_count: number };
+  releaseReady?: boolean;
+  gateMode?: "release-ready" | "advisory" | "risk-only";
+  ci?: { allRequiredPassed: boolean; failedCount: number; pendingCount: number };
 }): {
   ready: boolean;
   band: "go" | "review" | "hold";
@@ -57,6 +62,23 @@ function computeRolloutReadiness(evaluation: {
 } {
   let score = Math.max(0, Math.min(100, 100 - evaluation.riskScore));
   const reasons: string[] = [];
+
+  const mode = evaluation.gateMode ?? "risk-only";
+
+  if (mode === "release-ready" || mode === "advisory") {
+    if (evaluation.releaseReady === false) {
+      score -= 40;
+      reasons.push("Release readiness check failed");
+    }
+    if (evaluation.ci && !evaluation.ci.allRequiredPassed) {
+      score -= 25;
+      reasons.push(`${evaluation.ci.failedCount} required CI check(s) failed or missing`);
+    }
+    if (evaluation.ci && evaluation.ci.pendingCount > 0) {
+      score -= 15;
+      reasons.push(`${evaluation.ci.pendingCount} CI check(s) still pending`);
+    }
+  }
 
   if (evaluation.gateDecision === "warn") {
     score -= 10;
@@ -98,11 +120,13 @@ function computeRolloutReadiness(evaluation: {
 
   score = Math.max(0, Math.min(100, score));
   const band =
-    evaluation.gateDecision === "allow" && score >= 70
-      ? "go"
-      : evaluation.gateDecision !== "block" && score >= 45
-        ? "review"
-        : "hold";
+    mode !== "risk-only" && evaluation.releaseReady === false
+      ? "hold"
+      : evaluation.gateDecision === "allow" && score >= 70
+        ? "go"
+        : evaluation.gateDecision !== "block" && score >= 45
+          ? "review"
+          : "hold";
 
   return {
     ready: band === "go",
@@ -254,6 +278,14 @@ async function run(): Promise<void> {
     const policyOverride = resolvePolicyOverride();
     const failMode = resolveFailMode(core.getInput("fail-mode"), environment);
 
+    const gateModeInput = core.getInput("gate-mode");
+    const gateMode =
+      gateModeInput === "release-ready" ||
+      gateModeInput === "advisory" ||
+      gateModeInput === "risk-only"
+        ? gateModeInput
+        : undefined;
+
     const config: TrailheadConfig = {
       apiKey: core.getInput("api-key") || "",
       apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
@@ -284,6 +316,14 @@ async function run(): Promise<void> {
       evaluationStoreUrl: core.getInput("evaluation-store-url") || undefined,
       environment,
       securityGate: core.getInput("security-gate") !== "false",
+      gateMode,
+      waitForChecks:
+        core.getInput("wait-for-checks") === "true" ||
+        (gateMode === "release-ready" && core.getInput("wait-for-checks") !== "false"),
+      waitTimeoutMinutes: core.getInput("wait-timeout-minutes")
+        ? parseInt(core.getInput("wait-timeout-minutes"), 10)
+        : 30,
+      checkName: core.getInput("check-name") || undefined,
     };
 
     if (policyOverride?.changes.riskThreshold !== undefined) {
@@ -316,6 +356,10 @@ async function run(): Promise<void> {
     core.setOutput("health-score", evaluation.healthScore.toString());
     core.setOutput("risk-score", evaluation.riskScore.toString());
     core.setOutput("gate-decision", evaluation.gateDecision);
+    core.setOutput(
+      "release-ready",
+      evaluation.releaseReady !== undefined ? String(evaluation.releaseReady) : "",
+    );
     core.setOutput("evaluation-json", JSON.stringify(evaluation));
     core.setOutput(
       "rollout-readiness-json",
@@ -399,15 +443,35 @@ async function run(): Promise<void> {
     const reportParts = [report];
     if (securityReport) reportParts.push(securityReport);
     if (doraReport) reportParts.push(doraReport);
-    const fullReport = reportParts.join("\n---\n\n");
+    let fullReport = reportParts.join("\n---\n\n");
+
+    if (config.evaluationStoreUrl) {
+      const storeSecretInput = core.getInput("evaluation-store-secret");
+      if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
+        process.env.EVALUATION_STORE_SECRET = storeSecretInput;
+      }
+      const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation);
+      evaluation.storePersisted = stored;
+      if (!stored) {
+        const persistWarning =
+          "> ⚠️ **Evaluation not persisted** — dashboard and DORA correlation may be incomplete.";
+        fullReport = `${persistWarning}\n\n${fullReport}`;
+      }
+    }
+
     await core.summary.addRaw(fullReport).write();
+
+    const checkName = resolveCheckName(
+      evaluation.gateMode ?? "risk-only",
+      config.checkName,
+    );
 
     if (config.githubToken) {
       if (prNumber) {
         await postPrComment(fullReport, prNumber, config.githubToken);
       }
-      await createCheckRun(evaluation, fullReport, config.githubToken);
-      if (prNumber && config.addRiskLabels) {
+      await createCheckRun(evaluation, fullReport, config.githubToken, checkName);
+      if (prNumber && config.addRiskLabels && evaluation.gateMode !== "advisory") {
         await managePrLabels(prNumber, evaluation.gateDecision, config.githubToken);
       }
     }
@@ -416,19 +480,10 @@ async function run(): Promise<void> {
       await sendWebhook(config.webhookUrl, evaluation);
     }
 
-    if (config.evaluationStoreUrl) {
-      const storeSecretInput = core.getInput("evaluation-store-secret");
-      if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
-        process.env.EVALUATION_STORE_SECRET = storeSecretInput;
-      }
-      await storeEvaluation(config.evaluationStoreUrl, evaluation);
-    }
+    const blockMerge = shouldBlockMerge(evaluation);
 
-    switch (evaluation.gateDecision) {
-      case "allow":
-        core.info(fullReport);
-        break;
-      case "warn":
+    if (!blockMerge) {
+      if (evaluation.gateDecision === "warn") {
         core.warning(fullReport);
         if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
           await requestHighRiskReviewers(
@@ -446,35 +501,36 @@ async function run(): Promise<void> {
             );
           }
         }
-        break;
-      case "block":
-        if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
-          await requestHighRiskReviewers(
-            prNumber,
-            config.reviewersOnRisk,
-            config.githubToken,
-          );
-        }
-        if (config.selfHeal && prNumber) {
-          const repairs = await runSelfHeal(config, prNumber);
-          const successes = repairs.filter((r) => r.success);
-          if (successes.length > 0) {
-            core.info(
-              `Self-heal repaired ${successes.length}/${repairs.length} test failure(s) — ` +
-                `review suggestions in PR comments`,
-            );
-          }
-        }
-        core.setFailed(
-          `Deployment blocked: health=${evaluation.healthScore}, ` +
-            `risk=${evaluation.riskScore} (threshold: ${config.riskThreshold})`,
+      } else {
+        core.info(fullReport);
+      }
+      return;
+    }
+
+    if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
+      await requestHighRiskReviewers(
+        prNumber,
+        config.reviewersOnRisk,
+        config.githubToken,
+      );
+    }
+    if (config.selfHeal && prNumber) {
+      const repairs = await runSelfHeal(config, prNumber);
+      const successes = repairs.filter((r) => r.success);
+      if (successes.length > 0) {
+        core.info(
+          `Self-heal repaired ${successes.length}/${repairs.length} test failure(s) — ` +
+            `review suggestions in PR comments`,
         );
-        break;
-      default: {
-        const _exhaustive: never = evaluation.gateDecision;
-        throw new Error(`Unknown gate decision: ${_exhaustive}`);
       }
     }
+
+    const blockReason =
+      evaluation.gateMode === "release-ready"
+        ? `Release not ready: ${(evaluation.releaseReadyReasons ?? []).join("; ") || "composite check failed"}`
+        : `Deployment blocked: health=${evaluation.healthScore}, ` +
+          `risk=${evaluation.riskScore} (threshold: ${config.riskThreshold})`;
+    core.setFailed(blockReason);
   } catch (error) {
     if (error instanceof PolicyOverrideError) {
       core.setFailed(`Invalid policy override: ${error.message}`);

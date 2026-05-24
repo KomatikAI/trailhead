@@ -1,6 +1,6 @@
 # Trailhead MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Trailhead's deployment gate capabilities as 21 tools for AI agents.
+A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Trailhead's deployment gate capabilities as 22 tools for AI agents.
 
 ## Tools
 
@@ -18,6 +18,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes 
 | `compare-risk-history`    | Compare risk across recently merged PRs                   | `GITHUB_TOKEN`                                             |
 | `explain-risk-factors`    | Explain risk-factor contributions in natural language     | —                                                          |
 | `evaluate-policy`         | Full policy evaluation for a PR/commit                    | `GITHUB_TOKEN`                                             |
+| `get-pr-release-status`   | Composite release readiness (CI + risk) for a PR          | `GITHUB_TOKEN`                                             |
 | `get-security-alerts`     | Fetch open code-scanning alerts by severity               | `GITHUB_TOKEN`                                             |
 | `get-deployment-status`   | Get deployment status for an environment                  | `GITHUB_TOKEN`                                             |
 | `suggest-deploy-timing`   | Suggest whether conditions are safe for deploy            | `GITHUB_TOKEN`                                             |

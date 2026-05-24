@@ -1,0 +1,168 @@
+[
+  {
+    "id": "all-pass",
+    "runs": [
+      { "name": "CI Gate", "status": "completed", "conclusion": "success" },
+      { "name": "Build", "status": "completed", "conclusion": "success" }
+    ],
+    "ciConfig": {
+      "required_checks": ["CI Gate", "Build"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": true, "failedCount": 0, "pendingCount": 0 }
+  },
+  {
+    "id": "required-failure",
+    "runs": [
+      { "name": "CI Gate", "status": "completed", "conclusion": "failure" },
+      { "name": "Build", "status": "completed", "conclusion": "success" }
+    ],
+    "ciConfig": {
+      "required_checks": ["CI Gate"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": false, "failedCount": 1, "pendingCount": 0 }
+  },
+  {
+    "id": "required-skipped-counts-pass",
+    "runs": [{ "name": "Playwright", "status": "completed", "conclusion": "skipped" }],
+    "ciConfig": {
+      "required_checks": ["Playwright"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": true, "failedCount": 0, "pendingCount": 0 }
+  },
+  {
+    "id": "required-pending",
+    "runs": [{ "name": "Build", "status": "in_progress", "conclusion": null }],
+    "ciConfig": {
+      "required_checks": ["Build"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": false, "failedCount": 0, "pendingCount": 1 }
+  },
+  {
+    "id": "required-missing-fail",
+    "runs": [{ "name": "Build", "status": "completed", "conclusion": "success" }],
+    "ciConfig": {
+      "required_checks": ["Security Gate"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": false, "failedCount": 1, "missingCount": 1 }
+  },
+  {
+    "id": "required-missing-skip",
+    "runs": [],
+    "ciConfig": {
+      "required_checks": ["Security Gate"],
+      "optional_checks": [],
+      "missing_required": "skip"
+    },
+    "expect": { "allRequiredPassed": true, "failedCount": 0, "missingCount": 0 }
+  },
+  {
+    "id": "optional-missing-ignored",
+    "runs": [{ "name": "Build", "status": "completed", "conclusion": "success" }],
+    "ciConfig": {
+      "required_checks": ["Build"],
+      "optional_checks": ["Playwright"],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": true, "failedCount": 0, "missingCount": 0 }
+  },
+  {
+    "id": "prefix-match-build",
+    "runs": [{ "name": "Build / lint", "status": "completed", "conclusion": "success" }],
+    "ciConfig": {
+      "required_checks": ["Build"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": true, "failedCount": 0 }
+  },
+  {
+    "id": "timed-out-check",
+    "runs": [{ "name": "CI Gate", "status": "completed", "conclusion": "timed_out" }],
+    "ciConfig": {
+      "required_checks": ["CI Gate"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": false, "failedCount": 1 }
+  },
+  {
+    "id": "cancelled-check",
+    "runs": [{ "name": "CI Gate", "status": "completed", "conclusion": "cancelled" }],
+    "ciConfig": {
+      "required_checks": ["CI Gate"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": false, "failedCount": 1 }
+  },
+  {
+    "id": "neutral-check-skips",
+    "runs": [{ "name": "Docs", "status": "completed", "conclusion": "neutral" }],
+    "ciConfig": {
+      "required_checks": ["Docs"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": true, "failedCount": 0 }
+  },
+  {
+    "id": "excludes-trailhead-self-check",
+    "runs": [
+      { "name": "Build", "status": "completed", "conclusion": "success" },
+      {
+        "name": "Trailhead — Release Ready",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "ciConfig": {
+      "required_checks": ["Build"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": true, "failedCount": 0 }
+  },
+  {
+    "id": "multiple-required-one-fails",
+    "runs": [
+      { "name": "CI Gate", "status": "completed", "conclusion": "success" },
+      { "name": "Playwright", "status": "completed", "conclusion": "failure" }
+    ],
+    "ciConfig": {
+      "required_checks": ["CI Gate", "Playwright"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": false, "failedCount": 1 }
+  },
+  {
+    "id": "no-required-checks",
+    "runs": [{ "name": "Build", "status": "completed", "conclusion": "success" }],
+    "ciConfig": {
+      "required_checks": [],
+      "optional_checks": ["Build"],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": true, "failedCount": 0 }
+  },
+  {
+    "id": "queued-check-pending",
+    "runs": [{ "name": "CI Gate", "status": "queued", "conclusion": null }],
+    "ciConfig": {
+      "required_checks": ["CI Gate"],
+      "optional_checks": [],
+      "missing_required": "fail"
+    },
+    "expect": { "allRequiredPassed": false, "pendingCount": 1 }
+  }
+]

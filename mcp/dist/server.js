@@ -3,6 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { computeRiskScore, decideGate, } from "./risk-engine.js";
+import { normalizeCheckRuns, evaluateRequiredChecks, } from "./ci-core.js";
+import { computeReleaseReady } from "./release-ready.js";
 import { registerAllAdapters, getAdapter, getAvailableAdapters, runAllAvailable, listAdapterNames, } from "./adapters/index.js";
 registerAllAdapters();
 const HEALTH_CHECK_TIMEOUT_MS = 10_000;
@@ -440,6 +442,29 @@ const GITHUB_HEADERS = () => {
         "X-GitHub-Api-Version": "2022-11-28",
     };
 };
+async function fetchGitHubCheckRuns(owner, repo, ref, headers) {
+    const runs = [];
+    let page = 1;
+    while (true) {
+        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${ref}/check-runs?per_page=100&page=${page}`, { headers });
+        if (!res.ok)
+            break;
+        const data = (await res.json());
+        for (const check of data.check_runs) {
+            runs.push({
+                name: check.name,
+                status: check.status,
+                conclusion: check.conclusion,
+                html_url: check.html_url,
+                details_url: check.details_url,
+            });
+        }
+        if (data.check_runs.length < 100)
+            break;
+        page += 1;
+    }
+    return runs;
+}
 server.tool("get-dora-metrics", "Fetch DORA-5 metrics for a GitHub repository. Requires GITHUB_TOKEN environment variable.", {
     owner: z.string().describe("GitHub repository owner"),
     repo: z.string().describe("GitHub repository name"),
@@ -663,6 +688,69 @@ server.tool("explain-risk-factors", "Provide a natural language explanation of w
     });
 });
 // ---------------------------------------------------------------------------
+// v4 tools — get-pr-release-status
+// ---------------------------------------------------------------------------
+server.tool("get-pr-release-status", "Return composite release readiness for a PR: CI check rollup, risk score, and releaseReady verdict. Requires GITHUB_TOKEN.", {
+    owner: z.string().describe("GitHub repository owner"),
+    repo: z.string().describe("GitHub repository name"),
+    prNumber: z.number().int().describe("Pull request number"),
+    riskThreshold: z
+        .number()
+        .min(0)
+        .max(100)
+        .default(70)
+        .describe("Risk block threshold"),
+    requiredChecks: z
+        .array(z.string())
+        .default(["CI Gate", "Build"])
+        .describe("Required CI check names (prefix match supported)"),
+}, async ({ owner, repo, prNumber, riskThreshold, requiredChecks, }) => {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) {
+        return jsonResult({ error: "Missing GITHUB_TOKEN environment variable" });
+    }
+    const headers = GITHUB_HEADERS();
+    const prRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`, { headers });
+    if (!prRes.ok) {
+        return jsonResult({
+            error: `Failed to fetch PR #${prNumber}: HTTP ${prRes.status}`,
+        });
+    }
+    const pr = (await prRes.json());
+    const filesRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=300`, { headers });
+    const files = filesRes.ok ? (await filesRes.json()) : [];
+    const { score: riskScore, factors: riskFactors } = computeRiskScore(files);
+    const gateDecision = decideGate(riskScore, 100, riskThreshold, riskThreshold - 15);
+    const rawChecks = await fetchGitHubCheckRuns(owner, repo, pr.head.sha, headers);
+    const normalized = normalizeCheckRuns(rawChecks);
+    const ciSummary = evaluateRequiredChecks(normalized, {
+        required_checks: requiredChecks,
+        optional_checks: [],
+        missing_required: "fail",
+    });
+    const release = computeReleaseReady({
+        gateMode: "release-ready",
+        gateDecision,
+        riskScore,
+        riskThreshold,
+        healthScore: 100,
+        healthChecksConfigured: false,
+        ciSummary,
+        freezeActive: false,
+    });
+    return jsonResult({
+        releaseReady: release.releaseReady,
+        releaseReadyReasons: release.reasons,
+        riskScore,
+        gateDecision,
+        context: { baseBranch: pr.base.ref, headBranch: pr.head.ref },
+        ci: ciSummary,
+        riskFactors: riskFactors.map((f) => ({ type: f.type, score: f.score })),
+        commitSha: pr.head.sha,
+        prNumber,
+    });
+});
+// ---------------------------------------------------------------------------
 // v3 tools — evaluate-policy, get-security-alerts, get-deployment-status,
 //             suggest-deploy-timing
 // ---------------------------------------------------------------------------
@@ -728,6 +816,45 @@ server.tool("evaluate-policy", "Run a full Trailhead policy evaluation for a PR 
     }
     const { score: riskScore, factors: riskFactors } = computeRiskScore(files);
     const decision = decideGate(riskScore, 100, 70, 55);
+    let ciSummary = null;
+    let releaseReady;
+    let releaseReadyReasons;
+    if (commitSha || prNumber) {
+        try {
+            let headSha = commitSha;
+            if (!headSha && prNumber) {
+                const prRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`, { headers });
+                if (prRes.ok) {
+                    const pr = (await prRes.json());
+                    headSha = pr.head.sha;
+                }
+            }
+            if (headSha) {
+                const rawChecks = await fetchGitHubCheckRuns(owner, repo, headSha, headers);
+                const normalized = normalizeCheckRuns(rawChecks);
+                ciSummary = evaluateRequiredChecks(normalized, {
+                    required_checks: [],
+                    optional_checks: [],
+                    missing_required: "fail",
+                });
+                const release = computeReleaseReady({
+                    gateMode: "release-ready",
+                    gateDecision: decision,
+                    riskScore,
+                    riskThreshold: 70,
+                    healthScore: 100,
+                    healthChecksConfigured: false,
+                    ciSummary,
+                    freezeActive: false,
+                });
+                releaseReady = release.releaseReady;
+                releaseReadyReasons = release.reasons;
+            }
+        }
+        catch {
+            /* non-blocking */
+        }
+    }
     if (riskScore > 70)
         reasons.push(`High risk score (${riskScore}/100)`);
     if (riskScore > 55)
@@ -762,6 +889,9 @@ server.tool("evaluate-policy", "Run a full Trailhead policy evaluation for a PR 
     return jsonResult({
         verdict: decision,
         riskScore,
+        releaseReady: releaseReady ?? null,
+        releaseReadyReasons: releaseReadyReasons ?? [],
+        ci: ciSummary,
         riskFactors: riskFactors.map((f) => ({
             type: f.type,
             score: f.score,

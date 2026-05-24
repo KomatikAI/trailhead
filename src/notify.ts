@@ -4,6 +4,25 @@ import type { GateEvaluation } from "./types.js";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 const STORE_TIMEOUT_MS = 10_000;
+const STORE_RETRY_BACKOFF_MS = [1_000, 4_000, 16_000];
+const STORE_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableNetworkError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return (
+    error.name === "AbortError" ||
+    msg.includes("fetch failed") ||
+    msg.includes("network") ||
+    msg.includes("econnrefused") ||
+    msg.includes("etimedout") ||
+    msg.includes("enotfound")
+  );
+}
 
 export async function sendWebhook(
   url: string,
@@ -62,7 +81,13 @@ export async function sendWebhook(
   }
 }
 
-async function storeViaApi(url: string, evaluation: GateEvaluation): Promise<boolean> {
+async function storeViaApiOnce(
+  url: string,
+  evaluation: GateEvaluation,
+): Promise<{
+  ok: boolean;
+  retryable: boolean;
+}> {
   const storeSecret = process.env.EVALUATION_STORE_SECRET;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -88,7 +113,13 @@ async function storeViaApi(url: string, evaluation: GateEvaluation): Promise<boo
 
   if (response.ok && contentType.includes("application/json")) {
     core.info(`Evaluation stored successfully at ${url}`);
-    return true;
+    return { ok: true, retryable: false };
+  }
+
+  const nonRetryableClientErrors = new Set([400, 401, 403]);
+  if (nonRetryableClientErrors.has(response.status)) {
+    core.warning(`Evaluation store returned HTTP ${response.status} — not retrying`);
+    return { ok: false, retryable: false };
   }
 
   if (!contentType.includes("application/json")) {
@@ -101,6 +132,39 @@ async function storeViaApi(url: string, evaluation: GateEvaluation): Promise<boo
       `Evaluation store returned HTTP ${response.status} — data may not be persisted`,
     );
   }
+
+  return {
+    ok: false,
+    retryable: STORE_RETRYABLE_STATUSES.has(response.status),
+  };
+}
+
+async function storeViaApi(url: string, evaluation: GateEvaluation): Promise<boolean> {
+  const maxAttempts = STORE_RETRY_BACKOFF_MS.length + 1;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const result = await storeViaApiOnce(url, evaluation);
+      if (result.ok) return true;
+      if (!result.retryable || attempt >= maxAttempts - 1) return false;
+
+      const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
+      core.warning(
+        `Evaluation store attempt ${attempt + 1}/${maxAttempts} failed — retrying in ${delayMs}ms`,
+      );
+      await sleep(delayMs);
+    } catch (error) {
+      if (!isRetryableNetworkError(error) || attempt >= maxAttempts - 1) {
+        throw error;
+      }
+      const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
+      core.warning(
+        `Evaluation store network error on attempt ${attempt + 1}/${maxAttempts} — retrying in ${delayMs}ms`,
+      );
+      await sleep(delayMs);
+    }
+  }
+
   return false;
 }
 
@@ -153,17 +217,17 @@ async function storeViaSupabase(evaluation: GateEvaluation): Promise<boolean> {
 export async function storeEvaluation(
   url: string,
   evaluation: GateEvaluation,
-): Promise<void> {
+): Promise<boolean> {
   try {
     const stored = await storeViaApi(url, evaluation);
-    if (stored) return;
+    if (stored) return true;
   } catch (error) {
     core.warning(`Evaluation store API failed: ${error}`);
   }
 
   try {
     const fallback = await storeViaSupabase(evaluation);
-    if (fallback) return;
+    if (fallback) return true;
   } catch (error) {
     core.warning(`Supabase direct fallback also failed: ${error}`);
   }
@@ -172,4 +236,5 @@ export async function storeEvaluation(
     "Evaluation could not be stored. To fix: either set VERCEL_AUTOMATION_BYPASS_SECRET " +
       "or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in your workflow env.",
   );
+  return false;
 }

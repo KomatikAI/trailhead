@@ -1,5 +1,5 @@
 name: "Trailhead"
-description: "Deployment gate for GitHub PRs — scores code risk, checks production health, integrates security signals, and blocks dangerous releases."
+description: "Release readiness gate for GitHub PRs — waits for CI, scores code risk, checks production health, and blocks merges that are not release-ready."
 author: "Komatik"
 
 branding:
@@ -95,6 +95,22 @@ inputs:
     description: "Target deployment environment. Used for per-environment threshold overrides from .trailhead.yml."
     required: false
     default: ""
+  gate-mode:
+    description: "Gate mode: release-ready (composite CI+risk), advisory (never blocks), or risk-only (v3 compat). Overrides .trailhead.yml gate.mode when set."
+    required: false
+    default: ""
+  wait-for-checks:
+    description: "Poll GitHub Checks API until required checks complete or timeout. Defaults to true in release-ready mode when gate-mode input is set."
+    required: false
+    default: ""
+  wait-timeout-minutes:
+    description: "Maximum minutes to wait for required CI checks when wait-for-checks is enabled."
+    required: false
+    default: "30"
+  check-name:
+    description: "GitHub check run name. Defaults to 'Trailhead — Release Ready' in release-ready mode, 'Trailhead' in risk-only mode."
+    required: false
+    default: ""
   security-gate:
     description: "Enable GitHub Code Scanning alert integration as a risk factor. Set to 'false' to disable."
     required: false
@@ -123,6 +139,8 @@ outputs:
     description: "Code risk score (0-100). Higher means riskier."
   gate-decision:
     description: "Gate decision: allow, warn, or block."
+  release-ready:
+    description: "Composite release readiness (true/false). Set when gate mode reads CI checks."
   report-url:
     description: "URL to the full evaluation report (only set when using a remote API)."
   evaluation-json:

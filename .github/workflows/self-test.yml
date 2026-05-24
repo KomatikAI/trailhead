@@ -28,13 +28,16 @@ jobs:
       - name: Build action
         run: npm run build
 
-      - name: Run detector fixture tests
-        run: npm run test -- src/__tests__/config.test.ts src/__tests__/evaluate-gate.test.ts src/__tests__/gate.test.ts src/__tests__/mcp.test.ts
+      - name: Run fixture and gate tests
+        run: npm run test -- src/__tests__/fixture-scenarios.test.ts src/__tests__/release-ready.test.ts src/__tests__/ci-orchestrator.test.ts src/__tests__/context-matcher.test.ts src/__tests__/config.test.ts src/__tests__/evaluate-gate.test.ts src/__tests__/gate.test.ts src/__tests__/mcp.test.ts
 
-      - name: Run Trailhead on this PR
+      - name: Run Trailhead (release-ready mode)
         id: gate
         uses: ./
         with:
+          gate-mode: release-ready
+          wait-for-checks: "true"
+          wait-timeout-minutes: "15"
           risk-threshold: "85"
           warn-threshold: "50"
           fail-mode: "open"
@@ -46,19 +49,45 @@ jobs:
         run: |
           node -e "const e=JSON.parse(process.argv[1]); if(!e.pr || !e.pr.provenance) { throw new Error('Missing pr.provenance in evaluation-json'); } if(!e.trust_profile){ throw new Error('Missing trust_profile in evaluation-json'); }" '${{ steps.gate.outputs.evaluation-json }}'
           node -e "const r=JSON.parse(process.argv[1]); if(!['go','review','hold'].includes(r.band)){ throw new Error('Invalid rollout readiness band'); } if(typeof r.ready!=='boolean'){ throw new Error('rollout ready flag missing'); }" '${{ steps.gate.outputs.rollout-readiness-json }}'
+          node -e "const ready=process.argv[1]; if(ready!=='true' && ready!=='false'){ throw new Error('release-ready output must be true or false'); }" '${{ steps.gate.outputs.release-ready }}'
 
       - name: Print outputs
         if: always()
         run: |
-          echo "gate-decision: ${{ steps.gate.outputs.gate-decision }}"
-          echo "risk-score:    ${{ steps.gate.outputs.risk-score }}"
-          echo "health-score:  ${{ steps.gate.outputs.health-score }}"
-          echo "report-url:    ${{ steps.gate.outputs.report-url }}"
-          echo "dora-rating:   ${{ steps.gate.outputs.dora-rating }}"
-          echo "rollout:       ${{ steps.gate.outputs.rollout-readiness-json }}"
+          echo "gate-decision:  ${{ steps.gate.outputs.gate-decision }}"
+          echo "release-ready:  ${{ steps.gate.outputs.release-ready }}"
+          echo "risk-score:     ${{ steps.gate.outputs.risk-score }}"
+          echo "health-score:   ${{ steps.gate.outputs.health-score }}"
+          echo "report-url:     ${{ steps.gate.outputs.report-url }}"
+          echo "dora-rating:    ${{ steps.gate.outputs.dora-rating }}"
+          echo "rollout:        ${{ steps.gate.outputs.rollout-readiness-json }}"
           echo ""
           echo "--- evaluation-json (truncated) ---"
           echo '${{ steps.gate.outputs.evaluation-json }}' | head -c 500
-          echo ""
-          echo "--- dora-json (truncated) ---"
-          echo '${{ steps.gate.outputs.dora-json }}' | head -c 500
+
+  advisory:
+    name: "Trailhead Advisory Self-Test"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci && npm run build
+
+      - name: Run Trailhead (advisory mode — never blocks workflow)
+        id: advisory
+        uses: ./
+        with:
+          gate-mode: advisory
+          risk-threshold: "1"
+          fail-mode: "open"
+
+      - name: Validate advisory outputs
+        run: |
+          node -e "const ready=process.argv[1]; if(ready!=='true' && ready!=='false'){ throw new Error('release-ready output missing'); }" '${{ steps.advisory.outputs.release-ready }}'
+          echo "Advisory gate-decision: ${{ steps.advisory.outputs.gate-decision }}"

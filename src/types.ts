@@ -51,6 +51,43 @@ export const PrProvenance = z.object({
 });
 export type PrProvenance = z.infer<typeof PrProvenance>;
 
+export const GateMode = z.enum(["release-ready", "advisory", "risk-only"]);
+export type GateMode = z.infer<typeof GateMode>;
+
+export const CiCheckStatusEnum = z.enum([
+  "pass",
+  "fail",
+  "skip",
+  "pending",
+  "stale",
+  "missing",
+]);
+export type CiCheckStatusEnum = z.infer<typeof CiCheckStatusEnum>;
+
+export const CiCheck = z.object({
+  name: z.string(),
+  status: CiCheckStatusEnum,
+  conclusion: z.string().optional(),
+  detailsUrl: z.string().url().optional(),
+  required: z.boolean(),
+});
+export type CiCheck = z.infer<typeof CiCheck>;
+
+export const CiSummary = z.object({
+  checks: z.array(CiCheck),
+  allRequiredPassed: z.boolean(),
+  pendingCount: z.number().int().min(0),
+  failedCount: z.number().int().min(0),
+  missingCount: z.number().int().min(0),
+});
+export type CiSummary = z.infer<typeof CiSummary>;
+
+export const MatchedContext = z.object({
+  name: z.string(),
+  environment: z.string().optional(),
+});
+export type MatchedContext = z.infer<typeof MatchedContext>;
+
 export const GateEvaluation = z.object({
   id: z.string(),
   repoId: z.string(),
@@ -108,6 +145,12 @@ export const GateEvaluation = z.object({
         .default({}),
     })
     .optional(),
+  releaseReady: z.boolean().optional(),
+  releaseReadyReasons: z.array(z.string()).optional(),
+  ci: CiSummary.optional(),
+  context: MatchedContext.optional(),
+  gateMode: GateMode.optional(),
+  storePersisted: z.boolean().optional(),
 });
 export type GateEvaluation = z.infer<typeof GateEvaluation>;
 
@@ -175,8 +218,44 @@ export const RiskProfile = z.object({
 });
 export type RiskProfile = z.infer<typeof RiskProfile>;
 
+export const ContextMatch = z.object({
+  base_branch: z.array(z.string()).default([]),
+  head_branch: z.array(z.string()).default([]),
+  labels: z.array(z.string()).default([]),
+});
+export type ContextMatch = z.infer<typeof ContextMatch>;
+
+export const ContextCiConfig = z.object({
+  required_checks: z.array(z.string()).default([]),
+  optional_checks: z.array(z.string()).default([]),
+  missing_required: z.enum(["fail", "skip"]).default("fail"),
+});
+export type ContextCiConfig = z.infer<typeof ContextCiConfig>;
+
+export const TrailheadContext = z.object({
+  name: z.string(),
+  match: ContextMatch,
+  environment: z.string().optional(),
+  thresholds: z
+    .object({
+      risk: z.number().min(0).max(100).optional(),
+      warn: z.number().min(0).max(100).optional(),
+    })
+    .default({}),
+  ci: ContextCiConfig.default({}),
+});
+export type TrailheadContext = z.infer<typeof TrailheadContext>;
+
+export const GateConfig = z.object({
+  mode: GateMode.default("risk-only"),
+  check_name: z.string().default("Trailhead — Release Ready"),
+});
+export type GateConfig = z.infer<typeof GateConfig>;
+
 export const RepoConfig = z.object({
   schema_version: z.number().int().positive().default(1),
+  gate: GateConfig.default({}),
+  contexts: z.array(TrailheadContext).default([]),
   sensitivity: z
     .object({
       high: z.array(z.string()).default([]),
@@ -294,6 +373,10 @@ export interface TrailheadConfig {
   evaluationStoreUrl?: string;
   environment?: string;
   securityGate?: boolean;
+  gateMode?: GateMode;
+  waitForChecks?: boolean;
+  waitTimeoutMinutes?: number;
+  checkName?: string;
 }
 
 export interface TestRepairResult {

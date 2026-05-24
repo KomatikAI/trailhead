@@ -4,15 +4,17 @@
 [![CI](https://github.com/KomatikAI/trailhead/actions/workflows/ci.yml/badge.svg)](https://github.com/KomatikAI/trailhead/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Deployment gate for GitHub PRs. Scores code risk, checks production health, integrates security signals, computes DORA-5 metrics, and blocks dangerous releases — all in a single GitHub Action.
+**Release readiness gate for GitHub PRs.** Trailhead waits for required CI checks, scores code risk, checks production health, integrates security signals, and produces a single **Release Ready** decision — one check, one ruleset, one merge gate.
 
 ## Quick Start
 
-**Option A — Interactive setup:**
+**Option A — Interactive setup (recommended for v4):**
 
 ```bash
 npx @komatikai/trailhead init
 ```
+
+The wizard generates a v2 `.trailhead.yml` with `gate.mode: release-ready`, branch-aware contexts, and a workflow pinned to `@v4`.
 
 **Option B — Manual setup:**
 
@@ -33,14 +35,42 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: KomatikAI/trailhead@v3
+      - uses: KomatikAI/trailhead@v4
         with:
+          gate-mode: release-ready
+          wait-for-checks: "true"
           risk-threshold: "70"
 ```
 
-Open a pull request. Trailhead comments a risk report directly on the PR.
+Configure required CI checks in `.trailhead.yml`:
+
+```yaml
+schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [CI, Build, Playwright]
+```
+
+Open a pull request. Trailhead polls GitHub Checks, scores risk, and posts a composite **Trailhead — Release Ready** check.
 
 No API key. No secrets. That's it.
+
+### Gate modes
+
+| Mode            | Behavior                                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `release-ready` | **Default for v2 configs.** Blocks merge when CI fails, risk exceeds threshold, freeze is active, or health checks fail. |
+| `advisory`      | Runs full evaluation but never blocks — useful for rollout and shadow mode.                                              |
+| `risk-only`     | **v3 compatibility.** Risk score only; ignores CI orchestration. Default for v1 configs.                                 |
+
+Override via workflow input: `gate-mode: release-ready | advisory | risk-only`.
+
+See [docs/migration-v3-to-v4.md](docs/migration-v3-to-v4.md) for upgrading from `@v3`.
 
 ---
 
@@ -110,6 +140,10 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 | `dora-metrics`            | No       | `false`               | Compute DORA-5 metrics alongside the gate evaluation                                   |
 | `dora-environment`        | No       | —                     | Filter DORA metrics to a specific deployment environment                               |
 | `environment`             | No       | —                     | Target deployment environment (for per-env threshold overrides)                        |
+| `gate-mode`               | No       | from `.trailhead.yml` | `release-ready`, `advisory`, or `risk-only` (overrides config)                         |
+| `wait-for-checks`         | No       | auto in release-ready | Poll GitHub Checks until required checks complete or timeout                           |
+| `wait-timeout-minutes`    | No       | `30`                  | Max minutes to wait for required CI checks                                             |
+| `check-name`              | No       | auto by gate mode     | GitHub check run name (`Trailhead — Release Ready` or `Trailhead`)                     |
 | `security-gate`           | No       | `true`                | Enable Code Scanning alerts as a risk factor                                           |
 | `canary-webhook-secret`   | No       | —                     | HMAC secret for deploy outcome webhooks                                                |
 | `otel-endpoint`           | No       | —                     | OTLP HTTP endpoint for exporting evaluation spans                                      |
@@ -123,6 +157,7 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 | `risk-score`                | Code risk score (0-100)                                                          |
 | `health-score`              | Infrastructure health score (0-100, always 100 when no health checks configured) |
 | `gate-decision`             | `allow`, `warn`, or `block`                                                      |
+| `release-ready`             | Composite release readiness (`true`/`false`) in release-ready mode               |
 | `evaluation-json`           | Full evaluation as JSON for downstream steps                                     |
 | `rollout-readiness-json`    | Rollout recommendation payload (`go`, `review`, `hold`) with readiness score     |
 | `report-url`                | Report URL (only when using remote API)                                          |
