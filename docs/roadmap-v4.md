@@ -23,20 +23,40 @@ Transform Trailhead from a risk-scoring sidecar into a **Release Readiness Gate*
 | E13  | ✅ Done | Feedback, noise charts, tuning, digest  |
 | E14  | ✅ Done | Marketplace tiers, metering, keys, SSO  |
 
-## v4.0 Epics (implemented foundation)
+## v4.0 Epics (complete — released v4.0.0)
 
-| Epic | Status     | Description                                |
-| ---- | ---------- | ------------------------------------------ |
-| E1   | ✅ ADRs    | Product decisions locked (006–009)         |
-| E2   | ✅ Core    | Config schema v2 (`contexts`, `gate.mode`) |
-| E3   | ✅ Core    | CI orchestrator (Checks API)               |
-| E4   | ✅ Core    | Composite `computeReleaseReady()`          |
-| E5   | 🔶 Partial | Unified PR comment + composite check       |
-| E6   | ⏳         | CLI onboarding v2                          |
-| E7   | ⏳         | App + MCP parity                           |
-| E8   | 🔶 Partial | Store persistence visibility               |
-| E9   | ⏳         | Self-test fixtures                         |
-| E10  | 🔶 Partial | Docs + migration guide                     |
+| Epic | Status  | Description                                |
+| ---- | ------- | ------------------------------------------ |
+| E1   | ✅ Done | Product decisions locked (006–009)         |
+| E2   | ✅ Done | Config schema v2 (`contexts`, `gate.mode`) |
+| E3   | ✅ Done | CI orchestrator (Checks API)               |
+| E4   | ✅ Done | Composite `computeReleaseReady()`          |
+| E5   | ✅ Done | Unified PR comment + composite check       |
+| E6   | ✅ Done | CLI onboarding v2                          |
+| E7   | ✅ Done | App + MCP parity                           |
+| E8   | ✅ Done | Store persistence visibility               |
+| E9   | ✅ Done | Self-test fixtures                         |
+| E10  | ✅ Done | Docs + migration guide                     |
+
+## v4.2 Epics (next — Advanced CI)
+
+| Epic | Status | Description | Issues |
+| ---- | ------ | ----------- | ------ |
+| E15  | ⏳     | `ci-manifest.json` schema + Action input; merge with Checks API | #203–#206 |
+| E16  | ⏳     | External consumer registry, satellite webhooks, cross-repo impact in PR comment | #207–#209 |
+| E17  | ⏳     | GitLab, CircleCI, generic webhook CI adapters | #210–#212 |
+
+### E15 preview
+
+Action input `ci-manifest-path` (or inline JSON) declares required jobs beyond GitHub Checks. The CI orchestrator merges manifest entries with live check runs for composite release-ready scoring.
+
+### E16 preview
+
+Repos declare downstream consumers in config; deploy events and contract changes surface cross-repo impact in the unified PR comment.
+
+### E17 preview
+
+Non-GitHub CI systems post status to Trailhead via webhook adapters; same release-ready logic applies.
 
 ## Quick start (v4)
 

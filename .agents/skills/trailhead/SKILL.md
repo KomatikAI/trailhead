@@ -61,7 +61,9 @@ When reviewing PRs or evaluating deploys, always check:
 
 ## MCP Tools
 
-Use these tools via the Trailhead MCP server (21 tools). Tools that don't require environment variables work with zero configuration.
+Use these tools via the Trailhead MCP server (22 tools). Tools that don't require environment variables work with zero configuration.
+
+**Cloud-backed feedback:** Set `TRAILHEAD_CLOUD_API_URL` + `TRAILHEAD_API_KEY` to persist feedback, noise charts, and tuning proposals to Trailhead Cloud instead of a local file store.
 
 ### Pre-Merge (run on every PR)
 
@@ -91,9 +93,9 @@ Use these tools via the Trailhead MCP server (21 tools). Tools that don't requir
 - **`check-supply-chain`** — Detect dependency-introduction and vulnerability signals.
 - **`query-overrides`** — Query governed override records by repo/environment/time window.
 - **`get-escalation-status`** — Evaluate escalation SLA state (`within_sla` vs `breached`).
-- **`record-finding-feedback`** — Capture true/false-positive feedback for detectors.
-- **`get-detector-noise`** — Aggregate detector noise/false-positive rates.
-- **`recommend-policy-tuning`** — Generate threshold/mode tuning proposals from feedback.
+- **`record-finding-feedback`** — Capture true/false-positive feedback for detectors. Uses Trailhead Cloud when `TRAILHEAD_CLOUD_API_URL` + `TRAILHEAD_API_KEY` are set.
+- **`get-detector-noise`** — Aggregate detector noise/false-positive rates (Cloud or local store).
+- **`recommend-policy-tuning`** — Generate threshold/mode tuning proposals from feedback (Cloud or local store).
 - **`recommend-rollback`** — Propose/trigger rollback recommendation from canary + provenance.
 
 ## Workflow

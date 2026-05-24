@@ -60,6 +60,27 @@ Open a pull request. Trailhead polls GitHub Checks, scores risk, and posts a com
 
 No API key. No secrets. That's it.
 
+### Trailhead Cloud (optional)
+
+For hosted evaluation storage, analytics, and org dashboards, use a **Trailhead Cloud** API key instead of configuring a store URL:
+
+```yaml
+- uses: KomatikAI/trailhead@v4
+  with:
+    gate-mode: release-ready
+    trailhead-api-key: ${{ secrets.TRAILHEAD_API_KEY }}
+```
+
+| Tier | Cloud store | Dashboard | Quota |
+| ---- | ------------- | --------- | ----- |
+| Free | — | — | Risk-only gate (local) |
+| Pro | Yes | Yes | 5,000 evals/month |
+| Team | Yes | Yes + org rollup | 50,000 evals/month + SSO |
+
+See [docs/evaluation-storage.md](docs/evaluation-storage.md) and [docs/marketplace-tiers.md](docs/marketplace-tiers.md). Run the Cloud API locally with `cd cloud && npm run dev` → http://localhost:3101/dashboard.
+
+Bring-your-own-store (`evaluation-store-url` + secret) remains supported for self-hosted deployments.
+
 ### Gate modes
 
 | Mode            | Behavior                                                                                                                 |
@@ -406,7 +427,7 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: KomatikAI/trailhead@v3
+      - uses: KomatikAI/trailhead@v4
         id: gate
         with:
           risk-threshold: "75"
@@ -446,11 +467,20 @@ jobs:
 npx @komatikai/trailhead init
 ```
 
-Interactive wizard that generates `.trailhead.yml` and the workflow YAML with all v3 features. No installation required.
+Interactive wizard that generates v2 `.trailhead.yml` and a `@v4` workflow with gate modes, contexts, and optional Cloud store configuration. No installation required.
 
 ---
 
-## Examples
+## Documentation
+
+| Doc | Description |
+| --- | ----------- |
+| [docs/README.md](docs/README.md) | Architecture, risk factors, configuration |
+| [docs/migration-v3-to-v4.md](docs/migration-v3-to-v4.md) | Upgrade from `@v3` |
+| [docs/evaluation-storage.md](docs/evaluation-storage.md) | Cloud vs bring-your-own-store |
+| [docs/marketplace-tiers.md](docs/marketplace-tiers.md) | Free / Pro / Team plans |
+| [docs/roadmap-v4.md](docs/roadmap-v4.md) | v4 roadmap and release status |
+| [cloud/README.md](cloud/README.md) | Cloud API and local dev |
 
 - [Multi-CI templates](examples/) — GitLab CI and CircleCI configurations
 - [Observability dashboards](examples/observability/) — Grafana and Datadog dashboard imports

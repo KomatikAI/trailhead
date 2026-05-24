@@ -6,14 +6,16 @@ Trailhead is a release readiness gate available in three forms:
 
 1. **GitHub Action** (`@v4`) — the primary distribution. Runs in CI on every PR, waits for required checks, and publishes a composite **Release Ready** check.
 2. **GitHub App** (`app/`) — a webhook server that acts as a Custom Deployment Protection Rule with the same composite gate logic.
-3. **MCP Server** (`mcp/`) — 21 tools for AI agents via the Model Context Protocol.
+3. **MCP Server** (`mcp/`) — 22 tools for AI agents via the Model Context Protocol.
+4. **Trailhead Cloud** (`cloud/`) — optional hosted evaluation store, analytics dashboard, feedback loop, and org billing tiers (v4.1).
 
-All three share a single **risk engine** (`src/risk-engine.ts`) and v4 modules (`ci-core.ts`, `release-ready.ts`, `context-matcher.ts`, `deployment-gate.ts`) — pure TypeScript with no framework dependencies.
+All three runtime interfaces plus Cloud share a single **risk engine** (`src/risk-engine.ts`) and v4 modules (`ci-core.ts`, `release-ready.ts`, `context-matcher.ts`, `deployment-gate.ts`, `feedback-core.ts`) — pure TypeScript with no framework dependencies.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  Shared modules (pure — no @actions deps)                         │
 │  risk-engine · ci-core · release-ready · context-matcher · types  │
+│  feedback-core · deployment-gate · config-core                    │
 ├──────────────────┬────────────────────┬───────────────────────────┤
 │  GitHub Action   │    GitHub App      │       MCP Server          │
 │  src/main.ts     │  app/handler.ts    │     mcp/server.ts         │
@@ -22,6 +24,9 @@ All three share a single **risk engine** (`src/risk-engine.ts`) and v4 modules (
 └──────────────────┴────────────────────┴───────────────────────────┘
          │                    │                      │
          └────────── composite release-ready decision ──────────────┘
+                                    │
+                    optional POST ──┴── Trailhead Cloud (cloud/)
+                    evaluations · feedback · analytics dashboard
 ```
 
 ### CLI
@@ -226,7 +231,7 @@ freeze:
 Trailhead can export evaluation spans to any OTLP-compatible backend:
 
 ```yaml
-- uses: KomatikAI/trailhead@v3
+- uses: KomatikAI/trailhead@v4
   with:
     otel-endpoint: "https://otel.example.com:4318/v1/traces"
     otel-headers: "Authorization=Bearer ${{ secrets.OTEL_TOKEN }}"
@@ -236,13 +241,13 @@ Each evaluation produces a span with risk score, health score, gate decision, an
 
 ## Evaluation Storage
 
-Persist evaluation results for trend analysis:
+See **[evaluation-storage.md](evaluation-storage.md)** for the full guide. Summary:
 
-1. **Primary**: POST JSON to `evaluation-store-url` with `evaluation-store-secret` as Bearer token.
-2. **Vercel protection**: Set `VERCEL_AUTOMATION_BYPASS_SECRET` env to add `x-vercel-protection-bypass` header.
-3. **Fallback**: Direct Supabase PostgREST insert when `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set.
+1. **Trailhead Cloud (Pro/Team)** — set `trailhead-api-key` in the Action; evaluations POST to `https://api.trailhead.dev/v1/evaluations`.
+2. **Bring-your-own-store** — POST JSON to `evaluation-store-url` with `evaluation-store-secret` as Bearer token.
+3. **Supabase fallback** — direct REST insert when primary store fails and `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set.
 
-The current fallback table is `trailhead_evaluations`.
+The dashboard lives at `/dashboard` on the Cloud API. MCP feedback tools (`record-finding-feedback`, `get-detector-noise`, `recommend-policy-tuning`) use Cloud when `TRAILHEAD_CLOUD_API_URL` + `TRAILHEAD_API_KEY` are configured.
 
 ## Rollout Readiness Output
 
@@ -262,9 +267,9 @@ Example:
 
 ## Branch and Release Context
 
-This repository uses `dev` as the active/default branch. `main` and `staging` are kept
-fast-forwarded to `dev` for compatibility with older automation, and open PRs should target
-`dev`.
+This repository uses **`main`** as the active/default branch. `dev` and `staging` are kept in sync with `main` after each release. Open PRs should target **`main`** (CI runs on PRs to `main`).
+
+Current releases: **`@v4`** (Release Readiness Gate), **`v4.1.0`** (Trailhead Cloud — merged, tag pending).
 
 The unmerged legacy supply-chain experiment branch is known not to be promotion-ready: its
 targeted tests pass, but `app` and `mcp` builds fail until their prebuild scripts copy the
