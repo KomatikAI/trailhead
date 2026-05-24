@@ -627,6 +627,27 @@ describe("formatGateReport", () => {
     expect(report).toContain("`0.88`");
   });
 
+  it("includes cross-repo impact section in release-ready mode", () => {
+    const evaluation: GateEvaluation = {
+      ...baseEvaluation,
+      gateMode: "release-ready",
+      releaseReady: true,
+      cross_repo_impact: {
+        services: [
+          {
+            serviceName: "api",
+            touchedFiles: ["src/api/contracts/users.json"],
+            consumers: [{ id: "web", repo: "KomatikAI/frontend", branch: "main" }],
+            notify_webhook: "https://hooks.example.com/api",
+          },
+        ],
+      },
+    };
+    const report = formatGateReport(evaluation);
+    expect(report).toContain("Cross-Repo Impact");
+    expect(report).toContain("KomatikAI/frontend@main");
+  });
+
   it("includes policy findings when present", () => {
     const evaluation: GateEvaluation = {
       ...baseEvaluation,

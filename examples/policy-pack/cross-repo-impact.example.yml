@@ -1,0 +1,26 @@
+schema_version: 2
+
+consumer_registry:
+  dashboard:
+    repo: KomatikAI/komatik-base-camp
+    branch: main
+
+services:
+  api:
+    paths:
+      - "src/api/**"
+    contracts:
+      - "openapi/**"
+      - "src/api/contracts/**"
+    consumers:
+      - dashboard
+      - repo: KomatikAI/traverse
+        branch: main
+        notify_webhook: https://hooks.example.com/traverse-contract
+    notify_webhook: https://hooks.example.com/platform-api-contract
+
+policies:
+  cross_repo_impact:
+    enabled: true
+    mode: warn
+    consumer_registry_path: .trailhead/consumers.json

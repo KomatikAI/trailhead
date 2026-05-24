@@ -481,6 +481,7 @@ Interactive wizard that generates v2 `.trailhead.yml` and a `@v4` workflow with 
 | [docs/evaluation-storage.md](docs/evaluation-storage.md) | Cloud vs bring-your-own-store             |
 | [docs/marketplace-tiers.md](docs/marketplace-tiers.md)   | Free / Pro / Team plans                   |
 | [docs/ci-manifest.md](docs/ci-manifest.md)               | Path-filter CI manifest (v4.2)            |
+| [docs/cross-repo-impact.md](docs/cross-repo-impact.md)   | Consumer registry + satellite webhooks    |
 | [cloud/README.md](cloud/README.md)                       | Cloud API and local dev                   |
 
 - [Multi-CI templates](examples/) — GitLab CI and CircleCI configurations

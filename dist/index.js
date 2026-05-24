@@ -40687,6 +40687,19 @@ const GateEvaluation = objectType({
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
     storePersisted: booleanType().optional(),
+    cross_repo_impact: objectType({
+        services: arrayType(objectType({
+            serviceName: stringType(),
+            touchedFiles: arrayType(stringType()),
+            consumers: arrayType(objectType({
+                id: stringType(),
+                repo: stringType().optional(),
+                branch: stringType().optional(),
+            })),
+            notify_webhook: stringType().url().optional(),
+        })),
+    })
+        .optional(),
 });
 const GateApiResponse = objectType({
     id: stringType().optional(),
@@ -40709,11 +40722,20 @@ const EnvironmentConfig = objectType({
     warn: numberType().min(0).max(100).optional(),
     require_security_clear: booleanType().optional(),
 });
+const ServiceConsumerRef = objectType({
+    repo: stringType().min(1),
+    name: stringType().optional(),
+    branch: stringType().optional(),
+    notify_webhook: stringType().url().optional(),
+});
+const ServiceConsumer = unionType([stringType(), ServiceConsumerRef]);
+const ConsumerRegistry = recordType(stringType(), ServiceConsumerRef);
 const ServiceMapping = objectType({
     paths: arrayType(stringType()),
     environment: stringType().optional(),
-    consumers: arrayType(stringType()).default([]),
+    consumers: arrayType(ServiceConsumer).default([]),
     contracts: arrayType(stringType()).default([]),
+    notify_webhook: stringType().url().optional(),
 });
 const SecurityConfig = objectType({
     severity_threshold: enumType(["error", "warning", "note", "none"]).default("warning"),
@@ -40782,6 +40804,7 @@ const RepoConfig = objectType({
     freeze: arrayType(FreezeWindow).default([]),
     environments: recordType(EnvironmentConfig).default({}),
     services: recordType(ServiceMapping).default({}),
+    consumer_registry: recordType(ServiceConsumerRef).default({}),
     security: SecurityConfig.default({}),
     canary: CanaryConfig.optional(),
     escalation: objectType({
@@ -40846,6 +40869,7 @@ const RepoConfig = objectType({
         cross_repo_impact: objectType({
             enabled: booleanType().default(true),
             mode: enumType(["warn", "block"]).default("warn"),
+            consumer_registry_path: stringType().optional(),
         })
             .default({}),
     })
@@ -41368,6 +41392,7 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
     "profiles",
     "thresholds",
     "ignore",
+    "consumer_registry",
     "freeze",
     "environments",
     "services",
@@ -41540,6 +41565,207 @@ function resolveGateMode(repoGateMode, schemaVersion, inputGateMode) {
         return repoGateMode;
     }
     return schemaVersion >= 2 ? "release-ready" : "risk-only";
+}
+
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = require("node:fs");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
+;// CONCATENATED MODULE: ./src/cross-repo-impact.ts
+
+
+
+
+function parseConsumerRegistry(raw) {
+    return ConsumerRegistry.parse(raw);
+}
+function loadConsumerRegistryFile(filePath) {
+    try {
+        const resolved = external_node_path_default().resolve(filePath);
+        const contents = external_node_fs_default().readFileSync(resolved, "utf8");
+        return parseConsumerRegistry(JSON.parse(contents));
+    }
+    catch {
+        return null;
+    }
+}
+function mergeConsumerRegistries(...registries) {
+    const merged = {};
+    for (const registry of registries) {
+        if (!registry)
+            continue;
+        Object.assign(merged, registry);
+    }
+    return merged;
+}
+function formatConsumerLabel(consumer) {
+    if (consumer.repo) {
+        const branch = consumer.branch ? `@${consumer.branch}` : "";
+        return `\`${consumer.repo}${branch}\``;
+    }
+    return `\`${consumer.id}\``;
+}
+function resolveConsumer(consumer, registry) {
+    if (typeof consumer === "string") {
+        const entry = registry[consumer];
+        if (entry) {
+            return {
+                id: entry.name ?? consumer,
+                repo: entry.repo,
+                branch: entry.branch,
+                notify_webhook: entry.notify_webhook,
+            };
+        }
+        return { id: consumer };
+    }
+    return {
+        id: consumer.name ?? consumer.repo,
+        repo: consumer.repo,
+        branch: consumer.branch,
+        notify_webhook: consumer.notify_webhook,
+    };
+}
+function detectCrossRepoImpact(files, repoConfig, externalRegistry) {
+    const cfg = repoConfig?.policies?.cross_repo_impact;
+    const empty = {
+        factor: null,
+        findings: [],
+        affectedConsumers: [],
+        services: [],
+    };
+    if (!cfg?.enabled)
+        return empty;
+    const registry = mergeConsumerRegistries(externalRegistry, repoConfig?.consumer_registry);
+    const affectedConsumers = new Set();
+    const findings = [];
+    const services = [];
+    for (const [serviceName, service] of Object.entries(repoConfig?.services ?? {})) {
+        const contractPatterns = service.contracts ?? [];
+        if (contractPatterns.length === 0)
+            continue;
+        const touchedFiles = files
+            .filter((f) => matchesGlobs(f.filename, contractPatterns))
+            .map((f) => f.filename);
+        if (touchedFiles.length === 0)
+            continue;
+        const resolvedConsumers = (service.consumers ?? []).map((consumer) => resolveConsumer(consumer, registry));
+        for (const consumer of resolvedConsumers) {
+            affectedConsumers.add(consumer.repo
+                ? `${consumer.repo}${consumer.branch ? `@${consumer.branch}` : ""}`
+                : consumer.id);
+        }
+        services.push({
+            serviceName,
+            touchedFiles,
+            consumers: resolvedConsumers,
+            notify_webhook: service.notify_webhook,
+        });
+        findings.push(`Contract surface changed for service "${serviceName}" (${touchedFiles.length} file(s)).`);
+    }
+    if (findings.length === 0)
+        return empty;
+    const consumerLabels = [...affectedConsumers];
+    return {
+        factor: {
+            type: "cross_repo_impact",
+            score: Math.min(100, 30 + consumerLabels.length * 15),
+            detail: {
+                findings,
+                affectedConsumers: consumerLabels,
+                services: services.map((service) => ({
+                    service: service.serviceName,
+                    touchedFiles: service.touchedFiles,
+                    consumers: service.consumers.map((consumer) => ({
+                        id: consumer.id,
+                        repo: consumer.repo,
+                        branch: consumer.branch,
+                    })),
+                })),
+                description: "Potential downstream consumer impact from contract changes",
+            },
+        },
+        findings,
+        affectedConsumers: consumerLabels,
+        services,
+    };
+}
+function collectCrossRepoWebhookDeliveries(impact) {
+    const deliveries = [];
+    const seen = new Set();
+    for (const service of impact.services) {
+        if (service.notify_webhook && !seen.has(service.notify_webhook)) {
+            seen.add(service.notify_webhook);
+            deliveries.push({ url: service.notify_webhook, serviceName: service.serviceName });
+        }
+        for (const consumer of service.consumers) {
+            if (!consumer.notify_webhook || seen.has(consumer.notify_webhook))
+                continue;
+            seen.add(consumer.notify_webhook);
+            deliveries.push({
+                url: consumer.notify_webhook,
+                serviceName: service.serviceName,
+                consumer,
+            });
+        }
+    }
+    return deliveries;
+}
+async function sendCrossRepoImpactWebhooks(impact, context, fetchImpl = fetch) {
+    const deliveries = collectCrossRepoWebhookDeliveries(impact);
+    if (deliveries.length === 0)
+        return;
+    await Promise.all(deliveries.map(async (delivery) => {
+        const service = impact.services.find((item) => item.serviceName === delivery.serviceName);
+        if (!service)
+            return;
+        const payload = {
+            event: "contract_change",
+            source_repo: context.repoId,
+            commit_sha: context.commitSha,
+            pr_number: context.prNumber,
+            service: delivery.serviceName,
+            touched_files: service.touchedFiles,
+            consumers: service.consumers.map((consumer) => ({
+                id: consumer.id,
+                repo: consumer.repo,
+                branch: consumer.branch,
+            })),
+            target_consumer: delivery.consumer
+                ? {
+                    id: delivery.consumer.id,
+                    repo: delivery.consumer.repo,
+                    branch: delivery.consumer.branch,
+                }
+                : undefined,
+            timestamp: new Date().toISOString(),
+        };
+        try {
+            await fetchImpl(delivery.url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(10_000),
+            });
+        }
+        catch {
+            // fail-open: satellite notification must not block merge gate
+        }
+    }));
+}
+function formatCrossRepoImpactSection(impact) {
+    if (!impact || impact.services.length === 0)
+        return [];
+    const lines = [`### Cross-Repo Impact`, ``];
+    for (const service of impact.services) {
+        lines.push(`**${service.serviceName}** — ${service.touchedFiles.length} contract file(s) changed`);
+        if (service.consumers.length > 0) {
+            lines.push(`- Downstream: ${service.consumers.map((consumer) => formatConsumerLabel(consumer)).join(", ")}`);
+        }
+        if (service.notify_webhook) {
+            lines.push(`- Satellite webhook configured for this service`);
+        }
+        lines.push(``);
+    }
+    return lines;
 }
 
 ;// CONCATENATED MODULE: ./src/ci-core.ts
@@ -42050,6 +42276,7 @@ function formatSecuritySection(alerts) {
 }
 
 ;// CONCATENATED MODULE: ./src/gate.ts
+
 
 
 
@@ -42671,43 +42898,6 @@ function detectDuplicateLogicRisk(files) {
         findings,
     };
 }
-function detectCrossRepoImpact(files, repoConfig) {
-    const cfg = repoConfig?.policies?.cross_repo_impact;
-    if (!cfg?.enabled)
-        return { factor: null, findings: [], affectedConsumers: [] };
-    const affectedConsumers = new Set();
-    const findings = [];
-    for (const [serviceName, service] of Object.entries(repoConfig?.services ?? {})) {
-        const contractPatterns = service.contracts ?? [];
-        if (contractPatterns.length === 0)
-            continue;
-        const touchedContracts = files
-            .filter((f) => matchesGlobs(f.filename, contractPatterns))
-            .map((f) => f.filename);
-        if (touchedContracts.length === 0)
-            continue;
-        for (const consumer of service.consumers ?? []) {
-            affectedConsumers.add(consumer);
-        }
-        findings.push(`Contract surface changed for service "${serviceName}" (${touchedContracts.length} file(s)).`);
-    }
-    if (findings.length === 0) {
-        return { factor: null, findings: [], affectedConsumers: [] };
-    }
-    return {
-        factor: {
-            type: "cross_repo_impact",
-            score: Math.min(100, 30 + affectedConsumers.size * 15),
-            detail: {
-                findings,
-                affectedConsumers: [...affectedConsumers],
-                description: "Potential downstream consumer impact from contract changes",
-            },
-        },
-        findings,
-        affectedConsumers: [...affectedConsumers],
-    };
-}
 async function detectSessionCorrelation(params) {
     const cfg = params.repoConfig?.policies?.session_correlation;
     if (!cfg?.enabled || !params.prNumber || !params.token || !params.provenance)
@@ -43228,7 +43418,11 @@ async function evaluateGate(config, commitSha, prNumber) {
     if (duplicateLogic.factor) {
         riskFactors.push(duplicateLogic.factor);
     }
-    const crossRepoImpact = detectCrossRepoImpact(files, repoConfig);
+    const crossRepoRegistryPath = repoConfig?.policies?.cross_repo_impact?.consumer_registry_path;
+    const externalConsumerRegistry = crossRepoRegistryPath
+        ? loadConsumerRegistryFile(crossRepoRegistryPath)
+        : null;
+    const crossRepoImpact = detectCrossRepoImpact(files, repoConfig, externalConsumerRegistry);
     if (crossRepoImpact.factor) {
         riskFactors.push(crossRepoImpact.factor);
     }
@@ -43389,6 +43583,20 @@ async function evaluateGate(config, commitSha, prNumber) {
         trust_profile: trustProfile,
         gateMode,
         context: matchedContext?.matched,
+        cross_repo_impact: crossRepoImpact.services.length > 0
+            ? {
+                services: crossRepoImpact.services.map((service) => ({
+                    serviceName: service.serviceName,
+                    touchedFiles: service.touchedFiles,
+                    consumers: service.consumers.map((consumer) => ({
+                        id: consumer.id,
+                        repo: consumer.repo,
+                        branch: consumer.branch,
+                    })),
+                    notify_webhook: service.notify_webhook,
+                })),
+            }
+            : undefined,
     };
     let ciSummary = null;
     if (gateMode !== "risk-only" && config.githubToken) {
@@ -43462,6 +43670,13 @@ async function evaluateGate(config, commitSha, prNumber) {
                 evaluationMs: Date.now() - start,
             };
         }
+    }
+    if (crossRepoImpact.services.length > 0) {
+        await sendCrossRepoImpactWebhooks(crossRepoImpact, {
+            repoId: localEvaluation.repoId,
+            commitSha: localEvaluation.commitSha,
+            prNumber: localEvaluation.prNumber,
+        });
     }
     return localEvaluation;
 }
@@ -43839,6 +44054,23 @@ function formatGateReport(evaluation, riskThreshold) {
                 lines.push(`- ${reason}`);
             }
             lines.push(``);
+        }
+        if (evaluation.cross_repo_impact) {
+            lines.push(...formatCrossRepoImpactSection({
+                factor: null,
+                findings: [],
+                affectedConsumers: [],
+                services: evaluation.cross_repo_impact.services.map((service) => ({
+                    serviceName: service.serviceName,
+                    touchedFiles: service.touchedFiles,
+                    notify_webhook: service.notify_webhook,
+                    consumers: service.consumers.map((consumer) => ({
+                        id: consumer.id,
+                        repo: consumer.repo,
+                        branch: consumer.branch,
+                    })),
+                })),
+            }));
         }
     }
     else {
@@ -45097,9 +45329,6 @@ function resolveDeployEventsUrl(evaluationStoreUrl) {
     return evaluationStoreUrl.replace(/\/store\/?$/, "/deploy-event");
 }
 
-;// CONCATENATED MODULE: external "node:fs"
-const external_node_fs_namespaceObject = require("node:fs");
-var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
 ;// CONCATENATED MODULE: ./src/ci-manifest.ts
 
 

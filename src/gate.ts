@@ -17,6 +17,12 @@ import { loadRepoConfig } from "./config.js";
 import { matchContext, resolveGateMode } from "./context-matcher.js";
 import type { PrMatchContext } from "./context-matcher.js";
 import {
+  detectCrossRepoImpact,
+  formatCrossRepoImpactSection,
+  loadConsumerRegistryFile,
+  sendCrossRepoImpactWebhooks,
+} from "./cross-repo-impact.js";
+import {
   evaluateRequiredChecks,
   fetchCheckRuns,
   formatCiStatusIcon,
@@ -891,58 +897,6 @@ function detectDuplicateLogicRisk(files: PrFileInfo[]): DuplicateLogicDetection 
   };
 }
 
-interface CrossRepoImpactDetection {
-  factor: RiskFactor | null;
-  findings: string[];
-  affectedConsumers: string[];
-}
-
-function detectCrossRepoImpact(
-  files: PrFileInfo[],
-  repoConfig: RepoConfig | null,
-): CrossRepoImpactDetection {
-  const cfg = repoConfig?.policies?.cross_repo_impact;
-  if (!cfg?.enabled) return { factor: null, findings: [], affectedConsumers: [] };
-
-  const affectedConsumers = new Set<string>();
-  const findings: string[] = [];
-
-  for (const [serviceName, service] of Object.entries(repoConfig?.services ?? {})) {
-    const contractPatterns = service.contracts ?? [];
-    if (contractPatterns.length === 0) continue;
-
-    const touchedContracts = files
-      .filter((f) => matchesGlobs(f.filename, contractPatterns))
-      .map((f) => f.filename);
-    if (touchedContracts.length === 0) continue;
-
-    for (const consumer of service.consumers ?? []) {
-      affectedConsumers.add(consumer);
-    }
-    findings.push(
-      `Contract surface changed for service "${serviceName}" (${touchedContracts.length} file(s)).`,
-    );
-  }
-
-  if (findings.length === 0) {
-    return { factor: null, findings: [], affectedConsumers: [] };
-  }
-
-  return {
-    factor: {
-      type: "cross_repo_impact",
-      score: Math.min(100, 30 + affectedConsumers.size * 15),
-      detail: {
-        findings,
-        affectedConsumers: [...affectedConsumers],
-        description: "Potential downstream consumer impact from contract changes",
-      },
-    },
-    findings,
-    affectedConsumers: [...affectedConsumers],
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Session correlation (rapid-fire merge burst)
 // ---------------------------------------------------------------------------
@@ -1621,7 +1575,16 @@ export async function evaluateGate(
   if (duplicateLogic.factor) {
     riskFactors.push(duplicateLogic.factor);
   }
-  const crossRepoImpact = detectCrossRepoImpact(files, repoConfig);
+  const crossRepoRegistryPath =
+    repoConfig?.policies?.cross_repo_impact?.consumer_registry_path;
+  const externalConsumerRegistry = crossRepoRegistryPath
+    ? loadConsumerRegistryFile(crossRepoRegistryPath)
+    : null;
+  const crossRepoImpact = detectCrossRepoImpact(
+    files,
+    repoConfig,
+    externalConsumerRegistry,
+  );
   if (crossRepoImpact.factor) {
     riskFactors.push(crossRepoImpact.factor);
   }
@@ -1819,6 +1782,21 @@ export async function evaluateGate(
     trust_profile: trustProfile,
     gateMode,
     context: matchedContext?.matched,
+    cross_repo_impact:
+      crossRepoImpact.services.length > 0
+        ? {
+            services: crossRepoImpact.services.map((service) => ({
+              serviceName: service.serviceName,
+              touchedFiles: service.touchedFiles,
+              consumers: service.consumers.map((consumer) => ({
+                id: consumer.id,
+                repo: consumer.repo,
+                branch: consumer.branch,
+              })),
+              notify_webhook: service.notify_webhook,
+            })),
+          }
+        : undefined,
   };
 
   let ciSummary: CiSummary | null = null;
@@ -1900,6 +1878,14 @@ export async function evaluateGate(
         evaluationMs: Date.now() - start,
       };
     }
+  }
+
+  if (crossRepoImpact.services.length > 0) {
+    await sendCrossRepoImpactWebhooks(crossRepoImpact, {
+      repoId: localEvaluation.repoId,
+      commitSha: localEvaluation.commitSha,
+      prNumber: localEvaluation.prNumber,
+    });
   }
 
   return localEvaluation;
@@ -2387,6 +2373,26 @@ export function formatGateReport(
         lines.push(`- ${reason}`);
       }
       lines.push(``);
+    }
+
+    if (evaluation.cross_repo_impact) {
+      lines.push(
+        ...formatCrossRepoImpactSection({
+          factor: null,
+          findings: [],
+          affectedConsumers: [],
+          services: evaluation.cross_repo_impact.services.map((service) => ({
+            serviceName: service.serviceName,
+            touchedFiles: service.touchedFiles,
+            notify_webhook: service.notify_webhook,
+            consumers: service.consumers.map((consumer) => ({
+              id: consumer.id,
+              repo: consumer.repo,
+              branch: consumer.branch,
+            })),
+          })),
+        }),
+      );
     }
   } else {
     lines.push(
