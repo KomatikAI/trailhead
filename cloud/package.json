@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Trailhead Cloud API — evaluation store, org/repo registry, deploy events",
   "scripts": {
-    "build": "tsc",
+    "prebuild": "node ../scripts/copy-shared-src.mjs cloud",
+    "build": "npm run prebuild && tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "test": "vitest run"

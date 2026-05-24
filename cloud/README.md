@@ -4,15 +4,15 @@ First-party evaluation store for the Trailhead Cloud tier (v4.1).
 
 ## Endpoints
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| `POST` | `/v1/evaluations` | Ingest gate evaluation (Idempotency-Key supported) |
-| `GET` | `/v1/evaluations` | List evaluations for authenticated org |
-| `GET` | `/v1/evaluations/:id` | Single evaluation drill-down |
-| `GET` | `/v1/analytics/dashboard` | Trends, release ready, CI correlation, DORA proxy, CFR |
-| `POST` | `/v1/deploy-events` | Record deploy outcome for CFR correlation |
-| `GET` | `/v1/orgs` | Org metadata for API key |
-| `GET` | `/v1/repos` | Repos auto-registered on first evaluation |
+| Method | Path                      | Description                                            |
+| ------ | ------------------------- | ------------------------------------------------------ |
+| `POST` | `/v1/evaluations`         | Ingest gate evaluation (Idempotency-Key supported)     |
+| `GET`  | `/v1/evaluations`         | List evaluations for authenticated org                 |
+| `GET`  | `/v1/evaluations/:id`     | Single evaluation drill-down                           |
+| `GET`  | `/v1/analytics/dashboard` | Trends, release ready, CI correlation, DORA proxy, CFR |
+| `POST` | `/v1/deploy-events`       | Record deploy outcome for CFR correlation              |
+| `GET`  | `/v1/orgs`                | Org metadata for API key                               |
+| `GET`  | `/v1/repos`               | Repos auto-registered on first evaluation              |
 
 ## Hosted dashboard
 

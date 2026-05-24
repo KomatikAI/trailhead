@@ -174,8 +174,7 @@ export function computeDoraProxy(
   const deployRows = filterDeployEvents(deployEvents, options);
 
   const weeks = Math.max(options.days / 7, 1);
-  const deploymentFrequencyPerWeek =
-    Math.round((deployRows.length / weeks) * 10) / 10;
+  const deploymentFrequencyPerWeek = Math.round((deployRows.length / weeks) * 10) / 10;
 
   const outcomes = deployRows.filter((e) => e.status !== "cancelled");
   const failures = outcomes.filter((e) => e.status === "failure").length;

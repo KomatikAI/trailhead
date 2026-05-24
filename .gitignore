@@ -35,6 +35,8 @@ mcp/src/release-ready.ts
 mcp/src/ci-core.ts
 mcp/src/config-core.ts
 mcp/src/deployment-gate.ts
+mcp/src/feedback-core.ts
+cloud/src/feedback-core.ts
 
 # Internal — Komatik agent context (local-only, not for public repo)
 AGENTS.md

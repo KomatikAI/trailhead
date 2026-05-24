@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PlanTier } from "./billing.js";
 
 export const GateDecision = z.enum(["allow", "warn", "block"]);
 
@@ -41,6 +42,46 @@ export const DeployEventPayload = z.object({
 
 export type DeployEventPayload = z.infer<typeof DeployEventPayload>;
 
+export const FeedbackDisposition = z.enum([
+  "false_positive",
+  "true_positive",
+  "dismissed",
+]);
+
+export const FeedbackPayload = z.object({
+  detector: z.string().min(1),
+  disposition: FeedbackDisposition,
+  repo: z.string().optional(),
+  reason: z.string().optional(),
+  evaluationId: z.string().optional(),
+});
+
+export type FeedbackPayload = z.infer<typeof FeedbackPayload>;
+
+export const DigestSubscribePayload = z.object({
+  enabled: z.boolean(),
+  channel: z.enum(["slack", "email"]),
+  destination: z.string().min(3),
+  fpThreshold: z.number().min(0).max(100).default(15),
+});
+
+export type DigestSubscribePayload = z.infer<typeof DigestSubscribePayload>;
+
+export const OrgSettingsPatch = z.object({
+  plan: z.enum(["free", "pro", "team"]).optional(),
+  seats: z.number().int().min(1).optional(),
+  sso: z
+    .object({
+      enabled: z.boolean(),
+      provider: z.enum(["saml", "oidc"]),
+      issuerUrl: z.string().url().optional(),
+      clientId: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type OrgSettingsPatch = z.infer<typeof OrgSettingsPatch>;
+
 export interface StoredEvaluation extends EvaluationPayload {
   orgId: string;
   receivedAt: string;
@@ -50,6 +91,31 @@ export interface OrgRecord {
   id: string;
   name: string;
   createdAt: string;
+}
+
+export interface OrgSettings {
+  plan: PlanTier;
+  seats: number;
+  seatsUsed: number;
+  sso?: {
+    enabled: boolean;
+    provider: "saml" | "oidc";
+    issuerUrl?: string;
+    clientId?: string;
+  };
+  digest?: {
+    enabled: boolean;
+    channel: "slack" | "email";
+    destination: string;
+    fpThreshold: number;
+  };
+}
+
+export interface QuotaSnapshot {
+  plan: PlanTier;
+  limit: number;
+  used: number;
+  remaining: number;
 }
 
 export interface RepoRecord {
@@ -62,9 +128,21 @@ export interface RepoRecord {
 }
 
 export interface ApiKeyRecord {
+  keyId: string;
   key: string;
   orgId: string;
   orgName: string;
+  label?: string;
+}
+
+export interface ManagedApiKey {
+  id: string;
+  orgId: string;
+  key: string;
+  label: string;
+  keyPreview: string;
+  createdAt: string;
+  revokedAt: string | null;
 }
 
 export interface CloudStore {
@@ -72,8 +150,19 @@ export interface CloudStore {
     orgId: string,
     payload: EvaluationPayload,
     idempotencyKey?: string,
-  ): { created: boolean; evaluation: StoredEvaluation };
+  ): {
+    created: boolean;
+    evaluation: StoredEvaluation;
+    quotaExceeded?: boolean;
+  };
   recordDeployEvent(orgId: string, payload: DeployEventPayload): void;
+  recordFeedback(
+    record: import("./feedback-core.js").DetectorFeedbackRecord,
+  ): import("./feedback-core.js").DetectorFeedbackRecord;
+  listFeedback(
+    orgId: string,
+    repoId?: string,
+  ): import("./feedback-core.js").DetectorFeedbackRecord[];
   listOrgs(): OrgRecord[];
   listRepos(orgId: string): RepoRecord[];
   listEvaluations(orgId: string, repoId?: string, limit?: number): StoredEvaluation[];
@@ -81,6 +170,12 @@ export interface CloudStore {
   listAllEvaluations(orgId: string): StoredEvaluation[];
   listDeployEvents(orgId: string): Array<{ orgId: string; payload: DeployEventPayload }>;
   getOrgForKey(apiKey: string): ApiKeyRecord | null;
+  getOrgSettings(orgId: string): OrgSettings;
+  updateOrgSettings(orgId: string, patch: Partial<OrgSettings>): OrgSettings;
+  getQuota(orgId: string): QuotaSnapshot;
+  listManagedKeys(orgId: string): ManagedApiKey[];
+  createApiKey(orgId: string, label?: string): { key: ManagedApiKey; secret: string };
+  revokeApiKey(orgId: string, keyId: string): boolean;
 }
 
 export interface RateLimitState {

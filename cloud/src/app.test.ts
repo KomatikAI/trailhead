@@ -162,4 +162,91 @@ describe("Trailhead Cloud API", () => {
     const body = (await res.json()) as { evaluation: { id: string } };
     expect(body.evaluation.id).toBe("drill-1");
   });
+
+  it("records feedback and returns detector noise", async () => {
+    const post = await app.request("/v1/feedback", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        detector: "supply_chain",
+        disposition: "false_positive",
+        repo: "KomatikAI/trailhead",
+        reason: "Known safe dependency bump",
+      }),
+    });
+    expect(post.status).toBe(201);
+
+    const noise = await app.request("/v1/feedback/noise?repo_id=KomatikAI/trailhead", {
+      headers: authHeaders(),
+    });
+    expect(noise.status).toBe(200);
+    const body = (await noise.json()) as { detectors: Array<{ noisy: boolean }> };
+    expect(body.detectors[0]?.noisy).toBe(true);
+  });
+
+  it("returns tuning proposal with YAML snippet", async () => {
+    for (let i = 0; i < 5; i += 1) {
+      await app.request("/v1/feedback", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          detector: "duplicate_logic",
+          disposition: "false_positive",
+          repo: "KomatikAI/trailhead",
+        }),
+      });
+    }
+    const res = await app.request("/v1/feedback/tuning?repo_id=KomatikAI/trailhead", {
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      yamlSnippet: string;
+      recommendations: unknown[];
+    };
+    expect(body.recommendations.length).toBeGreaterThan(0);
+    expect(body.yamlSnippet).toContain("duplicate_logic:");
+  });
+
+  it("provisions and revokes API keys with quota headers", async () => {
+    const create = await app.request("/v1/api-keys", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ label: "rotation" }),
+    });
+    expect(create.status).toBe(201);
+    const created = (await create.json()) as { secret: string; key: { id: string } };
+
+    const list = await app.request("/v1/api-keys", { headers: authHeaders() });
+    const listBody = (await list.json()) as { count: number };
+    expect(listBody.count).toBeGreaterThan(1);
+
+    const evalRes = await app.request("/v1/evaluations", {
+      method: "POST",
+      headers: {
+        ...authHeaders(),
+        Authorization: `Bearer ${created.secret}`,
+      },
+      body: JSON.stringify(sampleEvaluation("quota-test")),
+    });
+    expect(evalRes.status).toBe(201);
+    expect(evalRes.headers.get("X-Trailhead-Plan")).toBe("pro");
+
+    const revoke = await app.request(`/v1/api-keys/${created.key.id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    expect(revoke.status).toBe(200);
+  });
+
+  it("blocks SSO config on non-team plan", async () => {
+    const res = await app.request("/v1/org/settings", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        sso: { enabled: true, provider: "oidc", issuerUrl: "https://idp.example.com" },
+      }),
+    });
+    expect(res.status).toBe(403);
+  });
 });

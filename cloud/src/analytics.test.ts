@@ -52,7 +52,10 @@ describe("analytics", () => {
       }),
       evalRow({ id: "3", releaseReady: undefined }),
     ];
-    const stats = computeReleaseReadyStats(rows, { days: 30, now: new Date("2026-05-22") });
+    const stats = computeReleaseReadyStats(rows, {
+      days: 30,
+      now: new Date("2026-05-22"),
+    });
     expect(stats.pass).toBe(1);
     expect(stats.fail).toBe(1);
     expect(stats.unknown).toBe(1);
@@ -78,7 +81,10 @@ describe("analytics", () => {
         ci: { failedCount: 0, checks: [] },
       }),
     ];
-    const corr = computeCiFailureCorrelation(rows, { days: 30, now: new Date("2026-05-22") });
+    const corr = computeCiFailureCorrelation(rows, {
+      days: 30,
+      now: new Date("2026-05-22"),
+    });
     expect(corr.ciFailed).toBe(1);
     expect(corr.releaseReadyFailed).toBe(2);
     expect(corr.both).toBe(1);

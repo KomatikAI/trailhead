@@ -26,6 +26,13 @@ import {
   runAllAvailable,
   listAdapterNames,
 } from "./adapters/index.js";
+import { aggregateDetectorNoise, recommendPolicyTuning } from "./feedback-core.js";
+import {
+  fetchCloudDetectorNoise,
+  fetchCloudPolicyTuning,
+  isCloudFeedbackEnabled,
+  postCloudFeedback,
+} from "./cloud-feedback.js";
 
 registerAllAdapters();
 
@@ -1659,6 +1666,23 @@ server.tool(
     reason: z.string().optional().describe("Optional freeform reason"),
   },
   async ({ detector, disposition, repo, reason }): Promise<ToolReturn> => {
+    if (isCloudFeedbackEnabled()) {
+      const cloudResult = await postCloudFeedback({
+        detector,
+        disposition,
+        repo,
+        reason,
+      });
+      if (cloudResult) {
+        return jsonResult({
+          stored: cloudResult.stored,
+          source: "trailhead-cloud",
+          detector,
+          disposition,
+        });
+      }
+    }
+
     const records = await loadFeedbackRecords();
     records.push({
       detector,
@@ -1684,38 +1708,25 @@ server.tool(
     repo: z.string().optional().describe("Optional repository id filter"),
   },
   async ({ repo }): Promise<ToolReturn> => {
-    const records = await loadFeedbackRecords();
-    const filtered = repo ? records.filter((r) => r.repo === repo) : records;
-    const byDetector = new Map<
-      string,
-      { total: number; falsePositive: number; truePositive: number; dismissed: number }
-    >();
-
-    for (const record of filtered) {
-      const entry = byDetector.get(record.detector) ?? {
-        total: 0,
-        falsePositive: 0,
-        truePositive: 0,
-        dismissed: 0,
-      };
-      entry.total += 1;
-      if (record.disposition === "false_positive") entry.falsePositive += 1;
-      if (record.disposition === "true_positive") entry.truePositive += 1;
-      if (record.disposition === "dismissed") entry.dismissed += 1;
-      byDetector.set(record.detector, entry);
+    if (isCloudFeedbackEnabled()) {
+      const cloud = await fetchCloudDetectorNoise(repo);
+      if (cloud) {
+        return jsonResult({ ...(cloud as object), source: "trailhead-cloud" });
+      }
     }
 
-    const summary = [...byDetector.entries()].map(([detector, entry]) => ({
-      detector,
-      ...entry,
-      falsePositiveRate:
-        entry.total > 0 ? Math.round((entry.falsePositive / entry.total) * 1000) / 10 : 0,
-    }));
-
+    const records = await loadFeedbackRecords();
+    const filtered = repo ? records.filter((r) => r.repo === repo) : records;
     return jsonResult({
-      repo: repo ?? null,
-      recordsAnalyzed: filtered.length,
-      detectors: summary.sort((a, b) => b.falsePositiveRate - a.falsePositiveRate),
+      ...aggregateDetectorNoise(
+        filtered.map((r, i) => ({
+          id: `local-${i}`,
+          orgId: "local",
+          ...r,
+        })),
+        { repo },
+      ),
+      source: "local-file",
     });
   },
 );
@@ -1728,38 +1739,25 @@ server.tool(
     falsePositiveThreshold: z.number().min(0).max(100).default(15),
   },
   async ({ repo, falsePositiveThreshold }): Promise<ToolReturn> => {
-    const records = await loadFeedbackRecords();
-    const filtered = repo ? records.filter((r) => r.repo === repo) : records;
-    const detectorStats = new Map<string, { total: number; falsePositive: number }>();
-
-    for (const record of filtered) {
-      const entry = detectorStats.get(record.detector) ?? { total: 0, falsePositive: 0 };
-      entry.total += 1;
-      if (record.disposition === "false_positive") entry.falsePositive += 1;
-      detectorStats.set(record.detector, entry);
+    if (isCloudFeedbackEnabled()) {
+      const cloud = await fetchCloudPolicyTuning(repo, falsePositiveThreshold);
+      if (cloud) {
+        return jsonResult({ ...(cloud as object), source: "trailhead-cloud" });
+      }
     }
 
-    const recommendations = [...detectorStats.entries()]
-      .map(([detector, stat]) => ({
-        detector,
-        samples: stat.total,
-        falsePositiveRate:
-          stat.total > 0 ? Math.round((stat.falsePositive / stat.total) * 1000) / 10 : 0,
-      }))
-      .filter((s) => s.falsePositiveRate > falsePositiveThreshold)
-      .map((s) => ({
-        detector: s.detector,
-        recommendation: `Reduce sensitivity or switch ${s.detector} to warn mode for this repo`,
-        expectedImpact: "Lower review noise while preserving detector visibility",
-        confidence: s.samples >= 20 ? "high" : s.samples >= 8 ? "medium" : "low",
-        falsePositiveRate: s.falsePositiveRate,
-      }));
-
+    const records = await loadFeedbackRecords();
+    const filtered = repo ? records.filter((r) => r.repo === repo) : records;
     return jsonResult({
-      repo: repo ?? null,
-      falsePositiveThreshold,
-      recommendations,
-      generatedAt: new Date().toISOString(),
+      ...recommendPolicyTuning(
+        filtered.map((r, i) => ({
+          id: `local-${i}`,
+          orgId: "local",
+          ...r,
+        })),
+        { repo, falsePositiveThreshold },
+      ),
+      source: "local-file",
     });
   },
 );

@@ -3,22 +3,41 @@ import type {
   CloudStore,
   DeployEventPayload,
   EvaluationPayload,
+  ManagedApiKey,
   OrgRecord,
+  OrgSettings,
+  QuotaSnapshot,
   RepoRecord,
   StoredEvaluation,
 } from "./types.js";
+import type { DetectorFeedbackRecord } from "./feedback-core.js";
+import { canIngestEvaluation, generateApiKey, maskApiKey, monthKey } from "./billing.js";
+import type { PlanTier } from "./billing.js";
 
 export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
   const keys = new Map<string, ApiKeyRecord>();
+  const managedKeys = new Map<string, ManagedApiKey>();
   for (const record of seedKeys) {
     keys.set(record.key, record);
+    managedKeys.set(record.keyId, {
+      id: record.keyId,
+      orgId: record.orgId,
+      key: record.key,
+      label: record.label ?? "Seed key",
+      keyPreview: maskApiKey(record.key),
+      createdAt: new Date().toISOString(),
+      revokedAt: null,
+    });
   }
 
   const orgs = new Map<string, OrgRecord>();
+  const orgSettings = new Map<string, OrgSettings>();
   const repos = new Map<string, RepoRecord>();
   const evaluations = new Map<string, StoredEvaluation>();
   const idempotency = new Map<string, string>();
   const deployEvents: Array<{ orgId: string; payload: DeployEventPayload }> = [];
+  const feedback: DetectorFeedbackRecord[] = [];
+  const usageByOrgMonth = new Map<string, number>();
 
   function ensureOrg(orgId: string, orgName: string): OrgRecord {
     const existing = orgs.get(orgId);
@@ -29,7 +48,33 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       createdAt: new Date().toISOString(),
     };
     orgs.set(orgId, org);
+    if (!orgSettings.has(orgId)) {
+      orgSettings.set(orgId, {
+        plan: seedKeys.some((k) => k.orgId === orgId) ? "pro" : "free",
+        seats: 3,
+        seatsUsed: 1,
+      });
+    }
     return org;
+  }
+
+  function getSettings(orgId: string): OrgSettings {
+    return orgSettings.get(orgId) ?? { plan: "free", seats: 1, seatsUsed: 1 };
+  }
+
+  function usageKey(orgId: string, month = monthKey()): string {
+    return `${orgId}:${month}`;
+  }
+
+  function getUsage(orgId: string): number {
+    return usageByOrgMonth.get(usageKey(orgId)) ?? 0;
+  }
+
+  function incrementUsage(orgId: string): number {
+    const key = usageKey(orgId);
+    const next = (usageByOrgMonth.get(key) ?? 0) + 1;
+    usageByOrgMonth.set(key, next);
+    return next;
   }
 
   function repoKey(orgId: string, fullName: string): string {
@@ -38,16 +83,51 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
 
   return {
     getOrgForKey(apiKey: string): ApiKeyRecord | null {
-      return keys.get(apiKey) ?? null;
+      const record = keys.get(apiKey);
+      if (!record) return null;
+      const managed = managedKeys.get(record.keyId);
+      if (managed?.revokedAt) return null;
+      return record;
+    },
+
+    getOrgSettings(orgId: string): OrgSettings {
+      ensureOrg(orgId, orgId);
+      return getSettings(orgId);
+    },
+
+    updateOrgSettings(orgId: string, patch: Partial<OrgSettings>): OrgSettings {
+      ensureOrg(orgId, orgId);
+      const current = getSettings(orgId);
+      const next: OrgSettings = {
+        ...current,
+        ...patch,
+        digest: patch.digest ? { ...current.digest, ...patch.digest } : current.digest,
+        sso: patch.sso ? { ...current.sso, ...patch.sso } : current.sso,
+      };
+      orgSettings.set(orgId, next);
+      return next;
+    },
+
+    getQuota(orgId: string): QuotaSnapshot {
+      const settings = getSettings(orgId);
+      const used = getUsage(orgId);
+      const limit = settings.plan === "free" ? 0 : settings.plan === "pro" ? 5000 : 50000;
+      return {
+        plan: settings.plan,
+        limit,
+        used,
+        remaining: Math.max(0, limit - used),
+      };
     },
 
     ingestEvaluation(
       orgId: string,
       payload: EvaluationPayload,
       idempotencyKey?: string,
-    ): { created: boolean; evaluation: StoredEvaluation } {
+    ): { created: boolean; evaluation: StoredEvaluation; quotaExceeded?: boolean } {
       const keyRecord = [...keys.values()].find((k) => k.orgId === orgId);
       ensureOrg(orgId, keyRecord?.orgName ?? orgId);
+      const settings = getSettings(orgId);
 
       const idem = idempotencyKey ?? payload.id;
       const existingId = idempotency.get(`${orgId}:${idem}`);
@@ -58,6 +138,15 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
         }
       }
 
+      const used = getUsage(orgId);
+      if (!canIngestEvaluation(settings.plan, used)) {
+        return {
+          created: false,
+          evaluation: payload as StoredEvaluation,
+          quotaExceeded: true,
+        };
+      }
+
       const receivedAt = new Date().toISOString();
       const stored: StoredEvaluation = {
         ...payload,
@@ -66,6 +155,7 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       };
       evaluations.set(stored.id, stored);
       idempotency.set(`${orgId}:${idem}`, stored.id);
+      incrementUsage(orgId);
 
       const rKey = repoKey(orgId, payload.repoId);
       const repoExisting = repos.get(rKey);
@@ -91,6 +181,58 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
 
     recordDeployEvent(orgId: string, payload: DeployEventPayload): void {
       deployEvents.push({ orgId, payload });
+    },
+
+    recordFeedback(record: DetectorFeedbackRecord): DetectorFeedbackRecord {
+      feedback.push(record);
+      return record;
+    },
+
+    listFeedback(orgId: string, repoId?: string): DetectorFeedbackRecord[] {
+      return feedback.filter(
+        (row) => row.orgId === orgId && (!repoId || row.repo === repoId),
+      );
+    },
+
+    listManagedKeys(orgId: string): ManagedApiKey[] {
+      return [...managedKeys.values()]
+        .filter((k) => k.orgId === orgId && !k.revokedAt)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+
+    createApiKey(orgId: string, label?: string): { key: ManagedApiKey; secret: string } {
+      const settings = getSettings(orgId);
+      if (!settings.plan || settings.plan === "free") {
+        throw new Error("API key provisioning requires Pro or Team plan");
+      }
+      const secret = generateApiKey();
+      const id = `key_${crypto.randomUUID()}`;
+      const managed: ManagedApiKey = {
+        id,
+        orgId,
+        key: secret,
+        label: label ?? "API key",
+        keyPreview: maskApiKey(secret),
+        createdAt: new Date().toISOString(),
+        revokedAt: null,
+      };
+      managedKeys.set(id, managed);
+      keys.set(secret, {
+        keyId: id,
+        key: secret,
+        orgId,
+        orgName: orgs.get(orgId)?.name ?? orgId,
+        label: managed.label,
+      });
+      return { key: managed, secret };
+    },
+
+    revokeApiKey(orgId: string, keyId: string): boolean {
+      const managed = managedKeys.get(keyId);
+      if (!managed || managed.orgId !== orgId || managed.revokedAt) return false;
+      managed.revokedAt = new Date().toISOString();
+      keys.delete(managed.key);
+      return true;
     },
 
     listOrgs(): OrgRecord[] {
@@ -124,7 +266,9 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
         .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
     },
 
-    listDeployEvents(orgId: string): Array<{ orgId: string; payload: DeployEventPayload }> {
+    listDeployEvents(
+      orgId: string,
+    ): Array<{ orgId: string; payload: DeployEventPayload }> {
       return deployEvents.filter((e) => e.orgId === orgId);
     },
   };
@@ -137,6 +281,14 @@ export function parseSeedKeys(raw: string | undefined): ApiKeyRecord[] {
     if (!trimmed) return [];
     const [orgId, orgName, key] = trimmed.split(":");
     if (!orgId || !key) return [];
-    return [{ orgId, orgName: orgName ?? orgId, key }];
+    return [
+      {
+        orgId,
+        orgName: orgName ?? orgId,
+        key,
+        keyId: `seed_${orgId}`,
+        label: "Seed key",
+      },
+    ];
   });
 }
