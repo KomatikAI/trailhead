@@ -2,27 +2,31 @@
 
 ## Architecture Overview
 
-Trailhead is a deployment gate available in three forms:
+Trailhead is a release readiness gate available in three forms:
 
-1. **GitHub Action** (`@v3`) — the primary distribution. Runs in CI on every PR.
-2. **GitHub App** (`app/`) — a webhook server that acts as a Custom Deployment Protection Rule.
+1. **GitHub Action** (`@v4`) — the primary distribution. Runs in CI on every PR, waits for required checks, and publishes a composite **Release Ready** check.
+2. **GitHub App** (`app/`) — a webhook server that acts as a Custom Deployment Protection Rule with the same composite gate logic.
 3. **MCP Server** (`mcp/`) — 21 tools for AI agents via the Model Context Protocol.
 
-All three share a single **risk engine** (`src/risk-engine.ts`) — a pure TypeScript module with no framework dependencies. This ensures scoring consistency regardless of which interface evaluates the code.
+All three share a single **risk engine** (`src/risk-engine.ts`) and v4 modules (`ci-core.ts`, `release-ready.ts`, `context-matcher.ts`, `deployment-gate.ts`) — pure TypeScript with no framework dependencies.
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  src/risk-engine.ts (pure scoring — no @actions deps)│
-├──────────────┬───────────────┬──────────────────────┤
-│ GitHub Action │  GitHub App   │     MCP Server       │
-│ src/main.ts   │ app/handler.ts│   mcp/server.ts      │
-│ (CI workflow) │ (webhook)     │   (stdio transport)  │
-└──────────────┴───────────────┴──────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Shared modules (pure — no @actions deps)                         │
+│  risk-engine · ci-core · release-ready · context-matcher · types  │
+├──────────────────┬────────────────────┬───────────────────────────┤
+│  GitHub Action   │    GitHub App      │       MCP Server          │
+│  src/main.ts     │  app/handler.ts    │     mcp/server.ts         │
+│  src/gate.ts     │  deployment-gate   │     evaluate-policy       │
+│  ci-orchestrator │  config-core       │     get-pr-release-status │
+└──────────────────┴────────────────────┴───────────────────────────┘
+         │                    │                      │
+         └────────── composite release-ready decision ──────────────┘
 ```
 
 ### CLI
 
-`npx trailhead init` generates `.trailhead.yml` and the workflow YAML interactively. See `cli/README.md`.
+`npx @komatikai/trailhead init` generates `.trailhead.yml` and the workflow YAML interactively. See `cli/README.md`.
 
 ## Risk Scoring
 
@@ -136,7 +140,7 @@ environments:
 Both the Action and the App respect these overrides when `environment` is set.
 
 Trailhead prefers `.trailhead.yml` from the checked-out workspace. For existing installs,
-legacy `.deployguard.yml` is still accepted when `.trailhead.yml` is absent.
+legacy v1 config filenames are still accepted when `.trailhead.yml` is absent.
 
 This repository's `.trailhead.yml` ignores generated MCP copy/artifact paths so risk scores
 reflect canonical source changes instead of prebuild output.
@@ -262,9 +266,9 @@ This repository uses `dev` as the active/default branch. `main` and `staging` ar
 fast-forwarded to `dev` for compatibility with older automation, and open PRs should target
 `dev`.
 
-The unmerged branch `origin/experiment/rd-satellite/deployguard-supply-chain-risk` is known
-not to be promotion-ready: its targeted tests pass, but `app` and `mcp` builds fail until
-their prebuild scripts copy the new `supply-chain` module alongside `risk-engine.ts`.
+The unmerged legacy supply-chain experiment branch is known not to be promotion-ready: its
+targeted tests pass, but `app` and `mcp` builds fail until their prebuild scripts copy the
+new `supply-chain` module alongside `risk-engine.ts`.
 
 ## Key Decisions
 

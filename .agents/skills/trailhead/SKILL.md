@@ -8,12 +8,12 @@ metadata:
 
 # Trailhead
 
-Trailhead is a deployment gate that scores code risk, checks production health, integrates security signals, computes DORA-5 metrics, and blocks dangerous releases.
+Trailhead is a **release readiness gate** that waits for required CI checks, scores code risk, checks production health, integrates security signals, and blocks merges that are not release-ready.
 
 ## Core Principles
 
-**1. Never merge without checking risk.**
-Before approving or merging any PR, run `compute-risk-score` with the changed files. If the score exceeds the warn threshold (default 55), show the developer the risk breakdown via `explain-risk-factors`. If it exceeds the block threshold (default 70), do not merge — explain why and suggest remediation.
+**1. Never merge without release readiness.**
+Before approving or merging any PR, run `get-pr-release-status` or `evaluate-policy` with `gate.mode: release-ready`. If `releaseReady` is false, do not merge — explain the blockers (failed CI, high risk, freeze window, etc.).
 
 **2. Verify health after every deploy.**
 After any deployment completes, run `check-http-health` against the production URL. If Vercel or Supabase credentials are configured, also run `check-vercel-health` and `check-supabase-health`. A deploy without verification is incomplete.
@@ -110,7 +110,7 @@ The standard Trailhead workflow for any PR:
 
 ## Configuration
 
-Trailhead reads `.trailhead.yml` (or legacy `.deployguard.yml`) from the repo root for:
+Trailhead reads `.trailhead.yml` (or a legacy v1 config filename alias) from the repo root for:
 
 - Custom risk and warn thresholds per environment
 - Sensitivity file patterns (globs for auth, infra, payments, etc.)
@@ -130,4 +130,4 @@ Trailhead also runs as a GitHub Action (`KomatikAI/trailhead@v3`). The MCP tools
 - `dev` is the active/default branch. `main` and `staging` are compatibility mirrors and should stay fast-forwarded to `dev`.
 - MCP prebuild copies `src/risk-engine.ts` and `src/adapters/*` into `mcp/src/`; matching `mcp/dist/risk-engine.*` and `mcp/dist/adapters/*` are intentionally committed runtime artifacts.
 - If `src/risk-engine.ts` imports another local module, update the `app/` and `mcp/` prebuild scripts and committed dist artifacts in the same change.
-- `origin/experiment/rd-satellite/deployguard-supply-chain-risk` is not promotion-ready until app and MCP builds pass with the new `supply-chain` module.
+- The legacy supply-chain experiment branch is not promotion-ready until app and MCP builds pass with the new `supply-chain` module.

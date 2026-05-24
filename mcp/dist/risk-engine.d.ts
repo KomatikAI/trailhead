@@ -3,6 +3,7 @@ export interface FileInfo {
     additions?: number;
     deletions?: number;
     changes: number;
+    patch?: string;
 }
 export interface RiskFactorResult {
     type: string;
@@ -14,10 +15,22 @@ export interface SensitivityConfig {
     medium: string[];
     low: string[];
 }
+export interface RiskProfileMatchDef {
+    files_include: string[];
+    files_exclude: string[];
+    min_files?: number;
+    max_files?: number;
+}
+export interface RiskProfileDef {
+    name?: string;
+    match: RiskProfileMatchDef;
+    weights: Record<string, number>;
+}
 export interface RiskConfig {
     sensitivity?: SensitivityConfig;
     weights?: Record<string, number>;
     ignore?: string[];
+    profiles?: RiskProfileDef[];
 }
 export interface SecurityAlertCounts {
     critical: number;
@@ -39,6 +52,7 @@ export declare const SENSITIVE_PATTERNS: RegExp[];
 export declare const DEPENDENCY_FILES: RegExp[];
 export declare const FACTOR_WEIGHTS: Record<string, number>;
 export declare function matchesGlobs(filename: string, patterns: string[]): boolean;
+export declare function matchRiskProfile(filenames: string[], profiles: RiskProfileDef[]): RiskProfileDef | null;
 export declare function isTestFile(filename: string): boolean;
 export declare function isNonSourceFile(filename: string): boolean;
 export declare function isSensitiveFile(filename: string): boolean;

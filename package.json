@@ -1,8 +1,8 @@
 {
   "name": "trailhead",
-  "version": "3.0.2",
+  "version": "4.0.0",
   "private": true,
-  "description": "Deployment gate for GitHub PRs — scores code risk, checks production health, integrates security signals, and blocks dangerous releases.",
+  "description": "Release readiness gate for GitHub PRs — waits for CI, scores code risk, checks production health, and blocks merges that are not release-ready.",
   "license": "MIT",
   "repository": {
     "type": "git",

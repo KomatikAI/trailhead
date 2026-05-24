@@ -1,7 +1,31 @@
-# Trailhead repository policy.
+# Trailhead repository policy (v4 self-test).
 #
 # The MCP package copies shared source during prebuild and commits selected
 # runtime artifacts. Score the canonical source files, not their generated copies.
+
+schema_version: 2
+
+gate:
+  mode: release-ready
+  check_name: "Trailhead — Release Ready"
+
+thresholds:
+  risk: 85
+  warn: 50
+
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    environment: production
+    thresholds:
+      risk: 85
+      warn: 50
+    ci:
+      required_checks: [Lint]
+      optional_checks: []
+      missing_required: skip
+
 ignore:
   - "dist/index.js"
   - "dist/index.js.map"

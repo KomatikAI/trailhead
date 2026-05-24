@@ -57,6 +57,20 @@ export { jestHealer } from "./healers/jest.js";
 export { playwrightHealer } from "./healers/playwright.js";
 export { cypressHealer } from "./healers/cypress.js";
 export { loadRepoConfig } from "./config.js";
+export { matchContext, resolveGateMode } from "./context-matcher.js";
+export {
+  classifyCheck,
+  evaluateRequiredChecks,
+  fetchCheckRuns,
+  waitForChecks,
+  formatCiStatusIcon,
+} from "./ci-orchestrator.js";
+export { checkNameMatches, normalizeCheckRuns } from "./ci-core.js";
+export {
+  computeReleaseReady,
+  shouldBlockMerge,
+  resolveCheckName,
+} from "./release-ready.js";
 export {
   computeDoraMetrics,
   formatDoraReport,
@@ -78,4 +92,8 @@ export type {
   SecurityConfig,
   CanaryConfig,
   FreezeWindow,
+  GateMode,
+  TrailheadContext,
+  CiSummary,
+  CiCheck,
 } from "./types.js";

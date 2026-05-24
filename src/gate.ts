@@ -10,8 +10,25 @@ import type {
   PrProvenance,
   RepoConfig,
   RiskFactor,
+  GateMode,
+  CiSummary,
 } from "./types.js";
 import { loadRepoConfig } from "./config.js";
+import { matchContext, resolveGateMode } from "./context-matcher.js";
+import type { PrMatchContext } from "./context-matcher.js";
+import {
+  evaluateRequiredChecks,
+  fetchCheckRuns,
+  formatCiStatusIcon,
+  waitForChecks,
+} from "./ci-orchestrator.js";
+import {
+  applyReleaseReadyToEvaluation,
+  checkConclusionForEvaluation,
+  computeReleaseReady,
+  resolveCheckName,
+  shouldBlockMerge,
+} from "./release-ready.js";
 import {
   computeRiskScore as computeRiskScoreShared,
   weightedAverageScores,
@@ -1383,6 +1400,26 @@ async function callGateApi(
 }
 
 // ---------------------------------------------------------------------------
+// PR context for v4 context matching
+// ---------------------------------------------------------------------------
+
+function getPrMatchContext(): PrMatchContext {
+  const pr = github.context.payload?.pull_request as
+    | {
+        base?: { ref?: string };
+        head?: { ref?: string };
+        labels?: Array<{ name?: string }>;
+      }
+    | undefined;
+
+  return {
+    baseRef: pr?.base?.ref ?? github.context.ref?.replace("refs/heads/", "") ?? "main",
+    headRef: pr?.head?.ref ?? github.context.ref?.replace("refs/heads/", "") ?? "main",
+    labels: (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Main evaluation entry point
 // ---------------------------------------------------------------------------
 
@@ -1437,14 +1474,41 @@ export async function evaluateGate(
       : Promise.resolve(null),
   ]);
 
-  const envConfig = config.environment
-    ? repoConfig?.environments?.[config.environment]
+  const gateMode: GateMode = resolveGateMode(
+    repoConfig?.gate?.mode,
+    repoConfig?.schema_version ?? 1,
+    config.gateMode,
+  );
+  const prMatchCtx = getPrMatchContext();
+  const matchedContext =
+    repoConfig?.contexts && repoConfig.contexts.length > 0
+      ? matchContext(repoConfig.contexts, prMatchCtx)
+      : null;
+
+  if (matchedContext) {
+    core.info(
+      `Matched context "${matchedContext.matched.name}" for base=${prMatchCtx.baseRef}`,
+    );
+  }
+
+  const effectiveEnvironment =
+    config.environment ?? matchedContext?.matched.environment ?? undefined;
+
+  const envConfig = effectiveEnvironment
+    ? repoConfig?.environments?.[effectiveEnvironment]
     : undefined;
 
+  const contextThresholds = matchedContext?.context.thresholds;
   const effectiveRiskThreshold =
-    envConfig?.risk ?? repoConfig?.thresholds.risk ?? config.riskThreshold;
+    contextThresholds?.risk ??
+    envConfig?.risk ??
+    repoConfig?.thresholds.risk ??
+    config.riskThreshold;
   const effectiveWarnThreshold =
-    envConfig?.warn ?? repoConfig?.thresholds.warn ?? config.warnThreshold;
+    contextThresholds?.warn ??
+    envConfig?.warn ??
+    repoConfig?.thresholds.warn ??
+    config.warnThreshold;
   let adjustedRiskThreshold = effectiveRiskThreshold;
   const policyFindings: string[] = [];
 
@@ -1484,7 +1548,9 @@ export async function evaluateGate(
       `Risk profile "${label}" matched — weight overrides applied: ${JSON.stringify(matchedProfile.weights)}`,
     );
     policyFindings.push(
-      `Risk profile "${label}" matched (${Object.entries(matchedProfile.weights).map(([k, v]) => `${k}=${v}`).join(", ")}).`,
+      `Risk profile "${label}" matched (${Object.entries(matchedProfile.weights)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", ")}).`,
     );
   }
   const ciIntegrityConfig = repoConfig?.policies?.ci_integrity;
@@ -1729,7 +1795,7 @@ export async function evaluateGate(
     riskFactors,
     files: fileNames.length > 0 ? fileNames : undefined,
     evaluationMs: Date.now() - start,
-    environment: config.environment,
+    environment: effectiveEnvironment,
     policyFindings: policyFindings.length > 0 ? policyFindings : undefined,
     pr: prNumber
       ? {
@@ -1751,7 +1817,76 @@ export async function evaluateGate(
         : undefined,
     escalation_status: escalationStatus,
     trust_profile: trustProfile,
+    gateMode,
+    context: matchedContext?.matched,
   };
+
+  let ciSummary: CiSummary | null = null;
+  if (gateMode !== "risk-only" && config.githubToken) {
+    try {
+      const octokit = github.getOctokit(config.githubToken);
+      const { owner, repo } = github.context.repo;
+      const ciConfig = matchedContext?.context.ci ?? {
+        required_checks: [],
+        optional_checks: [],
+        missing_required: "fail" as const,
+      };
+      const excludeCheckNames = [
+        resolveCheckName(gateMode, repoConfig?.gate?.check_name ?? config.checkName),
+        "Trailhead",
+        "Trailhead — Release Ready",
+      ];
+
+      if (config.waitForChecks && ciConfig.required_checks.length > 0) {
+        ciSummary = await waitForChecks({
+          octokit,
+          owner,
+          repo,
+          headSha: commitSha,
+          ciConfig,
+          excludeCheckNames,
+          timeoutMinutes: config.waitTimeoutMinutes ?? 30,
+        });
+      } else {
+        const checks = await fetchCheckRuns(octokit, {
+          owner,
+          repo,
+          headSha: commitSha,
+          excludeCheckNames,
+        });
+        ciSummary = evaluateRequiredChecks(checks, ciConfig);
+      }
+      localEvaluation.ci = ciSummary;
+    } catch (error) {
+      core.warning(`CI orchestration failed (non-blocking): ${error}`);
+    }
+  }
+
+  const securityBlocked =
+    securityAlerts !== null &&
+    securityAlerts.total > 0 &&
+    (envConfig?.require_security_clear === true ||
+      repoConfig?.security?.block_on_critical === true);
+
+  const releaseResult = computeReleaseReady({
+    gateMode,
+    gateDecision,
+    riskScore,
+    riskThreshold: adjustedRiskThreshold,
+    healthScore,
+    healthChecksConfigured: healthChecks.length > 0,
+    ciSummary,
+    freezeActive: freezeCheck.frozen,
+    freezeMessage: freezeCheck.message,
+    policyFindings,
+    requireSecurityClear: envConfig?.require_security_clear,
+    securityBlocked,
+  });
+  localEvaluation = applyReleaseReadyToEvaluation(
+    localEvaluation,
+    releaseResult,
+    gateMode,
+  );
 
   if (config.apiKey) {
     const apiResponse = await callGateApi(config, localEvaluation);
@@ -1816,30 +1951,36 @@ export async function postPrComment(
 // GitHub Check Run
 // ---------------------------------------------------------------------------
 
-const CONCLUSION_MAP: Record<GateDecision, "success" | "neutral" | "failure"> = {
-  allow: "success",
-  warn: "neutral",
-  block: "failure",
-};
-
 export async function createCheckRun(
   evaluation: GateEvaluation,
   report: string,
   token: string,
+  checkName?: string,
 ): Promise<void> {
   try {
     const octokit = github.getOctokit(token);
     const { owner, repo } = github.context.repo;
 
+    const mode = evaluation.gateMode ?? "risk-only";
+    const name = checkName ?? resolveCheckName(mode);
+    const conclusion = checkConclusionForEvaluation(evaluation);
+
+    const titleSuffix =
+      mode === "release-ready"
+        ? evaluation.releaseReady
+          ? "RELEASE READY"
+          : "NOT READY"
+        : evaluation.gateDecision.toUpperCase();
+
     await octokit.rest.checks.create({
       owner,
       repo,
-      name: "Trailhead",
+      name,
       head_sha: evaluation.commitSha,
       status: "completed",
-      conclusion: CONCLUSION_MAP[evaluation.gateDecision],
+      conclusion,
       output: {
-        title: `Trailhead: ${evaluation.gateDecision.toUpperCase()}`,
+        title: `${name}: ${titleSuffix}`,
         summary: report,
       },
     });
@@ -1847,6 +1988,8 @@ export async function createCheckRun(
     core.debug(`Failed to create check run: ${error}`);
   }
 }
+
+export { shouldBlockMerge, resolveCheckName, checkConclusionForEvaluation };
 
 // ---------------------------------------------------------------------------
 // PR risk labels
@@ -2130,7 +2273,9 @@ function buildGuidance(evaluation: GateEvaluation): string[] {
         `- Advisory warning only: review the risk factors above and proceed with normal caution.`,
       );
     } else {
-      lines.push(`- Risk score exceeds threshold. Review the risk factors above before merging.`);
+      lines.push(
+        `- Risk score exceeds threshold. Review the risk factors above before merging.`,
+      );
     }
   }
 
@@ -2179,7 +2324,13 @@ export function formatGateReport(
   evaluation: GateEvaluation,
   riskThreshold?: number,
 ): string {
-  const icon = decisionIcon(evaluation.gateDecision);
+  const mode = evaluation.gateMode ?? "risk-only";
+  const icon =
+    mode === "release-ready"
+      ? evaluation.releaseReady
+        ? "✅"
+        : "🚫"
+      : decisionIcon(evaluation.gateDecision);
   const threshold = riskThreshold ?? 70;
   const healthDisplay =
     evaluation.healthChecks.length > 0
@@ -2187,24 +2338,71 @@ export function formatGateReport(
       : "n/a (not configured)";
 
   const envLabel = evaluation.environment ? ` (${evaluation.environment})` : "";
+  const contextLabel = evaluation.context?.name
+    ? ` · context: **${evaluation.context.name}**`
+    : "";
+
+  const headline =
+    mode === "release-ready"
+      ? evaluation.releaseReady
+        ? "RELEASE READY"
+        : "NOT RELEASE READY"
+      : evaluation.gateDecision.toUpperCase();
 
   const lines: string[] = [
-    `## ${icon} Trailhead — ${evaluation.gateDecision.toUpperCase()}${envLabel}`,
-    ``,
-    riskBadge(evaluation.riskScore, threshold) +
-      " " +
-      (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""),
-    ``,
-    `| Metric | Score |`,
-    `|--------|-------|`,
-    `| Health | ${healthDisplay} |`,
-    `| Risk   | ${evaluation.riskScore}/100 |`,
-    `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`,
+    `## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`,
     ``,
   ];
 
-  if (riskThreshold !== undefined) {
-    lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+  if (mode === "release-ready" || mode === "advisory") {
+    lines.push(
+      `| Dimension | Status |`,
+      `|-----------|--------|`,
+      `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
+      `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
+      `| Health | ${healthDisplay} |`,
+      `| Gate | ${evaluation.gateDecision.toUpperCase()} |`,
+      ``,
+    );
+
+    if (evaluation.ci && evaluation.ci.checks.length > 0) {
+      lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
+      for (const check of evaluation.ci.checks) {
+        const link = check.detailsUrl
+          ? `[${check.name}](${check.detailsUrl})`
+          : check.name;
+        const req = check.required ? " *(required)*" : "";
+        lines.push(
+          `| ${link}${req} | ${formatCiStatusIcon(check.status)} ${check.status} |`,
+        );
+      }
+      lines.push(``);
+    }
+
+    if (evaluation.releaseReadyReasons && evaluation.releaseReadyReasons.length > 0) {
+      lines.push(`### Release Readiness Issues`, ``);
+      for (const reason of evaluation.releaseReadyReasons) {
+        lines.push(`- ${reason}`);
+      }
+      lines.push(``);
+    }
+  } else {
+    lines.push(
+      riskBadge(evaluation.riskScore, threshold) +
+        " " +
+        (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""),
+      ``,
+      `| Metric | Score |`,
+      `|--------|-------|`,
+      `| Health | ${healthDisplay} |`,
+      `| Risk   | ${evaluation.riskScore}/100 |`,
+      `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`,
+      ``,
+    );
+
+    if (riskThreshold !== undefined) {
+      lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+    }
   }
 
   if (evaluation.pr?.provenance) {
