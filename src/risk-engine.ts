@@ -172,7 +172,9 @@ export function matchRiskProfile(
 
     if (
       m.files_include.length > 0 &&
-      !m.files_include.every((pattern) => filenames.some((f) => matchesGlobs(f, [pattern])))
+      !m.files_include.every((pattern) =>
+        filenames.some((f) => matchesGlobs(f, [pattern])),
+      )
     ) {
       continue;
     }
@@ -312,7 +314,9 @@ export function computeRiskScore(
     const testCoverageScore =
       testFileCount === 0
         ? 100
-        : Math.round(Math.max(0, 100 - testRatio * 100 - Math.min(testFileCount, 5) * 10));
+        : Math.round(
+            Math.max(0, 100 - testRatio * 100 - Math.min(testFileCount, 5) * 10),
+          );
     factors.push({
       type: "test_coverage",
       score: testCoverageScore,

@@ -7,6 +7,7 @@
 **External product (what we sell):** Anyone uses Trailhead's logic + architecture to check **their own** personal agents' work.
 
 ## Rule
+
 This repo ships a **platform-agnostic** product for an end user. Komatik-specific
 functionality (Komatik's Supabase project `sdmfolczsaqiyararqwh`, its RPCs, service-role
 keys, prebuild hooks, repo lists) is **internal dogfood only** — gate it behind an instance
