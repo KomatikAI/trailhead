@@ -41580,6 +41580,64 @@ function checkNameMatches(configured, actual) {
         return true;
     return actual.toLowerCase().startsWith(configured.toLowerCase());
 }
+function findManifestJob(manifest, configuredName) {
+    return manifest.jobs.find((job) => checkNameMatches(configuredName, job.name));
+}
+function statusFromManifestJob(job) {
+    switch (job.outcome) {
+        case "skipped":
+            return "skip";
+        case "failed":
+        case "cancelled":
+            return "fail";
+        case "pending":
+            return "pending";
+        case "ran":
+            return undefined;
+        default: {
+            const _exhaustive = job.outcome;
+            return undefined;
+        }
+    }
+}
+function applyManifestToCheck(check, manifest, configuredName) {
+    if (!manifest)
+        return check;
+    const manifestJob = findManifestJob(manifest, configuredName);
+    if (!manifestJob)
+        return check;
+    const manifestStatus = statusFromManifestJob(manifestJob);
+    if (manifestStatus === "skip") {
+        return {
+            ...check,
+            status: "skip",
+            conclusion: manifestJob.reason ?? check.conclusion,
+        };
+    }
+    if (manifestStatus && (check.status === "missing" || check.status === "pending")) {
+        return {
+            ...check,
+            status: manifestStatus,
+            conclusion: manifestJob.reason ?? check.conclusion,
+        };
+    }
+    return check;
+}
+function checkFromManifestOnly(configuredName, manifest) {
+    const manifestJob = findManifestJob(manifest, configuredName);
+    if (!manifestJob)
+        return undefined;
+    const status = statusFromManifestJob(manifestJob);
+    if (!status)
+        return undefined;
+    return {
+        name: configuredName,
+        status,
+        conclusion: manifestJob.reason,
+        detailsUrl: manifestJob.details_url,
+        required: false,
+    };
+}
 function normalizeCheckRuns(runs, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES) {
     return runs
         .filter((r) => !isSelfCheck(r.name, excludeCheckNames))
@@ -41591,7 +41649,7 @@ function normalizeCheckRuns(runs, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES) 
         required: false,
     }));
 }
-function evaluateRequiredChecks(allChecks, ciConfig) {
+function evaluateRequiredChecks(allChecks, ciConfig, manifest) {
     const requiredNames = ciConfig.required_checks;
     const optionalNames = ciConfig.optional_checks;
     const missingPolicy = ciConfig.missing_required;
@@ -41600,8 +41658,22 @@ function evaluateRequiredChecks(allChecks, ciConfig) {
     for (const reqName of requiredNames) {
         const match = allChecks.find((c) => checkNameMatches(reqName, c.name));
         if (match) {
-            evaluated.push({ ...match, name: reqName, required: true });
+            const resolved = applyManifestToCheck({ ...match, name: reqName, required: true }, manifest ?? undefined, reqName);
+            evaluated.push(resolved);
             seen.add(match.name);
+        }
+        else if (manifest) {
+            const fromManifest = checkFromManifestOnly(reqName, manifest);
+            if (fromManifest) {
+                evaluated.push({ ...fromManifest, name: reqName, required: true });
+            }
+            else {
+                evaluated.push({
+                    name: reqName,
+                    status: missingPolicy === "skip" ? "skip" : "missing",
+                    required: true,
+                });
+            }
         }
         else {
             evaluated.push({
@@ -41614,8 +41686,22 @@ function evaluateRequiredChecks(allChecks, ciConfig) {
     for (const optName of optionalNames) {
         const match = allChecks.find((c) => checkNameMatches(optName, c.name));
         if (match) {
-            evaluated.push({ ...match, name: optName, required: false });
+            const resolved = applyManifestToCheck({ ...match, name: optName, required: false }, manifest ?? undefined, optName);
+            evaluated.push(resolved);
             seen.add(match.name);
+        }
+        else if (manifest) {
+            const fromManifest = checkFromManifestOnly(optName, manifest);
+            if (fromManifest) {
+                evaluated.push({ ...fromManifest, name: optName, required: false });
+            }
+            else {
+                evaluated.push({
+                    name: optName,
+                    status: "missing",
+                    required: false,
+                });
+            }
         }
         else {
             evaluated.push({
@@ -41697,7 +41783,7 @@ async function fetchCheckRuns(octokit, options) {
     return normalizeCheckRuns(runs, excludeCheckNames);
 }
 async function waitForChecks(options) {
-    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, } = options;
+    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, manifest, } = options;
     const deadline = Date.now() + timeoutMinutes * 60 * 1000;
     while (true) {
         const allChecks = await fetchCheckRuns(octokit, {
@@ -41706,7 +41792,7 @@ async function waitForChecks(options) {
             headSha,
             excludeCheckNames,
         });
-        const summary = evaluateRequiredChecks(allChecks, ciConfig);
+        const summary = evaluateRequiredChecks(allChecks, ciConfig, manifest);
         if (summary.pendingCount === 0 || Date.now() >= deadline) {
             if (summary.pendingCount > 0) {
                 warning(`CI wait timed out after ${timeoutMinutes}m with ${summary.pendingCount} check(s) still pending`);
@@ -43319,6 +43405,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                 "Trailhead",
                 "Trailhead — Release Ready",
             ];
+            const ciManifest = config.ciManifest ?? null;
             if (config.waitForChecks && ciConfig.required_checks.length > 0) {
                 ciSummary = await waitForChecks({
                     octokit,
@@ -43328,6 +43415,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                     ciConfig,
                     excludeCheckNames,
                     timeoutMinutes: config.waitTimeoutMinutes ?? 30,
+                    manifest: ciManifest,
                 });
             }
             else {
@@ -43337,7 +43425,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                     headSha: commitSha,
                     excludeCheckNames,
                 });
-                ciSummary = evaluateRequiredChecks(checks, ciConfig);
+                ciSummary = evaluateRequiredChecks(checks, ciConfig, ciManifest);
             }
             localEvaluation.ci = ciSummary;
         }
@@ -45009,7 +45097,62 @@ function resolveDeployEventsUrl(evaluationStoreUrl) {
     return evaluationStoreUrl.replace(/\/store\/?$/, "/deploy-event");
 }
 
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = require("node:fs");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
+;// CONCATENATED MODULE: ./src/ci-manifest.ts
+
+
+
+/** Job outcome as emitted by path-filtered workflows (E15). */
+const CiManifestJobOutcome = enumType([
+    "ran",
+    "skipped",
+    "failed",
+    "pending",
+    "cancelled",
+]);
+/** Why a job did not run — `paths-filter` is the primary v4.2 use case. */
+const CiManifestSkipReason = enumType([
+    "paths-filter",
+    "paths-ignore",
+    "manual",
+    "condition",
+    "concurrency",
+    "workflow_dispatch",
+    "other",
+]);
+const CiManifestJob = objectType({
+    name: stringType().min(1),
+    outcome: CiManifestJobOutcome,
+    reason: CiManifestSkipReason.optional(),
+    check_run_id: numberType().int().positive().optional(),
+    details_url: stringType().url().optional(),
+});
+const CiManifest = objectType({
+    schema_version: literalType(1),
+    generated_at: stringType().optional(),
+    commit_sha: stringType().optional(),
+    workflow: stringType().optional(),
+    run_id: numberType().int().positive().optional(),
+    jobs: arrayType(CiManifestJob),
+});
+function parseCiManifest(raw) {
+    return CiManifest.parse(raw);
+}
+function readCiManifestFile(filePath) {
+    try {
+        const resolved = external_node_path_default().resolve(filePath);
+        const contents = external_node_fs_default().readFileSync(resolved, "utf8");
+        return parseCiManifest(JSON.parse(contents));
+    }
+    catch {
+        return null;
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/main.ts
+
 
 
 
@@ -45221,6 +45364,17 @@ async function run() {
             trailheadApiKey: trailheadApiKey || undefined,
             evaluationStoreUrl: getInput("evaluation-store-url") || undefined,
         });
+        const ciManifestPath = getInput("ci-manifest-path") || "";
+        let ciManifest = null;
+        if (ciManifestPath) {
+            ciManifest = readCiManifestFile(ciManifestPath);
+            if (ciManifest) {
+                info(`Loaded CI manifest from ${ciManifestPath} (${ciManifest.jobs.length} job(s))`);
+            }
+            else {
+                warning(`Could not parse ci-manifest at ${ciManifestPath}`);
+            }
+        }
         const config = {
             apiKey: getInput("api-key") || "",
             apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
@@ -45258,6 +45412,8 @@ async function run() {
                 ? parseInt(getInput("wait-timeout-minutes"), 10)
                 : 30,
             checkName: getInput("check-name") || undefined,
+            ciManifest,
+            ciManifestPath: ciManifestPath || undefined,
         };
         if (policyOverride?.changes.riskThreshold !== undefined) {
             config.riskThreshold = policyOverride.changes.riskThreshold;

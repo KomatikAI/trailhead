@@ -1,4 +1,5 @@
 import type { CiCheck, CiCheckStatusEnum, CiSummary, ContextCiConfig } from "./types.js";
+import type { CiManifest, CiManifestJob } from "./ci-manifest.js";
 
 export const DEFAULT_SELF_CHECK_NAMES = ["Trailhead", "Trailhead — Release Ready"];
 
@@ -50,6 +51,77 @@ export function checkNameMatches(configured: string, actual: string): boolean {
   return actual.toLowerCase().startsWith(configured.toLowerCase());
 }
 
+function findManifestJob(
+  manifest: CiManifest,
+  configuredName: string,
+): CiManifestJob | undefined {
+  return manifest.jobs.find((job) => checkNameMatches(configuredName, job.name));
+}
+
+function statusFromManifestJob(job: CiManifestJob): CiCheckStatusEnum | undefined {
+  switch (job.outcome) {
+    case "skipped":
+      return "skip";
+    case "failed":
+    case "cancelled":
+      return "fail";
+    case "pending":
+      return "pending";
+    case "ran":
+      return undefined;
+    default: {
+      const _exhaustive: never = job.outcome;
+      return undefined;
+    }
+  }
+}
+
+function applyManifestToCheck(
+  check: CiCheck,
+  manifest: CiManifest | undefined,
+  configuredName: string,
+): CiCheck {
+  if (!manifest) return check;
+  const manifestJob = findManifestJob(manifest, configuredName);
+  if (!manifestJob) return check;
+
+  const manifestStatus = statusFromManifestJob(manifestJob);
+  if (manifestStatus === "skip") {
+    return {
+      ...check,
+      status: "skip",
+      conclusion: manifestJob.reason ?? check.conclusion,
+    };
+  }
+  if (manifestStatus && (check.status === "missing" || check.status === "pending")) {
+    return {
+      ...check,
+      status: manifestStatus,
+      conclusion: manifestJob.reason ?? check.conclusion,
+    };
+  }
+  return check;
+}
+
+function checkFromManifestOnly(
+  configuredName: string,
+  manifest: CiManifest,
+): CiCheck | undefined {
+  const manifestJob = findManifestJob(manifest, configuredName);
+  if (!manifestJob) return undefined;
+
+  const status = statusFromManifestJob(manifestJob);
+  if (!status) return undefined;
+
+  return {
+    name: configuredName,
+    status,
+    conclusion: manifestJob.reason,
+    detailsUrl: manifestJob.details_url,
+    required: false,
+  };
+}
+
 export function normalizeCheckRuns(
   runs: RawCheckRun[],
   excludeCheckNames: string[] = DEFAULT_SELF_CHECK_NAMES,
@@ -68,6 +140,7 @@ export function normalizeCheckRuns(
 export function evaluateRequiredChecks(
   allChecks: CiCheck[],
   ciConfig: ContextCiConfig,
+  manifest?: CiManifest | null,
 ): CiSummary {
   const requiredNames = ciConfig.required_checks;
   const optionalNames = ciConfig.optional_checks;
@@ -79,8 +152,24 @@ export function evaluateRequiredChecks(
   for (const reqName of requiredNames) {
     const match = allChecks.find((c) => checkNameMatches(reqName, c.name));
     if (match) {
-      evaluated.push({ ...match, name: reqName, required: true });
+      const resolved = applyManifestToCheck(
+        { ...match, name: reqName, required: true },
+        manifest ?? undefined,
+        reqName,
+      );
+      evaluated.push(resolved);
       seen.add(match.name);
+    } else if (manifest) {
+      const fromManifest = checkFromManifestOnly(reqName, manifest);
+      if (fromManifest) {
+        evaluated.push({ ...fromManifest, name: reqName, required: true });
+      } else {
+        evaluated.push({
+          name: reqName,
+          status: missingPolicy === "skip" ? "skip" : "missing",
+          required: true,
+        });
+      }
     } else {
       evaluated.push({
         name: reqName,
@@ -93,8 +182,24 @@ export function evaluateRequiredChecks(
   for (const optName of optionalNames) {
     const match = allChecks.find((c) => checkNameMatches(optName, c.name));
     if (match) {
-      evaluated.push({ ...match, name: optName, required: false });
+      const resolved = applyManifestToCheck(
+        { ...match, name: optName, required: false },
+        manifest ?? undefined,
+        optName,
+      );
+      evaluated.push(resolved);
       seen.add(match.name);
+    } else if (manifest) {
+      const fromManifest = checkFromManifestOnly(optName, manifest);
+      if (fromManifest) {
+        evaluated.push({ ...fromManifest, name: optName, required: false });
+      } else {
+        evaluated.push({
+          name: optName,
+          status: "missing",
+          required: false,
+        });
+      }
     } else {
       evaluated.push({
         name: optName,

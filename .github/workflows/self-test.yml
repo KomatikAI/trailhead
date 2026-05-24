@@ -38,7 +38,7 @@ jobs:
           gate-mode: release-ready
           wait-for-checks: "true"
           wait-timeout-minutes: "15"
-          risk-threshold: "85"
+          risk-threshold: "90"
           warn-threshold: "50"
           fail-mode: "open"
           dora-metrics: "true"

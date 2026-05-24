@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CiManifest } from "./ci-manifest.js";
 
 export const GateDecision = z.enum(["allow", "warn", "block"]);
 export type GateDecision = z.infer<typeof GateDecision>;
@@ -378,6 +379,8 @@ export interface TrailheadConfig {
   waitForChecks?: boolean;
   waitTimeoutMinutes?: number;
   checkName?: string;
+  ciManifest?: CiManifest | null;
+  ciManifestPath?: string;
 }
 
 export interface TestRepairResult {

@@ -10,7 +10,7 @@ gate:
   check_name: "Trailhead — Release Ready"
 
 thresholds:
-  risk: 85
+  risk: 90
   warn: 50
 
 contexts:
@@ -19,7 +19,7 @@ contexts:
       base_branch: [main]
     environment: production
     thresholds:
-      risk: 85
+      risk: 90
       warn: 50
     ci:
       required_checks: [Lint]

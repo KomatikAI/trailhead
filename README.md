@@ -71,11 +71,11 @@ For hosted evaluation storage, analytics, and org dashboards, use a **Trailhead 
     trailhead-api-key: ${{ secrets.TRAILHEAD_API_KEY }}
 ```
 
-| Tier | Cloud store | Dashboard | Quota |
-| ---- | ------------- | --------- | ----- |
-| Free | — | — | Risk-only gate (local) |
-| Pro | Yes | Yes | 5,000 evals/month |
-| Team | Yes | Yes + org rollup | 50,000 evals/month + SSO |
+| Tier | Cloud store | Dashboard        | Quota                    |
+| ---- | ----------- | ---------------- | ------------------------ |
+| Free | —           | —                | Risk-only gate (local)   |
+| Pro  | Yes         | Yes              | 5,000 evals/month        |
+| Team | Yes         | Yes + org rollup | 50,000 evals/month + SSO |
 
 See [docs/evaluation-storage.md](docs/evaluation-storage.md) and [docs/marketplace-tiers.md](docs/marketplace-tiers.md). Run the Cloud API locally with `cd cloud && npm run dev` → http://localhost:3101/dashboard.
 
@@ -165,6 +165,7 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 | `gate-mode`               | No       | from `.trailhead.yml` | `release-ready`, `advisory`, or `risk-only` (overrides config)                         |
 | `wait-for-checks`         | No       | auto in release-ready | Poll GitHub Checks until required checks complete or timeout                           |
 | `wait-timeout-minutes`    | No       | `30`                  | Max minutes to wait for required CI checks                                             |
+| `ci-manifest-path`        | No       | —                     | Path to `ci-manifest.json` for path-filter skip semantics (v4.2)                       |
 | `check-name`              | No       | auto by gate mode     | GitHub check run name (`Trailhead — Release Ready` or `Trailhead`)                     |
 | `security-gate`           | No       | `true`                | Enable Code Scanning alerts as a risk factor                                           |
 | `canary-webhook-secret`   | No       | —                     | HMAC secret for deploy outcome webhooks                                                |
@@ -473,14 +474,14 @@ Interactive wizard that generates v2 `.trailhead.yml` and a `@v4` workflow with 
 
 ## Documentation
 
-| Doc | Description |
-| --- | ----------- |
-| [docs/README.md](docs/README.md) | Architecture, risk factors, configuration |
-| [docs/migration-v3-to-v4.md](docs/migration-v3-to-v4.md) | Upgrade from `@v3` |
-| [docs/evaluation-storage.md](docs/evaluation-storage.md) | Cloud vs bring-your-own-store |
-| [docs/marketplace-tiers.md](docs/marketplace-tiers.md) | Free / Pro / Team plans |
-| [docs/roadmap-v4.md](docs/roadmap-v4.md) | v4 roadmap and release status |
-| [cloud/README.md](cloud/README.md) | Cloud API and local dev |
+| Doc                                                      | Description                               |
+| -------------------------------------------------------- | ----------------------------------------- |
+| [docs/README.md](docs/README.md)                         | Architecture, risk factors, configuration |
+| [docs/migration-v3-to-v4.md](docs/migration-v3-to-v4.md) | Upgrade from `@v3`                        |
+| [docs/evaluation-storage.md](docs/evaluation-storage.md) | Cloud vs bring-your-own-store             |
+| [docs/marketplace-tiers.md](docs/marketplace-tiers.md)   | Free / Pro / Team plans                   |
+| [docs/ci-manifest.md](docs/ci-manifest.md)               | Path-filter CI manifest (v4.2)            |
+| [cloud/README.md](cloud/README.md)                       | Cloud API and local dev                   |
 
 - [Multi-CI templates](examples/) — GitLab CI and CircleCI configurations
 - [Observability dashboards](examples/observability/) — Grafana and Datadog dashboard imports
