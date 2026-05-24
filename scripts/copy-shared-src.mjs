@@ -22,6 +22,8 @@ const sharedFiles = [
   "context-matcher.ts",
   "release-ready.ts",
   "ci-core.ts",
+  "config-core.ts",
+  "deployment-gate.ts",
 ];
 
 const targetDir = path.join(root, targetName, "src");

@@ -1,6 +1,16 @@
 import { createAppAuth } from "@octokit/auth-app";
 import crypto from "node:crypto";
-import { computeRiskScore, decideGate, type FileInfo } from "./risk-engine.js";
+import { parseRepoConfigContent } from "./config-core.js";
+import {
+  DEFAULT_SELF_CHECK_NAMES,
+  evaluateRequiredChecks,
+  normalizeCheckRuns,
+  type RawCheckRun,
+} from "./ci-core.js";
+import { matchContext, resolveGateMode } from "./context-matcher.js";
+import { evaluateDeploymentGate } from "./deployment-gate.js";
+import { isInFreezeWindow, type FileInfo } from "./risk-engine.js";
+import type { ContextCiConfig, RepoConfig } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Configuration from environment
@@ -13,6 +23,11 @@ function getConfig() {
     webhookSecret: process.env.GITHUB_WEBHOOK_SECRET ?? "",
     riskThreshold: parseInt(process.env.RISK_THRESHOLD ?? "70", 10),
     warnThreshold: parseInt(process.env.WARN_THRESHOLD ?? "55", 10),
+    gateMode: process.env.GATE_MODE as
+      | "release-ready"
+      | "advisory"
+      | "risk-only"
+      | undefined,
   };
 }
 
@@ -58,43 +73,21 @@ interface DeploymentProtectionPayload {
   };
 }
 
-interface PullRequest {
+interface PullRequestSummary {
   number: number;
   title: string;
   changed_files: number;
   additions: number;
   deletions: number;
   user: { login: string };
+  base: { ref: string };
+  head: { ref: string };
+  labels: Array<{ name: string }>;
 }
 
 // ---------------------------------------------------------------------------
 // GitHub API helpers
 // ---------------------------------------------------------------------------
-
-async function findPrForSha(
-  token: string,
-  owner: string,
-  repo: string,
-  sha: string,
-): Promise<PullRequest | null> {
-  try {
-    const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/commits/${sha}/pulls`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      },
-    );
-    if (!res.ok) return null;
-    const prs = (await res.json()) as PullRequest[];
-    return prs[0] ?? null;
-  } catch {
-    return null;
-  }
-}
 
 function ghHeaders(token: string) {
   return {
@@ -102,6 +95,33 @@ function ghHeaders(token: string) {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
+}
+
+async function findPrForSha(
+  token: string,
+  owner: string,
+  repo: string,
+  sha: string,
+): Promise<PullRequestSummary | null> {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/commits/${sha}/pulls`,
+      { headers: ghHeaders(token) },
+    );
+    if (!res.ok) return null;
+    const prs = (await res.json()) as PullRequestSummary[];
+    const summary = prs[0];
+    if (!summary) return null;
+
+    const detailRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/pulls/${summary.number}`,
+      { headers: ghHeaders(token) },
+    );
+    if (!detailRes.ok) return summary;
+    return (await detailRes.json()) as PullRequestSummary;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchChangedFilesFromApi(
@@ -208,13 +228,9 @@ async function fetchRepoConfig(
   token: string,
   owner: string,
   repo: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<RepoConfig | null> {
   try {
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-    };
+    const headers = ghHeaders(token);
     let res: Response | null = null;
     for (const path of [".trailhead.yml", ".deployguard.yml"]) {
       const candidate = await fetch(
@@ -228,16 +244,87 @@ async function fetchRepoConfig(
       if (candidate.status !== 404) return null;
     }
     if (!res) return null;
-    const data = (await res.json()) as {
-      content?: string;
-      type?: string;
-    };
+    const data = (await res.json()) as { content?: string; type?: string };
     if (data.type !== "file" || !data.content) return null;
     const content = Buffer.from(data.content, "base64").toString("utf-8");
-    return JSON.parse(content) as Record<string, unknown>;
+    return parseRepoConfigContent(content);
   } catch {
     return null;
   }
+}
+
+async function fetchCheckRunsForRef(
+  token: string,
+  owner: string,
+  repo: string,
+  headSha: string,
+): Promise<ReturnType<typeof normalizeCheckRuns>> {
+  const runs: RawCheckRun[] = [];
+  let page = 1;
+
+  while (true) {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/commits/${headSha}/check-runs?per_page=100&page=${page}`,
+      { headers: ghHeaders(token) },
+    );
+    if (!res.ok) break;
+
+    const data = (await res.json()) as {
+      check_runs: Array<{
+        name: string;
+        status: string;
+        conclusion: string | null;
+        html_url?: string | null;
+        details_url?: string | null;
+      }>;
+    };
+
+    for (const check of data.check_runs) {
+      runs.push({
+        name: check.name,
+        status: check.status,
+        conclusion: check.conclusion,
+        html_url: check.html_url,
+        details_url: check.details_url,
+      });
+    }
+
+    if (data.check_runs.length < 100) break;
+    page += 1;
+  }
+
+  return normalizeCheckRuns(runs, DEFAULT_SELF_CHECK_NAMES);
+}
+
+function resolveThresholds(
+  repoConfig: RepoConfig | null,
+  environment: string,
+  contextThresholds: { risk?: number; warn?: number } | undefined,
+  defaults: { risk: number; warn: number },
+): { risk: number; warn: number } {
+  const envOverrides = repoConfig?.environments?.[environment];
+  return {
+    risk:
+      contextThresholds?.risk ??
+      envOverrides?.risk ??
+      repoConfig?.thresholds?.risk ??
+      defaults.risk,
+    warn:
+      contextThresholds?.warn ??
+      envOverrides?.warn ??
+      repoConfig?.thresholds?.warn ??
+      defaults.warn,
+  };
+}
+
+function resolveCiConfig(
+  repoConfig: RepoConfig | null,
+  matchedContext: ReturnType<typeof matchContext>,
+): ContextCiConfig {
+  if (matchedContext?.context.ci) {
+    return matchedContext.context.ci;
+  }
+  return { required_checks: [], optional_checks: [], missing_required: "fail" };
 }
 
 // ---------------------------------------------------------------------------
@@ -267,70 +354,78 @@ export async function handleDeploymentProtectionRule(
 
   const { token } = await auth({ type: "installation" });
 
-  const [pr, repoConfigRaw] = await Promise.all([
+  const [pr, repoConfig] = await Promise.all([
     findPrForSha(token, owner, repo, payload.deployment.sha),
     fetchRepoConfig(token, owner, repo),
   ]);
 
   const files = pr ? await fetchChangedFiles(token, owner, repo, pr.number) : [];
 
-  const envConfig = repoConfigRaw?.environments as
-    | Record<string, { risk?: number; warn?: number }>
-    | undefined;
-  const envOverrides = envConfig?.[payload.environment];
-  const effectiveRiskThreshold = envOverrides?.risk ?? config.riskThreshold;
-  const effectiveWarnThreshold = envOverrides?.warn ?? config.warnThreshold;
+  const schemaVersion = repoConfig?.schema_version ?? 1;
+  const gateMode = resolveGateMode(
+    repoConfig?.gate?.mode,
+    schemaVersion,
+    config.gateMode,
+  );
 
-  const { score, factors } = computeRiskScore(files);
-  const decision = decideGate(score, 100, effectiveRiskThreshold, effectiveWarnThreshold);
+  const matched = pr
+    ? matchContext(repoConfig?.contexts ?? [], {
+        baseRef: pr.base.ref,
+        headRef: pr.head.ref,
+        labels: pr.labels.map((l) => l.name),
+      })
+    : null;
 
-  const factorSummary =
-    factors.length > 0
-      ? factors
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3)
-          .map((f) => `${f.type.replace(/_/g, " ")}: ${f.score}/100`)
-          .join(", ")
-      : "No risk factors";
+  const thresholds = resolveThresholds(
+    repoConfig,
+    payload.environment,
+    matched?.context.thresholds,
+    { risk: config.riskThreshold, warn: config.warnThreshold },
+  );
 
-  const prRef = pr ? `PR #${pr.number}` : payload.deployment.sha.substring(0, 7);
-  const envName = payload.environment;
-
-  let state: "approved" | "rejected";
-  let comment: string;
-
-  if (decision === "block") {
-    state = "rejected";
-    comment =
-      `**Trailhead: BLOCKED** deployment to \`${envName}\`\n\n` +
-      `Risk score **${score}/100** exceeds threshold (${effectiveRiskThreshold}) for ${prRef}.\n\n` +
-      `**Top factors:** ${factorSummary}\n\n` +
-      `> Review the changes and reduce risk before deploying.`;
-  } else if (decision === "warn") {
-    state = "approved";
-    comment =
-      `**Trailhead: WARNING** — approving deployment to \`${envName}\` with elevated risk.\n\n` +
-      `Risk score **${score}/100** (warn threshold: ${effectiveWarnThreshold}) for ${prRef}.\n\n` +
-      `**Top factors:** ${factorSummary}`;
-  } else {
-    state = "approved";
-    comment =
-      `**Trailhead: APPROVED** deployment to \`${envName}\`\n\n` +
-      `Risk score **${score}/100** for ${prRef}. ${factorSummary}`;
+  let ciSummary = null;
+  if (gateMode !== "risk-only" && pr) {
+    const ciConfig = resolveCiConfig(repoConfig, matched);
+    const allChecks = await fetchCheckRunsForRef(
+      token,
+      owner,
+      repo,
+      payload.deployment.sha,
+    );
+    ciSummary = evaluateRequiredChecks(allChecks, ciConfig);
   }
 
-  const callbackUrl = payload.deployment_callback_url;
+  const freezeCheck = isInFreezeWindow(repoConfig?.freeze ?? []);
 
-  await fetch(callbackUrl, {
+  const prRef = pr ? `PR #${pr.number}` : payload.deployment.sha.substring(0, 7);
+  const result = evaluateDeploymentGate({
+    files,
+    gateMode,
+    riskThreshold: thresholds.risk,
+    warnThreshold: thresholds.warn,
+    ciSummary,
+    freezeActive: freezeCheck.frozen,
+    freezeMessage: freezeCheck.message,
+    context: matched?.matched ?? null,
+    prRef,
+    environment: payload.environment,
+  });
+
+  const state: "approved" | "rejected" = result.approved ? "approved" : "rejected";
+  const comment =
+    result.comment +
+    (state === "rejected"
+      ? "\n\n> Review the changes and reduce risk before deploying."
+      : "");
+
+  await fetch(payload.deployment_callback_url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
+      ...ghHeaders(token),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      environment_name: envName,
+      environment_name: payload.environment,
       state,
       comment,
     }),
@@ -342,10 +437,13 @@ export async function handleDeploymentProtectionRule(
     service: "trailhead-app",
     ts: new Date().toISOString(),
     state,
-    environment: envName,
+    gateMode,
+    environment: payload.environment,
     pr: prRef,
-    riskScore: score,
-    threshold: effectiveRiskThreshold,
+    riskScore: result.riskScore,
+    releaseReady: result.releaseReady,
+    threshold: thresholds.risk,
+    context: matched?.matched.name,
   };
   process.stdout.write(JSON.stringify(logEntry) + "\n");
 }

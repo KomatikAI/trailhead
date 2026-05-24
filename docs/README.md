@@ -2,22 +2,26 @@
 
 ## Architecture Overview
 
-Trailhead is a deployment gate available in three forms:
+Trailhead is a release readiness gate available in three forms:
 
-1. **GitHub Action** (`@v3`) — the primary distribution. Runs in CI on every PR.
-2. **GitHub App** (`app/`) — a webhook server that acts as a Custom Deployment Protection Rule.
+1. **GitHub Action** (`@v4`) — the primary distribution. Runs in CI on every PR, waits for required checks, and publishes a composite **Release Ready** check.
+2. **GitHub App** (`app/`) — a webhook server that acts as a Custom Deployment Protection Rule with the same composite gate logic.
 3. **MCP Server** (`mcp/`) — 21 tools for AI agents via the Model Context Protocol.
 
-All three share a single **risk engine** (`src/risk-engine.ts`) — a pure TypeScript module with no framework dependencies. This ensures scoring consistency regardless of which interface evaluates the code.
+All three share a single **risk engine** (`src/risk-engine.ts`) and v4 modules (`ci-core.ts`, `release-ready.ts`, `context-matcher.ts`, `deployment-gate.ts`) — pure TypeScript with no framework dependencies.
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  src/risk-engine.ts (pure scoring — no @actions deps)│
-├──────────────┬───────────────┬──────────────────────┤
-│ GitHub Action │  GitHub App   │     MCP Server       │
-│ src/main.ts   │ app/handler.ts│   mcp/server.ts      │
-│ (CI workflow) │ (webhook)     │   (stdio transport)  │
-└──────────────┴───────────────┴──────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Shared modules (pure — no @actions deps)                         │
+│  risk-engine · ci-core · release-ready · context-matcher · types  │
+├──────────────────┬────────────────────┬───────────────────────────┤
+│  GitHub Action   │    GitHub App      │       MCP Server          │
+│  src/main.ts     │  app/handler.ts    │     mcp/server.ts         │
+│  src/gate.ts     │  deployment-gate   │     evaluate-policy       │
+│  ci-orchestrator │  config-core       │     get-pr-release-status │
+└──────────────────┴────────────────────┴───────────────────────────┘
+         │                    │                      │
+         └────────── composite release-ready decision ──────────────┘
 ```
 
 ### CLI

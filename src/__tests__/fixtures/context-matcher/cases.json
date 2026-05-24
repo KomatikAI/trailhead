@@ -1,0 +1,144 @@
+[
+  {
+    "id": "feature-to-dev",
+    "contexts": [
+      {
+        "name": "feature",
+        "match": { "base_branch": ["dev"], "head_branch": [], "labels": [] },
+        "thresholds": { "risk": 70 },
+        "ci": {
+          "required_checks": ["Build"],
+          "optional_checks": [],
+          "missing_required": "fail"
+        }
+      },
+      {
+        "name": "promotion",
+        "match": { "base_branch": ["main"], "head_branch": [], "labels": [] },
+        "thresholds": { "risk": 50 },
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      }
+    ],
+    "pr": { "baseRef": "dev", "headRef": "feature/foo", "labels": [] },
+    "expect": { "name": "feature", "risk": 70 }
+  },
+  {
+    "id": "promotion-to-main",
+    "contexts": [
+      {
+        "name": "feature",
+        "match": { "base_branch": ["dev"], "head_branch": [], "labels": [] },
+        "thresholds": { "risk": 70 },
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      },
+      {
+        "name": "promotion",
+        "match": { "base_branch": ["main", "staging"], "head_branch": [], "labels": [] },
+        "thresholds": { "risk": 50 },
+        "environment": "production",
+        "ci": {
+          "required_checks": ["Build"],
+          "optional_checks": [],
+          "missing_required": "fail"
+        }
+      }
+    ],
+    "pr": { "baseRef": "main", "headRef": "release/1.0", "labels": [] },
+    "expect": { "name": "promotion", "environment": "production" }
+  },
+  {
+    "id": "no-match-fallback-null",
+    "contexts": [
+      {
+        "name": "feature",
+        "match": { "base_branch": ["dev"], "head_branch": [], "labels": [] },
+        "thresholds": {},
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      }
+    ],
+    "pr": { "baseRef": "experimental", "headRef": "feature/x", "labels": [] },
+    "expect": null
+  },
+  {
+    "id": "label-gated-hotfix",
+    "contexts": [
+      {
+        "name": "hotfix",
+        "match": { "base_branch": [], "head_branch": [], "labels": ["hotfix"] },
+        "thresholds": { "risk": 90 },
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      },
+      {
+        "name": "default",
+        "match": { "base_branch": ["main"], "head_branch": [], "labels": [] },
+        "thresholds": { "risk": 60 },
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      }
+    ],
+    "pr": { "baseRef": "main", "headRef": "fix/urgent", "labels": ["hotfix"] },
+    "expect": { "name": "hotfix", "risk": 90 }
+  },
+  {
+    "id": "head-branch-pattern",
+    "contexts": [
+      {
+        "name": "release-branch",
+        "match": { "base_branch": ["main"], "head_branch": ["release/*"], "labels": [] },
+        "thresholds": { "risk": 55 },
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      }
+    ],
+    "pr": { "baseRef": "main", "headRef": "release/4.0", "labels": [] },
+    "expect": { "name": "release-branch", "risk": 55 }
+  },
+  {
+    "id": "first-match-wins",
+    "contexts": [
+      {
+        "name": "first",
+        "match": { "base_branch": ["main"], "head_branch": [], "labels": [] },
+        "thresholds": { "risk": 80 },
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      },
+      {
+        "name": "second",
+        "match": { "base_branch": ["main"], "head_branch": [], "labels": [] },
+        "thresholds": { "risk": 40 },
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      }
+    ],
+    "pr": { "baseRef": "main", "headRef": "feature/x", "labels": [] },
+    "expect": { "name": "first", "risk": 80 }
+  },
+  {
+    "id": "case-insensitive-labels",
+    "contexts": [
+      {
+        "name": "urgent",
+        "match": { "base_branch": [], "head_branch": [], "labels": ["Urgent"] },
+        "thresholds": { "risk": 95 },
+        "ci": { "required_checks": [], "optional_checks": [], "missing_required": "fail" }
+      }
+    ],
+    "pr": { "baseRef": "main", "headRef": "fix/x", "labels": ["urgent"] },
+    "expect": { "name": "urgent", "risk": 95 }
+  },
+  {
+    "id": "staging-promotion",
+    "contexts": [
+      {
+        "name": "staging",
+        "match": { "base_branch": ["staging"], "head_branch": [], "labels": [] },
+        "thresholds": { "risk": 75 },
+        "environment": "staging",
+        "ci": {
+          "required_checks": ["Build"],
+          "optional_checks": [],
+          "missing_required": "fail"
+        }
+      }
+    ],
+    "pr": { "baseRef": "staging", "headRef": "dev", "labels": [] },
+    "expect": { "name": "staging", "environment": "staging", "risk": 75 }
+  }
+]

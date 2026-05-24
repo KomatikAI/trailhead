@@ -40857,6 +40857,95 @@ const promises_namespaceObject = require("node:fs/promises");
 ;// CONCATENATED MODULE: external "node:path"
 const external_node_path_namespaceObject = require("node:path");
 var external_node_path_default = /*#__PURE__*/__nccwpck_require__.n(external_node_path_namespaceObject);
+;// CONCATENATED MODULE: ./src/config-core.ts
+
+const SUPPORTED_CONFIG_SCHEMA_VERSIONS = new Set([1, 2]);
+const CURRENT_CONFIG_SCHEMA_VERSION = 2;
+function parseYaml(input) {
+    const lines = input
+        .split("\n")
+        .map((line) => line.replace(/\r$/, ""))
+        .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"));
+    const root = {};
+    const stack = [{ indent: -1, value: root }];
+    const parseScalar = (value) => {
+        const v = value.trim();
+        if ((v.startsWith('"') && v.endsWith('"')) ||
+            (v.startsWith("'") && v.endsWith("'"))) {
+            return v.slice(1, -1);
+        }
+        if (v === "true")
+            return true;
+        if (v === "false")
+            return false;
+        if (v === "null")
+            return null;
+        const n = Number(v);
+        if (!Number.isNaN(n) && v !== "")
+            return n;
+        return v;
+    };
+    const findNextSignificantLine = (fromIndex) => {
+        for (let i = fromIndex + 1; i < lines.length; i += 1) {
+            const candidate = lines[i];
+            if (candidate.trim() !== "" && !candidate.trim().startsWith("#")) {
+                return candidate;
+            }
+        }
+        return null;
+    };
+    for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        const indent = line.match(/^ */)?.[0].length ?? 0;
+        const trimmed = line.trim();
+        while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
+            stack.pop();
+        }
+        const container = stack[stack.length - 1].value;
+        if (trimmed.startsWith("- ")) {
+            if (!Array.isArray(container))
+                continue;
+            const itemRaw = trimmed.slice(2).trim();
+            if (itemRaw === "") {
+                const child = {};
+                container.push(child);
+                stack.push({ indent, value: child });
+            }
+            else {
+                container.push(parseScalar(itemRaw));
+            }
+            continue;
+        }
+        const keyMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+        if (!keyMatch ||
+            typeof container !== "object" ||
+            container === null ||
+            Array.isArray(container)) {
+            continue;
+        }
+        const [, key, rawVal] = keyMatch;
+        if (rawVal !== "") {
+            container[key] = parseScalar(rawVal);
+            continue;
+        }
+        const nextLine = findNextSignificantLine(i);
+        const nextIndent = nextLine?.match(/^ */)?.[0].length ?? -1;
+        const nextTrimmed = nextLine?.trim() ?? "";
+        const useArray = nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
+        const child = useArray ? [] : {};
+        container[key] = child;
+        stack.push({ indent, value: child });
+    }
+    return root;
+}
+function parseRepoConfigContent(content) {
+    const raw = parseYaml(content);
+    const parsed = RepoConfig.safeParse(raw);
+    if (!parsed.success)
+        return null;
+    return parsed.data;
+}
+
 ;// CONCATENATED MODULE: ./src/risk-engine.ts
 // Pure risk scoring engine — no framework dependencies.
 // Shared across the GitHub Action, MCP server, and GitHub App.
@@ -41269,9 +41358,6 @@ function isRollback(prTitle) {
 
 
 
-const yamlParse = null;
-const CURRENT_CONFIG_SCHEMA_VERSION = 2;
-const SUPPORTED_SCHEMA_VERSIONS = new Set([1, 2]);
 const CONFIG_MIGRATION_GUIDE_URL = "https://github.com/KomatikAI/trailhead/blob/main/docs/migration-v3-to-v4.md";
 const KNOWN_TOP_LEVEL_KEYS = new Set([
     "schema_version",
@@ -41290,85 +41376,6 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
     "escalation",
     "policies",
 ]);
-function parseYaml(input) {
-    if (yamlParse)
-        return yamlParse(input);
-    const lines = input
-        .split("\n")
-        .map((line) => line.replace(/\r$/, ""))
-        .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"));
-    const root = {};
-    const stack = [{ indent: -1, value: root }];
-    const parseScalar = (value) => {
-        const v = value.trim();
-        if ((v.startsWith('"') && v.endsWith('"')) ||
-            (v.startsWith("'") && v.endsWith("'"))) {
-            return v.slice(1, -1);
-        }
-        if (v === "true")
-            return true;
-        if (v === "false")
-            return false;
-        if (v === "null")
-            return null;
-        const n = Number(v);
-        if (!Number.isNaN(n) && v !== "")
-            return n;
-        return v;
-    };
-    const findNextSignificantLine = (fromIndex) => {
-        for (let i = fromIndex + 1; i < lines.length; i += 1) {
-            const candidate = lines[i];
-            if (candidate.trim() !== "" && !candidate.trim().startsWith("#")) {
-                return candidate;
-            }
-        }
-        return null;
-    };
-    for (let i = 0; i < lines.length; i += 1) {
-        const line = lines[i];
-        const indent = line.match(/^ */)?.[0].length ?? 0;
-        const trimmed = line.trim();
-        while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
-            stack.pop();
-        }
-        const container = stack[stack.length - 1].value;
-        if (trimmed.startsWith("- ")) {
-            if (!Array.isArray(container))
-                continue;
-            const itemRaw = trimmed.slice(2).trim();
-            if (itemRaw === "") {
-                const child = {};
-                container.push(child);
-                stack.push({ indent, value: child });
-            }
-            else {
-                container.push(parseScalar(itemRaw));
-            }
-            continue;
-        }
-        const keyMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-        if (!keyMatch ||
-            typeof container !== "object" ||
-            container === null ||
-            Array.isArray(container)) {
-            continue;
-        }
-        const [, key, rawVal] = keyMatch;
-        if (rawVal !== "") {
-            container[key] = parseScalar(rawVal);
-            continue;
-        }
-        const nextLine = findNextSignificantLine(i);
-        const nextIndent = nextLine?.match(/^ */)?.[0].length ?? -1;
-        const nextTrimmed = nextLine?.trim() ?? "";
-        const useArray = nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
-        const child = useArray ? [] : {};
-        container[key] = child;
-        stack.push({ indent, value: child });
-    }
-    return root;
-}
 function warnUnknownTopLevelKeys(raw, configPath) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw))
         return;
@@ -41380,9 +41387,9 @@ function warnUnknownTopLevelKeys(raw, configPath) {
     }
 }
 function validateSchemaVersion(parsedConfig, configPath) {
-    if (!SUPPORTED_SCHEMA_VERSIONS.has(parsedConfig.schema_version)) {
+    if (!SUPPORTED_CONFIG_SCHEMA_VERSIONS.has(parsedConfig.schema_version)) {
         warning(`${configPath}: unsupported schema_version=${parsedConfig.schema_version}. ` +
-            `Supported: ${[...SUPPORTED_SCHEMA_VERSIONS].join(", ")}. ` +
+            `Supported: ${[...SUPPORTED_CONFIG_SCHEMA_VERSIONS].join(", ")}. ` +
             `Migration guide: ${CONFIG_MIGRATION_GUIDE_URL}`);
         return null;
     }
@@ -41415,12 +41422,12 @@ async function loadRepoConfig(token) {
         const content = Buffer.from(data.content, "base64").toString("utf-8");
         const raw = parseYaml(content);
         warnUnknownTopLevelKeys(raw, configPath);
-        const parsed = RepoConfig.safeParse(raw);
-        if (!parsed.success) {
-            warning(`${configPath} parse error: ${parsed.error.message} — using defaults`);
+        const parsedConfig = parseRepoConfigContent(content);
+        if (!parsedConfig) {
+            warning(`${configPath} parse error — using defaults`);
             return null;
         }
-        const validated = validateSchemaVersion(parsed.data, configPath);
+        const validated = validateSchemaVersion(parsedConfig, configPath);
         if (!validated)
             return null;
         core_debug(`Loaded ${configPath}: ${JSON.stringify(validated)}`);
@@ -41443,12 +41450,12 @@ async function loadLocalRepoConfig() {
             const content = await (0,promises_namespaceObject.readFile)(external_node_path_default().join(workspace, configPath), "utf-8");
             const raw = parseYaml(content);
             warnUnknownTopLevelKeys(raw, configPath);
-            const parsed = RepoConfig.safeParse(raw);
-            if (!parsed.success) {
-                warning(`${configPath} parse error: ${parsed.error.message} — using defaults`);
+            const parsedConfig = parseRepoConfigContent(content);
+            if (!parsedConfig) {
+                warning(`${configPath} parse error — using defaults`);
                 return null;
             }
-            const validated = validateSchemaVersion(parsed.data, configPath);
+            const validated = validateSchemaVersion(parsedConfig, configPath);
             if (!validated)
                 return null;
             core_debug(`Loaded local ${configPath}: ${JSON.stringify(validated)}`);
@@ -43838,6 +43845,22 @@ function formatGateReport(evaluation, riskThreshold) {
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 const STORE_TIMEOUT_MS = 10_000;
+const STORE_RETRY_BACKOFF_MS = [1_000, 4_000, 16_000];
+const STORE_RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function isRetryableNetworkError(error) {
+    if (!(error instanceof Error))
+        return false;
+    const msg = error.message.toLowerCase();
+    return (error.name === "AbortError" ||
+        msg.includes("fetch failed") ||
+        msg.includes("network") ||
+        msg.includes("econnrefused") ||
+        msg.includes("etimedout") ||
+        msg.includes("enotfound"));
+}
 async function sendWebhook(url, evaluation) {
     const { owner, repo } = github_context.repo;
     const prUrl = evaluation.prNumber
@@ -43884,7 +43907,7 @@ async function sendWebhook(url, evaluation) {
         core_debug(`Webhook delivery failed: ${error}`);
     }
 }
-async function storeViaApi(url, evaluation) {
+async function storeViaApiOnce(url, evaluation) {
     const storeSecret = process.env.EVALUATION_STORE_SECRET;
     const headers = {
         "Content-Type": "application/json",
@@ -43906,7 +43929,12 @@ async function storeViaApi(url, evaluation) {
     const contentType = response.headers.get("content-type") ?? "";
     if (response.ok && contentType.includes("application/json")) {
         info(`Evaluation stored successfully at ${url}`);
-        return true;
+        return { ok: true, retryable: false };
+    }
+    const nonRetryableClientErrors = new Set([400, 401, 403]);
+    if (nonRetryableClientErrors.has(response.status)) {
+        warning(`Evaluation store returned HTTP ${response.status} — not retrying`);
+        return { ok: false, retryable: false };
     }
     if (!contentType.includes("application/json")) {
         warning(`Evaluation store at ${url} returned HTML instead of JSON (HTTP ${response.status}). ` +
@@ -43914,6 +43942,33 @@ async function storeViaApi(url, evaluation) {
     }
     else {
         warning(`Evaluation store returned HTTP ${response.status} — data may not be persisted`);
+    }
+    return {
+        ok: false,
+        retryable: STORE_RETRYABLE_STATUSES.has(response.status),
+    };
+}
+async function storeViaApi(url, evaluation) {
+    const maxAttempts = STORE_RETRY_BACKOFF_MS.length + 1;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+            const result = await storeViaApiOnce(url, evaluation);
+            if (result.ok)
+                return true;
+            if (!result.retryable || attempt >= maxAttempts - 1)
+                return false;
+            const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
+            warning(`Evaluation store attempt ${attempt + 1}/${maxAttempts} failed — retrying in ${delayMs}ms`);
+            await sleep(delayMs);
+        }
+        catch (error) {
+            if (!isRetryableNetworkError(error) || attempt >= maxAttempts - 1) {
+                throw error;
+            }
+            const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
+            warning(`Evaluation store network error on attempt ${attempt + 1}/${maxAttempts} — retrying in ${delayMs}ms`);
+            await sleep(delayMs);
+        }
     }
     return false;
 }

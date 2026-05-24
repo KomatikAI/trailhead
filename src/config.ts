@@ -2,12 +2,14 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { RepoConfig } from "./types.js";
+import {
+  CURRENT_CONFIG_SCHEMA_VERSION,
+  parseRepoConfigContent,
+  parseYaml,
+  SUPPORTED_CONFIG_SCHEMA_VERSIONS,
+} from "./config-core.js";
 import type { RepoConfig as RepoConfigType } from "./types.js";
 
-const yamlParse: ((input: string) => unknown) | null = null;
-const CURRENT_CONFIG_SCHEMA_VERSION = 2;
-const SUPPORTED_SCHEMA_VERSIONS = new Set([1, 2]);
 const CONFIG_MIGRATION_GUIDE_URL =
   "https://github.com/KomatikAI/trailhead/blob/main/docs/migration-v3-to-v4.md";
 const KNOWN_TOP_LEVEL_KEYS = new Set([
@@ -28,94 +30,6 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
   "policies",
 ]);
 
-function parseYaml(input: string): unknown {
-  if (yamlParse) return yamlParse(input);
-
-  const lines = input
-    .split("\n")
-    .map((line) => line.replace(/\r$/, ""))
-    .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"));
-  const root: Record<string, unknown> = {};
-  const stack: Array<{ indent: number; value: unknown }> = [{ indent: -1, value: root }];
-
-  const parseScalar = (value: string): unknown => {
-    const v = value.trim();
-    if (
-      (v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'"))
-    ) {
-      return v.slice(1, -1);
-    }
-    if (v === "true") return true;
-    if (v === "false") return false;
-    if (v === "null") return null;
-    const n = Number(v);
-    if (!Number.isNaN(n) && v !== "") return n;
-    return v;
-  };
-
-  const findNextSignificantLine = (fromIndex: number): string | null => {
-    for (let i = fromIndex + 1; i < lines.length; i += 1) {
-      const candidate = lines[i];
-      if (candidate.trim() !== "" && !candidate.trim().startsWith("#")) {
-        return candidate;
-      }
-    }
-    return null;
-  };
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    const indent = line.match(/^ */)?.[0].length ?? 0;
-    const trimmed = line.trim();
-
-    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
-      stack.pop();
-    }
-    const container = stack[stack.length - 1].value;
-
-    if (trimmed.startsWith("- ")) {
-      if (!Array.isArray(container)) continue;
-      const itemRaw = trimmed.slice(2).trim();
-      if (itemRaw === "") {
-        const child: Record<string, unknown> = {};
-        container.push(child);
-        stack.push({ indent, value: child });
-      } else {
-        container.push(parseScalar(itemRaw));
-      }
-      continue;
-    }
-
-    const keyMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-    if (
-      !keyMatch ||
-      typeof container !== "object" ||
-      container === null ||
-      Array.isArray(container)
-    ) {
-      continue;
-    }
-
-    const [, key, rawVal] = keyMatch;
-    if (rawVal !== "") {
-      (container as Record<string, unknown>)[key] = parseScalar(rawVal);
-      continue;
-    }
-
-    const nextLine = findNextSignificantLine(i);
-    const nextIndent = nextLine?.match(/^ */)?.[0].length ?? -1;
-    const nextTrimmed = nextLine?.trim() ?? "";
-    const useArray =
-      nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
-    const child: unknown = useArray ? [] : {};
-    (container as Record<string, unknown>)[key] = child;
-    stack.push({ indent, value: child });
-  }
-
-  return root;
-}
-
 function warnUnknownTopLevelKeys(raw: unknown, configPath: string): void {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
 
@@ -133,10 +47,10 @@ function validateSchemaVersion(
   parsedConfig: RepoConfigType,
   configPath: string,
 ): RepoConfigType | null {
-  if (!SUPPORTED_SCHEMA_VERSIONS.has(parsedConfig.schema_version)) {
+  if (!SUPPORTED_CONFIG_SCHEMA_VERSIONS.has(parsedConfig.schema_version)) {
     core.warning(
       `${configPath}: unsupported schema_version=${parsedConfig.schema_version}. ` +
-        `Supported: ${[...SUPPORTED_SCHEMA_VERSIONS].join(", ")}. ` +
+        `Supported: ${[...SUPPORTED_CONFIG_SCHEMA_VERSIONS].join(", ")}. ` +
         `Migration guide: ${CONFIG_MIGRATION_GUIDE_URL}`,
     );
     return null;
@@ -178,14 +92,13 @@ export async function loadRepoConfig(token?: string): Promise<RepoConfigType | n
     const content = Buffer.from(data.content, "base64").toString("utf-8");
     const raw = parseYaml(content);
     warnUnknownTopLevelKeys(raw, configPath);
-    const parsed = RepoConfig.safeParse(raw);
-
-    if (!parsed.success) {
-      core.warning(`${configPath} parse error: ${parsed.error.message} — using defaults`);
+    const parsedConfig = parseRepoConfigContent(content);
+    if (!parsedConfig) {
+      core.warning(`${configPath} parse error — using defaults`);
       return null;
     }
 
-    const validated = validateSchemaVersion(parsed.data, configPath);
+    const validated = validateSchemaVersion(parsedConfig, configPath);
     if (!validated) return null;
 
     core.debug(`Loaded ${configPath}: ${JSON.stringify(validated)}`);
@@ -208,16 +121,14 @@ async function loadLocalRepoConfig(): Promise<RepoConfigType | null> {
       const content = await readFile(path.join(workspace, configPath), "utf-8");
       const raw = parseYaml(content);
       warnUnknownTopLevelKeys(raw, configPath);
-      const parsed = RepoConfig.safeParse(raw);
+      const parsedConfig = parseRepoConfigContent(content);
 
-      if (!parsed.success) {
-        core.warning(
-          `${configPath} parse error: ${parsed.error.message} — using defaults`,
-        );
+      if (!parsedConfig) {
+        core.warning(`${configPath} parse error — using defaults`);
         return null;
       }
 
-      const validated = validateSchemaVersion(parsed.data, configPath);
+      const validated = validateSchemaVersion(parsedConfig, configPath);
       if (!validated) return null;
 
       core.debug(`Loaded local ${configPath}: ${JSON.stringify(validated)}`);

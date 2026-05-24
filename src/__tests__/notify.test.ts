@@ -164,26 +164,35 @@ describe("storeEvaluation", () => {
     expect(headers["Authorization"]).toBeUndefined();
   });
 
-  it("falls back to Supabase REST when primary returns HTML", async () => {
+  it("falls back to Supabase REST when primary returns HTML after retries", async () => {
     process.env.SUPABASE_URL = "https://abc.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    vi.useFakeTimers();
+    const html429 = () =>
+      new Response("<html>checkpoint</html>", {
+        status: 429,
+        headers: { "Content-Type": "text/html" },
+      });
     vi.mocked(fetch)
-      .mockResolvedValueOnce(
-        new Response("<html>checkpoint</html>", {
-          status: 429,
-          headers: { "Content-Type": "text/html" },
-        }),
-      )
+      .mockResolvedValueOnce(html429())
+      .mockResolvedValueOnce(html429())
+      .mockResolvedValueOnce(html429())
+      .mockResolvedValueOnce(html429())
       .mockResolvedValueOnce(jsonResponse("", 201));
 
-    await storeEvaluation("https://app.example/api/store", makeEvaluation());
+    const promise = storeEvaluation("https://app.example/api/store", makeEvaluation());
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(4_000);
+    await vi.advanceTimersByTimeAsync(16_000);
+    await expect(promise).resolves.toBe(true);
 
-    expect(fetch).toHaveBeenCalledTimes(2);
-    const supUrl = vi.mocked(fetch).mock.calls[1][0] as string;
+    expect(fetch).toHaveBeenCalledTimes(5);
+    const supUrl = vi.mocked(fetch).mock.calls[4][0] as string;
     expect(supUrl).toContain("supabase.co/rest/v1/trailhead_evaluations");
-    const row = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
+    const row = JSON.parse(vi.mocked(fetch).mock.calls[4][1]!.body as string);
     expect(row.gate_decision).toBe("block");
     expect(row.risk_score).toBe(85);
+    vi.useRealTimers();
   });
 
   it("handles non-JSON success from primary then skips when no Supabase env", async () => {
@@ -202,9 +211,72 @@ describe("storeEvaluation", () => {
   });
 
   it("handles network error gracefully (fail-open)", async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error("ECONNREFUSED"));
+    vi.useFakeTimers();
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+      .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+      .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+      .mockRejectedValueOnce(new Error("ECONNREFUSED"));
+
+    const promise = storeEvaluation(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(4_000);
+    await vi.advanceTimersByTimeAsync(16_000);
+    await expect(promise).resolves.toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(4);
+    vi.useRealTimers();
+  });
+
+  it("retries on 503 with exponential backoff then succeeds", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse('{"error":"unavailable"}', 503))
+      .mockResolvedValueOnce(jsonResponse('{"error":"unavailable"}', 503))
+      .mockResolvedValueOnce(jsonResponse('{"stored":true}'));
+
+    const promise = storeEvaluation(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(4_000);
+    await expect(promise).resolves.toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
+  });
+
+  it("does not retry on 401", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"error":"unauthorized"}', 401));
     await expect(
       storeEvaluation("https://example.com/api/trailhead/store", makeEvaluation()),
     ).resolves.toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry on 403", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"error":"forbidden"}', 403));
+    await expect(
+      storeEvaluation("https://example.com/api/trailhead/store", makeEvaluation()),
+    ).resolves.toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries on network error then succeeds", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new Error("fetch failed"))
+      .mockResolvedValueOnce(jsonResponse('{"stored":true}'));
+
+    const promise = storeEvaluation(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(promise).resolves.toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 });
