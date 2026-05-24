@@ -40,11 +40,11 @@ Transform Trailhead from a risk-scoring sidecar into a **Release Readiness Gate*
 
 ## v4.2 Epics (next — Advanced CI)
 
-| Epic | Status         | Description                                                                     | Issues    |
-| ---- | -------------- | ------------------------------------------------------------------------------- | --------- |
-| E15  | 🔶 In progress | `ci-manifest.json` schema + Action input; merge with Checks API                 | #203–#206 |
-| E16  | ⏳             | External consumer registry, satellite webhooks, cross-repo impact in PR comment | #207–#209 |
-| E17  | ⏳             | GitLab, CircleCI, generic webhook CI adapters                                   | #210–#212 |
+| Epic | Status         | Description                                                           | Issues    |
+| ---- | -------------- | --------------------------------------------------------------------- | --------- |
+| E15  | ✅ Done        | `ci-manifest.json` schema + Action input; merge with Checks API       | #203–#206 |
+| E16  | 🔶 In progress | External consumer registry, satellite webhooks, cross-repo PR comment | #207–#209 |
+| E17  | ⏳             | GitLab, CircleCI, generic webhook CI adapters                         | #210–#212 |
 
 ### E15 preview
 

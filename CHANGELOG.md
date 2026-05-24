@@ -7,6 +7,7 @@ All notable changes to Trailhead will be documented in this file.
 ### Added
 
 - **CI manifest (E15)** — `ci-manifest.json` schema, `ci-manifest-path` action input, and orchestrator merge so path-filter job skips do not count as missing required checks. See [docs/ci-manifest.md](docs/ci-manifest.md).
+- **Cross-repo impact (E16)** — external consumer registry, satellite webhooks on contract changes, and Cross-Repo Impact section in Release Ready comments. See [docs/cross-repo-impact.md](docs/cross-repo-impact.md).
 
 ### Changed
 

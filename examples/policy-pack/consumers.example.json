@@ -1,0 +1,11 @@
+{
+  "traverse": {
+    "repo": "KomatikAI/traverse",
+    "branch": "main"
+  },
+  "floe": {
+    "repo": "KomatikAI/shieldcheck",
+    "branch": "main",
+    "notify_webhook": "https://hooks.example.com/floe-contract"
+  }
+}
