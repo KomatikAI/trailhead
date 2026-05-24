@@ -153,17 +153,17 @@ async function storeViaSupabase(evaluation: GateEvaluation): Promise<boolean> {
 export async function storeEvaluation(
   url: string,
   evaluation: GateEvaluation,
-): Promise<void> {
+): Promise<boolean> {
   try {
     const stored = await storeViaApi(url, evaluation);
-    if (stored) return;
+    if (stored) return true;
   } catch (error) {
     core.warning(`Evaluation store API failed: ${error}`);
   }
 
   try {
     const fallback = await storeViaSupabase(evaluation);
-    if (fallback) return;
+    if (fallback) return true;
   } catch (error) {
     core.warning(`Supabase direct fallback also failed: ${error}`);
   }
@@ -172,4 +172,5 @@ export async function storeEvaluation(
     "Evaluation could not be stored. To fix: either set VERCEL_AUTOMATION_BYPASS_SECRET " +
       "or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in your workflow env.",
   );
+  return false;
 }

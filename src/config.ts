@@ -6,11 +6,14 @@ import { RepoConfig } from "./types.js";
 import type { RepoConfig as RepoConfigType } from "./types.js";
 
 const yamlParse: ((input: string) => unknown) | null = null;
-const CURRENT_CONFIG_SCHEMA_VERSION = 1;
+const CURRENT_CONFIG_SCHEMA_VERSION = 2;
+const SUPPORTED_SCHEMA_VERSIONS = new Set([1, 2]);
 const CONFIG_MIGRATION_GUIDE_URL =
-  "https://github.com/KomatikAI/trailhead/blob/main/docs/roadmap-agent-qa.md";
+  "https://github.com/KomatikAI/trailhead/blob/main/docs/migration-v3-to-v4.md";
 const KNOWN_TOP_LEVEL_KEYS = new Set([
   "schema_version",
+  "gate",
+  "contexts",
   "sensitivity",
   "weights",
   "profiles",
@@ -130,13 +133,20 @@ function validateSchemaVersion(
   parsedConfig: RepoConfigType,
   configPath: string,
 ): RepoConfigType | null {
-  if (parsedConfig.schema_version !== CURRENT_CONFIG_SCHEMA_VERSION) {
+  if (!SUPPORTED_SCHEMA_VERSIONS.has(parsedConfig.schema_version)) {
     core.warning(
       `${configPath}: unsupported schema_version=${parsedConfig.schema_version}. ` +
-        `Expected ${CURRENT_CONFIG_SCHEMA_VERSION}. ` +
+        `Supported: ${[...SUPPORTED_SCHEMA_VERSIONS].join(", ")}. ` +
         `Migration guide: ${CONFIG_MIGRATION_GUIDE_URL}`,
     );
     return null;
+  }
+
+  if (parsedConfig.schema_version > CURRENT_CONFIG_SCHEMA_VERSION) {
+    core.warning(
+      `${configPath}: schema_version=${parsedConfig.schema_version} is newer than ` +
+        `supported ${CURRENT_CONFIG_SCHEMA_VERSION}. Some features may be ignored.`,
+    );
   }
 
   return parsedConfig;

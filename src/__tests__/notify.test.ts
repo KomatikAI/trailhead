@@ -198,13 +198,13 @@ describe("storeEvaluation", () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"error":"nope"}', 500));
     await expect(
       storeEvaluation("https://example.com/api/trailhead/store", makeEvaluation()),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
   });
 
   it("handles network error gracefully (fail-open)", async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error("ECONNREFUSED"));
     await expect(
       storeEvaluation("https://example.com/api/trailhead/store", makeEvaluation()),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
   });
 });

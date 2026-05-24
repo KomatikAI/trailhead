@@ -78,7 +78,7 @@ describe("run (main entrypoint)", () => {
     const commentSpy = vi.spyOn(gate, "postPrComment").mockResolvedValue();
     const checkSpy = vi.spyOn(gate, "createCheckRun").mockResolvedValue();
     const webhookSpy = vi.spyOn(notify, "sendWebhook").mockResolvedValue();
-    const storeSpy = vi.spyOn(notify, "storeEvaluation").mockResolvedValue();
+    const storeSpy = vi.spyOn(notify, "storeEvaluation").mockResolvedValue(true);
     setupInputs({
       "api-key": "test-key",
       "github-token": "ghp_test",
