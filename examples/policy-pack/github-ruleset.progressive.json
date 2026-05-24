@@ -24,15 +24,7 @@
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
           {
-            "context": "Trailhead",
-            "integration_id": null
-          },
-          {
-            "context": "CI / test",
-            "integration_id": null
-          },
-          {
-            "context": "CI / lint",
+            "context": "Trailhead — Release Ready",
             "integration_id": null
           }
         ]

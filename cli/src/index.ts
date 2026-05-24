@@ -125,6 +125,176 @@ function generateTrailheadYml(options: {
   return lines.join("\n") + "\n";
 }
 
+type GateModeOption = "release-ready" | "risk-only" | "advisory";
+type BranchModel = "main-only" | "progressive";
+
+function parseCheckList(input: string, fallback: string[]): string[] {
+  const list = input
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return list.length > 0 ? list : fallback;
+}
+
+function generateTrailheadYmlV2(options: {
+  gateMode: GateModeOption;
+  branchModel: BranchModel;
+  riskThreshold: number;
+  warnThreshold: number;
+  featureRisk: number;
+  featureWarn: number;
+  stagingRisk: number;
+  stagingWarn: number;
+  productionRisk: number;
+  productionWarn: number;
+  featureChecks: string[];
+  promotionChecks: string[];
+  highSensitivity: string[];
+  mediumSensitivity: string[];
+  freezeDays: string[];
+  freezeAfterHour: number | null;
+  environments: Array<{ name: string; risk: number; warn: number }>;
+  services: Array<{ name: string; paths: string[]; env: string }>;
+  securityGate: boolean;
+  canaryType: string;
+}): string {
+  const lines: string[] = [
+    "# Trailhead v4 configuration",
+    "# https://github.com/KomatikAI/trailhead",
+    "",
+    "schema_version: 2",
+    "",
+    "gate:",
+    `  mode: ${options.gateMode}`,
+    `  check_name: "Trailhead — Release Ready"`,
+    "",
+    "thresholds:",
+    `  risk: ${options.riskThreshold}`,
+    `  warn: ${options.warnThreshold}`,
+    "",
+  ];
+
+  if (options.gateMode !== "risk-only") {
+    lines.push("contexts:");
+    if (options.branchModel === "progressive") {
+      lines.push("  - name: feature");
+      lines.push("    match:");
+      lines.push("      base_branch:");
+      lines.push("        - dev");
+      lines.push("        - develop");
+      lines.push("    environment: dev");
+      lines.push("    thresholds:");
+      lines.push(`      risk: ${options.featureRisk}`);
+      lines.push(`      warn: ${options.featureWarn}`);
+      lines.push("    ci:");
+      lines.push("      required_checks:");
+      for (const c of options.featureChecks) lines.push(`        - ${c}`);
+      lines.push("      missing_required: skip");
+      lines.push("");
+      lines.push("  - name: staging-promotion");
+      lines.push("    match:");
+      lines.push("      base_branch:");
+      lines.push("        - staging");
+      lines.push("    environment: staging");
+      lines.push("    thresholds:");
+      lines.push(`      risk: ${options.stagingRisk}`);
+      lines.push(`      warn: ${options.stagingWarn}`);
+      lines.push("    ci:");
+      lines.push("      required_checks:");
+      for (const c of options.promotionChecks) lines.push(`        - ${c}`);
+      lines.push("      missing_required: fail");
+      lines.push("");
+      lines.push("  - name: production-promotion");
+      lines.push("    match:");
+      lines.push("      base_branch:");
+      lines.push("        - main");
+      lines.push("        - master");
+      lines.push("    environment: production");
+      lines.push("    thresholds:");
+      lines.push(`      risk: ${options.productionRisk}`);
+      lines.push(`      warn: ${options.productionWarn}`);
+      lines.push("    ci:");
+      lines.push("      required_checks:");
+      for (const c of options.promotionChecks) lines.push(`        - ${c}`);
+      lines.push("      missing_required: fail");
+      lines.push("");
+    } else {
+      lines.push("  - name: main");
+      lines.push("    match:");
+      lines.push("      base_branch:");
+      lines.push("        - main");
+      lines.push("        - master");
+      lines.push("    environment: production");
+      lines.push("    thresholds:");
+      lines.push(`      risk: ${options.productionRisk}`);
+      lines.push(`      warn: ${options.productionWarn}`);
+      lines.push("    ci:");
+      lines.push("      required_checks:");
+      for (const c of options.promotionChecks) lines.push(`        - ${c}`);
+      lines.push("      missing_required: fail");
+      lines.push("");
+    }
+  }
+
+  if (options.highSensitivity.length > 0 || options.mediumSensitivity.length > 0) {
+    lines.push("sensitivity:");
+    if (options.highSensitivity.length > 0) {
+      lines.push("  high:");
+      for (const p of options.highSensitivity) lines.push(`    - "${p}"`);
+    }
+    if (options.mediumSensitivity.length > 0) {
+      lines.push("  medium:");
+      for (const p of options.mediumSensitivity) lines.push(`    - "${p}"`);
+    }
+    lines.push("");
+  }
+
+  if (options.environments.length > 0) {
+    lines.push("environments:");
+    for (const env of options.environments) {
+      lines.push(`  ${env.name}:`);
+      lines.push(`    risk: ${env.risk}`);
+      lines.push(`    warn: ${env.warn}`);
+    }
+    lines.push("");
+  }
+
+  if (options.services.length > 0) {
+    lines.push("services:");
+    for (const svc of options.services) {
+      lines.push(`  ${svc.name}:`);
+      lines.push("    paths:");
+      for (const p of svc.paths) lines.push(`      - "${p}"`);
+      if (svc.env) lines.push(`    environment: ${svc.env}`);
+    }
+    lines.push("");
+  }
+
+  if (options.securityGate) {
+    lines.push("security:");
+    lines.push("  severity_threshold: warning");
+    lines.push("  block_on_critical: true");
+    lines.push("");
+  }
+
+  if (options.canaryType) {
+    lines.push("canary:");
+    lines.push(`  webhook_type: ${options.canaryType}`);
+    lines.push("");
+  }
+
+  if (options.freezeDays.length > 0 && options.freezeAfterHour !== null) {
+    lines.push("freeze:");
+    lines.push("  - days:");
+    for (const d of options.freezeDays) lines.push(`      - "${d}"`);
+    lines.push(`    afterHour: ${options.freezeAfterHour}`);
+    lines.push(`    message: "No deploys during freeze window"`);
+    lines.push("");
+  }
+
+  return lines.join("\n") + "\n";
+}
+
 function generateWorkflowYml(options: {
   riskThreshold: number;
   healthCheckUrls: string[];
@@ -136,6 +306,8 @@ function generateWorkflowYml(options: {
   supabaseFallback: boolean;
   securityGate: boolean;
   environment: string;
+  gateMode: GateModeOption;
+  waitForChecks: boolean;
 }): string {
   const lines: string[] = [
     "name: Trailhead",
@@ -156,11 +328,20 @@ function generateWorkflowYml(options: {
     "    steps:",
     "      - uses: actions/checkout@v4",
     "",
-    "      - uses: KomatikAI/trailhead@v3",
+    "      - uses: KomatikAI/trailhead@v4",
     "        id: gate",
     "        with:",
-    `          risk-threshold: "${options.riskThreshold}"`,
   ];
+
+  if (options.gateMode !== "risk-only") {
+    lines.push(`          gate-mode: "${options.gateMode}"`);
+    if (options.waitForChecks) {
+      lines.push('          wait-for-checks: "true"');
+      lines.push('          wait-timeout-minutes: "30"');
+    }
+  }
+
+  lines.push(`          risk-threshold: "${options.riskThreshold}"`);
 
   if (options.healthCheckUrls.length > 0) {
     lines.push(`          health-check-urls: "${options.healthCheckUrls.join(",")}"`);
@@ -258,8 +439,41 @@ ${BOLD}Learn more:${RESET}
     output: process.stdout,
   });
 
-  print(`\n${BOLD}${GREEN}Trailhead v3 Setup Wizard${RESET}\n`);
-  print(`${DIM}This will create .trailhead.yml and a GitHub Actions workflow.${RESET}\n`);
+  print(`\n${BOLD}${GREEN}Trailhead v4 Setup Wizard${RESET}\n`);
+  print(`${DIM}Creates .trailhead.yml and a GitHub Actions workflow.${RESET}\n`);
+
+  print(`${BOLD}Gate mode${RESET}`);
+  print(`  ${DIM}1) release-ready — single required check (CI + risk)${RESET}`);
+  print(`  ${DIM}2) advisory — report only, never blocks${RESET}`);
+  print(`  ${DIM}3) risk-only — v3 behavior (risk score only)${RESET}`);
+  const modeInput = await ask(rl, `${CYAN}Choose gate mode${RESET}`, "1");
+  const gateMode: GateModeOption =
+    modeInput === "2" ? "advisory" : modeInput === "3" ? "risk-only" : "release-ready";
+
+  let branchModel: BranchModel = "main-only";
+  let featureChecks = ["CI Gate", "Build"];
+  let promotionChecks = ["CI Gate", "Build", "Playwright"];
+  if (gateMode !== "risk-only") {
+    print(`\n${BOLD}Branch model${RESET}`);
+    print(`  ${DIM}1) main-only — PRs target main/master${RESET}`);
+    print(`  ${DIM}2) progressive — dev → staging → main promotion${RESET}`);
+    const branchInput = await ask(rl, `${CYAN}Choose branch model${RESET}`, "1");
+    branchModel = branchInput === "2" ? "progressive" : "main-only";
+
+    const featureChecksInput = await ask(
+      rl,
+      `${CYAN}Feature PR required checks${RESET} (comma-separated)`,
+      "CI Gate, Build",
+    );
+    featureChecks = parseCheckList(featureChecksInput, featureChecks);
+
+    const promotionChecksInput = await ask(
+      rl,
+      `${CYAN}Promotion PR required checks${RESET} (comma-separated)`,
+      "CI Gate, Build, Playwright",
+    );
+    promotionChecks = parseCheckList(promotionChecksInput, promotionChecks);
+  }
 
   const riskStr = await ask(
     rl,
@@ -443,18 +657,42 @@ ${BOLD}Learn more:${RESET}
 
   print(`\n${BOLD}Writing files...${RESET}\n`);
 
-  const configContent = generateTrailheadYml({
-    highSensitivity,
-    mediumSensitivity,
-    riskThreshold,
-    warnThreshold,
-    freezeDays,
-    freezeAfterHour,
-    environments,
-    services,
-    securityGate,
-    canaryType,
-  });
+  const useV2 = gateMode !== "risk-only";
+  const configContent = useV2
+    ? generateTrailheadYmlV2({
+        gateMode,
+        branchModel,
+        riskThreshold,
+        warnThreshold,
+        featureRisk: Math.min(100, riskThreshold + 5),
+        featureWarn: warnThreshold,
+        stagingRisk: Math.max(0, riskThreshold - 5),
+        stagingWarn: Math.max(0, warnThreshold - 10),
+        productionRisk: Math.max(0, riskThreshold - 10),
+        productionWarn: Math.max(0, warnThreshold - 15),
+        featureChecks,
+        promotionChecks,
+        highSensitivity,
+        mediumSensitivity,
+        freezeDays,
+        freezeAfterHour,
+        environments,
+        services,
+        securityGate,
+        canaryType,
+      })
+    : generateTrailheadYml({
+        highSensitivity,
+        mediumSensitivity,
+        riskThreshold,
+        warnThreshold,
+        freezeDays,
+        freezeAfterHour,
+        environments,
+        services,
+        securityGate,
+        canaryType,
+      });
 
   const configPath = path.join(process.cwd(), ".trailhead.yml");
   fs.writeFileSync(configPath, configContent, "utf-8");
@@ -474,6 +712,8 @@ ${BOLD}Learn more:${RESET}
     supabaseFallback,
     securityGate,
     environment,
+    gateMode,
+    waitForChecks: gateMode === "release-ready",
   });
 
   const workflowPath = path.join(workflowDir, "trailhead.yml");
@@ -497,7 +737,8 @@ ${BOLD}${GREEN}Setup complete!${RESET}
 ${BOLD}Next steps:${RESET}
   1. Review the generated files
   2. Commit and push to your repository
-  3. Open a PR to see Trailhead in action
+  3. Add branch protection requiring ${BOLD}Trailhead — Release Ready${RESET} (v4 mode)
+  4. Open a PR to see Trailhead in action
 
 ${DIM}Docs: https://github.com/KomatikAI/trailhead${RESET}
 `);

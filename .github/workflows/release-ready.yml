@@ -1,0 +1,69 @@
+# Reusable workflow: Trailhead Release Readiness Gate (v4)
+#
+# Consumers:
+#   jobs:
+#     release-ready:
+#       uses: KomatikAI/trailhead/.github/workflows/release-ready.yml@v4
+#       secrets:
+#         evaluation-store-secret: ${{ secrets.TRAILHEAD_STORE_SECRET }}
+#
+name: Trailhead Release Ready
+
+on:
+  workflow_call:
+    inputs:
+      gate-mode:
+        description: "release-ready | advisory | risk-only"
+        type: string
+        default: "release-ready"
+      risk-threshold:
+        description: "Block when risk score exceeds this value (0-100)"
+        type: string
+        default: "70"
+      wait-for-checks:
+        description: "Poll GitHub Checks until required checks finish"
+        type: boolean
+        default: true
+      wait-timeout-minutes:
+        description: "Max minutes to wait for CI checks"
+        type: string
+        default: "30"
+      environment:
+        description: "Deployment environment for threshold overrides"
+        type: string
+        default: ""
+      dora-metrics:
+        description: "Compute DORA-5 metrics"
+        type: boolean
+        default: false
+      evaluation-store-url:
+        description: "URL to POST evaluation JSON (optional)"
+        type: string
+        default: ""
+    secrets:
+      evaluation-store-secret:
+        description: "Bearer token for evaluation store"
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  security-events: read
+
+jobs:
+  trailhead:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: KomatikAI/trailhead@v4
+        with:
+          gate-mode: ${{ inputs.gate-mode }}
+          risk-threshold: ${{ inputs.risk-threshold }}
+          wait-for-checks: ${{ inputs.wait-for-checks }}
+          wait-timeout-minutes: ${{ inputs.wait-timeout-minutes }}
+          environment: ${{ inputs.environment }}
+          dora-metrics: ${{ inputs.dora-metrics }}
+          evaluation-store-url: ${{ inputs.evaluation-store-url }}
+          evaluation-store-secret: ${{ secrets.evaluation-store-secret }}

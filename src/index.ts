@@ -63,7 +63,9 @@ export {
   evaluateRequiredChecks,
   fetchCheckRuns,
   waitForChecks,
+  formatCiStatusIcon,
 } from "./ci-orchestrator.js";
+export { checkNameMatches, normalizeCheckRuns } from "./ci-core.js";
 export {
   computeReleaseReady,
   shouldBlockMerge,

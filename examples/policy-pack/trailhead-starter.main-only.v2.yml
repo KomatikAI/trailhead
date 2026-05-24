@@ -1,0 +1,44 @@
+# v4 main-only policy with release-ready gate.
+
+schema_version: 2
+
+gate:
+  mode: release-ready
+  check_name: "Trailhead — Release Ready"
+
+thresholds:
+  risk: 75
+  warn: 55
+
+contexts:
+  - name: main
+    match:
+      base_branch: [main, master]
+    environment: production
+    thresholds:
+      risk: 65
+      warn: 45
+    ci:
+      required_checks: [CI Gate, Build]
+      missing_required: fail
+
+environments:
+  production:
+    risk: 65
+    warn: 45
+    require_security_clear: true
+  dev:
+    risk: 80
+    warn: 60
+
+security:
+  severity_threshold: warning
+  block_on_critical: true
+
+freeze:
+  - days: ["friday", "saturday"]
+    afterHour: 15
+    message: "Release freeze window in effect"
+
+ignore:
+  - "*.generated.ts"

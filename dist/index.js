@@ -41535,8 +41535,7 @@ function resolveGateMode(repoGateMode, schemaVersion, inputGateMode) {
     return schemaVersion >= 2 ? "release-ready" : "risk-only";
 }
 
-;// CONCATENATED MODULE: ./src/ci-orchestrator.ts
-
+;// CONCATENATED MODULE: ./src/ci-core.ts
 const DEFAULT_SELF_CHECK_NAMES = ["Trailhead", "Trailhead — Release Ready"];
 /**
  * Map GitHub check conclusion/status to Trailhead CI status (ADR-009).
@@ -41584,33 +41583,6 @@ function normalizeCheckRuns(runs, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES) 
         detailsUrl: r.details_url ?? r.html_url ?? undefined,
         required: false,
     }));
-}
-async function fetchCheckRuns(octokit, options) {
-    const { owner, repo, headSha, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES } = options;
-    const runs = [];
-    let page = 1;
-    while (true) {
-        const { data } = await octokit.rest.checks.listForRef({
-            owner,
-            repo,
-            ref: headSha,
-            per_page: 100,
-            page,
-        });
-        for (const check of data.check_runs) {
-            runs.push({
-                name: check.name,
-                status: check.status,
-                conclusion: check.conclusion,
-                html_url: check.html_url,
-                details_url: check.details_url,
-            });
-        }
-        if (data.check_runs.length < 100)
-            break;
-        page += 1;
-    }
-    return normalizeCheckRuns(runs, excludeCheckNames);
 }
 function evaluateRequiredChecks(allChecks, ciConfig) {
     const requiredNames = ciConfig.required_checks;
@@ -41665,6 +41637,58 @@ function evaluateRequiredChecks(allChecks, ciConfig) {
         missingCount,
     };
 }
+function formatCiStatusIcon(status) {
+    switch (status) {
+        case "pass":
+            return "✅";
+        case "fail":
+            return "❌";
+        case "skip":
+            return "⏭️";
+        case "pending":
+            return "⏳";
+        case "stale":
+            return "⚠️";
+        case "missing":
+            return "❓";
+        default: {
+            const _exhaustive = status;
+            return "•";
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/ci-orchestrator.ts
+
+
+
+async function fetchCheckRuns(octokit, options) {
+    const { owner, repo, headSha, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES } = options;
+    const runs = [];
+    let page = 1;
+    while (true) {
+        const { data } = await octokit.rest.checks.listForRef({
+            owner,
+            repo,
+            ref: headSha,
+            per_page: 100,
+            page,
+        });
+        for (const check of data.check_runs) {
+            runs.push({
+                name: check.name,
+                status: check.status,
+                conclusion: check.conclusion,
+                html_url: check.html_url,
+                details_url: check.details_url,
+            });
+        }
+        if (data.check_runs.length < 100)
+            break;
+        page += 1;
+    }
+    return normalizeCheckRuns(runs, excludeCheckNames);
+}
 async function waitForChecks(options) {
     const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, } = options;
     const deadline = Date.now() + timeoutMinutes * 60 * 1000;
@@ -41684,26 +41708,6 @@ async function waitForChecks(options) {
         }
         info(`Waiting for ${summary.pendingCount} CI check(s) — polling again in ${pollIntervalSeconds}s`);
         await new Promise((resolve) => setTimeout(resolve, pollIntervalSeconds * 1000));
-    }
-}
-function formatCiStatusIcon(status) {
-    switch (status) {
-        case "pass":
-            return "✅";
-        case "fail":
-            return "❌";
-        case "skip":
-            return "⏭️";
-        case "pending":
-            return "⏳";
-        case "stale":
-            return "⚠️";
-        case "missing":
-            return "❓";
-        default: {
-            const _exhaustive = status;
-            return "•";
-        }
     }
 }
 
