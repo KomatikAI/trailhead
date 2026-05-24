@@ -24,9 +24,9 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes 
 | `suggest-deploy-timing`   | Suggest whether conditions are safe for deploy            | `GITHUB_TOKEN`                                             |
 | `query-overrides`         | Query governed override records                           | `TRAILHEAD_OVERRIDES_JSON` or `TRAILHEAD_OVERRIDES_INLINE` |
 | `get-escalation-status`   | Evaluate escalation SLA status                            | —                                                          |
-| `record-finding-feedback` | Persist detector feedback for tuning                      | `TRAILHEAD_FEEDBACK_STORE` (optional)                      |
-| `get-detector-noise`      | Aggregate false-positive/true-positive rates              | `TRAILHEAD_FEEDBACK_STORE` (optional)                      |
-| `recommend-policy-tuning` | Generate tuning recommendations from detector noise       | `TRAILHEAD_FEEDBACK_STORE` (optional)                      |
+| `record-finding-feedback` | Persist detector feedback for tuning                      | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
+| `get-detector-noise`      | Aggregate false-positive/true-positive rates              | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
+| `recommend-policy-tuning` | Generate tuning recommendations from detector noise       | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
 | `recommend-rollback`      | Recommend rollback action from canary + provenance        | —                                                          |
 
 ## Quick Start
@@ -87,7 +87,11 @@ Add to `claude_desktop_config.json`:
 | `SUPABASE_ANON_KEY`          | `check-supabase-health`                                           | Supabase anonymous key                              |
 | `TRAILHEAD_OVERRIDES_JSON`   | `query-overrides`                                                 | File path to JSON array of override records         |
 | `TRAILHEAD_OVERRIDES_INLINE` | `query-overrides`                                                 | Inline JSON array of override records               |
-| `TRAILHEAD_FEEDBACK_STORE`   | feedback/noise/tuning tools                                       | File path used to persist detector feedback records |
+| `TRAILHEAD_FEEDBACK_STORE`   | feedback/noise/tuning (local fallback)                            | File path used to persist detector feedback records |
+| `TRAILHEAD_CLOUD_API_URL`    | feedback/noise/tuning (Cloud)                                     | Cloud API base URL (default `https://api.trailhead.dev`) |
+| `TRAILHEAD_API_KEY`          | feedback/noise/tuning (Cloud)                                     | Trailhead Cloud API key (Pro/Team)                  |
+
+When `TRAILHEAD_CLOUD_API_URL` and `TRAILHEAD_API_KEY` are set, feedback tools POST to Cloud (`/v1/feedback`, `/v1/feedback/noise`, `/v1/feedback/tuning`) instead of the local file store.
 
 Tools that don't require environment variables (for example, `compute-risk-score`,
 `evaluate-deployment`, `detect-provenance`, `check-ci-integrity`, `check-supply-chain`,

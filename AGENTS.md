@@ -637,12 +637,14 @@ Runtime state lives in PostgreSQL, not in git-committed files.
 
 ### What this project is
 
-Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (current release **v3.0.x**, floating tag **`v3`**) that scores pull request risk, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, and a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server` v4.1.0**) with 12 tools for AI agents.
+Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (current release **v4.1.0**, floating tag **`v4`**) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server` v4.1.0**) with 22 tools for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
 
-### Current repo state (Apr 29, 2026)
+### Current repo state (May 24, 2026)
 
-- **Branch model**: this repo uses `main` as the active/default branch. `origin/dev` and `origin/staging` are currently fast-forwarded to `origin/main`; all open PRs target `main`.
-- **Migration status**: PRs #35, #36, and #37 completed the DeployGuard-to-Trailhead cleanup, committed missing MCP runtime artifacts, and added `.trailhead.yml` generated-artifact policy.
+- **Branch model**: `main` is the active/default branch. `origin/dev` and `origin/staging` are kept in sync with `origin/main`; all open PRs target `main`.
+- **v4.1 merged**: PR #215 — Cloud API (E11), dashboard (E12), feedback loop (E13), billing/keys/SSO (E14). **518** root tests + **19** cloud tests.
+- **Release housekeeping pending**: `v4.1.0` tag and version bump in root/cli/app/mcp packages (cloud is already 4.1.0).
+- **Next milestone**: v4.2 Advanced CI (E15–E17), issues #203–#212.
 - **Legacy compatibility**: Trailhead remains backwards-compatible with existing `.deployguard.yml` configs and `DEPLOYGUARD_*` environment variables where those surfaces were already shipped.
 - **Known unpromoted branch**: `origin/experiment/rd-satellite/deployguard-supply-chain-risk` has useful supply-chain scoring work, but it is **not merge-ready**. Targeted tests pass, but `app` and `mcp` builds fail because shared `risk-engine.ts` imports `supply-chain.js` without copying that module during prebuild.
 
@@ -669,7 +671,7 @@ Trailhead is the canonical name for the deployment gate formerly known as Deploy
 - **Bundler**: `@vercel/ncc` → single CJS file at `dist/index.js`.
 - **TypeScript**: `moduleResolution: "Bundler"`, `module: "ESNext"` — required because `@actions/github@9` ships ESM-only exports.
 - **Linting**: ESLint + typescript-eslint + Prettier (CI enforces `format:check` before lint).
-- **Testing**: Vitest (453 tests across 17 files as of Apr 29, 2026).
+- **Testing**: Vitest (518 root tests + 19 cloud tests as of May 2026).
 
 ### CI pipeline
 
@@ -729,4 +731,5 @@ Trailhead is the canonical name for the deployment gate formerly known as Deploy
 | `app/src/handler.ts` | GitHub App webhook handler                          |
 | `app/src/server.ts`  | Hono HTTP server                                    |
 | `cli/src/index.ts`   | `trailhead init` wizard                             |
-| `src/__tests__/`     | Vitest test suite (453 tests, 17 files)             |
+| `src/__tests__/`     | Vitest test suite (518 tests)                       |
+| `cloud/src/__tests__/` | Cloud API tests (19 tests)                        |
