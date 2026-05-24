@@ -4,6 +4,28 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.1.0] - 2026-05-23
+
+### Added — Trailhead Cloud (E11–E14)
+
+- **Cloud API (E11)** — Hosted evaluation service under `cloud/` with an OpenAPI contract (`cloud/openapi.yaml`), HTTP app (`cloud/src/app.ts`, `cloud/src/server.ts`), and persistent evaluation store (`cloud/src/store.ts`).
+- **Hosted dashboard (E12)** — `cloud/public/dashboard.html` backed by `cloud/src/analytics.ts` for cross-repo gate outcomes and DORA trends.
+- **Feedback loop (E13)** — Structured gate / false-positive feedback capture (`src/feedback-core.ts`, `src/notify.ts`) reported to Cloud, plus a new MCP `cloud-feedback` tool (`mcp/src/cloud-feedback.ts`).
+- **Marketplace tiers & API-key provisioning (E14)** — Billing tiers (`cloud/src/billing.ts`) and a new `trailhead-api-key` action input that auto-configures the evaluation store URL + auth, replacing manual `evaluation-store-url` + `evaluation-store-secret` for the cloud tier. See `docs/marketplace-tiers.md`.
+
+### Added — Action
+
+- **`trailhead-api-key` input** — single credential for Trailhead Cloud; backward compatible with the existing `evaluation-store-url` / `evaluation-store-secret` inputs.
+- **Cloud config resolution** — `src/cloud-config.ts` resolves cloud vs. self-hosted store settings.
+
+### Docs
+
+- New: `docs/evaluation-storage.md`, `docs/marketplace-tiers.md`, `docs/roadmap-v4.md`.
+
+### Notes
+
+- Fully backward compatible. `@v4` consumers without a `trailhead-api-key` keep current behavior; Cloud is opt-in.
+
 ## [4.0.0] - 2026-05-23
 
 ### Added
