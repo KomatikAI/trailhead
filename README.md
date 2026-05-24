@@ -135,7 +135,8 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 | `reviewers-on-risk`       | No       | —                     | Comma-separated usernames to request review on warn/block                              |
 | `webhook-url`             | No       | —                     | URL to POST results to (Slack, Discord, custom)                                        |
 | `webhook-events`          | No       | `warn,block`          | Which decisions trigger the webhook                                                    |
-| `evaluation-store-url`    | No       | —                     | URL to POST evaluations for trend dashboards                                           |
+| `trailhead-api-key`       | No       | —                     | Trailhead Cloud API key — auto-configures store URL + auth (v4.1)                      |
+| `evaluation-store-url`    | No       | —                     | URL to POST evaluations for trend dashboards (BYOS; omit if using `trailhead-api-key`) |
 | `evaluation-store-secret` | No       | —                     | Bearer token for `evaluation-store-url`                                                |
 | `dora-metrics`            | No       | `false`               | Compute DORA-5 metrics alongside the gate evaluation                                   |
 | `dora-environment`        | No       | —                     | Filter DORA metrics to a specific deployment environment                               |

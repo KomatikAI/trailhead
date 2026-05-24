@@ -371,6 +371,7 @@ export interface TrailheadConfig {
   webhookUrl?: string;
   webhookEvents: string[];
   evaluationStoreUrl?: string;
+  trailheadApiKey?: string;
   environment?: string;
   securityGate?: boolean;
   gateMode?: GateMode;

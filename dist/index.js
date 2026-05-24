@@ -43916,6 +43916,7 @@ async function storeViaApiOnce(url, evaluation) {
     if (storeSecret) {
         headers["Authorization"] = `Bearer ${storeSecret}`;
     }
+    headers["Idempotency-Key"] = evaluation.id;
     const vercelBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
     if (vercelBypass) {
         headers["x-vercel-protection-bypass"] = vercelBypass;
@@ -44982,7 +44983,34 @@ const cypressHealer = {
     },
 };
 
+;// CONCATENATED MODULE: ./src/cloud-config.ts
+/** Default Trailhead Cloud API base URL (override with TRAILHEAD_CLOUD_API_BASE). */
+const DEFAULT_CLOUD_API_BASE = "https://api.trailhead.dev";
+function resolveCloudApiBase() {
+    const fromEnv = process.env.TRAILHEAD_CLOUD_API_BASE?.trim();
+    return (fromEnv || DEFAULT_CLOUD_API_BASE).replace(/\/$/, "");
+}
+/** Resolve evaluation store URL — explicit URL wins; otherwise derive from trailhead-api-key. */
+function resolveEvaluationStoreUrl(options) {
+    const explicit = options.evaluationStoreUrl?.trim();
+    if (explicit)
+        return explicit;
+    const apiKey = options.trailheadApiKey?.trim();
+    if (apiKey) {
+        return `${resolveCloudApiBase()}/v1/evaluations`;
+    }
+    return undefined;
+}
+/** Map evaluation ingest URL to deploy-events endpoint (cloud or legacy BYOS). */
+function resolveDeployEventsUrl(evaluationStoreUrl) {
+    if (evaluationStoreUrl.includes("/v1/evaluations")) {
+        return evaluationStoreUrl.replace(/\/v1\/evaluations\/?$/, "/v1/deploy-events");
+    }
+    return evaluationStoreUrl.replace(/\/store\/?$/, "/deploy-event");
+}
+
 ;// CONCATENATED MODULE: ./src/main.ts
+
 
 
 
@@ -45188,6 +45216,11 @@ async function run() {
             gateModeInput === "risk-only"
             ? gateModeInput
             : undefined;
+        const trailheadApiKey = getInput("trailhead-api-key") || "";
+        const evaluationStoreUrl = resolveEvaluationStoreUrl({
+            trailheadApiKey: trailheadApiKey || undefined,
+            evaluationStoreUrl: getInput("evaluation-store-url") || undefined,
+        });
         const config = {
             apiKey: getInput("api-key") || "",
             apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
@@ -45214,7 +45247,8 @@ async function run() {
                 .split(",")
                 .map((s) => s.trim())
                 .filter(Boolean),
-            evaluationStoreUrl: getInput("evaluation-store-url") || undefined,
+            evaluationStoreUrl,
+            trailheadApiKey: trailheadApiKey || undefined,
             environment,
             securityGate: getInput("security-gate") !== "false",
             gateMode,
@@ -45319,6 +45353,9 @@ async function run() {
             const storeSecretInput = getInput("evaluation-store-secret");
             if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
                 process.env.EVALUATION_STORE_SECRET = storeSecretInput;
+            }
+            if (config.trailheadApiKey && !process.env.EVALUATION_STORE_SECRET) {
+                process.env.EVALUATION_STORE_SECRET = config.trailheadApiKey;
             }
             const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation);
             evaluation.storePersisted = stored;
