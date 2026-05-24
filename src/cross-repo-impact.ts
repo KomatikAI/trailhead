@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { matchesGlobs } from "./risk-engine.js";
-import type { ConsumerRegistry, RepoConfig, RiskFactor, ServiceConsumer } from "./types.js";
+import type {
+  ConsumerRegistry,
+  RepoConfig,
+  RiskFactor,
+  ServiceConsumer,
+} from "./types.js";
 import { ConsumerRegistry as ConsumerRegistrySchema } from "./types.js";
 
 export type { ServiceConsumer, ServiceConsumerRef, ConsumerRegistry } from "./types.js";

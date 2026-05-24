@@ -54,7 +54,12 @@ const baseConfig = {
       sensitive_paths: [],
       strict_on_unknown_provenance: true,
     },
-    session_correlation: { enabled: false, threshold: 3, mode: "warn" as const, window_minutes: 60 },
+    session_correlation: {
+      enabled: false,
+      threshold: 3,
+      mode: "warn" as const,
+      window_minutes: 60,
+    },
     ci_integrity: { enabled: true, mode: "block" },
     workflow_security: {
       enabled: true,
