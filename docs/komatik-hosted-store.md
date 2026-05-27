@@ -7,11 +7,11 @@ Implementation lives in **Komatik** (`platform/web/app/api/deployguard/store/rou
 
 ## Endpoints
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| `POST` | `/api/trailhead/store` | Persist evaluation (GateEvaluation JSON or snake_case row) |
-| `GET` | `/api/trailhead/evaluations` | Prior evaluations for loop bookkeeping lookup |
-| `POST` | `/api/trailhead/deploy-event` | Deploy outcome correlation (alias of deployguard path) |
+| Method | Path                          | Purpose                                                    |
+| ------ | ----------------------------- | ---------------------------------------------------------- |
+| `POST` | `/api/trailhead/store`        | Persist evaluation (GateEvaluation JSON or snake_case row) |
+| `GET`  | `/api/trailhead/evaluations`  | Prior evaluations for loop bookkeeping lookup              |
+| `POST` | `/api/trailhead/deploy-event` | Deploy outcome correlation (alias of deployguard path)     |
 
 Auth: `Authorization: Bearer $INTERNAL_API_SECRET` (same secret as `evaluation-store-secret` in consumer workflows).
 
@@ -62,10 +62,10 @@ Reference copy for Trailhead Cloud hosted tier: `cloud/migrations/002_loop_bookk
 
 **A6 complete** for active consumers — pinned `@v4.3.0`, store URL on `/api/trailhead/store`:
 
-| Repo | Status |
-| ---- | ------ |
-| cairn, frontier, kindling, pack, slipstream, sundog, trace | Merged |
-| drift, floe, traverse, watchtower | **Retired** (archived; absorbed into trace) — do not unarchive for rollout |
+| Repo                                                       | Status                                                                     |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------- |
+| cairn, frontier, kindling, pack, slipstream, sundog, trace | Merged                                                                     |
+| drift, floe, traverse, watchtower                          | **Retired** (archived; absorbed into trace) — do not unarchive for rollout |
 
 **Pending:**
 

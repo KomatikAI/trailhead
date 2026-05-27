@@ -31,8 +31,7 @@ const WORKFLOW_CANDIDATES = [
   ".github/workflows/trailhead.yml",
   ".github/workflows/deployguard.yml",
 ];
-const TARGET_VERSION =
-  process.env.TRAILHEAD_ROLLOUT_VERSION || "4.3.0";
+const TARGET_VERSION = process.env.TRAILHEAD_ROLLOUT_VERSION || "4.3.0";
 const TARGET_REF = `@v${TARGET_VERSION}`; // @v4.3.0
 const LEGACY_STORE = "/api/deployguard/store";
 const CANONICAL_STORE = "/api/trailhead/store";
@@ -121,10 +120,7 @@ function patchWorkflow(content) {
     return `${prefix}${ACTION_REPO}${TARGET_REF}`;
   });
 
-  const storeRegex = new RegExp(
-    LEGACY_STORE.replace(/\//g, "\\/"),
-    "g",
-  );
+  const storeRegex = new RegExp(LEGACY_STORE.replace(/\//g, "\\/"), "g");
   const nextStore = nextAction.replace(storeRegex, () => {
     storeChanged = true;
     return CANONICAL_STORE;
@@ -169,7 +165,7 @@ function prBody(name, plan) {
   lines.push("## Why");
   lines.push("");
   lines.push(
-    "v4.3.0 ships Phase A \"Coach\" (remediation schema, agent brief, semantic webhooks, loop bookkeeping). Explicit pin avoids the fleet-wide `@v4` tag move until deliberately approved.",
+    'v4.3.0 ships Phase A "Coach" (remediation schema, agent brief, semantic webhooks, loop bookkeeping). Explicit pin avoids the fleet-wide `@v4` tag move until deliberately approved.',
   );
   lines.push("");
   lines.push("## Rollback");
@@ -180,7 +176,9 @@ function prBody(name, plan) {
   lines.push("");
   lines.push("## Context");
   lines.push("");
-  lines.push(`- Release: [${TARGET_REF}](https://github.com/${ACTION_REPO}/releases/tag/${TARGET_VERSION})`);
+  lines.push(
+    `- Release: [${TARGET_REF}](https://github.com/${ACTION_REPO}/releases/tag/${TARGET_VERSION})`,
+  );
   lines.push(
     `- Roadmap: [\`docs/roadmap-v4.3-agent-autonomy.md\`](https://github.com/${ACTION_REPO}/blob/main/docs/roadmap-v4.3-agent-autonomy.md) (A6)`,
   );
@@ -216,9 +214,7 @@ function planRepo({ name }) {
     base,
     hasWorkflow: true,
     skip: noop,
-    reason: noop
-      ? `already on ${TARGET_REF} + ${CANONICAL_STORE}`
-      : null,
+    reason: noop ? `already on ${TARGET_REF} + ${CANONICAL_STORE}` : null,
     workflow: { ...workflow, content: patch.content },
     workflowPath: workflow.path,
     actionChanged: patch.actionChanged,
