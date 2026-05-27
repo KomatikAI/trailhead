@@ -265,11 +265,33 @@ Example:
 }
 ```
 
+## Agent Autonomy (v4.3)
+
+Trailhead is evolving from a human-supervised merge gate into a **coach → fixer → autopilot** loop for agent-authored PRs. Phase A (Coach) adds:
+
+- **`remediation` block** in `evaluation-json` — machine-readable fix checklist per gate run
+- **Agent brief** — collapsed PR comment section with JSON + human-readable steps
+- **Semantic webhooks** — `trailhead.blocked`, `trailhead.warn_high_risk`, `trailhead.ready`, `trailhead.loop_exceeded` (schema `trailhead.webhook.v1`)
+- **MCP tools** — `get-remediation`, `subscribe-events` (long-poll)
+
+Configure semantic delivery in workflow YAML:
+
+```yaml
+- uses: KomatikAI/trailhead@v4
+  with:
+    webhook-url: ${{ secrets.TRAILHEAD_WEBHOOK_URL }}
+    webhook-events: "block,warn,trailhead.blocked,trailhead.warn_high_risk,trailhead.ready,trailhead.loop_exceeded"
+```
+
+Komatik Base Camp runs a coordinator receiver (`komatik-agents` PR #175) that routes remediation to fleet agents via `agent_messages`. See [docs/roadmap-v4.3-agent-autonomy.md](roadmap-v4.3-agent-autonomy.md) for the full plan.
+
+Human PRs (`claude/*`, `cursor/*`, explicit `human` provenance) are unchanged — fail-open defaults preserved.
+
 ## Branch and Release Context
 
 This repository uses the **progressive branch model**: **`dev`** (integration/default) → **`staging`** (pre-production) → **`main`** (production). Open feature PRs against **`dev`**. CI runs on PRs to `dev` and on pushes to `dev`, `staging`, and `main`. Promote with fast-forward merges only; tag releases on `main`.
 
-Current releases: **`@v4`** → **v4.2.1** on `main`/`staging`/`dev` mirrors; **v4.3** work lands on `dev` first.
+**Current state (May 2026):** `@v4` tag **v4.2.2** on `main`; **v4.3 Phase A** (A1–A3) merged on `dev`/`main` ahead of the tag. **A4** loop bookkeeping in review. Release **v4.3.0** after Phase A exit criteria + fleet rollout.
 
 The unmerged legacy supply-chain experiment branch is known not to be promotion-ready: its
 targeted tests pass, but `app` and `mcp` builds fail until their prebuild scripts copy the

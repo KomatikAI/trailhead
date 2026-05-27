@@ -135,6 +135,22 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 - Trust profile strictness (`baseline`, `elevated`, `strict`)
 - Escalation status metadata and SLA fields
 
+### Agent autonomy (v4.3 — Phase A)
+
+For agent-authored PRs, Trailhead ships a **remediation payload** in `evaluation-json` and an optional collapsed **Agent instructions** section in the PR comment. Semantic events (`trailhead.blocked`, `trailhead.warn_high_risk`, `trailhead.ready`, `trailhead.loop_exceeded`) can POST to your webhook when configured:
+
+```yaml
+- uses: KomatikAI/trailhead@v4
+  with:
+    gate-mode: release-ready
+    webhook-url: ${{ secrets.TRAILHEAD_WEBHOOK_URL }}
+    webhook-events: "block,warn,trailhead.blocked,trailhead.warn_high_risk,trailhead.ready,trailhead.loop_exceeded"
+```
+
+MCP consumers can use **`get-remediation`** and **`subscribe-events`**. Human and operator branches (`claude/*`, `cursor/*`) keep today's fail-open behavior. See [docs/roadmap-v4.3-agent-autonomy.md](docs/roadmap-v4.3-agent-autonomy.md).
+
+**Branch model:** open PRs against **`dev`**, promote `dev` → `staging` → `main` (fast-forward). Tag releases on `main`.
+
 ## Inputs
 
 | Input                       | Required | Default               | Description                                                                            |
@@ -154,8 +170,8 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 | `self-heal`                 | No       | `false`               | Auto-repair failing tests (needs `TRAILHEAD_TEST_FAILURES` env)                        |
 | `add-risk-labels`           | No       | `true`                | Add `trailhead:low-risk` / `warn` / `high-risk` labels to the PR                       |
 | `reviewers-on-risk`         | No       | —                     | Comma-separated usernames to request review on warn/block                              |
-| `webhook-url`               | No       | —                     | URL to POST results to (Slack, Discord, custom)                                        |
-| `webhook-events`            | No       | `warn,block`          | Which decisions trigger the webhook                                                    |
+| `webhook-url`               | No       | —                     | URL to POST results to (Slack, Discord, custom, or coordinator)                        |
+| `webhook-events`            | No       | `warn,block`          | Decisions and semantic events: `warn`, `block`, `trailhead.blocked`, `trailhead.ready`, etc. |
 | `trailhead-api-key`         | No       | —                     | Trailhead Cloud API key — auto-configures store URL + auth (v4.1)                      |
 | `evaluation-store-url`      | No       | —                     | URL to POST evaluations for trend dashboards (BYOS; omit if using `trailhead-api-key`) |
 | `evaluation-store-secret`   | No       | —                     | Bearer token for `evaluation-store-url`                                                |
@@ -487,6 +503,7 @@ Interactive wizard that generates v2 `.trailhead.yml` and a `@v4` workflow with 
 | Doc                                                        | Description                               |
 | ---------------------------------------------------------- | ----------------------------------------- |
 | [docs/README.md](docs/README.md)                           | Architecture, risk factors, configuration |
+| [docs/roadmap-v4.3-agent-autonomy.md](docs/roadmap-v4.3-agent-autonomy.md) | v4.3 coach/fixer/autopilot plan |
 | [docs/migration-v3-to-v4.md](docs/migration-v3-to-v4.md)   | Upgrade from `@v3`                        |
 | [docs/evaluation-storage.md](docs/evaluation-storage.md)   | Cloud vs bring-your-own-store             |
 | [docs/marketplace-tiers.md](docs/marketplace-tiers.md)     | Free / Pro / Team plans                   |

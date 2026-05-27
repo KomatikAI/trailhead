@@ -642,9 +642,16 @@ Trailhead is the canonical name for the deployment gate formerly known as Deploy
 ### Current repo state (May 27, 2026)
 
 - **Branch model**: **`dev`** is the default integration branch — open all feature PRs against `dev`. Promote with fast-forward only: `dev` → `staging` → `main` (production). Do **not** merge features directly to `main`.
-- **v4.3 in progress**: A1–A3 merged; A4 loop bookkeeping on `feat/v4.3-loop-bookkeeping-a4`. **609** root tests + **21** cloud tests.
+- **Released tag**: **v4.2.2** on `@v4`. **v4.3 Phase A** in progress on `dev`/`main` (ahead of tag):
+  - A1 remediation schema ✅
+  - A2 agent brief in PR comments ✅
+  - A3 semantic webhooks + MCP `get-remediation` / `subscribe-events` ✅
+  - A4 loop bookkeeping — PR targeting `dev`
+  - komatik-agents coordinator handler ✅ merged ([#175](https://github.com/KomatikAI/agents/pull/175)); **Spark deploy pending**
+- **Tests:** **609** root + **21** cloud (on `dev`; counts rise with A4)
 - **Legacy compatibility**: Trailhead remains backwards-compatible with existing `.deployguard.yml` configs and `DEPLOYGUARD_*` environment variables where those surfaces were already shipped.
 - **Known unpromoted branch**: `origin/experiment/rd-satellite/deployguard-supply-chain-risk` has useful supply-chain scoring work, but it is **not merge-ready**. Targeted tests pass, but `app` and `mcp` builds fail because shared `risk-engine.ts` imports `supply-chain.js` without copying that module during prebuild.
+- **Coordinator deploy gap**: `agent/*` branch routing is forward-built (inert until suggestions→PR bridge). Operator `claude/*`/`cursor/*` PRs are skipped — see `komatik-agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`.
 
 **Promotion (fast-forward only):**
 
@@ -679,7 +686,7 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 - **Bundler**: `@vercel/ncc` → single CJS file at `dist/index.js`.
 - **TypeScript**: `moduleResolution: "Bundler"`, `module: "ESNext"` — required because `@actions/github@9` ships ESM-only exports.
 - **Linting**: ESLint + typescript-eslint + Prettier (CI enforces `format:check` before lint).
-- **Testing**: Vitest (561 root tests + 19 cloud tests as of May 2026).
+- **Testing**: Vitest (609 root tests + 21 cloud tests on `dev` as of May 2026).
 
 ### CI pipeline
 
