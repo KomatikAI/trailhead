@@ -1,6 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fetchPreviousEvaluationForPr } from "../evaluation-history.js";
+import {
+  fetchPreviousEvaluationForPr,
+  resolveKomatikListUrl,
+} from "../evaluation-history.js";
+
+describe("resolveKomatikListUrl", () => {
+  it("maps trailhead store URL to evaluations list", () => {
+    expect(resolveKomatikListUrl("https://komatik.ai/api/trailhead/store")).toBe(
+      "https://komatik.ai/api/trailhead/evaluations",
+    );
+    expect(resolveKomatikListUrl("https://komatik.ai/api/deployguard/store")).toBe(
+      "https://komatik.ai/api/trailhead/evaluations",
+    );
+  });
+
+  it("returns null for unrelated store URLs", () => {
+    expect(resolveKomatikListUrl("https://api.trailhead.dev/v1/evaluations")).toBeNull();
+  });
+});
 
 describe("fetchPreviousEvaluationForPr", () => {
   beforeEach(() => {
@@ -68,6 +86,57 @@ describe("fetchPreviousEvaluationForPr", () => {
     expect(previous?.id).toBe("eval-prev");
     expect(previous?.remediation?.loop_round).toBe(0);
     expect(vi.mocked(fetch).mock.calls[0][0]).toContain("pr_number=42");
+  });
+
+  it("loads previous evaluation from komatik.ai list API", async () => {
+    process.env.EVALUATION_STORE_SECRET = "internal-secret";
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          evaluations: [
+            {
+              id: "eval-current",
+              loop_round: 1,
+              fixes_resolved: [],
+              fixes_introduced: [],
+            },
+            {
+              id: "eval-prev",
+              loop_round: 0,
+              fixes_resolved: [],
+              fixes_introduced: ["ci.failed"],
+              remediation: {
+                schema: "trailhead.remediation.v1",
+                loop_round: 0,
+                fixes: [],
+                blocking_count: 1,
+                warn_count: 0,
+                advisory_count: 0,
+                autofix_eligible_count: 0,
+                max_loop_rounds: 3,
+                fixes_resolved: [],
+                fixes_introduced: ["ci.failed"],
+                next_action: "fix_and_retry",
+                release_ready: false,
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const previous = await fetchPreviousEvaluationForPr({
+      repoId: "KomatikAI/cairn",
+      prNumber: 28,
+      excludeEvaluationId: "eval-current",
+      storeUrl: "https://komatik.ai/api/trailhead/store",
+    });
+
+    expect(previous?.id).toBe("eval-prev");
+    expect(previous?.remediation?.loop_round).toBe(0);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("/api/trailhead/evaluations");
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("repo_id=KomatikAI%2Fcairn");
   });
 
   it("falls back to Supabase when Cloud list URL is unavailable", async () => {

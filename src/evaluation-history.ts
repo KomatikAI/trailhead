@@ -4,6 +4,7 @@ import {
 } from "./loop-bookkeeping.js";
 
 const LOOKUP_TIMEOUT_MS = 8_000;
+const KOMATIK_STORE_PATH = /\/api\/(?:trailhead|deployguard)\/store$/;
 
 export interface FetchPreviousEvaluationParams {
   repoId: string;
@@ -38,13 +39,63 @@ function resolveCloudListUrl(storeUrl: string): string | null {
   return null;
 }
 
-async function fetchFromCloudStore(
+/** komatik.ai hosted store → loop lookup list endpoint. */
+export function resolveKomatikListUrl(storeUrl: string): string | null {
+  const trimmed = storeUrl.replace(/\/$/, "");
+  if (!KOMATIK_STORE_PATH.test(trimmed)) return null;
+  return trimmed.replace(KOMATIK_STORE_PATH, "/api/trailhead/evaluations");
+}
+
+function enrichSnapshotFromLoopColumns(
+  parsed: PreviousEvaluationSnapshot,
+  row: Record<string, unknown>,
+): PreviousEvaluationSnapshot {
+  if (parsed.remediation || typeof row.loop_round !== "number") {
+    return parsed;
+  }
+
+  return {
+    ...parsed,
+    remediation: {
+      schema: "trailhead.remediation.v1",
+      release_ready: false,
+      fixes: [],
+      blocking_count: 0,
+      warn_count: 0,
+      advisory_count: 0,
+      autofix_eligible_count: 0,
+      loop_round: row.loop_round as number,
+      max_loop_rounds: 3,
+      fixes_resolved: Array.isArray(row.fixes_resolved)
+        ? (row.fixes_resolved as string[])
+        : [],
+      fixes_introduced: Array.isArray(row.fixes_introduced)
+        ? (row.fixes_introduced as string[])
+        : [],
+      next_action: "fix_and_retry",
+    },
+  };
+}
+
+function pickPreviousFromRows(
+  rows: unknown[],
+  excludeEvaluationId?: string,
+): PreviousEvaluationSnapshot | null {
+  for (const row of rows) {
+    const parsed = pickLatestPreviousEvaluation([row], excludeEvaluationId);
+    if (!parsed) continue;
+    if (row && typeof row === "object") {
+      return enrichSnapshotFromLoopColumns(parsed, row as Record<string, unknown>);
+    }
+    return parsed;
+  }
+  return null;
+}
+
+async function fetchEvaluationList(
+  listUrl: string,
   params: FetchPreviousEvaluationParams,
 ): Promise<PreviousEvaluationSnapshot | null> {
-  if (!params.storeUrl) return null;
-  const listUrl = resolveCloudListUrl(params.storeUrl);
-  if (!listUrl) return null;
-
   const url = new URL(listUrl);
   url.searchParams.set("repo_id", params.repoId);
   url.searchParams.set("pr_number", String(params.prNumber));
@@ -59,7 +110,25 @@ async function fetchFromCloudStore(
   if (!response.ok) return null;
   const body = (await response.json()) as { evaluations?: unknown[] };
   if (!Array.isArray(body.evaluations)) return null;
-  return pickLatestPreviousEvaluation(body.evaluations, params.excludeEvaluationId);
+  return pickPreviousFromRows(body.evaluations, params.excludeEvaluationId);
+}
+
+async function fetchFromCloudStore(
+  params: FetchPreviousEvaluationParams,
+): Promise<PreviousEvaluationSnapshot | null> {
+  if (!params.storeUrl) return null;
+  const listUrl = resolveCloudListUrl(params.storeUrl);
+  if (!listUrl) return null;
+  return fetchEvaluationList(listUrl, params);
+}
+
+async function fetchFromKomatikStore(
+  params: FetchPreviousEvaluationParams,
+): Promise<PreviousEvaluationSnapshot | null> {
+  if (!params.storeUrl) return null;
+  const listUrl = resolveKomatikListUrl(params.storeUrl);
+  if (!listUrl) return null;
+  return fetchEvaluationList(listUrl, params);
 }
 
 async function fetchFromSupabase(
@@ -92,37 +161,7 @@ async function fetchFromSupabase(
   if (!response.ok) return null;
   const rows = (await response.json()) as unknown[];
   if (!Array.isArray(rows)) return null;
-
-  for (const row of rows) {
-    const parsed = pickLatestPreviousEvaluation([row], params.excludeEvaluationId);
-    if (!parsed) continue;
-    if (!parsed.remediation && row && typeof row === "object") {
-      const record = row as Record<string, unknown>;
-      if (typeof record.loop_round === "number") {
-        parsed.remediation = {
-          schema: "trailhead.remediation.v1",
-          release_ready: false,
-          fixes: [],
-          blocking_count: 0,
-          warn_count: 0,
-          advisory_count: 0,
-          autofix_eligible_count: 0,
-          loop_round: record.loop_round as number,
-          max_loop_rounds: 3,
-          fixes_resolved: Array.isArray(record.fixes_resolved)
-            ? (record.fixes_resolved as string[])
-            : [],
-          fixes_introduced: Array.isArray(record.fixes_introduced)
-            ? (record.fixes_introduced as string[])
-            : [],
-          next_action: "fix_and_retry",
-        };
-      }
-    }
-    return parsed;
-  }
-
-  return null;
+  return pickPreviousFromRows(rows, params.excludeEvaluationId);
 }
 
 export async function fetchPreviousEvaluationForPr(
@@ -131,6 +170,13 @@ export async function fetchPreviousEvaluationForPr(
   try {
     const fromCloud = await fetchFromCloudStore(params);
     if (fromCloud) return fromCloud;
+  } catch {
+    // Fail-open — loop bookkeeping defaults to round 0.
+  }
+
+  try {
+    const fromKomatik = await fetchFromKomatikStore(params);
+    if (fromKomatik) return fromKomatik;
   } catch {
     // Fail-open — loop bookkeeping defaults to round 0.
   }
