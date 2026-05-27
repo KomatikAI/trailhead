@@ -17,6 +17,8 @@ vi.mock("@actions/github", () => ({
 import * as github from "@actions/github";
 import {
   computeDoraMetrics,
+  computeDeploymentFrequencyFromDeployEvents,
+  computeFdrtFromDeployEvents,
   formatDoraReport,
   formatDeploymentFrequencyForOutput,
 } from "../dora.js";
@@ -258,6 +260,44 @@ describe("computeDoraMetrics", () => {
     });
 
     expect(metrics.environment).toBe("staging");
+  });
+});
+
+describe("computeFdrtFromDeployEvents", () => {
+  it("computes median recovery time from failure followed by success", () => {
+    const result = computeFdrtFromDeployEvents([
+      { outcome: "success", deployedAt: "2026-05-01T12:00:00Z" },
+      { outcome: "failure", deployedAt: "2026-05-01T10:00:00Z" },
+    ]);
+
+    expect(result.incidentCount).toBe(1);
+    expect(result.medianHours).toBe(2);
+    expect(result.rating).toBe("high");
+  });
+
+  it("returns no incidents when no failure-to-success pairs exist", () => {
+    const result = computeFdrtFromDeployEvents([
+      { outcome: "success", deployedAt: "2026-05-01T12:00:00Z" },
+      { outcome: "success", deployedAt: "2026-05-01T10:00:00Z" },
+    ]);
+
+    expect(result.incidentCount).toBe(0);
+  });
+});
+
+describe("computeDeploymentFrequencyFromDeployEvents", () => {
+  it("counts successful deploy events per week", () => {
+    const result = computeDeploymentFrequencyFromDeployEvents(
+      [
+        { outcome: "success", deployedAt: "2026-05-01T12:00:00Z" },
+        { outcome: "failure", deployedAt: "2026-05-01T10:00:00Z" },
+        { outcome: "success", deployedAt: "2026-05-02T12:00:00Z" },
+      ],
+      30,
+    );
+
+    expect(result.deploysPerWeek).toBeGreaterThan(0);
+    expect(result.window).toBe(30);
   });
 });
 
