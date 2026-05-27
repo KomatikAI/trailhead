@@ -18,17 +18,17 @@ All data sourced from existing tables — no new tables required for v1.
 
 ### `trailhead_evaluations`
 
-| Column | Source | Notes |
-|--------|--------|-------|
-| `repo_id` | existing | group key |
-| `pr_number` | existing | join key |
-| `gate_decision` | existing | `allow` / `warn` / `block` |
-| `risk_factors` (JSONB) | existing | iterate to count per-detector triggers |
-| `policy_findings` (text[]) | existing | parse detector codes for ci_integrity, workflow_security, etc. |
-| `remediation` (JSONB, **new in A1**) | new | `fixes[].code` is the canonical detector identifier |
-| `policyOverride` (JSONB) | existing | non-null = override applied |
-| `agent_provenance_id` (text, **new in A5**) | new | denormalised from `pr.provenance.source` |
-| `created_at` | existing | windowing |
+| Column                                      | Source   | Notes                                                          |
+| ------------------------------------------- | -------- | -------------------------------------------------------------- |
+| `repo_id`                                   | existing | group key                                                      |
+| `pr_number`                                 | existing | join key                                                       |
+| `gate_decision`                             | existing | `allow` / `warn` / `block`                                     |
+| `risk_factors` (JSONB)                      | existing | iterate to count per-detector triggers                         |
+| `policy_findings` (text[])                  | existing | parse detector codes for ci_integrity, workflow_security, etc. |
+| `remediation` (JSONB, **new in A1**)        | new      | `fixes[].code` is the canonical detector identifier            |
+| `policyOverride` (JSONB)                    | existing | non-null = override applied                                    |
+| `agent_provenance_id` (text, **new in A5**) | new      | denormalised from `pr.provenance.source`                       |
+| `created_at`                                | existing | windowing                                                      |
 
 ### Feedback signals → `false_positive_rate` denominator
 
@@ -68,14 +68,18 @@ Payload posted to `digest_webhook_url` configured in `.trailhead.yml`. Default S
   "detectors": [
     {
       "code": "risk.test_coverage",
-      "blocked": 12, "warned": 24, "fixed_after_remediation": 18,
+      "blocked": 12,
+      "warned": 24,
+      "fixed_after_remediation": 18,
       "fp_signals": 1,
       "fp_rate": 0.028,
       "status": "ok"
     },
     {
       "code": "policy.duplicate_logic",
-      "blocked": 2, "warned": 19, "fixed_after_remediation": 3,
+      "blocked": 2,
+      "warned": 19,
+      "fixed_after_remediation": 3,
       "fp_signals": 6,
       "fp_rate": 0.286,
       "status": "auto_downgraded",
@@ -85,17 +89,30 @@ Payload posted to `digest_webhook_url` configured in `.trailhead.yml`. Default S
   "agents": [
     {
       "agent_id": "frontend-dev",
-      "prs": 22, "ready": 15, "blocked": 4, "abandoned": 3,
+      "prs": 22,
+      "ready": 15,
+      "blocked": 4,
+      "abandoned": 3,
       "median_rounds_to_ready": 2,
       "sensitive_path_violations": 0,
       "trust_signal": "converging"
     }
   ],
   "overrides": [
-    { "pr_url": "...", "author": "david", "reason": "hotfix: prod outage", "pre_decision": "block" }
+    {
+      "pr_url": "...",
+      "author": "david",
+      "reason": "hotfix: prod outage",
+      "pre_decision": "block"
+    }
   ],
   "auto_downgrades_last_7d": [
-    { "detector": "policy.duplicate_logic", "downgraded_at": "...", "fp_rate_at_trigger": 0.31, "tuning_issue": "#NNN" }
+    {
+      "detector": "policy.duplicate_logic",
+      "downgraded_at": "...",
+      "fp_rate_at_trigger": 0.31,
+      "tuning_issue": "#NNN"
+    }
   ]
 }
 ```
@@ -107,6 +124,7 @@ Cron schedule: hourly (allows fast reaction to a runaway detector).
 **Trigger:** any detector whose **fleet-wide** 7-day rolling FP rate ≥ `0.15` AND has ≥ 10 emissions in the window.
 
 **Effect:**
+
 - Detector's `mode` flipped from `block` → `warn` in the Trailhead Cloud config layer (overrides per-repo `.trailhead.yml` until cleared)
 - Auto-opens a tuning issue in `KomatikAI/trailhead` titled `[tune] detector <code> auto-downgraded (FP rate <pct>%)`
 - Issue body: detector code, FP rate, sample of recent flagged PRs, sample of feedback reasons
