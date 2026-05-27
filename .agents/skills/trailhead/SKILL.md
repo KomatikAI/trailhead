@@ -3,7 +3,7 @@ name: trailhead
 description: "Use before merging PRs, deploying code, or when asked about deployment risk, DORA metrics, deploy safety, health checks, or release timing. Triggers: deploy, merge, PR review, risk score, deployment gate, DORA, change failure rate, deploy timing, freeze window, health check, rollback, canary, release."
 metadata:
   author: komatik
-  version: "4.1.0"
+  version: "4.2.0"
 ---
 
 # Trailhead

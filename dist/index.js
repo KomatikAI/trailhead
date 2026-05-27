@@ -40687,6 +40687,19 @@ const GateEvaluation = objectType({
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
     storePersisted: booleanType().optional(),
+    cross_repo_impact: objectType({
+        services: arrayType(objectType({
+            serviceName: stringType(),
+            touchedFiles: arrayType(stringType()),
+            consumers: arrayType(objectType({
+                id: stringType(),
+                repo: stringType().optional(),
+                branch: stringType().optional(),
+            })),
+            notify_webhook: stringType().url().optional(),
+        })),
+    })
+        .optional(),
 });
 const GateApiResponse = objectType({
     id: stringType().optional(),
@@ -40709,11 +40722,20 @@ const EnvironmentConfig = objectType({
     warn: numberType().min(0).max(100).optional(),
     require_security_clear: booleanType().optional(),
 });
+const ServiceConsumerRef = objectType({
+    repo: stringType().min(1),
+    name: stringType().optional(),
+    branch: stringType().optional(),
+    notify_webhook: stringType().url().optional(),
+});
+const ServiceConsumer = unionType([stringType(), ServiceConsumerRef]);
+const ConsumerRegistry = recordType(stringType(), ServiceConsumerRef);
 const ServiceMapping = objectType({
     paths: arrayType(stringType()),
     environment: stringType().optional(),
-    consumers: arrayType(stringType()).default([]),
+    consumers: arrayType(ServiceConsumer).default([]),
     contracts: arrayType(stringType()).default([]),
+    notify_webhook: stringType().url().optional(),
 });
 const SecurityConfig = objectType({
     severity_threshold: enumType(["error", "warning", "note", "none"]).default("warning"),
@@ -40782,6 +40804,7 @@ const RepoConfig = objectType({
     freeze: arrayType(FreezeWindow).default([]),
     environments: recordType(EnvironmentConfig).default({}),
     services: recordType(ServiceMapping).default({}),
+    consumer_registry: recordType(ServiceConsumerRef).default({}),
     security: SecurityConfig.default({}),
     canary: CanaryConfig.optional(),
     escalation: objectType({
@@ -40846,6 +40869,7 @@ const RepoConfig = objectType({
         cross_repo_impact: objectType({
             enabled: booleanType().default(true),
             mode: enumType(["warn", "block"]).default("warn"),
+            consumer_registry_path: stringType().optional(),
         })
             .default({}),
     })
@@ -41368,6 +41392,7 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
     "profiles",
     "thresholds",
     "ignore",
+    "consumer_registry",
     "freeze",
     "environments",
     "services",
@@ -41542,6 +41567,207 @@ function resolveGateMode(repoGateMode, schemaVersion, inputGateMode) {
     return schemaVersion >= 2 ? "release-ready" : "risk-only";
 }
 
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = require("node:fs");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
+;// CONCATENATED MODULE: ./src/cross-repo-impact.ts
+
+
+
+
+function parseConsumerRegistry(raw) {
+    return ConsumerRegistry.parse(raw);
+}
+function loadConsumerRegistryFile(filePath) {
+    try {
+        const resolved = external_node_path_default().resolve(filePath);
+        const contents = external_node_fs_default().readFileSync(resolved, "utf8");
+        return parseConsumerRegistry(JSON.parse(contents));
+    }
+    catch {
+        return null;
+    }
+}
+function mergeConsumerRegistries(...registries) {
+    const merged = {};
+    for (const registry of registries) {
+        if (!registry)
+            continue;
+        Object.assign(merged, registry);
+    }
+    return merged;
+}
+function formatConsumerLabel(consumer) {
+    if (consumer.repo) {
+        const branch = consumer.branch ? `@${consumer.branch}` : "";
+        return `\`${consumer.repo}${branch}\``;
+    }
+    return `\`${consumer.id}\``;
+}
+function resolveConsumer(consumer, registry) {
+    if (typeof consumer === "string") {
+        const entry = registry[consumer];
+        if (entry) {
+            return {
+                id: entry.name ?? consumer,
+                repo: entry.repo,
+                branch: entry.branch,
+                notify_webhook: entry.notify_webhook,
+            };
+        }
+        return { id: consumer };
+    }
+    return {
+        id: consumer.name ?? consumer.repo,
+        repo: consumer.repo,
+        branch: consumer.branch,
+        notify_webhook: consumer.notify_webhook,
+    };
+}
+function detectCrossRepoImpact(files, repoConfig, externalRegistry) {
+    const cfg = repoConfig?.policies?.cross_repo_impact;
+    const empty = {
+        factor: null,
+        findings: [],
+        affectedConsumers: [],
+        services: [],
+    };
+    if (!cfg?.enabled)
+        return empty;
+    const registry = mergeConsumerRegistries(externalRegistry, repoConfig?.consumer_registry);
+    const affectedConsumers = new Set();
+    const findings = [];
+    const services = [];
+    for (const [serviceName, service] of Object.entries(repoConfig?.services ?? {})) {
+        const contractPatterns = service.contracts ?? [];
+        if (contractPatterns.length === 0)
+            continue;
+        const touchedFiles = files
+            .filter((f) => matchesGlobs(f.filename, contractPatterns))
+            .map((f) => f.filename);
+        if (touchedFiles.length === 0)
+            continue;
+        const resolvedConsumers = (service.consumers ?? []).map((consumer) => resolveConsumer(consumer, registry));
+        for (const consumer of resolvedConsumers) {
+            affectedConsumers.add(consumer.repo
+                ? `${consumer.repo}${consumer.branch ? `@${consumer.branch}` : ""}`
+                : consumer.id);
+        }
+        services.push({
+            serviceName,
+            touchedFiles,
+            consumers: resolvedConsumers,
+            notify_webhook: service.notify_webhook,
+        });
+        findings.push(`Contract surface changed for service "${serviceName}" (${touchedFiles.length} file(s)).`);
+    }
+    if (findings.length === 0)
+        return empty;
+    const consumerLabels = [...affectedConsumers];
+    return {
+        factor: {
+            type: "cross_repo_impact",
+            score: Math.min(100, 30 + consumerLabels.length * 15),
+            detail: {
+                findings,
+                affectedConsumers: consumerLabels,
+                services: services.map((service) => ({
+                    service: service.serviceName,
+                    touchedFiles: service.touchedFiles,
+                    consumers: service.consumers.map((consumer) => ({
+                        id: consumer.id,
+                        repo: consumer.repo,
+                        branch: consumer.branch,
+                    })),
+                })),
+                description: "Potential downstream consumer impact from contract changes",
+            },
+        },
+        findings,
+        affectedConsumers: consumerLabels,
+        services,
+    };
+}
+function collectCrossRepoWebhookDeliveries(impact) {
+    const deliveries = [];
+    const seen = new Set();
+    for (const service of impact.services) {
+        if (service.notify_webhook && !seen.has(service.notify_webhook)) {
+            seen.add(service.notify_webhook);
+            deliveries.push({ url: service.notify_webhook, serviceName: service.serviceName });
+        }
+        for (const consumer of service.consumers) {
+            if (!consumer.notify_webhook || seen.has(consumer.notify_webhook))
+                continue;
+            seen.add(consumer.notify_webhook);
+            deliveries.push({
+                url: consumer.notify_webhook,
+                serviceName: service.serviceName,
+                consumer,
+            });
+        }
+    }
+    return deliveries;
+}
+async function sendCrossRepoImpactWebhooks(impact, context, fetchImpl = fetch) {
+    const deliveries = collectCrossRepoWebhookDeliveries(impact);
+    if (deliveries.length === 0)
+        return;
+    await Promise.all(deliveries.map(async (delivery) => {
+        const service = impact.services.find((item) => item.serviceName === delivery.serviceName);
+        if (!service)
+            return;
+        const payload = {
+            event: "contract_change",
+            source_repo: context.repoId,
+            commit_sha: context.commitSha,
+            pr_number: context.prNumber,
+            service: delivery.serviceName,
+            touched_files: service.touchedFiles,
+            consumers: service.consumers.map((consumer) => ({
+                id: consumer.id,
+                repo: consumer.repo,
+                branch: consumer.branch,
+            })),
+            target_consumer: delivery.consumer
+                ? {
+                    id: delivery.consumer.id,
+                    repo: delivery.consumer.repo,
+                    branch: delivery.consumer.branch,
+                }
+                : undefined,
+            timestamp: new Date().toISOString(),
+        };
+        try {
+            await fetchImpl(delivery.url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(10_000),
+            });
+        }
+        catch {
+            // fail-open: satellite notification must not block merge gate
+        }
+    }));
+}
+function formatCrossRepoImpactSection(impact) {
+    if (!impact || impact.services.length === 0)
+        return [];
+    const lines = [`### Cross-Repo Impact`, ``];
+    for (const service of impact.services) {
+        lines.push(`**${service.serviceName}** — ${service.touchedFiles.length} contract file(s) changed`);
+        if (service.consumers.length > 0) {
+            lines.push(`- Downstream: ${service.consumers.map((consumer) => formatConsumerLabel(consumer)).join(", ")}`);
+        }
+        if (service.notify_webhook) {
+            lines.push(`- Satellite webhook configured for this service`);
+        }
+        lines.push(``);
+    }
+    return lines;
+}
+
 ;// CONCATENATED MODULE: ./src/ci-core.ts
 const DEFAULT_SELF_CHECK_NAMES = ["Trailhead", "Trailhead — Release Ready"];
 /**
@@ -41580,6 +41806,64 @@ function checkNameMatches(configured, actual) {
         return true;
     return actual.toLowerCase().startsWith(configured.toLowerCase());
 }
+function findManifestJob(manifest, configuredName) {
+    return manifest.jobs.find((job) => checkNameMatches(configuredName, job.name));
+}
+function statusFromManifestJob(job) {
+    switch (job.outcome) {
+        case "skipped":
+            return "skip";
+        case "failed":
+        case "cancelled":
+            return "fail";
+        case "pending":
+            return "pending";
+        case "ran":
+            return undefined;
+        default: {
+            const _exhaustive = job.outcome;
+            return undefined;
+        }
+    }
+}
+function applyManifestToCheck(check, manifest, configuredName) {
+    if (!manifest)
+        return check;
+    const manifestJob = findManifestJob(manifest, configuredName);
+    if (!manifestJob)
+        return check;
+    const manifestStatus = statusFromManifestJob(manifestJob);
+    if (manifestStatus === "skip") {
+        return {
+            ...check,
+            status: "skip",
+            conclusion: manifestJob.reason ?? check.conclusion,
+        };
+    }
+    if (manifestStatus && (check.status === "missing" || check.status === "pending")) {
+        return {
+            ...check,
+            status: manifestStatus,
+            conclusion: manifestJob.reason ?? check.conclusion,
+        };
+    }
+    return check;
+}
+function checkFromManifestOnly(configuredName, manifest) {
+    const manifestJob = findManifestJob(manifest, configuredName);
+    if (!manifestJob)
+        return undefined;
+    const status = statusFromManifestJob(manifestJob);
+    if (!status)
+        return undefined;
+    return {
+        name: configuredName,
+        status,
+        conclusion: manifestJob.reason,
+        detailsUrl: manifestJob.details_url,
+        required: false,
+    };
+}
 function normalizeCheckRuns(runs, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES) {
     return runs
         .filter((r) => !isSelfCheck(r.name, excludeCheckNames))
@@ -41591,7 +41875,7 @@ function normalizeCheckRuns(runs, excludeCheckNames = DEFAULT_SELF_CHECK_NAMES) 
         required: false,
     }));
 }
-function evaluateRequiredChecks(allChecks, ciConfig) {
+function evaluateRequiredChecks(allChecks, ciConfig, manifest) {
     const requiredNames = ciConfig.required_checks;
     const optionalNames = ciConfig.optional_checks;
     const missingPolicy = ciConfig.missing_required;
@@ -41600,8 +41884,22 @@ function evaluateRequiredChecks(allChecks, ciConfig) {
     for (const reqName of requiredNames) {
         const match = allChecks.find((c) => checkNameMatches(reqName, c.name));
         if (match) {
-            evaluated.push({ ...match, name: reqName, required: true });
+            const resolved = applyManifestToCheck({ ...match, name: reqName, required: true }, manifest ?? undefined, reqName);
+            evaluated.push(resolved);
             seen.add(match.name);
+        }
+        else if (manifest) {
+            const fromManifest = checkFromManifestOnly(reqName, manifest);
+            if (fromManifest) {
+                evaluated.push({ ...fromManifest, name: reqName, required: true });
+            }
+            else {
+                evaluated.push({
+                    name: reqName,
+                    status: missingPolicy === "skip" ? "skip" : "missing",
+                    required: true,
+                });
+            }
         }
         else {
             evaluated.push({
@@ -41614,8 +41912,22 @@ function evaluateRequiredChecks(allChecks, ciConfig) {
     for (const optName of optionalNames) {
         const match = allChecks.find((c) => checkNameMatches(optName, c.name));
         if (match) {
-            evaluated.push({ ...match, name: optName, required: false });
+            const resolved = applyManifestToCheck({ ...match, name: optName, required: false }, manifest ?? undefined, optName);
+            evaluated.push(resolved);
             seen.add(match.name);
+        }
+        else if (manifest) {
+            const fromManifest = checkFromManifestOnly(optName, manifest);
+            if (fromManifest) {
+                evaluated.push({ ...fromManifest, name: optName, required: false });
+            }
+            else {
+                evaluated.push({
+                    name: optName,
+                    status: "missing",
+                    required: false,
+                });
+            }
         }
         else {
             evaluated.push({
@@ -41697,7 +42009,7 @@ async function fetchCheckRuns(octokit, options) {
     return normalizeCheckRuns(runs, excludeCheckNames);
 }
 async function waitForChecks(options) {
-    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, } = options;
+    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, manifest, } = options;
     const deadline = Date.now() + timeoutMinutes * 60 * 1000;
     while (true) {
         const allChecks = await fetchCheckRuns(octokit, {
@@ -41706,7 +42018,7 @@ async function waitForChecks(options) {
             headSha,
             excludeCheckNames,
         });
-        const summary = evaluateRequiredChecks(allChecks, ciConfig);
+        const summary = evaluateRequiredChecks(allChecks, ciConfig, manifest);
         if (summary.pendingCount === 0 || Date.now() >= deadline) {
             if (summary.pendingCount > 0) {
                 warning(`CI wait timed out after ${timeoutMinutes}m with ${summary.pendingCount} check(s) still pending`);
@@ -41964,6 +42276,7 @@ function formatSecuritySection(alerts) {
 }
 
 ;// CONCATENATED MODULE: ./src/gate.ts
+
 
 
 
@@ -42585,43 +42898,6 @@ function detectDuplicateLogicRisk(files) {
         findings,
     };
 }
-function detectCrossRepoImpact(files, repoConfig) {
-    const cfg = repoConfig?.policies?.cross_repo_impact;
-    if (!cfg?.enabled)
-        return { factor: null, findings: [], affectedConsumers: [] };
-    const affectedConsumers = new Set();
-    const findings = [];
-    for (const [serviceName, service] of Object.entries(repoConfig?.services ?? {})) {
-        const contractPatterns = service.contracts ?? [];
-        if (contractPatterns.length === 0)
-            continue;
-        const touchedContracts = files
-            .filter((f) => matchesGlobs(f.filename, contractPatterns))
-            .map((f) => f.filename);
-        if (touchedContracts.length === 0)
-            continue;
-        for (const consumer of service.consumers ?? []) {
-            affectedConsumers.add(consumer);
-        }
-        findings.push(`Contract surface changed for service "${serviceName}" (${touchedContracts.length} file(s)).`);
-    }
-    if (findings.length === 0) {
-        return { factor: null, findings: [], affectedConsumers: [] };
-    }
-    return {
-        factor: {
-            type: "cross_repo_impact",
-            score: Math.min(100, 30 + affectedConsumers.size * 15),
-            detail: {
-                findings,
-                affectedConsumers: [...affectedConsumers],
-                description: "Potential downstream consumer impact from contract changes",
-            },
-        },
-        findings,
-        affectedConsumers: [...affectedConsumers],
-    };
-}
 async function detectSessionCorrelation(params) {
     const cfg = params.repoConfig?.policies?.session_correlation;
     if (!cfg?.enabled || !params.prNumber || !params.token || !params.provenance)
@@ -43142,7 +43418,11 @@ async function evaluateGate(config, commitSha, prNumber) {
     if (duplicateLogic.factor) {
         riskFactors.push(duplicateLogic.factor);
     }
-    const crossRepoImpact = detectCrossRepoImpact(files, repoConfig);
+    const crossRepoRegistryPath = repoConfig?.policies?.cross_repo_impact?.consumer_registry_path;
+    const externalConsumerRegistry = crossRepoRegistryPath
+        ? loadConsumerRegistryFile(crossRepoRegistryPath)
+        : null;
+    const crossRepoImpact = detectCrossRepoImpact(files, repoConfig, externalConsumerRegistry);
     if (crossRepoImpact.factor) {
         riskFactors.push(crossRepoImpact.factor);
     }
@@ -43303,6 +43583,20 @@ async function evaluateGate(config, commitSha, prNumber) {
         trust_profile: trustProfile,
         gateMode,
         context: matchedContext?.matched,
+        cross_repo_impact: crossRepoImpact.services.length > 0
+            ? {
+                services: crossRepoImpact.services.map((service) => ({
+                    serviceName: service.serviceName,
+                    touchedFiles: service.touchedFiles,
+                    consumers: service.consumers.map((consumer) => ({
+                        id: consumer.id,
+                        repo: consumer.repo,
+                        branch: consumer.branch,
+                    })),
+                    notify_webhook: service.notify_webhook,
+                })),
+            }
+            : undefined,
     };
     let ciSummary = null;
     if (gateMode !== "risk-only" && config.githubToken) {
@@ -43319,6 +43613,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                 "Trailhead",
                 "Trailhead — Release Ready",
             ];
+            const ciManifest = config.ciManifest ?? null;
             if (config.waitForChecks && ciConfig.required_checks.length > 0) {
                 ciSummary = await waitForChecks({
                     octokit,
@@ -43328,6 +43623,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                     ciConfig,
                     excludeCheckNames,
                     timeoutMinutes: config.waitTimeoutMinutes ?? 30,
+                    manifest: ciManifest,
                 });
             }
             else {
@@ -43337,7 +43633,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                     headSha: commitSha,
                     excludeCheckNames,
                 });
-                ciSummary = evaluateRequiredChecks(checks, ciConfig);
+                ciSummary = evaluateRequiredChecks(checks, ciConfig, ciManifest);
             }
             localEvaluation.ci = ciSummary;
         }
@@ -43374,6 +43670,13 @@ async function evaluateGate(config, commitSha, prNumber) {
                 evaluationMs: Date.now() - start,
             };
         }
+    }
+    if (crossRepoImpact.services.length > 0) {
+        await sendCrossRepoImpactWebhooks(crossRepoImpact, {
+            repoId: localEvaluation.repoId,
+            commitSha: localEvaluation.commitSha,
+            prNumber: localEvaluation.prNumber,
+        });
     }
     return localEvaluation;
 }
@@ -43751,6 +44054,23 @@ function formatGateReport(evaluation, riskThreshold) {
                 lines.push(`- ${reason}`);
             }
             lines.push(``);
+        }
+        if (evaluation.cross_repo_impact) {
+            lines.push(...formatCrossRepoImpactSection({
+                factor: null,
+                findings: [],
+                affectedConsumers: [],
+                services: evaluation.cross_repo_impact.services.map((service) => ({
+                    serviceName: service.serviceName,
+                    touchedFiles: service.touchedFiles,
+                    notify_webhook: service.notify_webhook,
+                    consumers: service.consumers.map((consumer) => ({
+                        id: consumer.id,
+                        repo: consumer.repo,
+                        branch: consumer.branch,
+                    })),
+                })),
+            }));
         }
     }
     else {
@@ -45009,7 +45329,59 @@ function resolveDeployEventsUrl(evaluationStoreUrl) {
     return evaluationStoreUrl.replace(/\/store\/?$/, "/deploy-event");
 }
 
+;// CONCATENATED MODULE: ./src/ci-manifest.ts
+
+
+
+/** Job outcome as emitted by path-filtered workflows (E15). */
+const CiManifestJobOutcome = enumType([
+    "ran",
+    "skipped",
+    "failed",
+    "pending",
+    "cancelled",
+]);
+/** Why a job did not run — `paths-filter` is the primary v4.2 use case. */
+const CiManifestSkipReason = enumType([
+    "paths-filter",
+    "paths-ignore",
+    "manual",
+    "condition",
+    "concurrency",
+    "workflow_dispatch",
+    "other",
+]);
+const CiManifestJob = objectType({
+    name: stringType().min(1),
+    outcome: CiManifestJobOutcome,
+    reason: CiManifestSkipReason.optional(),
+    check_run_id: numberType().int().positive().optional(),
+    details_url: stringType().url().optional(),
+});
+const CiManifest = objectType({
+    schema_version: literalType(1),
+    generated_at: stringType().optional(),
+    commit_sha: stringType().optional(),
+    workflow: stringType().optional(),
+    run_id: numberType().int().positive().optional(),
+    jobs: arrayType(CiManifestJob),
+});
+function parseCiManifest(raw) {
+    return CiManifest.parse(raw);
+}
+function readCiManifestFile(filePath) {
+    try {
+        const resolved = external_node_path_default().resolve(filePath);
+        const contents = external_node_fs_default().readFileSync(resolved, "utf8");
+        return parseCiManifest(JSON.parse(contents));
+    }
+    catch {
+        return null;
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/main.ts
+
 
 
 
@@ -45221,6 +45593,17 @@ async function run() {
             trailheadApiKey: trailheadApiKey || undefined,
             evaluationStoreUrl: getInput("evaluation-store-url") || undefined,
         });
+        const ciManifestPath = getInput("ci-manifest-path") || "";
+        let ciManifest = null;
+        if (ciManifestPath) {
+            ciManifest = readCiManifestFile(ciManifestPath);
+            if (ciManifest) {
+                info(`Loaded CI manifest from ${ciManifestPath} (${ciManifest.jobs.length} job(s))`);
+            }
+            else {
+                warning(`Could not parse ci-manifest at ${ciManifestPath}`);
+            }
+        }
         const config = {
             apiKey: getInput("api-key") || "",
             apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
@@ -45258,6 +45641,8 @@ async function run() {
                 ? parseInt(getInput("wait-timeout-minutes"), 10)
                 : 30,
             checkName: getInput("check-name") || undefined,
+            ciManifest,
+            ciManifestPath: ciManifestPath || undefined,
         };
         if (policyOverride?.changes.riskThreshold !== undefined) {
             config.riskThreshold = policyOverride.changes.riskThreshold;

@@ -111,6 +111,10 @@ inputs:
     description: "Maximum minutes to wait for required CI checks when wait-for-checks is enabled."
     required: false
     default: "30"
+  ci-manifest-path:
+    description: "Path to ci-manifest.json from a prior workflow job (path-filter skip semantics). See docs/ci-manifest.md."
+    required: false
+    default: ""
   check-name:
     description: "GitHub check run name. Defaults to 'Trailhead — Release Ready' in release-ready mode, 'Trailhead' in risk-only mode."
     required: false

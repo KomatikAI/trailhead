@@ -16,6 +16,10 @@ This pack provides Phase 1 baseline artifacts for consistent org rollout:
 - `github-ruleset.progressive.json`
 - `enforcement-guidelines.md`
 - `pilot-baseline-template.md`
+- `ci-manifest.example.json` — sample path-filter manifest (v4.2)
+- `ci-manifest-workflow.snippet.yml` — emit manifest + gate job pattern
+- `cross-repo-impact.example.yml` — consumer registry + satellite webhooks (v4.2)
+- `consumers.example.json` — external consumer registry file
 - `phase-2/`
   - includes `phase-2/pilots/` concrete repo bundles
 

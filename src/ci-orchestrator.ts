@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
+import type { CiManifest } from "./ci-manifest.js";
 import type { CiCheck, CiSummary, ContextCiConfig } from "./types.js";
 import {
   DEFAULT_SELF_CHECK_NAMES,
@@ -69,6 +70,7 @@ export interface WaitForChecksOptions {
   excludeCheckNames?: string[];
   timeoutMinutes?: number;
   pollIntervalSeconds?: number;
+  manifest?: CiManifest | null;
 }
 
 export async function waitForChecks(options: WaitForChecksOptions): Promise<CiSummary> {
@@ -81,6 +83,7 @@ export async function waitForChecks(options: WaitForChecksOptions): Promise<CiSu
     excludeCheckNames,
     timeoutMinutes = 30,
     pollIntervalSeconds = 15,
+    manifest,
   } = options;
 
   const deadline = Date.now() + timeoutMinutes * 60 * 1000;
@@ -92,7 +95,7 @@ export async function waitForChecks(options: WaitForChecksOptions): Promise<CiSu
       headSha,
       excludeCheckNames,
     });
-    const summary = evaluateRequiredChecks(allChecks, ciConfig);
+    const summary = evaluateRequiredChecks(allChecks, ciConfig, manifest);
 
     if (summary.pendingCount === 0 || Date.now() >= deadline) {
       if (summary.pendingCount > 0) {

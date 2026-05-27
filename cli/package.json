@@ -1,6 +1,6 @@
 {
   "name": "@komatikai/trailhead",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "description": "Trailhead CLI — setup wizard and utilities for the Trailhead deployment gate",
   "type": "module",
   "bin": {

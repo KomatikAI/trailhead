@@ -23,6 +23,7 @@ import { playwrightHealer } from "./healers/playwright.js";
 import { cypressHealer } from "./healers/cypress.js";
 import { fetchCodeScanningAlerts, formatSecuritySection } from "./security.js";
 import { resolveEvaluationStoreUrl } from "./cloud-config.js";
+import { readCiManifestFile } from "./ci-manifest.js";
 import type { TrailheadConfig, TestRepairResult } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -293,6 +294,19 @@ async function run(): Promise<void> {
       evaluationStoreUrl: core.getInput("evaluation-store-url") || undefined,
     });
 
+    const ciManifestPath = core.getInput("ci-manifest-path") || "";
+    let ciManifest = null;
+    if (ciManifestPath) {
+      ciManifest = readCiManifestFile(ciManifestPath);
+      if (ciManifest) {
+        core.info(
+          `Loaded CI manifest from ${ciManifestPath} (${ciManifest.jobs.length} job(s))`,
+        );
+      } else {
+        core.warning(`Could not parse ci-manifest at ${ciManifestPath}`);
+      }
+    }
+
     const config: TrailheadConfig = {
       apiKey: core.getInput("api-key") || "",
       apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
@@ -332,6 +346,8 @@ async function run(): Promise<void> {
         ? parseInt(core.getInput("wait-timeout-minutes"), 10)
         : 30,
       checkName: core.getInput("check-name") || undefined,
+      ciManifest,
+      ciManifestPath: ciManifestPath || undefined,
     };
 
     if (policyOverride?.changes.riskThreshold !== undefined) {
