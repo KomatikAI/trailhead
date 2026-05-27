@@ -8,30 +8,30 @@ Transform Trailhead from a risk-scoring sidecar into a **Release Readiness Gate*
 
 ## Releases
 
-| Release  | Theme                  | Milestone |
-| -------- | ---------------------- | --------- |
-| **v4.0** | Release Readiness Gate | E1–E10    |
-| **v4.1** | Trailhead Cloud        | E11–E14   |
-| **v4.2** | Advanced CI            | E15–E17   |
+| Release  | Theme                  | Milestone | Epic issues                                                    |
+| -------- | ---------------------- | --------- | -------------------------------------------------------------- |
+| **v4.0** | Release Readiness Gate | E1–E10    | [#98–#107](https://github.com/KomatikAI/trailhead/issues/98)   |
+| **v4.1** | Trailhead Cloud        | E11–E14   | [#108–#111](https://github.com/KomatikAI/trailhead/issues/108) |
+| **v4.2** | Advanced CI            | E15–E17   | [#112–#114](https://github.com/KomatikAI/trailhead/issues/112) |
 
 ## v4.2 Epics
 
-| Epic | Status         | Description                                                           | Issues    |
-| ---- | -------------- | --------------------------------------------------------------------- | --------- |
-| E15  | ✅ Done        | `ci-manifest.json` schema + Action input; merge with Checks API       | #203–#206 |
-| E16  | ✅ Done        | External consumer registry, satellite webhooks, cross-repo PR comment | #207–#209 |
-| E17  | 🔶 In progress | GitLab, CircleCI, generic webhook CI adapters                         | #210–#212 |
+| Epic | Status         | Description                                                           | Issues                                                                                                                          |
+| ---- | -------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| E15  | ✅ Done        | `ci-manifest.json` schema + Action input; merge with Checks API       | [#203–#206](https://github.com/KomatikAI/trailhead/issues/203)                                                                  |
+| E16  | ✅ Done        | External consumer registry, satellite webhooks, cross-repo PR comment | [#207–#209](https://github.com/KomatikAI/trailhead/issues/207)                                                                  |
+| E17  | 🔶 In progress | GitLab, CircleCI, generic webhook CI adapters                         | [#210–#212](https://github.com/KomatikAI/trailhead/issues/210) · epic [#114](https://github.com/KomatikAI/trailhead/issues/114) |
 
 Released **v4.2.0** with E15 + E16. E17 ships in a follow-up release.
 
 ## v4.1 Epics (complete — released v4.1.0)
 
-| Epic | Status  | Description                             |
-| ---- | ------- | --------------------------------------- |
-| E11  | ✅ Done | Trailhead Cloud API (`cloud/`, OpenAPI) |
-| E12  | ✅ Done | Hosted dashboard + analytics API        |
-| E13  | ✅ Done | Feedback, noise charts, tuning, digest  |
-| E14  | ✅ Done | Marketplace tiers, metering, keys, SSO  |
+| Epic                                                     | Status  | Description                             |
+| -------------------------------------------------------- | ------- | --------------------------------------- |
+| [E11](https://github.com/KomatikAI/trailhead/issues/108) | ✅ Done | Trailhead Cloud API (`cloud/`, OpenAPI) |
+| [E12](https://github.com/KomatikAI/trailhead/issues/109) | ✅ Done | Hosted dashboard + analytics API        |
+| [E13](https://github.com/KomatikAI/trailhead/issues/110) | ✅ Done | Feedback, noise charts, tuning, digest  |
+| [E14](https://github.com/KomatikAI/trailhead/issues/111) | ✅ Done | Marketplace tiers, metering, keys, SSO  |
 
 ## v4.0 Epics (complete — released v4.0.0)
 

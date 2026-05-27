@@ -654,8 +654,33 @@ describe("formatGateReport", () => {
       policyFindings: ["Agent PR risk threshold tightened from 70 to 55."],
     };
     const report = formatGateReport(evaluation);
+    expect(report).toContain("<details>");
     expect(report).toContain("Policy Findings");
     expect(report).toContain("threshold tightened");
+  });
+
+  it("links failed CI checks to workflow logs when detailsUrl is present", () => {
+    const evaluation: GateEvaluation = {
+      ...baseEvaluation,
+      gateMode: "release-ready",
+      releaseReady: false,
+      ci: {
+        allRequiredPassed: false,
+        pendingCount: 0,
+        failedCount: 1,
+        missingCount: 0,
+        checks: [
+          {
+            name: "Build",
+            status: "fail",
+            required: true,
+            detailsUrl: "https://github.com/owner/repo/actions/runs/1",
+          },
+        ],
+      },
+    };
+    const report = formatGateReport(evaluation);
+    expect(report).toContain("[Build ↗](https://github.com/owner/repo/actions/runs/1)");
   });
 
   it("includes session correlation section when present", () => {
@@ -1169,6 +1194,17 @@ describe("createCheckRun", () => {
         output: expect.objectContaining({
           title: "Trailhead: ALLOW",
           summary: "## Report",
+        }),
+      }),
+    );
+  });
+
+  it("includes persistence warning in check output when store failed", async () => {
+    await createCheckRun({ ...baseEval, storePersisted: false }, "## Report", "ghp_test");
+    expect(mockChecksCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        output: expect.objectContaining({
+          text: "Evaluation not persisted — dashboard incomplete.",
         }),
       }),
     );

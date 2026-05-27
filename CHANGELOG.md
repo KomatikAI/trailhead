@@ -4,6 +4,16 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+### Changed — v4.0 P1 polish
+
+- **PR comment UX (#143)** — Policy findings, DORA, and security sections collapse into `<details>` blocks.
+- **CI check links (#131, #144)** — Failed/missing CI checks link to workflow logs when `detailsUrl` is available.
+- **Store persistence warning (#145)** — Check output includes `Evaluation not persisted — dashboard incomplete.` when store POST fails.
+- **Rollout readiness (#139)** — `rollout-readiness-json` band cannot be `go` when required CI checks fail.
+- **Evaluation store retries (#164)** — New `evaluation-store-retries` action input (default 3).
+- **Deploy tracker (#166)** — Exact SHA match with optional time-window fallback via repo variable.
+- **Docs (#167, #178)** — BYOS vs Cloud decision guide; roadmap epic links; supersede notice on `roadmap-agent-qa.md`.
+
 ## [4.2.0] - 2026-05-26
 
 ### Added

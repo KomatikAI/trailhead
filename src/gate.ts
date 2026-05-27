@@ -12,6 +12,7 @@ import type {
   RiskFactor,
   GateMode,
   CiSummary,
+  CiCheck,
 } from "./types.js";
 import { loadRepoConfig } from "./config.js";
 import { matchContext, resolveGateMode } from "./context-matcher.js";
@@ -1970,6 +1971,9 @@ export async function createCheckRun(
       output: {
         title: `${name}: ${titleSuffix}`,
         summary: report,
+        ...(evaluation.storePersisted === false
+          ? { text: "Evaluation not persisted — dashboard incomplete." }
+          : {}),
       },
     });
   } catch (error) {
@@ -2308,6 +2312,26 @@ function buildFactorChart(factors: GateEvaluation["riskFactors"]): string[] {
   return lines;
 }
 
+export function wrapCollapsibleSection(title: string, body: string): string {
+  const trimmed = body.trim();
+  if (!trimmed) return "";
+  return `<details><summary><strong>${title}</strong></summary>\n\n${trimmed}\n\n</details>`;
+}
+
+function formatCiCheckCell(check: CiCheck): string {
+  const req = check.required ? " *(required)*" : "";
+  if (
+    check.detailsUrl &&
+    (check.status === "fail" ||
+      check.status === "missing" ||
+      check.status === "stale" ||
+      check.status === "pending")
+  ) {
+    return `[${check.name} ↗](${check.detailsUrl})${req}`;
+  }
+  return `${check.name}${req}`;
+}
+
 export function formatGateReport(
   evaluation: GateEvaluation,
   riskThreshold?: number,
@@ -2356,12 +2380,8 @@ export function formatGateReport(
     if (evaluation.ci && evaluation.ci.checks.length > 0) {
       lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
       for (const check of evaluation.ci.checks) {
-        const link = check.detailsUrl
-          ? `[${check.name}](${check.detailsUrl})`
-          : check.name;
-        const req = check.required ? " *(required)*" : "";
         lines.push(
-          `| ${link}${req} | ${formatCiStatusIcon(check.status)} ${check.status} |`,
+          `| ${formatCiCheckCell(check)} | ${formatCiStatusIcon(check.status)} ${check.status} |`,
         );
       }
       lines.push(``);
@@ -2465,11 +2485,16 @@ export function formatGateReport(
   }
 
   if (evaluation.policyFindings && evaluation.policyFindings.length > 0) {
-    lines.push(`### Policy Findings`, ``);
-    for (const finding of evaluation.policyFindings) {
-      lines.push(`- ${finding}`);
-    }
-    lines.push(``);
+    const findingsBody = evaluation.policyFindings
+      .map((finding) => `- ${finding}`)
+      .join("\n");
+    lines.push(
+      wrapCollapsibleSection(
+        `Policy Findings (${evaluation.policyFindings.length})`,
+        findingsBody,
+      ),
+      ``,
+    );
   }
 
   if (evaluation.policyOverride) {

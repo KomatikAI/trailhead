@@ -2,9 +2,14 @@
 # for the same commit, so trend dashboards can compute correlation (false positive
 # rate, warned → incident, etc.).
 #
+# Matching strategy:
+# 1. Primary — exact commit_sha match for this repo
+# 2. Optional fallback — latest evaluation within TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS
+#    (use only when deploy SHA differs from gate SHA, e.g. merge commits)
+#
 # Prerequisites:
 # - Supabase (or compatible) table with trailhead_evaluations including optional
-#   Optional columns: deploy_outcome, deployed_at, incident_url (add via your own migration).
+#   deploy_outcome, deployed_at, incident_url columns.
 # - GitHub secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 #
 # Copy to .github/workflows/ and set `branches` to your production branch.
@@ -29,21 +34,34 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           REPO_ID: ${{ github.repository }}
           COMMIT_SHA: ${{ github.sha }}
+          TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS: ${{ vars.TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS }}
         run: |
           set -euo pipefail
           REST="${SUPABASE_URL%/}/rest/v1/trailhead_evaluations"
           DEPLOYED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-          MATCH="$(curl -sS -G "${REST}" \
-            --data-urlencode "select=id" \
-            --data-urlencode "commit_sha=eq.${COMMIT_SHA}" \
-            --data-urlencode "repo_id=eq.${REPO_ID}" \
-            --data-urlencode "order=created_at.desc" \
-            --data-urlencode "limit=1" \
-            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}")"
+          fetch_eval_id() {
+            local query="$1"
+            curl -sS -G "${REST}" \
+              --data-urlencode "select=id" \
+              --data-urlencode "repo_id=eq.${REPO_ID}" \
+              ${query} \
+              --data-urlencode "order=created_at.desc" \
+              --data-urlencode "limit=1" \
+              -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}"
+          }
 
+          MATCH="$(fetch_eval_id "commit_sha=eq.${COMMIT_SHA}")"
           EVAL_ID="$(echo "${MATCH}" | jq -r '.[0].id // empty')"
+
+          if [ -z "${EVAL_ID}" ] && [ -n "${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS:-}" ]; then
+            CUTOFF="$(date -u -d "-${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS} hours" '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "No exact SHA match — trying fallback window (${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS}h since ${CUTOFF})"
+            MATCH="$(fetch_eval_id "created_at=gte.${CUTOFF}")"
+            EVAL_ID="$(echo "${MATCH}" | jq -r '.[0].id // empty')"
+          fi
+
           if [ -z "${EVAL_ID}" ]; then
             echo "No trailhead_evaluations row for commit ${COMMIT_SHA} — nothing to update."
             exit 0

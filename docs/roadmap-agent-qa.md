@@ -1,5 +1,7 @@
 # Trailhead Agent QA Roadmap
 
+> **Superseded by [roadmap-v4.md](./roadmap-v4.md)** — the v4 roadmap tracks GitHub epics and release milestones. This document is retained for historical agent-QA planning context only.
+
 > Revised: May 2026
 > Status: Planning
 

@@ -9,6 +9,7 @@ import {
   requestHighRiskReviewers,
   shouldBlockMerge,
   resolveCheckName,
+  wrapCollapsibleSection,
 } from "./gate.js";
 import { sendWebhook, storeEvaluation } from "./notify.js";
 import {
@@ -24,6 +25,7 @@ import { cypressHealer } from "./healers/cypress.js";
 import { fetchCodeScanningAlerts, formatSecuritySection } from "./security.js";
 import { resolveEvaluationStoreUrl } from "./cloud-config.js";
 import { readCiManifestFile } from "./ci-manifest.js";
+import { computeRolloutReadiness } from "./rollout-readiness.js";
 import type { TrailheadConfig, TestRepairResult } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -46,96 +48,14 @@ interface PolicyOverrideAudit {
   };
 }
 
-function computeRolloutReadiness(evaluation: {
-  gateDecision: "allow" | "warn" | "block";
-  riskScore: number;
-  healthScore: number;
-  policyFindings?: string[];
-  trust_profile?: { strictness: "baseline" | "elevated" | "strict" };
-  escalation_status?: { enabled: boolean; target_count: number };
-  releaseReady?: boolean;
-  gateMode?: "release-ready" | "advisory" | "risk-only";
-  ci?: { allRequiredPassed: boolean; failedCount: number; pendingCount: number };
-}): {
-  ready: boolean;
-  band: "go" | "review" | "hold";
-  score: number;
-  reasons: string[];
-} {
-  let score = Math.max(0, Math.min(100, 100 - evaluation.riskScore));
-  const reasons: string[] = [];
-
-  const mode = evaluation.gateMode ?? "risk-only";
-
-  if (mode === "release-ready" || mode === "advisory") {
-    if (evaluation.releaseReady === false) {
-      score -= 40;
-      reasons.push("Release readiness check failed");
-    }
-    if (evaluation.ci && !evaluation.ci.allRequiredPassed) {
-      score -= 25;
-      reasons.push(`${evaluation.ci.failedCount} required CI check(s) failed or missing`);
-    }
-    if (evaluation.ci && evaluation.ci.pendingCount > 0) {
-      score -= 15;
-      reasons.push(`${evaluation.ci.pendingCount} CI check(s) still pending`);
-    }
+function parseEvaluationStoreRetries(raw: string): number {
+  if (!raw) return 3;
+  const parsed = parseInt(raw, 10);
+  if (Number.isNaN(parsed) || parsed < 0 || parsed > 10) {
+    core.warning("evaluation-store-retries must be 0–10; using default 3");
+    return 3;
   }
-
-  if (evaluation.gateDecision === "warn") {
-    score -= 10;
-    reasons.push("Gate decision is WARN");
-  } else if (evaluation.gateDecision === "block") {
-    score -= 30;
-    reasons.push("Gate decision is BLOCK");
-  }
-
-  if (evaluation.healthScore < 50) {
-    score -= 20;
-    reasons.push("Health score below 50");
-  }
-
-  const strictness = evaluation.trust_profile?.strictness ?? "baseline";
-  if (strictness === "elevated") {
-    score -= 5;
-    reasons.push("Elevated trust profile strictness");
-  } else if (strictness === "strict") {
-    score -= 10;
-    reasons.push("Strict trust profile strictness");
-  }
-
-  const hasBlockingFinding = (evaluation.policyFindings ?? []).some((f) =>
-    /(blocking pattern|requires|exceeds|detected)/i.test(f),
-  );
-  if (hasBlockingFinding) {
-    score -= 10;
-    reasons.push("Policy findings include blocking-style signals");
-  }
-
-  if (
-    evaluation.escalation_status?.enabled &&
-    evaluation.escalation_status.target_count > 0
-  ) {
-    score += 5;
-    reasons.push("Escalation targets configured");
-  }
-
-  score = Math.max(0, Math.min(100, score));
-  const band =
-    mode !== "risk-only" && evaluation.releaseReady === false
-      ? "hold"
-      : evaluation.gateDecision === "allow" && score >= 70
-        ? "go"
-        : evaluation.gateDecision !== "block" && score >= 45
-          ? "review"
-          : "hold";
-
-  return {
-    ready: band === "go",
-    band,
-    score,
-    reasons,
-  };
+  return parsed;
 }
 
 function initHealers(): void {
@@ -465,8 +385,12 @@ async function run(): Promise<void> {
     }
 
     const reportParts = [report];
-    if (securityReport) reportParts.push(securityReport);
-    if (doraReport) reportParts.push(doraReport);
+    if (securityReport) {
+      reportParts.push(wrapCollapsibleSection("Security Alerts", securityReport));
+    }
+    if (doraReport) {
+      reportParts.push(wrapCollapsibleSection("DORA-5 Metrics", doraReport));
+    }
     let fullReport = reportParts.join("\n---\n\n");
 
     if (config.evaluationStoreUrl) {
@@ -477,11 +401,16 @@ async function run(): Promise<void> {
       if (config.trailheadApiKey && !process.env.EVALUATION_STORE_SECRET) {
         process.env.EVALUATION_STORE_SECRET = config.trailheadApiKey;
       }
-      const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation);
+      const storeRetries = parseEvaluationStoreRetries(
+        core.getInput("evaluation-store-retries") || "",
+      );
+      const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation, {
+        maxRetries: storeRetries,
+      });
       evaluation.storePersisted = stored;
       if (!stored) {
         const persistWarning =
-          "> ⚠️ **Evaluation not persisted** — dashboard and DORA correlation may be incomplete.";
+          "> ⚠️ **Evaluation not persisted — dashboard incomplete.**";
         fullReport = `${persistWarning}\n\n${fullReport}`;
       }
     }
