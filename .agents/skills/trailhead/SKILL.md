@@ -129,7 +129,8 @@ Trailhead also runs as a GitHub Action (`KomatikAI/trailhead@v3`). The MCP tools
 
 ## Repository Maintenance Notes
 
-- `dev` is the active/default branch. `main` and `staging` are compatibility mirrors and should stay fast-forwarded to `dev`.
+- **`dev`** is the default integration branch. Feature PRs target `dev`.
+- **`staging`** and **`main`** are promotion targets only (`dev` → `staging` → `main`, fast-forward).
 - MCP prebuild copies `src/risk-engine.ts` and `src/adapters/*` into `mcp/src/`; matching `mcp/dist/risk-engine.*` and `mcp/dist/adapters/*` are intentionally committed runtime artifacts.
 - If `src/risk-engine.ts` imports another local module, update the `app/` and `mcp/` prebuild scripts and committed dist artifacts in the same change.
 - The legacy supply-chain experiment branch is not promotion-ready until app and MCP builds pass with the new `supply-chain` module.

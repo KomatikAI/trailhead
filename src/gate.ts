@@ -55,6 +55,7 @@ import {
   formatAgentBrief,
   resolveAgentBriefMode,
 } from "./remediation.js";
+import { fetchPreviousEvaluationForPr } from "./evaluation-history.js";
 
 export {
   isSensitiveFile,
@@ -1905,6 +1906,21 @@ export async function evaluateGate(
 
   const remediationEnabled = remediationSettings?.enabled !== false;
   if (remediationEnabled) {
+    let previousEvaluation = null;
+    if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
+      try {
+        previousEvaluation = await fetchPreviousEvaluationForPr({
+          repoId: localEvaluation.repoId,
+          prNumber,
+          excludeEvaluationId: localEvaluation.id,
+          storeUrl: config.evaluationStoreUrl,
+          apiKey: config.trailheadApiKey,
+        });
+      } catch (error) {
+        core.debug(`Previous evaluation lookup failed: ${error}`);
+      }
+    }
+
     localEvaluation.remediation = buildRemediation({
       evaluation: {
         id: localEvaluation.id,
@@ -1915,6 +1931,7 @@ export async function evaluateGate(
         policyFindings: localEvaluation.policyFindings,
         gateDecision: localEvaluation.gateDecision,
       },
+      previousEvaluation,
       maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
     });
   }

@@ -85,6 +85,30 @@ describe("Trailhead Cloud API", () => {
     expect(listBody.evaluations.find((e) => e.id === "eval-dup")?.riskScore).toBe(25);
   });
 
+  it("filters evaluations by pr_number", async () => {
+    await app.request("/v1/evaluations", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ ...sampleEvaluation("pr-42-a"), prNumber: 42 }),
+    });
+    await app.request("/v1/evaluations", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ ...sampleEvaluation("pr-99-a"), prNumber: 99 }),
+    });
+
+    const res = await app.request(
+      "/v1/evaluations?repo_id=KomatikAI/trailhead&pr_number=42",
+      { headers: authHeaders() },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      evaluations: Array<{ id: string; prNumber?: number }>;
+    };
+    expect(body.evaluations.every((row) => row.prNumber === 42)).toBe(true);
+    expect(body.evaluations.some((row) => row.id === "pr-42-a")).toBe(true);
+  });
+
   it("accepts deploy events", async () => {
     const res = await app.request("/v1/deploy-events", {
       method: "POST",

@@ -33,6 +33,7 @@ const sharedFiles = [
   "config-core.ts",
   "deployment-gate.ts",
   "remediation.ts",
+  "loop-bookkeeping.ts",
   "trailhead-events.ts",
 ];
 

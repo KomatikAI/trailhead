@@ -1,6 +1,6 @@
 # Trailhead v4.3 — Agent Autonomy Roadmap
 
-> Status: **Draft for review** — May 2026
+> Status: **Active — Phase A in progress** (May 2026)
 > Author: David (Cursor workspace)
 > Inputs:
 >
@@ -133,6 +133,18 @@ remediation:
 **Owner:** David (Cursor workspace) + Trailhead self-test fixtures
 **Repos touched:** `trailhead` (engine + Action + MCP + App), `komatik-agents` (coordinator wiring)
 
+### Phase A progress (May 27, 2026)
+
+| Epic                  | Trailhead repo | komatik-agents                                                   | Notes                                                                 |
+| --------------------- | -------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| A1 Remediation schema | ✅ merged      | —                                                                | `src/remediation.ts`, Zod types                                       |
+| A2 Agent brief        | ✅ merged      | —                                                                | Collapsed PR comment section                                          |
+| A3 Coordinator bus    | ✅ merged      | ✅ merged ([#175](https://github.com/KomatikAI/agents/pull/175)) | Engine emits semantic webhooks; handler **not deployed on Spark yet** |
+| A4 Loop bookkeeping   | 🔄 PR open     | —                                                                | Cloud columns + loop telemetry                                        |
+| A5–A8                 | backlog        | —                                                                | Tuning digest, fleet rollout, override, fixtures                      |
+
+**Deploy gap:** coordinator HTTP service needs `TRAILHEAD_COORDINATOR_WEBHOOK_SECRET`, port 3199 exposure, and `webhook-url` on fleet repos before E2E loop works. **`agent/*` routing** is forward-built — fleet cannot push those branches until the suggestions→PR bridge lands.
+
 ## Epics
 
 ### A1 — Remediation schema
@@ -256,9 +268,10 @@ Trailhead emits `trailhead.evaluation` events to `webhook-url` and to MCP subscr
 
 **komatik-agents side:**
 
-- `scripts/trailhead-coordinator-http.mjs` on Base Camp Spark receives `trailhead.webhook.v1` POSTs at `/api/webhooks/trailhead`
-- Routes `trailhead.blocked` (and related events) on agent-provenance PRs → `send_message` to submitting agent with remediation JSON
-- Also logs to `events` table (BC6-compatible metadata)
+- `scripts/trailhead-coordinator-http.mjs` on Base Camp Spark receives `trailhead.webhook.v1` POSTs at `/api/webhooks/trailhead` — **merged** ([#175](https://github.com/KomatikAI/agents/pull/175)); runbook: `komatik-agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`
+- Routes blocked/warn events on **`agent/<id>/*`** branches → `agent_messages` to submitting agent with remediation JSON (inert until Path-1 bridge)
+- **`claude/*` and `cursor/*`** operator branches → logged only (`operator-skip`) — David's PRs do not spam coordinator
+- Also logs to `events` table (BC6-compatible metadata); dedupes on `evaluationId`
 - Submitting agent's next cron session picks up message, applies fixes, pushes, gate re-runs
 
 **Acceptance:**
@@ -359,9 +372,9 @@ Each fixture has a `remediation.expected.json` golden file.
 
 ## Phase A exit criteria
 
-- [ ] `Remediation` block in every gate run, schema-validated
-- [ ] Agent brief in PR comments (collapsed by default for agent provenance)
-- [ ] Coordinator event routing demonstrated end-to-end on Komatik (1 PR loop fully agent-driven)
+- [x] `Remediation` block in every gate run, schema-validated (A1 merged)
+- [x] Agent brief in PR comments (collapsed by default for agent provenance) (A2 merged)
+- [ ] Coordinator event routing demonstrated end-to-end on Komatik (handler merged; **deploy + 1 agent-driven loop** pending)
 - [ ] **Fleet rollout:** strict-agent preset adopted by all 21 monitored repos
 - [ ] **Telemetry:** daily Cloud tuning digest live, auto-downgrade verified on synthetic fixture
 - [ ] **Override:** `trailhead-override` label flow live with audit trail

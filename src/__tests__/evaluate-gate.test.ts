@@ -2,6 +2,9 @@ import { vi } from "vitest";
 
 import { evaluateGate } from "../gate.js";
 import type { TrailheadConfig } from "../types.js";
+import * as evaluationHistory from "../evaluation-history.js";
+
+vi.mock("../evaluation-history.js");
 
 vi.mock("@actions/core", () => ({
   debug: vi.fn(),
@@ -87,6 +90,7 @@ function makeConfig(overrides: Partial<TrailheadConfig> = {}): TrailheadConfig {
 describe("evaluateGate (integration)", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    vi.mocked(evaluationHistory.fetchPreviousEvaluationForPr).mockResolvedValue(null);
     // Avoid loading repo .trailhead.yml on CI (GITHUB_WORKSPACE is set there).
     vi.stubEnv("GITHUB_WORKSPACE", "");
   });
@@ -306,5 +310,35 @@ describe("evaluateGate (integration)", () => {
 
     expect(result.healthChecks).toHaveLength(0);
     expect(result.healthScore).toBe(100);
+  });
+
+  it("increments remediation loop_round from previous store evaluation", async () => {
+    vi.mocked(evaluationHistory.fetchPreviousEvaluationForPr).mockResolvedValueOnce({
+      id: "eval-prev",
+      remediation: {
+        schema: "trailhead.remediation.v1",
+        release_ready: false,
+        fixes: [],
+        blocking_count: 1,
+        warn_count: 0,
+        advisory_count: 0,
+        autofix_eligible_count: 0,
+        loop_round: 1,
+        max_loop_rounds: 3,
+        fixes_resolved: [],
+        fixes_introduced: [],
+        next_action: "fix_and_retry",
+      },
+    });
+
+    const config = makeConfig({
+      githubToken: "ghp_test",
+      evaluationStoreUrl: "https://api.trailhead.dev/v1/evaluations",
+      trailheadApiKey: "th_test",
+    });
+    const result = await evaluateGate(config, "abc1234567890", 42);
+
+    expect(result.remediation?.loop_round).toBe(2);
+    expect(result.remediation?.previous_evaluation_id).toBe("eval-prev");
   });
 });

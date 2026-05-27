@@ -8,6 +8,7 @@
 
 import type { z } from "zod";
 import { RemediationFix as RemediationFixSchema } from "./types.js";
+import { resolveLoopRound } from "./loop-bookkeeping.js";
 import type {
   AgentBriefMode,
   GateEvaluation,
@@ -331,7 +332,7 @@ export function buildRemediation(input: BuildRemediationInput): Remediation {
   const advisory_count = dedupedFixes.filter((f) => f.severity === "advisory").length;
   const autofix_eligible_count = dedupedFixes.filter((f) => f.autofix_eligible).length;
 
-  const loopRound = input.loopRound ?? (input.previousEvaluation ? 1 : 0);
+  const loopRound = input.loopRound ?? resolveLoopRound(input.previousEvaluation);
   const maxLoopRounds = input.maxLoopRounds ?? 3;
   const releaseReady =
     input.evaluation.releaseReady ??

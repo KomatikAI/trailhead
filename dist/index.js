@@ -42369,6 +42369,44 @@ function formatSecuritySection(alerts) {
     return lines.join("\n");
 }
 
+;// CONCATENATED MODULE: ./src/loop-bookkeeping.ts
+// Pure loop bookkeeping helpers — no framework dependencies.
+function resolveLoopRound(previous) {
+    if (!previous)
+        return 0;
+    return (previous.remediation?.loop_round ?? 0) + 1;
+}
+function parseAgentIdFromHeadRef(headRef) {
+    if (!headRef)
+        return null;
+    const match = headRef.match(/^agent\/([a-z0-9-]+)\//);
+    return match?.[1] ?? null;
+}
+function parsePreviousEvaluationRow(row) {
+    if (!row || typeof row !== "object")
+        return null;
+    const record = row;
+    const id = typeof record.id === "string" ? record.id : null;
+    if (!id)
+        return null;
+    let remediation;
+    if (record.remediation && typeof record.remediation === "object") {
+        remediation = record.remediation;
+    }
+    return { id, remediation };
+}
+function pickLatestPreviousEvaluation(rows, excludeEvaluationId) {
+    for (const row of rows) {
+        const parsed = parsePreviousEvaluationRow(row);
+        if (!parsed)
+            continue;
+        if (excludeEvaluationId && parsed.id === excludeEvaluationId)
+            continue;
+        return parsed;
+    }
+    return null;
+}
+
 ;// CONCATENATED MODULE: ./src/remediation.ts
 // Pure remediation derivation — no framework dependencies.
 // Maps gate findings (risk factors, CI failures, policy violations, release-ready
@@ -42377,6 +42415,7 @@ function formatSecuritySection(alerts) {
 // Shared across the GitHub Action, MCP server, and GitHub App via the existing
 // prebuild copy pattern. Keep this module free of @actions/*, octokit, and Node
 // runtime imports so it stays portable.
+
 
 const SUGGESTED_TEST_COMMAND = "npm test -- --run";
 const SUGGESTED_LINT_COMMAND = "npm run lint -- --fix";
@@ -42630,7 +42669,7 @@ function buildRemediation(input) {
     const warn_count = dedupedFixes.filter((f) => f.severity === "warn").length;
     const advisory_count = dedupedFixes.filter((f) => f.severity === "advisory").length;
     const autofix_eligible_count = dedupedFixes.filter((f) => f.autofix_eligible).length;
-    const loopRound = input.loopRound ?? (input.previousEvaluation ? 1 : 0);
+    const loopRound = input.loopRound ?? resolveLoopRound(input.previousEvaluation);
     const maxLoopRounds = input.maxLoopRounds ?? 3;
     const releaseReady = input.evaluation.releaseReady ??
         (input.evaluation.gateDecision !== "block" && blocking_count === 0);
@@ -42746,7 +42785,128 @@ function formatAgentBrief(remediation, mode) {
     return `<details><summary><strong>${title}</strong></summary>\n\n${body}\n\n</details>`;
 }
 
+;// CONCATENATED MODULE: ./src/evaluation-history.ts
+
+const LOOKUP_TIMEOUT_MS = 8_000;
+function buildAuthHeaders(params) {
+    const headers = { Accept: "application/json" };
+    const secret = params.storeSecret ?? process.env.EVALUATION_STORE_SECRET;
+    if (secret) {
+        headers.Authorization = `Bearer ${secret}`;
+    }
+    else if (params.apiKey) {
+        headers.Authorization = `Bearer ${params.apiKey}`;
+    }
+    if (params.vercelBypass ?? process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+        headers["x-vercel-protection-bypass"] =
+            params.vercelBypass ?? process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? "";
+    }
+    return headers;
+}
+function resolveCloudListUrl(storeUrl) {
+    const trimmed = storeUrl.replace(/\/$/, "");
+    if (trimmed.includes("/v1/evaluations")) {
+        return trimmed.replace(/\/v1\/evaluations\/?$/, "/v1/evaluations");
+    }
+    return null;
+}
+async function fetchFromCloudStore(params) {
+    if (!params.storeUrl)
+        return null;
+    const listUrl = resolveCloudListUrl(params.storeUrl);
+    if (!listUrl)
+        return null;
+    const url = new URL(listUrl);
+    url.searchParams.set("repo_id", params.repoId);
+    url.searchParams.set("pr_number", String(params.prNumber));
+    url.searchParams.set("limit", "10");
+    const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: buildAuthHeaders(params),
+        signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+    });
+    if (!response.ok)
+        return null;
+    const body = (await response.json());
+    if (!Array.isArray(body.evaluations))
+        return null;
+    return pickLatestPreviousEvaluation(body.evaluations, params.excludeEvaluationId);
+}
+async function fetchFromSupabase(params) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey)
+        return null;
+    const url = new URL(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`);
+    url.searchParams.set("repo_id", `eq.${params.repoId}`);
+    url.searchParams.set("pr_number", `eq.${params.prNumber}`);
+    url.searchParams.set("order", "created_at.desc");
+    url.searchParams.set("limit", "10");
+    url.searchParams.set("select", "id,remediation,loop_round,previous_evaluation_id,fixes_resolved,fixes_introduced,created_at");
+    const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+            Accept: "application/json",
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+    });
+    if (!response.ok)
+        return null;
+    const rows = (await response.json());
+    if (!Array.isArray(rows))
+        return null;
+    for (const row of rows) {
+        const parsed = pickLatestPreviousEvaluation([row], params.excludeEvaluationId);
+        if (!parsed)
+            continue;
+        if (!parsed.remediation && row && typeof row === "object") {
+            const record = row;
+            if (typeof record.loop_round === "number") {
+                parsed.remediation = {
+                    schema: "trailhead.remediation.v1",
+                    release_ready: false,
+                    fixes: [],
+                    blocking_count: 0,
+                    warn_count: 0,
+                    advisory_count: 0,
+                    autofix_eligible_count: 0,
+                    loop_round: record.loop_round,
+                    max_loop_rounds: 3,
+                    fixes_resolved: Array.isArray(record.fixes_resolved)
+                        ? record.fixes_resolved
+                        : [],
+                    fixes_introduced: Array.isArray(record.fixes_introduced)
+                        ? record.fixes_introduced
+                        : [],
+                    next_action: "fix_and_retry",
+                };
+            }
+        }
+        return parsed;
+    }
+    return null;
+}
+async function fetchPreviousEvaluationForPr(params) {
+    try {
+        const fromCloud = await fetchFromCloudStore(params);
+        if (fromCloud)
+            return fromCloud;
+    }
+    catch {
+        // Fail-open — loop bookkeeping defaults to round 0.
+    }
+    try {
+        return await fetchFromSupabase(params);
+    }
+    catch {
+        return null;
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/gate.ts
+
 
 
 
@@ -44160,6 +44320,21 @@ async function evaluateGate(config, commitSha, prNumber) {
     localEvaluation.agentBriefMode = agentBriefMode;
     const remediationEnabled = remediationSettings?.enabled !== false;
     if (remediationEnabled) {
+        let previousEvaluation = null;
+        if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
+            try {
+                previousEvaluation = await fetchPreviousEvaluationForPr({
+                    repoId: localEvaluation.repoId,
+                    prNumber,
+                    excludeEvaluationId: localEvaluation.id,
+                    storeUrl: config.evaluationStoreUrl,
+                    apiKey: config.trailheadApiKey,
+                });
+            }
+            catch (error) {
+                core_debug(`Previous evaluation lookup failed: ${error}`);
+            }
+        }
         localEvaluation.remediation = buildRemediation({
             evaluation: {
                 id: localEvaluation.id,
@@ -44170,6 +44345,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                 policyFindings: localEvaluation.policyFindings,
                 gateDecision: localEvaluation.gateDecision,
             },
+            previousEvaluation,
             maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
         });
     }
@@ -44923,20 +45099,7 @@ async function storeViaSupabase(evaluation) {
         return false;
     }
     const restUrl = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`;
-    const row = {
-        id: evaluation.id,
-        repo_id: evaluation.repoId,
-        commit_sha: evaluation.commitSha,
-        pr_number: evaluation.prNumber ?? null,
-        health_score: evaluation.healthScore,
-        risk_score: evaluation.riskScore,
-        gate_decision: evaluation.gateDecision,
-        health_checks: evaluation.healthChecks,
-        risk_factors: evaluation.riskFactors,
-        files: evaluation.files ?? null,
-        evaluation_ms: evaluation.evaluationMs,
-        report_url: evaluation.reportUrl ?? null,
-    };
+    const row = buildEvaluationStoreRow(evaluation);
     const response = await fetch(restUrl, {
         method: "POST",
         headers: {
@@ -44955,6 +45118,30 @@ async function storeViaSupabase(evaluation) {
     const body = await response.text().catch(() => "");
     warning(`Supabase direct insert failed (HTTP ${response.status}): ${body}`);
     return false;
+}
+function buildEvaluationStoreRow(evaluation) {
+    const remediation = evaluation.remediation;
+    return {
+        id: evaluation.id,
+        repo_id: evaluation.repoId,
+        commit_sha: evaluation.commitSha,
+        pr_number: evaluation.prNumber ?? null,
+        health_score: evaluation.healthScore,
+        risk_score: evaluation.riskScore,
+        gate_decision: evaluation.gateDecision,
+        health_checks: evaluation.healthChecks,
+        risk_factors: evaluation.riskFactors,
+        files: evaluation.files ?? null,
+        evaluation_ms: evaluation.evaluationMs,
+        report_url: evaluation.reportUrl ?? null,
+        release_ready: evaluation.releaseReady ?? null,
+        remediation: remediation ?? null,
+        loop_round: remediation?.loop_round ?? 0,
+        previous_evaluation_id: remediation?.previous_evaluation_id ?? null,
+        fixes_resolved: remediation?.fixes_resolved ?? [],
+        fixes_introduced: remediation?.fixes_introduced ?? [],
+        pr: evaluation.pr ?? null,
+    };
 }
 async function storeEvaluation(url, evaluation, options = {}) {
     const maxRetries = options.maxRetries ?? 3;
