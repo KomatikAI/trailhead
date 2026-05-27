@@ -4,6 +4,14 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.2.2] - 2026-05-27
+
+### Fixed — DORA metrics
+
+- **GitHub API failures** — `core.warning()` when Deployments or workflow-run queries fail instead of silently returning empty metrics.
+- **Evaluation-store fallback** — FDRT and deployment frequency can derive from `trailhead_evaluations.deploy_outcome` when the GitHub Deployments API is unavailable or empty.
+- **Environment alias** — `Production` and `production` deployment environments match interchangeably.
+
 ## [4.2.1] - 2026-05-27
 
 ### Added — Multi-platform CI (E17)
