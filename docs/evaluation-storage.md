@@ -70,6 +70,17 @@ The Action sends:
 
 Deploy outcomes use a sibling endpoint: replace `/store` with `/deploy-event` on the same base path.
 
+### Komatik fleet store (`komatik.ai`)
+
+The Komatik platform hosts the shared evaluation store for fleet satellites:
+
+- **POST** `https://komatik.ai/api/trailhead/store`
+- **GET** `https://komatik.ai/api/trailhead/evaluations?repo_id=&pr_number=` — prior evals for loop bookkeeping (v4.3.1+ action)
+
+Legacy alias `/api/deployguard/store` remains until all active consumers migrate. Full contract: [komatik-hosted-store.md](./komatik-hosted-store.md).
+
+Loop fields (`loop_round`, `fixes_resolved`, `fixes_introduced`, …) require the Komatik store route **and** schema migration — not Trailhead Cloud's `cloud/migrations/002`.
+
 ### Supabase fallback
 
 If the primary store URL fails (e.g. Vercel bot protection returns HTML), Trailhead falls back to direct Supabase REST when configured:
@@ -96,3 +107,4 @@ This is **fail-open** — storage failures never block merges.
 
 - [Trailhead v4 roadmap](./roadmap-v4.md)
 - [Migration v3 → v4](./migration-v3-to-v4.md)
+- [Komatik hosted store](./komatik-hosted-store.md) — fleet `komatik.ai` endpoint

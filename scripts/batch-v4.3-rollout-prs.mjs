@@ -1,70 +1,51 @@
 #!/usr/bin/env node
 /**
- * Batch PRs: adopt Trailhead v4.3 strict-agent gate + remediation loop.
+ * A6 fleet rollout: pin Trailhead v4.3.0 + migrate evaluation store URL.
  *
- * Per repo:
- *   1. Bump  @v4  →  @v4.3  in .github/workflows/trailhead.yml (when present)
- *   2. Add (or create) .trailhead.yml with `presets: ["@trailhead/strict-agents"]`
- *   3. Open a PR titled "chore(trailhead): adopt v4.3 strict-agent gate + remediation loop"
+ * Repos still on legacy deployguard store endpoint — active fleet only (see docs/komatik-hosted-store.md):
+ *   cairn, frontier, kindling, pack, slipstream, sundog, trace
+ * Excluded (retired/archived, trace absorbed): drift, floe, traverse, watchtower
+ *
+ * Deploy rule: Komatik schema/routes via PR only — never apply_migration to prod via MCP.
+ *   1. Bump action ref → KomatikAI/trailhead@v4.3.0 (explicit tag, NOT @v4)
+ *   2. Flip evaluation-store-url → .../api/trailhead/store
+ *
+ * Workflow file: `.github/workflows/trailhead.yml` or `deployguard.yml` (legacy filename).
+ * Base branch: repo default (dev for satellites; main for komatik-agents).
  *
  * Usage:
- *   node scripts/batch-v4.3-rollout-prs.mjs             # dry-run, prints per-repo plan
- *   node scripts/batch-v4.3-rollout-prs.mjs --apply     # actually opens PRs
+ *   node scripts/batch-v4.3-rollout-prs.mjs             # dry-run
+ *   node scripts/batch-v4.3-rollout-prs.mjs --apply     # open PRs
  *   node scripts/batch-v4.3-rollout-prs.mjs --only=kindling,sundog
  *   node scripts/batch-v4.3-rollout-prs.mjs --skip-missing-workflow
  *
- * Safety:
- *   - Idempotent: SKIPs any repo already pinned to @v4.3 and already opted into the preset.
- *   - Each repo gets its own branch `cursor/trailhead-v4.3-rollout` so retries are easy.
- *   - PR body includes a 1-line rollback recipe.
- *   - Reads the action version from package.json so a future v4.4 rollout reuses this script.
+ * Override release pin: TRAILHEAD_ROLLOUT_VERSION=4.3.0 node scripts/...
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const REPOS = [
-  // Base Camp monitored (14)
-  { name: "Komatik", org: "KomatikAI", base: "main" },
-  { name: "komatik-agents", org: "KomatikAI", base: "main" },
-  { name: "komatik-base-camp", org: "KomatikAI", base: "main" },
-  { name: "deployguard", org: "KomatikAI", base: "main" },
-  { name: "daydream-studio", org: "KomatikAI", base: "main" },
-  { name: "storyboard-studio", org: "KomatikAI", base: "main" },
-  { name: "shieldcheck", org: "KomatikAI", base: "main" },
-  { name: "reviewflow", org: "KomatikAI", base: "main" },
-  { name: "mcp-brokerage", org: "KomatikAI", base: "main" },
-  { name: "rescue-engineering", org: "KomatikAI", base: "main" },
-  { name: "shadow-ai-governance", org: "KomatikAI", base: "main" },
-  { name: "drift", org: "KomatikAI", base: "main" },
-  { name: "komatik-yggdrasil", org: "KomatikAI", base: "main" },
-  { name: "Bored", org: "KomatikAI", base: "main" },
-  // DORA-enabled satellites (7)
-  { name: "trace", org: "KomatikAI", base: "main" },
-  { name: "pack", org: "KomatikAI", base: "main" },
-  { name: "cairn", org: "KomatikAI", base: "main" },
-  { name: "kindling", org: "KomatikAI", base: "main" },
-  { name: "sundog", org: "KomatikAI", base: "main" },
-  { name: "frontier", org: "KomatikAI", base: "main" },
-  { name: "slipstream", org: "KomatikAI", base: "main" },
-];
-
-const BRANCH = "cursor/trailhead-v4.3-rollout";
-const WORKFLOW_PATH = ".github/workflows/trailhead.yml";
-const CONFIG_PATH = ".trailhead.yml";
-const PRESET_KEY = "@trailhead/strict-agents";
+const ORG = "KomatikAI";
 const ACTION_REPO = "KomatikAI/trailhead";
+const BRANCH = "cursor/trailhead-v4.3.0-a6-rollout";
+const WORKFLOW_CANDIDATES = [
+  ".github/workflows/trailhead.yml",
+  ".github/workflows/deployguard.yml",
+];
+const TARGET_VERSION = process.env.TRAILHEAD_ROLLOUT_VERSION || "4.3.0";
+const TARGET_REF = `@v${TARGET_VERSION}`; // @v4.3.0
+const LEGACY_STORE = "/api/deployguard/store";
+const CANONICAL_STORE = "/api/trailhead/store";
 
-// Read the desired action version from this repo's package.json so the script
-// stays in sync with the latest release tag.
-const PKG = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf8"));
-const ACTION_VERSION_MAJOR_MINOR =
-  process.env.TRAILHEAD_ROLLOUT_VERSION || PKG.version.split(".").slice(0, 2).join("."); // e.g. "4.3"
-const TARGET_REF = `@v${ACTION_VERSION_MAJOR_MINOR}`; // "@v4.3"
+/** Repos on legacy store URL — active fleet only. Retired: drift, floe, traverse, watchtower. */
+const REPOS = [
+  { name: "cairn" },
+  { name: "frontier" },
+  { name: "kindling" },
+  { name: "pack" },
+  { name: "slipstream" },
+  { name: "sundog" },
+  { name: "trace" },
+];
 
 const args = new Set(process.argv.slice(2));
 const apply = args.has("--apply");
@@ -99,219 +80,241 @@ function tryGh(ghArgs) {
   }
 }
 
-function getFile(org, name, ref, path) {
+function getRepoMeta(name) {
+  return JSON.parse(
+    gh(["api", `repos/${ORG}/${name}`, "--jq", "{default_branch, archived}"]),
+  );
+}
+
+function getFile(name, ref, path) {
   const res = tryGh([
     "api",
-    `repos/${org}/${name}/contents/${path}?ref=${ref}`,
+    `repos/${ORG}/${name}/contents/${path}?ref=${ref}`,
     "--jq",
     "{sha: .sha, content: .content}",
   ]);
   if (!res.ok) {
     if (/Not Found|404/.test(res.err)) return null;
-    throw new Error(`getFile ${org}/${name} ${path}: ${res.err}`);
+    throw new Error(`getFile ${name} ${path}: ${res.err}`);
   }
   const { sha, content: b64 } = JSON.parse(res.out);
-  return { sha, content: Buffer.from(b64, "base64").toString("utf8") };
+  return { sha, content: Buffer.from(b64, "base64").toString("utf8"), path };
 }
 
-function bumpWorkflowRef(content) {
-  // Trailhead Action uses (a) KomatikAI/trailhead@vX and (b) KomatikAI/deployguard@vX (legacy alias).
-  // Match either, only the @v<num> form (don't touch SHA pins or @v4.2.1 etc.).
-  const refRegex = /(uses:\s*KomatikAI\/(trailhead|deployguard))@v\d+(?:\.\d+)?(?!\.\d)/g;
-  let changed = false;
-  const patched = content.replace(refRegex, (_, prefix) => {
-    changed = true;
-    return `${prefix}${TARGET_REF}`;
+function findWorkflow(name, base) {
+  for (const path of WORKFLOW_CANDIDATES) {
+    const file = getFile(name, base, path);
+    if (file) return file;
+  }
+  return null;
+}
+
+function patchWorkflow(content) {
+  let actionChanged = false;
+  let storeChanged = false;
+
+  const actionRegex =
+    /(uses:\s*)(?:KomatikAI\/(?:trailhead|deployguard)|dschirmer-shiftkey\/deployguard)@[^\s#]+/g;
+  const nextAction = content.replace(actionRegex, (_, prefix) => {
+    actionChanged = true;
+    return `${prefix}${ACTION_REPO}${TARGET_REF}`;
   });
-  return { content: patched, changed };
+
+  const storeRegex = new RegExp(LEGACY_STORE.replace(/\//g, "\\/"), "g");
+  const nextStore = nextAction.replace(storeRegex, () => {
+    storeChanged = true;
+    return CANONICAL_STORE;
+  });
+
+  const alreadyPinned = new RegExp(
+    `${ACTION_REPO.replace("/", "\\/")}${TARGET_REF.replace(".", "\\.")}(?:\\s|$)`,
+  ).test(content);
+  const alreadyStore = !content.includes(LEGACY_STORE);
+
+  return {
+    content: nextStore,
+    actionChanged: actionChanged && !alreadyPinned,
+    storeChanged: storeChanged && !alreadyStore,
+    alreadyPinned,
+    alreadyStore,
+  };
 }
 
-function ensureConfigHasPreset(content) {
-  if (content === null) {
-    return {
-      content: [
-        "# Trailhead config — adopted v4.3 strict-agents preset",
-        "schema_version: 1",
-        `presets:`,
-        `  - "${PRESET_KEY}"`,
-        "",
-      ].join("\n"),
-      changed: true,
-      created: true,
-    };
-  }
-
-  if (
-    /^\s*-\s*["']?@trailhead\/strict-agents["']?\s*$/m.test(content) ||
-    /presets:\s*\[[^\]]*@trailhead\/strict-agents[^\]]*\]/.test(content)
-  ) {
-    return { content, changed: false, created: false };
-  }
-
-  if (/^presets:\s*$/m.test(content) || /^presets:\s*\n(?:\s+-\s+.*\n)+/m.test(content)) {
-    const next = content.replace(
-      /(^presets:\s*\n(?:\s+-\s+.*\n)*)/m,
-      (block) => `${block}  - "${PRESET_KEY}"\n`,
-    );
-    return { content: next, changed: next !== content, created: false };
-  }
-
-  const next =
-    content + (content.endsWith("\n") ? "" : "\n") + `presets:\n  - "${PRESET_KEY}"\n`;
-  return { content: next, changed: true, created: false };
-}
-
-function prBody(repo, plan) {
+function prBody(name, plan) {
   const lines = [
     "## Summary",
     "",
-    `Adopt Trailhead **v4.3** (\`${TARGET_REF}\`) and opt this repo into the strict-agent gate + remediation loop.`,
+    `Pin Trailhead to **${TARGET_REF}** and migrate the evaluation store URL to the canonical \`${CANONICAL_STORE}\` endpoint.`,
     "",
     "## What changes",
     "",
   ];
 
-  if (plan.workflowBumped) {
-    lines.push(`- Bump action ref in \`${WORKFLOW_PATH}\` to \`${TARGET_REF}\``);
+  if (plan.actionChanged) {
+    lines.push(
+      `- Bump action ref in \`${plan.workflowPath}\` to \`${ACTION_REPO}${TARGET_REF}\` (explicit tag; \`@v4\` remains on v4.2.2)`,
+    );
   }
-  if (plan.configCreated) {
-    lines.push(`- Create \`${CONFIG_PATH}\` opting into the \`${PRESET_KEY}\` preset`);
-  } else if (plan.presetAdded) {
-    lines.push(`- Add \`${PRESET_KEY}\` to \`${CONFIG_PATH}\` presets list`);
+  if (plan.storeChanged) {
+    lines.push(
+      `- Migrate \`evaluation-store-url\` from \`${LEGACY_STORE}\` → \`${CANONICAL_STORE}\` (alias already live on komatik.ai)`,
+    );
   }
 
   lines.push("");
-  lines.push("## Behavior change");
-  lines.push("");
-  lines.push("- **Human PRs:** unchanged (mode falls back to existing config)");
-  lines.push(
-    "- **Agent-provenance PRs:** strict thresholds (risk 40, max_files 30) and a structured Remediation block agents can act on. Up to 5 fix-and-retry rounds per PR.",
-  );
-  lines.push("");
-  lines.push("## Escape valve");
+  lines.push("## Why");
   lines.push("");
   lines.push(
-    "Label any PR with `trailhead-override` and add a comment matching `trailhead-override: <reason>` to bypass the gate. All overrides are audited.",
+    'v4.3.0 ships Phase A "Coach" (remediation schema, agent brief, semantic webhooks, loop bookkeeping). Explicit pin avoids the fleet-wide `@v4` tag move until deliberately approved.',
   );
   lines.push("");
   lines.push("## Rollback");
   lines.push("");
   lines.push(
-    `If anything goes sideways: revert this PR — Trailhead falls back to the previous \`@v4\` behavior immediately.`,
+    "Revert this PR to restore the previous action ref and store URL. The `/api/deployguard/store` alias remains until all consumers confirm migration.",
   );
   lines.push("");
   lines.push("## Context");
   lines.push("");
-  lines.push(`- Epic: ${ACTION_REPO}#223`);
   lines.push(
-    `- Roadmap: [\`docs/roadmap-v4.3-agent-autonomy.md\`](https://github.com/${ACTION_REPO}/blob/main/docs/roadmap-v4.3-agent-autonomy.md)`,
+    `- Release: [${TARGET_REF}](https://github.com/${ACTION_REPO}/releases/tag/${TARGET_VERSION})`,
+  );
+  lines.push(
+    `- Roadmap: [\`docs/roadmap-v4.3-agent-autonomy.md\`](https://github.com/${ACTION_REPO}/blob/main/docs/roadmap-v4.3-agent-autonomy.md) (A6)`,
   );
 
   return lines.join("\n");
 }
 
-function planRepo({ org, name, base }) {
-  const workflow = getFile(org, name, base, WORKFLOW_PATH);
-  if (!workflow) {
+function planRepo({ name }) {
+  const { default_branch: base, archived } = getRepoMeta(name);
+  if (archived) {
     return {
+      base,
       hasWorkflow: false,
       skip: true,
-      reason: "no .github/workflows/trailhead.yml",
+      reason: "repo archived — unarchive before opening rollout PR",
+      archived: true,
+    };
+  }
+  const workflow = findWorkflow(name, base);
+  if (!workflow) {
+    return {
+      base,
+      hasWorkflow: false,
+      skip: true,
+      reason: "no trailhead.yml or deployguard.yml workflow",
     };
   }
 
-  const bumpResult = bumpWorkflowRef(workflow.content);
-  const config = getFile(org, name, base, CONFIG_PATH);
-  const presetResult = ensureConfigHasPreset(config?.content ?? null);
-
-  const noop = !bumpResult.changed && !presetResult.changed;
+  const patch = patchWorkflow(workflow.content);
+  const noop = !patch.actionChanged && !patch.storeChanged;
 
   return {
+    base,
     hasWorkflow: true,
     skip: noop,
-    reason: noop ? "already adopted v4.3 + strict-agents preset" : null,
-    workflow: { ...workflow, ...bumpResult },
-    config: config ? { ...config, ...presetResult } : { sha: null, ...presetResult },
-    workflowBumped: bumpResult.changed,
-    presetAdded: !presetResult.created && presetResult.changed,
-    configCreated: presetResult.created,
+    reason: noop ? `already on ${TARGET_REF} + ${CANONICAL_STORE}` : null,
+    workflow: { ...workflow, content: patch.content },
+    workflowPath: workflow.path,
+    actionChanged: patch.actionChanged,
+    storeChanged: patch.storeChanged,
   };
 }
 
-async function applyRepo({ org, name, base }, plan) {
+async function applyRepo({ name }, plan) {
   const baseSha = gh([
     "api",
-    `repos/${org}/${name}/git/ref/heads/${base}`,
+    `repos/${ORG}/${name}/git/ref/heads/${plan.base}`,
     "--jq",
     ".object.sha",
   ]);
 
-  const refCreate = tryGh([
+  const branchExists = tryGh([
     "api",
-    `repos/${org}/${name}/git/refs`,
-    "-f",
-    `ref=refs/heads/${BRANCH}`,
-    "-f",
-    `sha=${baseSha}`,
+    `repos/${ORG}/${name}/git/ref/heads/${BRANCH}`,
+    "--jq",
+    ".object.sha",
   ]);
-  if (!refCreate.ok && !/Reference already exists/.test(refCreate.err)) {
-    throw new Error(`branch create ${org}/${name}: ${refCreate.err}`);
+
+  if (!branchExists.ok) {
+    const refCreate = tryGh([
+      "api",
+      `repos/${ORG}/${name}/git/refs`,
+      "-f",
+      `ref=refs/heads/${BRANCH}`,
+      "-f",
+      `sha=${baseSha}`,
+    ]);
+    if (!refCreate.ok && !/Reference already exists/.test(refCreate.err)) {
+      throw new Error(`branch create ${name}: ${refCreate.err}`);
+    }
   }
 
-  if (plan.workflowBumped) {
+  let fileSha = plan.workflow.sha;
+  let skipPut = false;
+  const onBranch = getFile(name, BRANCH, plan.workflowPath);
+  if (onBranch) {
+    fileSha = onBranch.sha;
+    if (onBranch.content === plan.workflow.content) {
+      skipPut = true;
+      const existingPr = tryGh([
+        "pr",
+        "list",
+        "--repo",
+        `${ORG}/${name}`,
+        "--head",
+        BRANCH,
+        "--state",
+        "open",
+        "--json",
+        "url",
+        "--jq",
+        ".[0].url",
+      ]);
+      if (existingPr.ok && existingPr.out) {
+        return { url: existingPr.out, reused: true };
+      }
+    }
+  }
+
+  if (!skipPut) {
     const encoded = Buffer.from(plan.workflow.content, "utf8").toString("base64");
+    const msgParts = [];
+    if (plan.actionChanged) msgParts.push(`pin ${TARGET_REF}`);
+    if (plan.storeChanged) msgParts.push("migrate store URL");
     gh([
       "api",
-      `repos/${org}/${name}/contents/${WORKFLOW_PATH}`,
+      `repos/${ORG}/${name}/contents/${plan.workflowPath}`,
       "-X",
       "PUT",
       "-f",
-      `message=chore(trailhead): bump action ref to ${TARGET_REF}`,
+      `message=chore(trailhead): ${msgParts.join(" + ")}`,
       "-f",
       `content=${encoded}`,
       "-f",
-      `sha=${plan.workflow.sha}`,
+      `sha=${fileSha}`,
       "-f",
       `branch=${BRANCH}`,
     ]);
   }
 
-  if (plan.presetAdded || plan.configCreated) {
-    const encoded = Buffer.from(plan.config.content, "utf8").toString("base64");
-    const args = [
-      "api",
-      `repos/${org}/${name}/contents/${CONFIG_PATH}`,
-      "-X",
-      "PUT",
-      "-f",
-      `message=chore(trailhead): opt in to ${PRESET_KEY} preset`,
-      "-f",
-      `content=${encoded}`,
-      "-f",
-      `branch=${BRANCH}`,
-    ];
-    if (plan.config.sha) {
-      args.push("-f", `sha=${plan.config.sha}`);
-    }
-    gh(args);
-  }
-
-  const prCreate = tryGh([
+  const title = "chore(trailhead): pin v4.3.0 and migrate evaluation store URL";
+  const prArgs = [
     "pr",
     "create",
     "--repo",
-    `${org}/${name}`,
+    `${ORG}/${name}`,
     "--base",
-    base,
+    plan.base,
     "--head",
     BRANCH,
     "--title",
-    "chore(trailhead): adopt v4.3 strict-agent gate + remediation loop",
-    "--label",
-    "trailhead-v4.3-rollout",
+    title,
     "--body",
     prBody(name, plan),
-  ]);
+  ];
+  const prCreate = tryGh(prArgs);
 
   if (!prCreate.ok) {
     if (/already exists/.test(prCreate.err)) {
@@ -319,7 +322,7 @@ async function applyRepo({ org, name, base }, plan) {
         "pr",
         "list",
         "--repo",
-        `${org}/${name}`,
+        `${ORG}/${name}`,
         "--head",
         BRANCH,
         "--state",
@@ -334,6 +337,16 @@ async function applyRepo({ org, name, base }, plan) {
     throw new Error(prCreate.err);
   }
 
+  tryGh([
+    "pr",
+    "edit",
+    prCreate.out.split("/").pop(),
+    "--repo",
+    `${ORG}/${name}`,
+    "--add-label",
+    "trailhead-v4.3-rollout",
+  ]);
+
   return { url: prCreate.out, reused: false };
 }
 
@@ -345,13 +358,13 @@ for (const repo of repos) {
     const plan = planRepo(repo);
 
     if (!plan.hasWorkflow) {
-      if (skipMissingWorkflow) {
-        console.log(`SKIP ${repo.name}: ${plan.reason}`);
-      } else {
-        console.log(
-          `MISSING ${repo.name}: ${plan.reason} (use --skip-missing-workflow to silence)`,
-        );
-      }
+      const tag = plan.archived ? "ARCHIVED" : skipMissingWorkflow ? "SKIP" : "MISSING";
+      const hint = plan.archived
+        ? ""
+        : skipMissingWorkflow
+          ? ""
+          : " (use --skip-missing-workflow to silence)";
+      console.log(`${tag} ${repo.name}: ${plan.reason}${hint}`);
       continue;
     }
 
@@ -362,10 +375,11 @@ for (const repo of repos) {
 
     if (!apply) {
       const parts = [];
-      if (plan.workflowBumped) parts.push(`bump workflow → ${TARGET_REF}`);
-      if (plan.configCreated) parts.push(`create ${CONFIG_PATH}`);
-      else if (plan.presetAdded) parts.push(`add ${PRESET_KEY} preset`);
-      console.log(`PLAN ${repo.name}: ${parts.join(" + ")}`);
+      if (plan.actionChanged) parts.push(`pin → ${TARGET_REF}`);
+      if (plan.storeChanged) parts.push(`store → ${CANONICAL_STORE}`);
+      console.log(
+        `PLAN ${repo.name} (base=${plan.base}, ${plan.workflowPath}): ${parts.join(" + ")}`,
+      );
       results.push({ repo: repo.name, planned: true });
       continue;
     }
@@ -384,7 +398,8 @@ const planned = results.filter((r) => r.planned);
 const failed = results.filter((r) => r.error);
 
 console.log("\n--- Summary ---");
-console.log(`Action ref: ${TARGET_REF}`);
+console.log(`Action ref: ${ACTION_REPO}${TARGET_REF}`);
+console.log(`Store URL:  ${CANONICAL_STORE}`);
 console.log(`Mode:       ${apply ? "APPLY" : "DRY-RUN"}`);
 console.log(`Repos seen: ${repos.length}`);
 console.log(`Planned:    ${planned.length}`);
