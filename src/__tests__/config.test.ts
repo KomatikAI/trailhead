@@ -19,6 +19,7 @@ vi.mock("@actions/github", () => ({
 import * as github from "@actions/github";
 import * as core from "@actions/core";
 import { loadRepoConfig, matchesGlobs } from "../config.js";
+import { parseRepoConfigContent } from "../config-core.js";
 import { RepoConfig } from "../types.js";
 
 function encodeYaml(yaml: string): string {
@@ -363,6 +364,25 @@ policies:
     expect(parsed.data.contexts[0].name).toBe("feature");
     expect(parsed.data.contexts[0].thresholds.risk).toBe(70);
     expect(parsed.data.contexts[0].ci.required_checks).toEqual(["CI Gate"]);
+  });
+
+  it("parses inline flow-style YAML arrays", () => {
+    const parsed = parseRepoConfigContent(`schema_version: 2
+gate:
+  mode: release-ready
+thresholds:
+  risk: 70
+  warn: 55
+contexts:
+  - name: main
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [CI Gate, Build]
+`);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.contexts[0].match.base_branch).toEqual(["main"]);
+    expect(parsed!.contexts[0].ci.required_checks).toEqual(["CI Gate", "Build"]);
   });
 
   it("defaults v1 schema without gate section", () => {

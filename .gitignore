@@ -17,6 +17,7 @@ out/
 .DS_Store
 coverage/
 cli/dist/
+cli/src/shared/
 .turbo/
 .firecrawl/
 
