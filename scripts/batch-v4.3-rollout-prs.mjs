@@ -63,8 +63,7 @@ const ACTION_REPO = "KomatikAI/trailhead";
 // stays in sync with the latest release tag.
 const PKG = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf8"));
 const ACTION_VERSION_MAJOR_MINOR =
-  process.env.TRAILHEAD_ROLLOUT_VERSION ||
-  PKG.version.split(".").slice(0, 2).join("."); // e.g. "4.3"
+  process.env.TRAILHEAD_ROLLOUT_VERSION || PKG.version.split(".").slice(0, 2).join("."); // e.g. "4.3"
 const TARGET_REF = `@v${ACTION_VERSION_MAJOR_MINOR}`; // "@v4.3"
 
 const args = new Set(process.argv.slice(2));
@@ -72,7 +71,13 @@ const apply = args.has("--apply");
 const skipMissingWorkflow = args.has("--skip-missing-workflow");
 const onlyArg = process.argv.find((a) => a.startsWith("--only="));
 const onlyList = onlyArg
-  ? new Set(onlyArg.replace("--only=", "").split(",").map((s) => s.trim()).filter(Boolean))
+  ? new Set(
+      onlyArg
+        .replace("--only=", "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    )
   : null;
 
 function gh(ghArgs) {
@@ -151,7 +156,8 @@ function ensureConfigHasPreset(content) {
     return { content: next, changed: next !== content, created: false };
   }
 
-  const next = content + (content.endsWith("\n") ? "" : "\n") + `presets:\n  - "${PRESET_KEY}"\n`;
+  const next =
+    content + (content.endsWith("\n") ? "" : "\n") + `presets:\n  - "${PRESET_KEY}"\n`;
   return { content: next, changed: true, created: false };
 }
 
@@ -178,20 +184,28 @@ function prBody(repo, plan) {
   lines.push("## Behavior change");
   lines.push("");
   lines.push("- **Human PRs:** unchanged (mode falls back to existing config)");
-  lines.push("- **Agent-provenance PRs:** strict thresholds (risk 40, max_files 30) and a structured Remediation block agents can act on. Up to 5 fix-and-retry rounds per PR.");
+  lines.push(
+    "- **Agent-provenance PRs:** strict thresholds (risk 40, max_files 30) and a structured Remediation block agents can act on. Up to 5 fix-and-retry rounds per PR.",
+  );
   lines.push("");
   lines.push("## Escape valve");
   lines.push("");
-  lines.push("Label any PR with `trailhead-override` and add a comment matching `trailhead-override: <reason>` to bypass the gate. All overrides are audited.");
+  lines.push(
+    "Label any PR with `trailhead-override` and add a comment matching `trailhead-override: <reason>` to bypass the gate. All overrides are audited.",
+  );
   lines.push("");
   lines.push("## Rollback");
   lines.push("");
-  lines.push(`If anything goes sideways: revert this PR — Trailhead falls back to the previous \`@v4\` behavior immediately.`);
+  lines.push(
+    `If anything goes sideways: revert this PR — Trailhead falls back to the previous \`@v4\` behavior immediately.`,
+  );
   lines.push("");
   lines.push("## Context");
   lines.push("");
   lines.push(`- Epic: ${ACTION_REPO}#223`);
-  lines.push(`- Roadmap: [\`docs/roadmap-v4.3-agent-autonomy.md\`](https://github.com/${ACTION_REPO}/blob/main/docs/roadmap-v4.3-agent-autonomy.md)`);
+  lines.push(
+    `- Roadmap: [\`docs/roadmap-v4.3-agent-autonomy.md\`](https://github.com/${ACTION_REPO}/blob/main/docs/roadmap-v4.3-agent-autonomy.md)`,
+  );
 
   return lines.join("\n");
 }
@@ -217,9 +231,7 @@ function planRepo({ org, name, base }) {
     skip: noop,
     reason: noop ? "already adopted v4.3 + strict-agents preset" : null,
     workflow: { ...workflow, ...bumpResult },
-    config: config
-      ? { ...config, ...presetResult }
-      : { sha: null, ...presetResult },
+    config: config ? { ...config, ...presetResult } : { sha: null, ...presetResult },
     workflowBumped: bumpResult.changed,
     presetAdded: !presetResult.created && presetResult.changed,
     configCreated: presetResult.created,
@@ -336,7 +348,9 @@ for (const repo of repos) {
       if (skipMissingWorkflow) {
         console.log(`SKIP ${repo.name}: ${plan.reason}`);
       } else {
-        console.log(`MISSING ${repo.name}: ${plan.reason} (use --skip-missing-workflow to silence)`);
+        console.log(
+          `MISSING ${repo.name}: ${plan.reason} (use --skip-missing-workflow to silence)`,
+        );
       }
       continue;
     }
@@ -379,7 +393,8 @@ console.log(`Failed:     ${failed.length}`);
 
 if (opened.length) {
   console.log("\n--- PRs ---");
-  for (const r of opened) console.log(`${r.repo}: ${r.url}${r.reused ? " (reused)" : ""}`);
+  for (const r of opened)
+    console.log(`${r.repo}: ${r.url}${r.reused ? " (reused)" : ""}`);
 }
 if (failed.length) {
   console.log("\n--- Failures ---");
