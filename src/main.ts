@@ -208,6 +208,14 @@ async function run(): Promise<void> {
         ? gateModeInput
         : undefined;
 
+    const agentBriefInput = core.getInput("agent-brief");
+    const agentBrief =
+      agentBriefInput === "off" ||
+      agentBriefInput === "collapsed" ||
+      agentBriefInput === "expanded"
+        ? agentBriefInput
+        : undefined;
+
     const trailheadApiKey = core.getInput("trailhead-api-key") || "";
     const evaluationStoreUrl = resolveEvaluationStoreUrl({
       trailheadApiKey: trailheadApiKey || undefined,
@@ -288,6 +296,7 @@ async function run(): Promise<void> {
       checkName: core.getInput("check-name") || undefined,
       ciManifest,
       ciManifestPath: ciManifestPath || undefined,
+      agentBrief,
     };
 
     if (policyOverride?.changes.riskThreshold !== undefined) {

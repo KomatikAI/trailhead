@@ -9,7 +9,9 @@
 import type { z } from "zod";
 import { RemediationFix as RemediationFixSchema } from "./types.js";
 import type {
+  AgentBriefMode,
   GateEvaluation,
+  PrProvenance,
   Remediation,
   RemediationAutofixClass,
   RemediationNextAction,
@@ -369,3 +371,108 @@ export const SUGGESTED_COMMANDS = {
   lint: SUGGESTED_LINT_COMMAND,
   format: SUGGESTED_FORMAT_COMMAND,
 };
+
+export function resolveAgentBriefMode(input: {
+  actionSetting?: AgentBriefMode;
+  repoSetting?: AgentBriefMode;
+  provenanceType?: PrProvenance["type"];
+}): AgentBriefMode {
+  if (input.actionSetting) return input.actionSetting;
+  if (input.repoSetting) return input.repoSetting;
+  if (input.provenanceType === "human") return "off";
+  return "collapsed";
+}
+
+function formatFixListItem(fix: RemediationFix, index?: number): string[] {
+  const prefix =
+    index !== undefined
+      ? `${index + 1}. **\`${fix.code}\` — ${fix.title}**`
+      : `- \`${fix.code}\` — ${fix.title}`;
+  const lines = [prefix];
+  if (fix.files.length > 0) {
+    lines.push(
+      `   - Files: ${fix.files
+        .slice(0, 8)
+        .map((f) => `\`${f}\``)
+        .join(", ")}${fix.files.length > 8 ? ", …" : ""}`,
+    );
+  }
+  if (fix.suggested_action) {
+    lines.push(`   - Fix: ${fix.suggested_action}`);
+  }
+  if (fix.suggested_command) {
+    lines.push(`   - Command: \`${fix.suggested_command}\``);
+  }
+  return lines;
+}
+
+export function formatAgentBrief(remediation: Remediation, mode: AgentBriefMode): string {
+  if (mode === "off") return "";
+
+  const summaryParts: string[] = [];
+  if (remediation.blocking_count > 0) {
+    summaryParts.push(`${remediation.blocking_count} blocking`);
+  }
+  if (remediation.warn_count > 0) {
+    summaryParts.push(`${remediation.warn_count} warn`);
+  }
+  if (summaryParts.length === 0 && remediation.advisory_count > 0) {
+    summaryParts.push(`${remediation.advisory_count} advisory`);
+  }
+  const summaryLabel = summaryParts.length > 0 ? summaryParts.join(", ") : "no issues";
+  const title = `🤖 Agent instructions (${summaryLabel})`;
+
+  const bodyLines: string[] = [
+    "```json",
+    JSON.stringify(remediation, null, 2),
+    "```",
+    "",
+  ];
+
+  const blocking = remediation.fixes.filter((f) => f.severity === "blocking");
+  const warn = remediation.fixes.filter((f) => f.severity === "warn");
+  const advisory = remediation.fixes.filter((f) => f.severity === "advisory");
+
+  if (blocking.length > 0) {
+    bodyLines.push("**Blocking:**");
+    blocking.forEach((fix, index) => {
+      bodyLines.push(...formatFixListItem(fix, index));
+    });
+    bodyLines.push("");
+  }
+
+  if (warn.length > 0) {
+    bodyLines.push("**Warn (non-blocking):**");
+    for (const fix of warn) {
+      bodyLines.push(...formatFixListItem(fix));
+    }
+    bodyLines.push("");
+  }
+
+  if (advisory.length > 0 && mode === "expanded") {
+    bodyLines.push("**Advisory:**");
+    for (const fix of advisory) {
+      bodyLines.push(...formatFixListItem(fix));
+    }
+    bodyLines.push("");
+  }
+
+  if (remediation.fixes.length === 0 && remediation.release_ready) {
+    bodyLines.push(
+      "No remediation items — this PR is ready to merge under current policy.",
+      "",
+    );
+  }
+
+  bodyLines.push(
+    `**Loop:** round ${remediation.loop_round} of ${remediation.max_loop_rounds} · **Next action:** \`${remediation.next_action}\``,
+  );
+
+  const body = bodyLines.join("\n");
+
+  if (mode === "expanded") {
+    return `### ${title}\n\n${body}`;
+  }
+
+  return `<details><summary><strong>${title}</strong></summary>\n\n${body}\n\n</details>`;
+}

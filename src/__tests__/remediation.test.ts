@@ -1,4 +1,8 @@
-import { buildRemediation } from "../remediation.js";
+import {
+  buildRemediation,
+  formatAgentBrief,
+  resolveAgentBriefMode,
+} from "../remediation.js";
 import { Remediation } from "../types.js";
 import type { GateEvaluation, RiskFactor } from "../types.js";
 
@@ -301,6 +305,72 @@ describe("buildRemediation", () => {
         }),
       });
       expect(remediation.next_action).toBe("human_review_required");
+    });
+  });
+
+  describe("resolveAgentBriefMode", () => {
+    it("defaults to off for human provenance", () => {
+      expect(resolveAgentBriefMode({ provenanceType: "human" })).toBe("off");
+    });
+
+    it("defaults to collapsed for agent provenance", () => {
+      expect(resolveAgentBriefMode({ provenanceType: "claude" })).toBe("collapsed");
+      expect(resolveAgentBriefMode({ provenanceType: "unknown" })).toBe("collapsed");
+    });
+
+    it("prefers action input over repo setting and provenance default", () => {
+      expect(
+        resolveAgentBriefMode({
+          actionSetting: "expanded",
+          repoSetting: "off",
+          provenanceType: "human",
+        }),
+      ).toBe("expanded");
+    });
+
+    it("uses repo setting when action input is absent", () => {
+      expect(
+        resolveAgentBriefMode({
+          repoSetting: "expanded",
+          provenanceType: "human",
+        }),
+      ).toBe("expanded");
+    });
+  });
+
+  describe("formatAgentBrief", () => {
+    it("returns empty string when mode is off", () => {
+      const remediation = buildRemediation({ evaluation: evaluationFixture() });
+      expect(formatAgentBrief(remediation, "off")).toBe("");
+    });
+
+    it("renders collapsed details with JSON block and blocking fixes", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          riskFactors: [factor("test_coverage", 80, { missing_tests: ["src/foo.ts"] })],
+        }),
+      });
+      const brief = formatAgentBrief(remediation, "collapsed");
+      expect(brief).toContain("<details>");
+      expect(brief).toContain("Agent instructions");
+      expect(brief).toContain('"schema": "trailhead.remediation.v1"');
+      expect(brief).toContain("risk.test_coverage");
+      expect(brief).toContain("fix_and_retry");
+    });
+
+    it("renders expanded section without details wrapper", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          riskFactors: [factor("test_coverage", 80, { missing_tests: ["src/foo.ts"] })],
+        }),
+      });
+      const brief = formatAgentBrief(remediation, "expanded");
+      expect(brief).not.toContain("<details>");
+      expect(brief).toContain("### 🤖 Agent instructions");
     });
   });
 });

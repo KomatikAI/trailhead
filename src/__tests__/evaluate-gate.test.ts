@@ -147,6 +147,14 @@ describe("evaluateGate (integration)", () => {
     expect(typeof result.trust_profile?.reason).toBe("string");
   });
 
+  it("populates remediation block and agentBriefMode in evaluation payload", async () => {
+    const config = makeConfig({ githubToken: "ghp_test" });
+    const result = await evaluateGate(config, "abc1234567890", 42);
+    expect(result.remediation).toBeDefined();
+    expect(result.remediation?.schema).toBe("trailhead.remediation.v1");
+    expect(result.agentBriefMode).toBe("off");
+  });
+
   it("respects custom warn threshold", async () => {
     const config = makeConfig({
       githubToken: "ghp_test",
