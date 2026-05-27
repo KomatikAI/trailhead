@@ -263,6 +263,36 @@ describe("buildRemediation", () => {
       expect(remediation.previous_evaluation_id).toBe("eval-0");
     });
 
+    it("auto-increments loop_round from previous evaluation when loopRound omitted", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          riskFactors: [factor("test_coverage", 80, { missing_tests: ["src/x.ts"] })],
+        }),
+        previousEvaluation: {
+          id: "eval-2",
+          remediation: {
+            schema: "trailhead.remediation.v1",
+            release_ready: false,
+            fixes: [],
+            blocking_count: 1,
+            warn_count: 0,
+            advisory_count: 0,
+            autofix_eligible_count: 0,
+            loop_round: 2,
+            max_loop_rounds: 3,
+            fixes_resolved: [],
+            fixes_introduced: [],
+            next_action: "fix_and_retry",
+          },
+        },
+      });
+
+      expect(remediation.loop_round).toBe(3);
+      expect(remediation.previous_evaluation_id).toBe("eval-2");
+    });
+
     it("returns max_rounds_exceeded when loop hits cap with blocking issues", () => {
       const remediation = buildRemediation({
         evaluation: evaluationFixture({

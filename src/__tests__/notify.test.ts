@@ -257,6 +257,8 @@ describe("storeEvaluation", () => {
     const row = JSON.parse(vi.mocked(fetch).mock.calls[4][1]!.body as string);
     expect(row.gate_decision).toBe("block");
     expect(row.risk_score).toBe(85);
+    expect(row.loop_round).toBe(0);
+    expect(row.fixes_resolved).toEqual([]);
     vi.useRealTimers();
   });
 

@@ -165,7 +165,12 @@ export interface CloudStore {
   ): import("./feedback-core.js").DetectorFeedbackRecord[];
   listOrgs(): OrgRecord[];
   listRepos(orgId: string): RepoRecord[];
-  listEvaluations(orgId: string, repoId?: string, limit?: number): StoredEvaluation[];
+  listEvaluations(
+    orgId: string,
+    repoId?: string,
+    limit?: number,
+    prNumber?: number,
+  ): StoredEvaluation[];
   getEvaluation(orgId: string, id: string): StoredEvaluation | null;
   listAllEvaluations(orgId: string): StoredEvaluation[];
   listDeployEvents(orgId: string): Array<{ orgId: string; payload: DeployEventPayload }>;

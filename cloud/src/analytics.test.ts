@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDashboardAnalytics,
+  computeAgentLoopEfficiency,
   computeCiFailureCorrelation,
   computeReleaseReadyStats,
   computeRiskTrend,
@@ -110,5 +111,42 @@ describe("analytics", () => {
     expect(bundle.riskTrend.length).toBeGreaterThan(0);
     expect(bundle.releaseReady.pass).toBe(1);
     expect(bundle.cfr.successes).toBe(1);
+    expect(bundle.agentLoopEfficiency.agents).toEqual([]);
+  });
+
+  it("computes agent loop efficiency by agent branch", () => {
+    const rows = [
+      evalRow({
+        id: "ready-1",
+        releaseReady: true,
+        gateDecision: "allow",
+        pr: { headRef: "agent/frontend-dev/fix-nav" },
+        remediation: {
+          loop_round: 2,
+          next_action: "ready_to_merge",
+        },
+      }),
+      evalRow({
+        id: "block-1",
+        releaseReady: false,
+        gateDecision: "block",
+        pr: { headRef: "agent/frontend-dev/fix-nav" },
+        remediation: {
+          loop_round: 1,
+          next_action: "fix_and_retry",
+        },
+      }),
+    ];
+
+    const panel = computeAgentLoopEfficiency(rows, {
+      days: 30,
+      now: new Date("2026-05-22"),
+    });
+
+    expect(panel.agents).toHaveLength(1);
+    expect(panel.agents[0].agentId).toBe("frontend-dev");
+    expect(panel.agents[0].readyCount).toBe(1);
+    expect(panel.agents[0].blockedCount).toBe(1);
+    expect(panel.agents[0].medianRoundsToReady).toBe(2);
   });
 });

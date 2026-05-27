@@ -148,9 +148,14 @@ export function createCloudApp(options: CloudAppOptions = {}): Hono {
   app.get("/v1/evaluations", (c) => {
     const orgId = c.get("orgId") as string;
     const repoId = c.req.query("repo_id");
+    const prNumberRaw = c.req.query("pr_number");
     const limitRaw = c.req.query("limit");
     const limit = limitRaw ? parseInt(limitRaw, 10) : 100;
-    const rows = store.listEvaluations(orgId, repoId, limit);
+    const prNumber =
+      prNumberRaw && Number.isFinite(parseInt(prNumberRaw, 10))
+        ? parseInt(prNumberRaw, 10)
+        : undefined;
+    const rows = store.listEvaluations(orgId, repoId, limit, prNumber);
     return c.json({ evaluations: rows, count: rows.length });
   });
 
@@ -184,12 +189,27 @@ export function createCloudApp(options: CloudAppOptions = {}): Hono {
     return c.json({
       ...analytics,
       recentEvaluations,
+      agentLoopEfficiency: analytics.agentLoopEfficiency,
       detectorNoise: noise,
       tuningProposal: {
         ...tuning,
         yamlSnippet: generateTuningYaml(tuning.recommendations, repoId || undefined),
       },
     });
+  });
+
+  app.get("/v1/analytics/agent-loop-efficiency", (c) => {
+    const orgId = c.get("orgId") as string;
+    const repoId = c.req.query("repo_id");
+    const daysRaw = c.req.query("days");
+    const days = daysRaw ? parseInt(daysRaw, 10) : 30;
+    const windowDays = Number.isFinite(days) && days > 0 ? days : 30;
+    const analytics = buildDashboardAnalytics(
+      store.listAllEvaluations(orgId),
+      store.listDeployEvents(orgId),
+      { repoId: repoId || undefined, days: windowDays },
+    );
+    return c.json({ agentLoopEfficiency: analytics.agentLoopEfficiency });
   });
 
   app.post("/v1/feedback", async (c) => {

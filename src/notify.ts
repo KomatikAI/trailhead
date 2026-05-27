@@ -271,20 +271,7 @@ async function storeViaSupabase(evaluation: GateEvaluation): Promise<boolean> {
 
   const restUrl = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`;
 
-  const row = {
-    id: evaluation.id,
-    repo_id: evaluation.repoId,
-    commit_sha: evaluation.commitSha,
-    pr_number: evaluation.prNumber ?? null,
-    health_score: evaluation.healthScore,
-    risk_score: evaluation.riskScore,
-    gate_decision: evaluation.gateDecision,
-    health_checks: evaluation.healthChecks,
-    risk_factors: evaluation.riskFactors,
-    files: evaluation.files ?? null,
-    evaluation_ms: evaluation.evaluationMs,
-    report_url: evaluation.reportUrl ?? null,
-  };
+  const row = buildEvaluationStoreRow(evaluation);
 
   const response = await fetch(restUrl, {
     method: "POST",
@@ -306,6 +293,33 @@ async function storeViaSupabase(evaluation: GateEvaluation): Promise<boolean> {
   const body = await response.text().catch(() => "");
   core.warning(`Supabase direct insert failed (HTTP ${response.status}): ${body}`);
   return false;
+}
+
+export function buildEvaluationStoreRow(
+  evaluation: GateEvaluation,
+): Record<string, unknown> {
+  const remediation = evaluation.remediation;
+  return {
+    id: evaluation.id,
+    repo_id: evaluation.repoId,
+    commit_sha: evaluation.commitSha,
+    pr_number: evaluation.prNumber ?? null,
+    health_score: evaluation.healthScore,
+    risk_score: evaluation.riskScore,
+    gate_decision: evaluation.gateDecision,
+    health_checks: evaluation.healthChecks,
+    risk_factors: evaluation.riskFactors,
+    files: evaluation.files ?? null,
+    evaluation_ms: evaluation.evaluationMs,
+    report_url: evaluation.reportUrl ?? null,
+    release_ready: evaluation.releaseReady ?? null,
+    remediation: remediation ?? null,
+    loop_round: remediation?.loop_round ?? 0,
+    previous_evaluation_id: remediation?.previous_evaluation_id ?? null,
+    fixes_resolved: remediation?.fixes_resolved ?? [],
+    fixes_introduced: remediation?.fixes_introduced ?? [],
+    pr: evaluation.pr ?? null,
+  };
 }
 
 export async function storeEvaluation(

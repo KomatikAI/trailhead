@@ -231,6 +231,93 @@ export function computeCfrStats(
   };
 }
 
+export interface AgentLoopEfficiencyRow {
+  agentId: string;
+  evaluations: number;
+  readyCount: number;
+  blockedCount: number;
+  medianRoundsToReady: number | null;
+}
+
+export interface AgentLoopEfficiencyPanel {
+  windowDays: number;
+  repoId: string | null;
+  agents: AgentLoopEfficiencyRow[];
+  fleetMedianRoundsToReady: number | null;
+}
+
+function parseAgentIdFromHeadRef(headRef: string | undefined): string | null {
+  if (!headRef) return null;
+  const match = headRef.match(/^agent\/([a-z0-9-]+)\//);
+  return match?.[1] ?? null;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 10) / 10
+    : sorted[mid];
+}
+
+export function computeAgentLoopEfficiency(
+  rows: StoredEvaluation[],
+  options: AnalyticsOptions,
+): AgentLoopEfficiencyPanel {
+  const filtered = filterEvaluations(rows, options);
+  const buckets = new Map<string, { ready: number; blocked: number; rounds: number[] }>();
+
+  for (const row of filtered) {
+    const headRef =
+      typeof row.pr === "object" &&
+      row.pr !== null &&
+      "headRef" in row.pr &&
+      typeof row.pr.headRef === "string"
+        ? row.pr.headRef
+        : undefined;
+    const agentId = parseAgentIdFromHeadRef(headRef);
+    if (!agentId) continue;
+
+    const remediation = row.remediation as
+      | { loop_round?: number; next_action?: string }
+      | undefined;
+    const bucket = buckets.get(agentId) ?? { ready: 0, blocked: 0, rounds: [] };
+
+    if (row.releaseReady === true || remediation?.next_action === "ready_to_merge") {
+      bucket.ready += 1;
+      if (typeof remediation?.loop_round === "number") {
+        bucket.rounds.push(remediation.loop_round);
+      }
+    } else if (row.gateDecision === "block") {
+      bucket.blocked += 1;
+    }
+
+    buckets.set(agentId, bucket);
+  }
+
+  const agents = [...buckets.entries()]
+    .map(([agentId, stats]) => ({
+      agentId,
+      evaluations: stats.ready + stats.blocked,
+      readyCount: stats.ready,
+      blockedCount: stats.blocked,
+      medianRoundsToReady: median(stats.rounds),
+    }))
+    .sort((a, b) => a.agentId.localeCompare(b.agentId));
+
+  const fleetRounds = agents.flatMap((row) =>
+    row.medianRoundsToReady === null ? [] : [row.medianRoundsToReady],
+  );
+
+  return {
+    windowDays: options.days,
+    repoId: options.repoId ?? null,
+    agents,
+    fleetMedianRoundsToReady: median(fleetRounds),
+  };
+}
+
 export interface DashboardAnalytics {
   windowDays: number;
   repoId: string | null;
@@ -239,6 +326,7 @@ export interface DashboardAnalytics {
   ciCorrelation: CiFailureCorrelation;
   dora: DoraProxyPanel;
   cfr: CfrStats;
+  agentLoopEfficiency: AgentLoopEfficiencyPanel;
 }
 
 export function buildDashboardAnalytics(
@@ -254,5 +342,6 @@ export function buildDashboardAnalytics(
     ciCorrelation: computeCiFailureCorrelation(evaluations, options),
     dora: computeDoraProxy(evaluations, deployEvents, options),
     cfr: computeCfrStats(deployEvents, options),
+    agentLoopEfficiency: computeAgentLoopEfficiency(evaluations, options),
   };
 }

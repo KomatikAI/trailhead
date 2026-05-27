@@ -245,10 +245,18 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
         .sort((a, b) => a.fullName.localeCompare(b.fullName));
     },
 
-    listEvaluations(orgId: string, repoId?: string, limit = 100): StoredEvaluation[] {
+    listEvaluations(
+      orgId: string,
+      repoId?: string,
+      limit = 100,
+      prNumber?: number,
+    ): StoredEvaluation[] {
       let rows = [...evaluations.values()].filter((e) => e.orgId === orgId);
       if (repoId) {
         rows = rows.filter((e) => e.repoId === repoId);
+      }
+      if (prNumber !== undefined) {
+        rows = rows.filter((e) => e.prNumber === prNumber);
       }
       rows.sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
       return rows.slice(0, limit);
