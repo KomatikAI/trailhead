@@ -55,6 +55,9 @@ export type PrProvenance = z.infer<typeof PrProvenance>;
 export const GateMode = z.enum(["release-ready", "advisory", "risk-only"]);
 export type GateMode = z.infer<typeof GateMode>;
 
+export const AgentBriefMode = z.enum(["off", "collapsed", "expanded"]);
+export type AgentBriefMode = z.infer<typeof AgentBriefMode>;
+
 export const CiCheckStatusEnum = z.enum([
   "pass",
   "fail",
@@ -206,6 +209,7 @@ export const GateEvaluation = z.object({
   gateMode: GateMode.optional(),
   storePersisted: z.boolean().optional(),
   remediation: Remediation.optional(),
+  agentBriefMode: AgentBriefMode.optional(),
   cross_repo_impact: z
     .object({
       services: z.array(
@@ -336,12 +340,20 @@ export type TrailheadContext = z.infer<typeof TrailheadContext>;
 export const GateConfig = z.object({
   mode: GateMode.default("risk-only"),
   check_name: z.string().default("Trailhead — Release Ready"),
+  agent_brief: AgentBriefMode.optional(),
 });
 export type GateConfig = z.infer<typeof GateConfig>;
+
+export const RemediationConfig = z.object({
+  enabled: z.boolean().default(true),
+  max_loop_rounds: z.number().int().min(0).default(3),
+});
+export type RemediationConfig = z.infer<typeof RemediationConfig>;
 
 export const RepoConfig = z.object({
   schema_version: z.number().int().positive().default(1),
   gate: GateConfig.default({}),
+  remediation: RemediationConfig.optional(),
   contexts: z.array(TrailheadContext).default([]),
   sensitivity: z
     .object({
@@ -469,6 +481,7 @@ export interface TrailheadConfig {
   checkName?: string;
   ciManifest?: CiManifest | null;
   ciManifestPath?: string;
+  agentBrief?: AgentBriefMode;
 }
 
 export interface TestRepairResult {

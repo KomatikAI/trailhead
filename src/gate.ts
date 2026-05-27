@@ -50,6 +50,11 @@ import {
   type RiskFactorResult,
 } from "./risk-engine.js";
 import { fetchCodeScanningAlerts, computeSecurityRiskFactor } from "./security.js";
+import {
+  buildRemediation,
+  formatAgentBrief,
+  resolveAgentBriefMode,
+} from "./remediation.js";
 
 export {
   isSensitiveFile,
@@ -1889,6 +1894,30 @@ export async function evaluateGate(
     });
   }
 
+  const remediationSettings = repoConfig?.remediation;
+  const agentBriefMode = resolveAgentBriefMode({
+    actionSetting: config.agentBrief,
+    repoSetting: repoConfig?.gate?.agent_brief,
+    provenanceType: localEvaluation.pr?.provenance?.type,
+  });
+  localEvaluation.agentBriefMode = agentBriefMode;
+
+  const remediationEnabled = remediationSettings?.enabled !== false;
+  if (remediationEnabled) {
+    localEvaluation.remediation = buildRemediation({
+      evaluation: {
+        id: localEvaluation.id,
+        riskFactors: localEvaluation.riskFactors,
+        ci: localEvaluation.ci,
+        releaseReady: localEvaluation.releaseReady,
+        releaseReadyReasons: localEvaluation.releaseReadyReasons,
+        policyFindings: localEvaluation.policyFindings,
+        gateDecision: localEvaluation.gateDecision,
+      },
+      maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
+    });
+  }
+
   return localEvaluation;
 }
 
@@ -2430,6 +2459,16 @@ export function formatGateReport(
 
     if (riskThreshold !== undefined) {
       lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+    }
+  }
+
+  if (evaluation.remediation && evaluation.agentBriefMode !== "off") {
+    const brief = formatAgentBrief(
+      evaluation.remediation,
+      evaluation.agentBriefMode ?? "collapsed",
+    );
+    if (brief) {
+      lines.push(brief, ``);
     }
   }
 

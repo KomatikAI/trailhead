@@ -17,6 +17,7 @@ import {
   requestHighRiskReviewers,
   formatGateReport,
 } from "../gate.js";
+import { buildRemediation } from "../remediation.js";
 import type { GateEvaluation } from "../types.js";
 
 const {
@@ -876,6 +877,58 @@ describe("formatGateReport", () => {
     const report = formatGateReport(evaluation);
     expect(report).toContain("Suggested split");
     expect(report).toContain("separate PR");
+  });
+
+  it("includes collapsed agent brief when remediation and agentBriefMode are set", () => {
+    const remediation = buildRemediation({
+      evaluation: {
+        id: "eval-1",
+        riskFactors: [
+          {
+            type: "test_coverage",
+            score: 80,
+            detail: { missing_tests: ["src/foo.ts"] },
+          },
+        ],
+        gateDecision: "block",
+        releaseReady: false,
+      },
+    });
+    const evaluation: GateEvaluation = {
+      ...baseEvaluation,
+      gateDecision: "block",
+      agentBriefMode: "collapsed",
+      remediation,
+      pr: {
+        provenance: { type: "claude", confidence: 0.9, source: "branch:claude/foo" },
+      },
+    };
+    const report = formatGateReport(evaluation);
+    expect(report).toContain("Agent instructions");
+    expect(report).toContain("<details>");
+    expect(report).toContain("risk.test_coverage");
+    expect(report).toContain('"schema": "trailhead.remediation.v1"');
+  });
+
+  it("omits agent brief for human provenance when agentBriefMode is off", () => {
+    const remediation = buildRemediation({
+      evaluation: {
+        id: "eval-1",
+        riskFactors: [],
+        gateDecision: "allow",
+        releaseReady: true,
+      },
+    });
+    const evaluation: GateEvaluation = {
+      ...baseEvaluation,
+      agentBriefMode: "off",
+      remediation,
+      pr: {
+        provenance: { type: "human", confidence: 0.95, source: "author:david" },
+      },
+    };
+    const report = formatGateReport(evaluation);
+    expect(report).not.toContain("Agent instructions");
   });
 });
 
