@@ -87,10 +87,13 @@ function makeConfig(overrides: Partial<TrailheadConfig> = {}): TrailheadConfig {
 describe("evaluateGate (integration)", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    // Avoid loading repo .trailhead.yml on CI (GITHUB_WORKSPACE is set there).
+    vi.stubEnv("GITHUB_WORKSPACE", "");
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it("returns a complete GateEvaluation for a PR with no health URL", async () => {
