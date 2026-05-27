@@ -140,8 +140,12 @@ async function storeViaApiOnce(
   };
 }
 
-async function storeViaApi(url: string, evaluation: GateEvaluation): Promise<boolean> {
-  const maxAttempts = STORE_RETRY_BACKOFF_MS.length + 1;
+async function storeViaApi(
+  url: string,
+  evaluation: GateEvaluation,
+  maxRetries = 3,
+): Promise<boolean> {
+  const maxAttempts = maxRetries + 1;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
@@ -218,9 +222,11 @@ async function storeViaSupabase(evaluation: GateEvaluation): Promise<boolean> {
 export async function storeEvaluation(
   url: string,
   evaluation: GateEvaluation,
+  options: { maxRetries?: number } = {},
 ): Promise<boolean> {
+  const maxRetries = options.maxRetries ?? 3;
   try {
-    const stored = await storeViaApi(url, evaluation);
+    const stored = await storeViaApi(url, evaluation, maxRetries);
     if (stored) return true;
   } catch (error) {
     core.warning(`Evaluation store API failed: ${error}`);

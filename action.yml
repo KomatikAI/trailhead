@@ -87,6 +87,10 @@ inputs:
     description: "Bearer token for authenticating with the evaluation store endpoint. Not needed when trailhead-api-key is set."
     required: false
     default: ""
+  evaluation-store-retries:
+    description: "Number of retry attempts when POST to evaluation-store-url fails with transient errors (default 3)."
+    required: false
+    default: "3"
   dora-metrics:
     description: "Compute DORA-5 metrics (deployment frequency, change failure rate, lead time, FDRT, rework rate) alongside the gate evaluation."
     required: false

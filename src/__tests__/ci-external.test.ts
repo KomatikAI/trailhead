@@ -96,9 +96,12 @@ describe("resolveCiManifests", () => {
   it("merges GitLab adapter results with file manifest", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(
-        new Response(JSON.stringify([{ id: 42, sha: "abc1234567890", status: "success" }]), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify([{ id: 42, sha: "abc1234567890", status: "success" }]),
+          {
+            status: 200,
+          },
+        ),
       )
       .mockResolvedValueOnce(
         new Response(
@@ -116,9 +119,9 @@ describe("resolveCiManifests", () => {
       gitlabApiUrl: "https://gitlab.example/api/v4",
     });
 
-    expect(manifest?.jobs.some((job) => job.name === "lint" && job.outcome === "passed")).toBe(
-      true,
-    );
+    expect(
+      manifest?.jobs.some((job) => job.name === "lint" && job.outcome === "passed"),
+    ).toBe(true);
   });
 });
 

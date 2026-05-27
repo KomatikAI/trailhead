@@ -69,7 +69,11 @@ export function parseYaml(input: string): unknown {
           const useArray =
             nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
           child[itemKey] = useArray ? [] : {};
-          if (!useArray && typeof child[itemKey] === "object" && child[itemKey] !== null) {
+          if (
+            !useArray &&
+            typeof child[itemKey] === "object" &&
+            child[itemKey] !== null
+          ) {
             stack.push({ indent, value: child[itemKey] });
           }
         } else {
@@ -109,9 +113,7 @@ export function parseYaml(input: string): unknown {
       if (trimmedVal.startsWith("[") && trimmedVal.endsWith("]")) {
         const inner = trimmedVal.slice(1, -1).trim();
         (container as Record<string, unknown>)[key] =
-          inner === ""
-            ? []
-            : inner.split(",").map((item) => parseScalar(item.trim()));
+          inner === "" ? [] : inner.split(",").map((item) => parseScalar(item.trim()));
         continue;
       }
       (container as Record<string, unknown>)[key] = parseScalar(rawVal);

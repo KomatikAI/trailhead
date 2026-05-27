@@ -40934,10 +40934,40 @@ function parseYaml(input) {
                 const child = {};
                 container.push(child);
                 stack.push({ indent, value: child });
+                continue;
             }
-            else {
-                container.push(parseScalar(itemRaw));
+            const itemKeyMatch = itemRaw.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+            if (itemKeyMatch) {
+                const child = {};
+                const [, itemKey, itemVal] = itemKeyMatch;
+                if (itemVal === "") {
+                    const nextLine = findNextSignificantLine(i);
+                    const nextIndent = nextLine?.match(/^ */)?.[0].length ?? -1;
+                    const nextTrimmed = nextLine?.trim() ?? "";
+                    const useArray = nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
+                    child[itemKey] = useArray ? [] : {};
+                    if (!useArray && typeof child[itemKey] === "object" && child[itemKey] !== null) {
+                        stack.push({ indent, value: child[itemKey] });
+                    }
+                }
+                else {
+                    const trimmedVal = itemVal.trim();
+                    if (trimmedVal.startsWith("[") && trimmedVal.endsWith("]")) {
+                        const inner = trimmedVal.slice(1, -1).trim();
+                        child[itemKey] =
+                            inner === ""
+                                ? []
+                                : inner.split(",").map((item) => parseScalar(item.trim()));
+                    }
+                    else {
+                        child[itemKey] = parseScalar(itemVal);
+                    }
+                }
+                container.push(child);
+                stack.push({ indent, value: child });
+                continue;
             }
+            container.push(parseScalar(itemRaw));
             continue;
         }
         const keyMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
@@ -40949,6 +40979,15 @@ function parseYaml(input) {
         }
         const [, key, rawVal] = keyMatch;
         if (rawVal !== "") {
+            const trimmedVal = rawVal.trim();
+            if (trimmedVal.startsWith("[") && trimmedVal.endsWith("]")) {
+                const inner = trimmedVal.slice(1, -1).trim();
+                container[key] =
+                    inner === ""
+                        ? []
+                        : inner.split(",").map((item) => parseScalar(item.trim()));
+                continue;
+            }
             container[key] = parseScalar(rawVal);
             continue;
         }
@@ -43744,6 +43783,9 @@ async function createCheckRun(evaluation, report, token, checkName) {
             output: {
                 title: `${name}: ${titleSuffix}`,
                 summary: report,
+                ...(evaluation.storePersisted === false
+                    ? { text: "Evaluation not persisted — dashboard incomplete." }
+                    : {}),
             },
         });
     }
@@ -44013,6 +44055,23 @@ function buildFactorChart(factors) {
     }
     return lines;
 }
+function wrapCollapsibleSection(title, body) {
+    const trimmed = body.trim();
+    if (!trimmed)
+        return "";
+    return `<details><summary><strong>${title}</strong></summary>\n\n${trimmed}\n\n</details>`;
+}
+function formatCiCheckCell(check) {
+    const req = check.required ? " *(required)*" : "";
+    if (check.detailsUrl &&
+        (check.status === "fail" ||
+            check.status === "missing" ||
+            check.status === "stale" ||
+            check.status === "pending")) {
+        return `[${check.name} ↗](${check.detailsUrl})${req}`;
+    }
+    return `${check.name}${req}`;
+}
 function formatGateReport(evaluation, riskThreshold) {
     const mode = evaluation.gateMode ?? "risk-only";
     const icon = mode === "release-ready"
@@ -44042,11 +44101,7 @@ function formatGateReport(evaluation, riskThreshold) {
         if (evaluation.ci && evaluation.ci.checks.length > 0) {
             lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
             for (const check of evaluation.ci.checks) {
-                const link = check.detailsUrl
-                    ? `[${check.name}](${check.detailsUrl})`
-                    : check.name;
-                const req = check.required ? " *(required)*" : "";
-                lines.push(`| ${link}${req} | ${formatCiStatusIcon(check.status)} ${check.status} |`);
+                lines.push(`| ${formatCiCheckCell(check)} | ${formatCiStatusIcon(check.status)} ${check.status} |`);
             }
             lines.push(``);
         }
@@ -44104,11 +44159,10 @@ function formatGateReport(evaluation, riskThreshold) {
             : []), ``);
     }
     if (evaluation.policyFindings && evaluation.policyFindings.length > 0) {
-        lines.push(`### Policy Findings`, ``);
-        for (const finding of evaluation.policyFindings) {
-            lines.push(`- ${finding}`);
-        }
-        lines.push(``);
+        const findingsBody = evaluation.policyFindings
+            .map((finding) => `- ${finding}`)
+            .join("\n");
+        lines.push(wrapCollapsibleSection(`Policy Findings (${evaluation.policyFindings.length})`, findingsBody), ``);
     }
     if (evaluation.policyOverride) {
         const override = evaluation.policyOverride;
@@ -44271,8 +44325,8 @@ async function storeViaApiOnce(url, evaluation) {
         retryable: STORE_RETRYABLE_STATUSES.has(response.status),
     };
 }
-async function storeViaApi(url, evaluation) {
-    const maxAttempts = STORE_RETRY_BACKOFF_MS.length + 1;
+async function storeViaApi(url, evaluation, maxRetries = 3) {
+    const maxAttempts = maxRetries + 1;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         try {
             const result = await storeViaApiOnce(url, evaluation);
@@ -44335,9 +44389,10 @@ async function storeViaSupabase(evaluation) {
     warning(`Supabase direct insert failed (HTTP ${response.status}): ${body}`);
     return false;
 }
-async function storeEvaluation(url, evaluation) {
+async function storeEvaluation(url, evaluation, options = {}) {
+    const maxRetries = options.maxRetries ?? 3;
     try {
-        const stored = await storeViaApi(url, evaluation);
+        const stored = await storeViaApi(url, evaluation, maxRetries);
         if (stored)
             return true;
     }
@@ -45639,30 +45694,15 @@ async function resolveCiManifests(options) {
     return mergeCiManifests(...manifests);
 }
 
-;// CONCATENATED MODULE: ./src/main.ts
-
-
-
-
-
-
-
-
-
-
-
-
-
-class PolicyOverrideError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "PolicyOverrideError";
-    }
-}
+;// CONCATENATED MODULE: ./src/rollout-readiness.ts
 function computeRolloutReadiness(evaluation) {
     let score = Math.max(0, Math.min(100, 100 - evaluation.riskScore));
     const reasons = [];
     const mode = evaluation.gateMode ?? "risk-only";
+    const ciFailed = evaluation.ci != null &&
+        (!evaluation.ci.allRequiredPassed ||
+            evaluation.ci.failedCount > 0 ||
+            evaluation.ci.pendingCount > 0);
     if (mode === "release-ready" || mode === "advisory") {
         if (evaluation.releaseReady === false) {
             score -= 40;
@@ -45709,19 +45749,60 @@ function computeRolloutReadiness(evaluation) {
         reasons.push("Escalation targets configured");
     }
     score = Math.max(0, Math.min(100, score));
-    const band = mode !== "risk-only" && evaluation.releaseReady === false
-        ? "hold"
-        : evaluation.gateDecision === "allow" && score >= 70
-            ? "go"
-            : evaluation.gateDecision !== "block" && score >= 45
-                ? "review"
-                : "hold";
+    let band;
+    if (mode !== "risk-only" && evaluation.releaseReady === false) {
+        band = "hold";
+    }
+    else if (ciFailed) {
+        band = evaluation.gateDecision === "block" || score < 45 ? "hold" : "review";
+    }
+    else if (evaluation.gateDecision === "allow" && score >= 70) {
+        band = "go";
+    }
+    else if (evaluation.gateDecision !== "block" && score >= 45) {
+        band = "review";
+    }
+    else {
+        band = "hold";
+    }
     return {
         ready: band === "go",
         band,
         score,
         reasons,
     };
+}
+
+;// CONCATENATED MODULE: ./src/main.ts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class PolicyOverrideError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "PolicyOverrideError";
+    }
+}
+function parseEvaluationStoreRetries(raw) {
+    if (!raw)
+        return 3;
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed) || parsed < 0 || parsed > 10) {
+        warning("evaluation-store-retries must be 0–10; using default 3");
+        return 3;
+    }
+    return parsed;
 }
 function initHealers() {
     registerHealer(jestHealer);
@@ -46005,10 +46086,12 @@ async function run() {
             }
         }
         const reportParts = [report];
-        if (securityReport)
-            reportParts.push(securityReport);
-        if (doraReport)
-            reportParts.push(doraReport);
+        if (securityReport) {
+            reportParts.push(wrapCollapsibleSection("Security Alerts", securityReport));
+        }
+        if (doraReport) {
+            reportParts.push(wrapCollapsibleSection("DORA-5 Metrics", doraReport));
+        }
         let fullReport = reportParts.join("\n---\n\n");
         if (config.evaluationStoreUrl) {
             const storeSecretInput = getInput("evaluation-store-secret");
@@ -46018,10 +46101,13 @@ async function run() {
             if (config.trailheadApiKey && !process.env.EVALUATION_STORE_SECRET) {
                 process.env.EVALUATION_STORE_SECRET = config.trailheadApiKey;
             }
-            const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation);
+            const storeRetries = parseEvaluationStoreRetries(getInput("evaluation-store-retries") || "");
+            const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation, {
+                maxRetries: storeRetries,
+            });
             evaluation.storePersisted = stored;
             if (!stored) {
-                const persistWarning = "> ⚠️ **Evaluation not persisted** — dashboard and DORA correlation may be incomplete.";
+                const persistWarning = "> ⚠️ **Evaluation not persisted — dashboard incomplete.**";
                 fullReport = `${persistWarning}\n\n${fullReport}`;
             }
         }

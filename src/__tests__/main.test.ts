@@ -108,6 +108,7 @@ describe("run (main entrypoint)", () => {
     expect(storeSpy).toHaveBeenCalledWith(
       "https://example.com/api/trailhead/store",
       eval_,
+      { maxRetries: 3 },
     );
     expect(core.setFailed).not.toHaveBeenCalled();
   });

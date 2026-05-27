@@ -97,4 +97,6 @@ if (targetName === "mcp") {
   }
 }
 
-console.log(`Copied ${filesToCopy.length} shared modules to ${targetDir.replace(root + path.sep, "")}/`);
+console.log(
+  `Copied ${filesToCopy.length} shared modules to ${targetDir.replace(root + path.sep, "")}/`,
+);

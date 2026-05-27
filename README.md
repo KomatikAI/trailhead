@@ -159,6 +159,7 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 | `trailhead-api-key`         | No       | —                     | Trailhead Cloud API key — auto-configures store URL + auth (v4.1)                      |
 | `evaluation-store-url`      | No       | —                     | URL to POST evaluations for trend dashboards (BYOS; omit if using `trailhead-api-key`) |
 | `evaluation-store-secret`   | No       | —                     | Bearer token for `evaluation-store-url`                                                |
+| `evaluation-store-retries`  | No       | `3`                   | Retry attempts for transient evaluation store failures                                 |
 | `dora-metrics`              | No       | `false`               | Compute DORA-5 metrics alongside the gate evaluation                                   |
 | `dora-environment`          | No       | —                     | Filter DORA metrics to a specific deployment environment                               |
 | `environment`               | No       | —                     | Target deployment environment (for per-env threshold overrides)                        |

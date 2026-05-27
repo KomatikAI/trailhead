@@ -1,6 +1,16 @@
 # Evaluation storage
 
-Trailhead can persist gate evaluations for trend dashboards, DORA correlation, and deploy outcome tracking. Choose **Trailhead Cloud** (managed) or **bring-your-own-store** (self-hosted).
+Trailhead can persist gate evaluations for trend dashboards, DORA correlation, and deploy outcome tracking.
+
+## Which option should I use?
+
+| If you want…                                                                  | Use                                                       |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Fastest setup, hosted dashboard, org billing, no infra to run                 | **Trailhead Cloud** (`trailhead-api-key`)                 |
+| Full control of data residency, custom schema, existing Supabase/Vercel store | **Bring-your-own-store** (`evaluation-store-url`)         |
+| No persistence (gate only, no trends)                                         | Omit both — evaluations stay in the PR comment/check only |
+
+Both paths are **fail-open**: store POST failures never block merges. When persistence fails, the GitHub Check includes: `Evaluation not persisted — dashboard incomplete.`
 
 ## Trailhead Cloud (v4.1+)
 
@@ -55,7 +65,8 @@ The Action sends:
 - `POST` with full `GateEvaluation` JSON body
 - `Authorization: Bearer <evaluation-store-secret>` when secret is configured
 - `Idempotency-Key: <evaluation.id>` (recommended for your store to dedupe retries)
-- Exponential backoff on 429/502/503/504 and transient network errors (up to 3 retries)
+- Exponential backoff on 429/502/503/504 and transient network errors
+- Retry count configurable via `evaluation-store-retries` action input (default **3**)
 
 Deploy outcomes use a sibling endpoint: replace `/store` with `/deploy-event` on the same base path.
 

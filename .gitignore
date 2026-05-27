@@ -51,3 +51,4 @@ cloud/src/feedback-core.ts
 AGENTS.md
 .cursor/
 examples/komatik/
+app/dist/

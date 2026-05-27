@@ -265,6 +265,16 @@ describe("storeEvaluation", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
+  it("honors maxRetries=0 with a single attempt", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"error":"unavailable"}', 503));
+    await expect(
+      storeEvaluation("https://example.com/api/trailhead/store", makeEvaluation(), {
+        maxRetries: 0,
+      }),
+    ).resolves.toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it("retries on network error then succeeds", async () => {
     vi.useFakeTimers();
     vi.mocked(fetch)
