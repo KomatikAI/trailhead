@@ -4,6 +4,19 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.3.0] - 2026-05-27
+
+### Added — Agent autonomy: Coach (Phase A)
+
+- **Remediation schema (A1, #222)** — typed `Remediation` block on `GateEvaluation` and `evaluation-json`; `buildRemediation()` derives machine-readable, agent-actionable fixes (code, severity, files, suggested action/command) from gate findings.
+- **Agent brief (A2, #232)** — collapsed "Agent instructions" `<details>` block in the Release Ready PR comment, gated by `gate.agent_brief: "off" | "collapsed" | "expanded"` (collapsed by default for agent provenance, off for humans).
+- **Coordinator event bus + semantic webhooks (A3, #233)** — emits `trailhead.blocked`, `trailhead.warn_high_risk`, `trailhead.ready`, `trailhead.loop_exceeded` (`trailhead.webhook.v1`) carrying the full `Remediation` block and `headRef`; new `webhook-events` types; shared `remediation.ts` / `trailhead-events.ts` copied into `app/` and `mcp/`.
+- **Loop bookkeeping (A4, #234)** — per-PR remediation loop tracking: `loop_round`, `previous_evaluation_id`, `fixes_resolved`, `fixes_introduced` persisted via `buildEvaluationStoreRow()`; `fetchPreviousEvaluationForPr()` (Cloud `GET /v1/evaluations?repo_id=&pr_number=` with Supabase fallback) auto-increments the round; `GET /v1/analytics/agent-loop-efficiency` + dashboard panel for rounds-to-ready by agent.
+
+### Database
+
+- **`cloud/migrations/002_loop_bookkeeping.sql`** — loop-bookkeeping columns + `(repo_id, pr_number, created_at)` index on `trailhead_evaluations`. Run on hosted Trailhead Cloud instances.
+
 ## [4.2.2] - 2026-05-27
 
 ### Fixed — DORA metrics
