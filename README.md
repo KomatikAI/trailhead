@@ -225,11 +225,13 @@ security:
 Enable built-in DORA-5 metrics to track deployment health:
 
 ```yaml
-- uses: KomatikAI/trailhead@v3
+- uses: KomatikAI/trailhead@v4
   with:
     dora-metrics: "true"
-    dora-environment: "production"
+    dora-environment: "Production"
 ```
+
+**Workflow permissions:** add `actions: read` (deployment frequency) and `deployments: read` (FDRT) to the job or workflow. If those APIs are unavailable, Trailhead can fall back to `trailhead_evaluations.deploy_outcome` when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set (same as the evaluation store direct-insert path).
 
 Trailhead computes all five DORA metrics from your GitHub data:
 

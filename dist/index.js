@@ -44476,6 +44476,116 @@ function overallDoraRating(metrics) {
     const midIndex = Math.round(ratings.reduce((sum, r) => sum + order.indexOf(r), 0) / ratings.length);
     return order[Math.min(midIndex, order.length - 1)];
 }
+const FAILED_DEPLOY_OUTCOMES = new Set(["failure", "rollback", "error"]);
+const SUCCESS_DEPLOY_OUTCOMES = new Set(["success"]);
+function repoFullName() {
+    const { owner, repo } = github_context.repo;
+    return `${owner}/${repo}`;
+}
+function environmentCandidates(environment) {
+    const base = environment ?? "production";
+    const candidates = [base];
+    if (base.toLowerCase() === "production") {
+        candidates.push("Production");
+    }
+    else if (base === "Production") {
+        candidates.push("production");
+    }
+    return [...new Set(candidates)];
+}
+function median(values) {
+    if (values.length === 0)
+        return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0
+        ? Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 10) / 10
+        : Math.round(sorted[mid] * 10) / 10;
+}
+function computeDeploymentFrequencyFromDeployEvents(events, windowDays) {
+    const successes = events.filter((event) => SUCCESS_DEPLOY_OUTCOMES.has(event.outcome)).length;
+    const weeks = windowDays / 7;
+    const deploysPerWeek = weeks > 0 ? Math.round((successes / weeks) * 100) / 100 : 0;
+    return {
+        deploysPerWeek,
+        rating: rateDeploymentFrequency(deploysPerWeek),
+        window: windowDays,
+    };
+}
+function computeFdrtFromDeployEvents(events) {
+    const sorted = [...events].sort((a, b) => new Date(a.deployedAt).getTime() - new Date(b.deployedAt).getTime());
+    const recoveryTimesHours = [];
+    for (let i = 0; i < sorted.length; i += 1) {
+        if (!FAILED_DEPLOY_OUTCOMES.has(sorted[i].outcome))
+            continue;
+        const failureTime = new Date(sorted[i].deployedAt).getTime();
+        for (let j = i + 1; j < sorted.length; j += 1) {
+            if (!SUCCESS_DEPLOY_OUTCOMES.has(sorted[j].outcome))
+                continue;
+            recoveryTimesHours.push(Math.max(0, (new Date(sorted[j].deployedAt).getTime() - failureTime) / (1000 * 60 * 60)));
+            break;
+        }
+    }
+    if (recoveryTimesHours.length === 0) {
+        return { medianHours: 0, rating: "elite", incidentCount: 0 };
+    }
+    const medianHours = median(recoveryTimesHours);
+    return {
+        medianHours,
+        rating: rateFDRT(medianHours),
+        incidentCount: recoveryTimesHours.length,
+    };
+}
+async function fetchDeployEventsFromStore(windowDays) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey)
+        return null;
+    const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
+    const repoId = encodeURIComponent(repoFullName());
+    const url = `${supabaseUrl}/rest/v1/trailhead_evaluations` +
+        `?select=deploy_outcome,deployed_at` +
+        `&repo_id=eq.${repoId}` +
+        `&deploy_outcome=neq.null` +
+        `&deployed_at=gte.${encodeURIComponent(since)}` +
+        `&order=deployed_at.desc` +
+        `&limit=200`;
+    try {
+        const response = await fetch(url, {
+            headers: {
+                apikey: serviceKey,
+                Authorization: `Bearer ${serviceKey}`,
+                Accept: "application/json",
+            },
+            signal: AbortSignal.timeout(10_000),
+        });
+        if (!response.ok)
+            return null;
+        const rows = (await response.json());
+        return rows.map((row) => ({
+            outcome: row.deploy_outcome,
+            deployedAt: row.deployed_at,
+        }));
+    }
+    catch {
+        return null;
+    }
+}
+async function loadDeploymentsInWindow(octokit, owner, repo, since, environment) {
+    for (const env of environmentCandidates(environment)) {
+        const { data } = await octokit.request("GET /repos/{owner}/{repo}/deployments", {
+            owner,
+            repo,
+            environment: env,
+            per_page: 100,
+        });
+        const deploymentsInWindow = data.filter((deployment) => new Date(deployment.created_at).toISOString() >= since);
+        if (deploymentsInWindow.length > 0) {
+            return deploymentsInWindow;
+        }
+    }
+    return [];
+}
 // ---------------------------------------------------------------------------
 // Deployment Frequency
 // ---------------------------------------------------------------------------
@@ -44485,43 +44595,57 @@ async function computeDeploymentFrequency(token, windowDays, environment) {
         const { owner, repo } = github_context.repo;
         const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
         if (environment) {
-            const { data: deployments } = await octokit.request("GET /repos/{owner}/{repo}/deployments", {
-                owner,
-                repo,
-                environment,
-                per_page: 100,
-            });
-            const deploymentsInWindow = deployments.filter((d) => new Date(d.created_at).toISOString() >= since);
+            const deploymentsInWindow = await loadDeploymentsInWindow(octokit, owner, repo, since, environment);
             const weeks = windowDays / 7;
             const deploysPerWeek = weeks > 0 ? Math.round((deploymentsInWindow.length / weeks) * 100) / 100 : 0;
-            return {
-                deploysPerWeek,
-                rating: rateDeploymentFrequency(deploysPerWeek),
-                window: windowDays,
-            };
+            if (deploysPerWeek > 0) {
+                return {
+                    deploysPerWeek,
+                    rating: rateDeploymentFrequency(deploysPerWeek),
+                    window: windowDays,
+                };
+            }
         }
-        const { data } = await octokit.rest.actions.listWorkflowRunsForRepo({
-            owner,
-            repo,
-            status: "success",
-            created: `>=${since}`,
-            per_page: 100,
-            event: "push",
-        });
-        const { data: repoInfo } = await octokit.rest.repos.get({ owner, repo });
-        const defaultBranch = repoInfo.default_branch;
-        const deployRuns = data.workflow_runs.filter((r) => r.head_branch === defaultBranch);
-        const deployCount = deployRuns.length;
-        const weeks = windowDays / 7;
-        const deploysPerWeek = weeks > 0 ? Math.round((deployCount / weeks) * 100) / 100 : 0;
-        return {
-            deploysPerWeek,
-            rating: rateDeploymentFrequency(deploysPerWeek),
-            window: windowDays,
-        };
+        else {
+            const { data } = await octokit.rest.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                status: "success",
+                created: `>=${since}`,
+                per_page: 100,
+                event: "push",
+            });
+            const { data: repoInfo } = await octokit.rest.repos.get({ owner, repo });
+            const defaultBranch = repoInfo.default_branch;
+            const deployRuns = data.workflow_runs.filter((r) => r.head_branch === defaultBranch);
+            const deployCount = deployRuns.length;
+            const weeks = windowDays / 7;
+            const deploysPerWeek = weeks > 0 ? Math.round((deployCount / weeks) * 100) / 100 : 0;
+            if (deploysPerWeek > 0) {
+                return {
+                    deploysPerWeek,
+                    rating: rateDeploymentFrequency(deploysPerWeek),
+                    window: windowDays,
+                };
+            }
+        }
+        const storeEvents = await fetchDeployEventsFromStore(windowDays);
+        if (storeEvents && storeEvents.length > 0) {
+            const fromStore = computeDeploymentFrequencyFromDeployEvents(storeEvents, windowDays);
+            if (fromStore.deploysPerWeek > 0) {
+                info(`DORA deployment frequency: using ${storeEvents.length} deploy event(s) from evaluation store`);
+                return fromStore;
+            }
+        }
+        return { deploysPerWeek: 0, rating: "low", window: windowDays };
     }
     catch (error) {
-        core_debug(`DORA deployment frequency failed: ${error}`);
+        warning(`DORA deployment frequency: GitHub Actions API failed (${error}). ` +
+            `Grant actions:read to GITHUB_TOKEN, or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY for evaluation-store fallback.`);
+        const storeEvents = await fetchDeployEventsFromStore(windowDays);
+        if (storeEvents && storeEvents.length > 0) {
+            return computeDeploymentFrequencyFromDeployEvents(storeEvents, windowDays);
+        }
         return { deploysPerWeek: 0, rating: "low", window: windowDays };
     }
 }
@@ -44655,15 +44779,19 @@ async function computeLeadTimeToChange(token, windowDays, servicePaths) {
 // Failed Deployment Recovery Time (FDRT) — new in DORA-5
 // ---------------------------------------------------------------------------
 async function computeFailedDeployRecoveryTime(token, windowDays, environment) {
+    const emptyResult = { medianHours: 0, rating: "elite", incidentCount: 0 };
     try {
         const octokit = getOctokit(token);
         const { owner, repo } = github_context.repo;
         const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
-        const env = environment ?? "production";
-        const { data: deployments } = await octokit.request("GET /repos/{owner}/{repo}/deployments", { owner, repo, environment: env, per_page: 50 });
-        const deploymentsInWindow = deployments.filter((d) => new Date(d.created_at).toISOString() >= since);
+        const deploymentsInWindow = await loadDeploymentsInWindow(octokit, owner, repo, since, environment);
         if (deploymentsInWindow.length === 0) {
-            return { medianHours: 0, rating: "elite", incidentCount: 0 };
+            const storeEvents = await fetchDeployEventsFromStore(windowDays);
+            if (storeEvents && storeEvents.length > 0) {
+                info(`DORA FDRT: using ${storeEvents.length} deploy event(s) from evaluation store`);
+                return computeFdrtFromDeployEvents(storeEvents);
+            }
+            return emptyResult;
         }
         const recoveryTimesHours = [];
         for (let i = 0; i < deploymentsInWindow.length; i++) {
@@ -44693,23 +44821,31 @@ async function computeFailedDeployRecoveryTime(token, windowDays, environment) {
                 // skip deployments we can't fetch statuses for
             }
         }
-        if (recoveryTimesHours.length === 0) {
-            return { medianHours: 0, rating: "elite", incidentCount: 0 };
+        if (recoveryTimesHours.length > 0) {
+            const medianHours = median(recoveryTimesHours);
+            return {
+                medianHours,
+                rating: rateFDRT(medianHours),
+                incidentCount: recoveryTimesHours.length,
+            };
         }
-        recoveryTimesHours.sort((a, b) => a - b);
-        const mid = Math.floor(recoveryTimesHours.length / 2);
-        const medianHours = recoveryTimesHours.length % 2 === 0
-            ? Math.round(((recoveryTimesHours[mid - 1] + recoveryTimesHours[mid]) / 2) * 10) /
-                10
-            : Math.round(recoveryTimesHours[mid] * 10) / 10;
-        return {
-            medianHours,
-            rating: rateFDRT(medianHours),
-            incidentCount: recoveryTimesHours.length,
-        };
+        const storeEvents = await fetchDeployEventsFromStore(windowDays);
+        if (storeEvents && storeEvents.length > 0) {
+            const fromStore = computeFdrtFromDeployEvents(storeEvents);
+            if (fromStore.incidentCount > 0) {
+                info(`DORA FDRT: using evaluation store (${fromStore.incidentCount} incident(s))`);
+                return fromStore;
+            }
+        }
+        return emptyResult;
     }
     catch (error) {
-        core_debug(`DORA FDRT failed: ${error}`);
+        warning(`DORA FDRT: GitHub Deployments API failed (${error}). ` +
+            `Grant deployments:read to GITHUB_TOKEN, or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY for evaluation-store fallback.`);
+        const storeEvents = await fetchDeployEventsFromStore(windowDays);
+        if (storeEvents && storeEvents.length > 0) {
+            return computeFdrtFromDeployEvents(storeEvents);
+        }
         return { medianHours: 0, rating: "low", incidentCount: 0 };
     }
 }

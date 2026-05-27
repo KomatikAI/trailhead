@@ -22,6 +22,8 @@ Compute all five DORA metrics **directly from GitHub APIs** — workflow runs, p
 | Failed Deployment Recovery Time | Median time between failed and next successful deployment                |
 | Change Rework Rate              | PRs modifying same files as recently merged PRs                          |
 
+**Workflow permissions:** deployment frequency needs `actions: read` on `GITHUB_TOKEN`. FDRT needs `deployments: read` (or GitHub Deployments enabled). When those APIs are unavailable, Trailhead falls back to `trailhead_evaluations.deploy_outcome` rows when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set (same env vars as the evaluation store direct-insert path).
+
 ## Rationale
 
 - GitHub data is universally available — zero additional infrastructure.
