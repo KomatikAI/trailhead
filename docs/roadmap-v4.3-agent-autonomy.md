@@ -135,13 +135,13 @@ remediation:
 
 ### Phase A progress (May 27, 2026)
 
-| Epic | Trailhead repo | komatik-agents | Notes |
-|------|----------------|----------------|-------|
-| A1 Remediation schema | ✅ merged | — | `src/remediation.ts`, Zod types |
-| A2 Agent brief | ✅ merged | — | Collapsed PR comment section |
-| A3 Coordinator bus | ✅ merged | ✅ merged ([#175](https://github.com/KomatikAI/agents/pull/175)) | Engine emits semantic webhooks; handler **not deployed on Spark yet** |
-| A4 Loop bookkeeping | 🔄 PR open | — | Cloud columns + loop telemetry |
-| A5–A8 | backlog | — | Tuning digest, fleet rollout, override, fixtures |
+| Epic                  | Trailhead repo | komatik-agents                                                   | Notes                                                                 |
+| --------------------- | -------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| A1 Remediation schema | ✅ merged      | —                                                                | `src/remediation.ts`, Zod types                                       |
+| A2 Agent brief        | ✅ merged      | —                                                                | Collapsed PR comment section                                          |
+| A3 Coordinator bus    | ✅ merged      | ✅ merged ([#175](https://github.com/KomatikAI/agents/pull/175)) | Engine emits semantic webhooks; handler **not deployed on Spark yet** |
+| A4 Loop bookkeeping   | 🔄 PR open     | —                                                                | Cloud columns + loop telemetry                                        |
+| A5–A8                 | backlog        | —                                                                | Tuning digest, fleet rollout, override, fixtures                      |
 
 **Deploy gap:** coordinator HTTP service needs `TRAILHEAD_COORDINATOR_WEBHOOK_SECRET`, port 3199 exposure, and `webhook-url` on fleet repos before E2E loop works. **`agent/*` routing** is forward-built — fleet cannot push those branches until the suggestions→PR bridge lands.
 
