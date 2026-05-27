@@ -115,6 +115,34 @@ inputs:
     description: "Path to ci-manifest.json from a prior workflow job (path-filter skip semantics). See docs/ci-manifest.md."
     required: false
     default: ""
+  ci-external-status-url:
+    description: "URL to fetch external CI status JSON (GitLab/CircleCI webhook store). Supports {sha} placeholder."
+    required: false
+    default: ""
+  ci-external-status-secret:
+    description: "Bearer token for ci-external-status-url when the status endpoint requires auth."
+    required: false
+    default: ""
+  gitlab-api-url:
+    description: "GitLab API base URL (default https://gitlab.com/api/v4). Used with gitlab-token and gitlab-project-id."
+    required: false
+    default: ""
+  gitlab-token:
+    description: "GitLab private token for polling pipeline job status (E17.1)."
+    required: false
+    default: ""
+  gitlab-project-id:
+    description: "GitLab project ID or URL-encoded path for pipeline status polling."
+    required: false
+    default: ""
+  circleci-token:
+    description: "CircleCI API token for polling workflow job status (E17.2)."
+    required: false
+    default: ""
+  circleci-project-slug:
+    description: "CircleCI project slug (e.g. gh/org/repo) for workflow status polling."
+    required: false
+    default: ""
   check-name:
     description: "GitHub check run name. Defaults to 'Trailhead — Release Ready' in release-ready mode, 'Trailhead' in risk-only mode."
     required: false

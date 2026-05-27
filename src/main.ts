@@ -23,7 +23,7 @@ import { playwrightHealer } from "./healers/playwright.js";
 import { cypressHealer } from "./healers/cypress.js";
 import { fetchCodeScanningAlerts, formatSecuritySection } from "./security.js";
 import { resolveEvaluationStoreUrl } from "./cloud-config.js";
-import { readCiManifestFile } from "./ci-manifest.js";
+import { resolveCiManifests } from "./ci-external.js";
 import type { TrailheadConfig, TestRepairResult } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -295,16 +295,36 @@ async function run(): Promise<void> {
     });
 
     const ciManifestPath = core.getInput("ci-manifest-path") || "";
-    let ciManifest = null;
-    if (ciManifestPath) {
-      ciManifest = readCiManifestFile(ciManifestPath);
-      if (ciManifest) {
-        core.info(
-          `Loaded CI manifest from ${ciManifestPath} (${ciManifest.jobs.length} job(s))`,
-        );
-      } else {
-        core.warning(`Could not parse ci-manifest at ${ciManifestPath}`);
-      }
+    const ciExternalStatusUrl = core.getInput("ci-external-status-url") || "";
+    const ciExternalStatusSecret = core.getInput("ci-external-status-secret") || "";
+    const gitlabToken = core.getInput("gitlab-token") || "";
+    const gitlabProjectId = core.getInput("gitlab-project-id") || "";
+    const gitlabApiUrl = core.getInput("gitlab-api-url") || "";
+    const circleciToken = core.getInput("circleci-token") || "";
+    const circleciProjectSlug = core.getInput("circleci-project-slug") || "";
+
+    const context = github.context;
+    const ciManifest = await resolveCiManifests({
+      ciManifestPath: ciManifestPath || undefined,
+      ciExternalStatusUrl: ciExternalStatusUrl || undefined,
+      ciExternalStatusSecret: ciExternalStatusSecret || undefined,
+      commitSha: context.sha,
+      gitlabApiUrl: gitlabApiUrl || undefined,
+      gitlabToken: gitlabToken || undefined,
+      gitlabProjectId: gitlabProjectId || undefined,
+      circleciToken: circleciToken || undefined,
+      circleciProjectSlug: circleciProjectSlug || undefined,
+    });
+
+    if (ciManifest) {
+      core.info(`Loaded CI manifest (${ciManifest.jobs.length} job(s))`);
+    } else if (
+      ciManifestPath ||
+      ciExternalStatusUrl ||
+      (gitlabToken && gitlabProjectId) ||
+      (circleciToken && circleciProjectSlug)
+    ) {
+      core.warning("External CI inputs were set but no CI manifest could be resolved");
     }
 
     const config: TrailheadConfig = {
@@ -366,7 +386,6 @@ async function run(): Promise<void> {
       );
     }
 
-    const context = github.context;
     const commitSha = context.sha;
     const prNumber = context.payload.pull_request?.number;
 

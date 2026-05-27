@@ -4,6 +4,7 @@ import { z } from "zod";
 /** Job outcome as emitted by path-filtered workflows (E15). */
 export const CiManifestJobOutcome = z.enum([
     "ran",
+    "passed",
     "skipped",
     "failed",
     "pending",

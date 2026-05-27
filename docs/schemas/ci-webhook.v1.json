@@ -1,19 +1,28 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://trailhead.dev/schemas/ci-manifest.v1.json",
-  "title": "Trailhead CI Manifest",
-  "description": "Declares which workflow jobs ran or were skipped (e.g. paths-filter) so Trailhead can score release-ready without false missing checks.",
+  "$id": "https://trailhead.dev/schemas/ci-webhook.v1.json",
+  "title": "Trailhead External CI Webhook",
+  "description": "Webhook payload for non-GitHub CI systems (GitLab, CircleCI, generic).",
   "type": "object",
-  "required": ["schema_version", "jobs"],
+  "required": ["schema_version", "commit_sha", "jobs"],
   "additionalProperties": false,
   "properties": {
     "schema_version": { "const": 1 },
+    "commit_sha": { "type": "string", "minLength": 7 },
+    "repo": {
+      "type": "string",
+      "pattern": "^[^/]+/[^/]+$"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["generic", "gitlab", "circleci", "webhook"]
+    },
     "generated_at": { "type": "string", "format": "date-time" },
-    "commit_sha": { "type": "string" },
     "workflow": { "type": "string" },
     "run_id": { "type": "integer", "minimum": 1 },
     "jobs": {
       "type": "array",
+      "minItems": 1,
       "items": {
         "type": "object",
         "required": ["name", "outcome"],
