@@ -29,10 +29,18 @@ import {
 import { aggregateDetectorNoise, recommendPolicyTuning } from "./feedback-core.js";
 import {
   fetchCloudDetectorNoise,
+  fetchCloudEvaluationById,
+  fetchCloudEvaluations,
   fetchCloudPolicyTuning,
   isCloudFeedbackEnabled,
   postCloudFeedback,
 } from "./cloud-feedback.js";
+import {
+  evaluationMatchesTrailheadEvent,
+  parseWebhookEvents,
+  TRAILHEAD_EVENT_TYPES,
+  type TrailheadEventType,
+} from "./trailhead-events.js";
 
 registerAllAdapters();
 
@@ -1763,6 +1771,191 @@ server.tool(
 );
 
 server.tool(
+  "get-remediation",
+  "Return the Remediation block (trailhead.remediation.v1) from inline evaluation JSON or Trailhead Cloud.",
+  {
+    evaluation_id: z
+      .string()
+      .optional()
+      .describe("Evaluation id stored in Trailhead Cloud"),
+    repo_id: z
+      .string()
+      .optional()
+      .describe("Repository id (owner/repo) when looking up by PR"),
+    pr_number: z
+      .number()
+      .int()
+      .optional()
+      .describe("Pull request number when looking up by PR"),
+    evaluation_json: z
+      .string()
+      .optional()
+      .describe("Raw GateEvaluation JSON from evaluation-json action output"),
+  },
+  async ({ evaluation_id, repo_id, pr_number, evaluation_json }): Promise<ToolReturn> => {
+    if (evaluation_json) {
+      try {
+        const parsed = JSON.parse(evaluation_json) as {
+          remediation?: unknown;
+          id?: string;
+        };
+        if (parsed.remediation) {
+          return jsonResult({
+            source: "inline-json",
+            evaluationId: parsed.id,
+            remediation: parsed.remediation,
+          });
+        }
+        return jsonResult({ error: "evaluation_json has no remediation field" });
+      } catch (error) {
+        return jsonResult({ error: `Invalid evaluation_json: ${String(error)}` });
+      }
+    }
+
+    if (!isCloudFeedbackEnabled()) {
+      return jsonResult({
+        error:
+          "Trailhead Cloud not configured. Set TRAILHEAD_CLOUD_API_URL + TRAILHEAD_API_KEY, or pass evaluation_json.",
+      });
+    }
+
+    if (evaluation_id) {
+      const row = await fetchCloudEvaluationById(evaluation_id);
+      if (!row) {
+        return jsonResult({ error: `Evaluation ${evaluation_id} not found` });
+      }
+      if (!row.remediation) {
+        return jsonResult({
+          error: `Evaluation ${evaluation_id} has no remediation block`,
+        });
+      }
+      return jsonResult({
+        source: "trailhead-cloud",
+        evaluationId: evaluation_id,
+        remediation: row.remediation,
+      });
+    }
+
+    if (repo_id && pr_number !== undefined) {
+      const rows = (await fetchCloudEvaluations(repo_id)) ?? [];
+      const match = rows.find((row) => {
+        const pr = row.prNumber ?? row.pr_number;
+        return pr === pr_number;
+      });
+      if (!match) {
+        return jsonResult({ error: `No evaluation found for ${repo_id}#${pr_number}` });
+      }
+      if (!match.remediation) {
+        return jsonResult({
+          error: `Latest evaluation for ${repo_id}#${pr_number} has no remediation`,
+        });
+      }
+      return jsonResult({
+        source: "trailhead-cloud",
+        evaluationId: match.id,
+        remediation: match.remediation,
+      });
+    }
+
+    return jsonResult({
+      error: "Provide evaluation_json, evaluation_id, or repo_id + pr_number",
+    });
+  },
+);
+
+server.tool(
+  "subscribe-events",
+  "Long-poll Trailhead Cloud evaluations for semantic gate events (trailhead.blocked, trailhead.ready, etc.).",
+  {
+    events: z
+      .string()
+      .describe(`Comma-separated event types (${TRAILHEAD_EVENT_TYPES.join(", ")})`),
+    repo_id: z.string().optional().describe("Filter by repository id (owner/repo)"),
+    pr_number: z.number().int().optional().describe("Filter by pull request number"),
+    since: z
+      .string()
+      .optional()
+      .describe("ISO-8601 timestamp — ignore evaluations received before this time"),
+    timeout_seconds: z.number().min(1).max(120).default(30),
+    poll_interval_ms: z.number().min(500).max(10_000).default(2000),
+    risk_threshold: z.number().min(0).max(100).default(70),
+  },
+  async ({
+    events,
+    repo_id,
+    pr_number,
+    since,
+    timeout_seconds,
+    poll_interval_ms,
+    risk_threshold,
+  }): Promise<ToolReturn> => {
+    if (!isCloudFeedbackEnabled()) {
+      return jsonResult({
+        error:
+          "Trailhead Cloud not configured. Set TRAILHEAD_CLOUD_API_URL + TRAILHEAD_API_KEY.",
+      });
+    }
+
+    const subscribed = parseWebhookEvents(events);
+    const wanted = TRAILHEAD_EVENT_TYPES.filter((event) => subscribed.has(event));
+    if (wanted.length === 0) {
+      return jsonResult({
+        error: `No supported trailhead.* events in subscription. Supported: ${TRAILHEAD_EVENT_TYPES.join(", ")}`,
+      });
+    }
+
+    const sinceMs = since ? Date.parse(since) : Date.now() - timeout_seconds * 1000;
+    const deadline = Date.now() + timeout_seconds * 1000;
+    const seen = new Set<string>();
+
+    while (Date.now() < deadline) {
+      const rows = (await fetchCloudEvaluations(repo_id)) ?? [];
+      for (const row of rows) {
+        const receivedAt = String(row.receivedAt ?? row.received_at ?? "");
+        const receivedMs = receivedAt ? Date.parse(receivedAt) : Date.now();
+        if (receivedMs < sinceMs) continue;
+
+        const rowPr = row.prNumber ?? row.pr_number;
+        if (pr_number !== undefined && rowPr !== pr_number) continue;
+
+        const evaluation = row as import("./types.js").GateEvaluation;
+        for (const event of wanted) {
+          if (
+            !evaluationMatchesTrailheadEvent(evaluation, event as TrailheadEventType, {
+              riskThreshold: risk_threshold,
+            })
+          ) {
+            continue;
+          }
+          const dedupeKey = `${evaluation.id}:${event}`;
+          if (seen.has(dedupeKey)) continue;
+          seen.add(dedupeKey);
+          return jsonResult({
+            matched: true,
+            event,
+            evaluationId: evaluation.id,
+            repoId: evaluation.repoId,
+            prNumber: evaluation.prNumber,
+            remediation: evaluation.remediation,
+            releaseReady: evaluation.releaseReady,
+            gateDecision: evaluation.gateDecision,
+            receivedAt,
+          });
+        }
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, poll_interval_ms));
+    }
+
+    return jsonResult({
+      matched: false,
+      waitedMs: timeout_seconds * 1000,
+      subscribed: wanted,
+    });
+  },
+);
+
+server.tool(
   "recommend-rollback",
   "Recommend rollback action based on canary failure and PR provenance.",
   {
@@ -1906,6 +2099,8 @@ server.resource(
               "record-finding-feedback",
               "get-detector-noise",
               "recommend-policy-tuning",
+              "get-remediation",
+              "subscribe-events",
               "recommend-rollback",
             ],
             resources: ["trailhead://health", "trailhead://server-card"],

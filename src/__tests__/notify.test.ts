@@ -1,6 +1,12 @@
 import { vi } from "vitest";
 
-import { sendWebhook, storeEvaluation } from "../notify.js";
+import {
+  deliverWebhooks,
+  deliverWebhookEvent,
+  sendWebhook,
+  storeEvaluation,
+} from "../notify.js";
+import { buildRemediation } from "../remediation.js";
 import type { GateEvaluation } from "../types.js";
 
 vi.mock("@actions/core", () => ({
@@ -104,6 +110,58 @@ describe("sendWebhook", () => {
     await expect(
       sendWebhook("https://hooks.slack.com/test", makeEvaluation()),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("deliverWebhooks", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts legacy and semantic payloads when both are subscribed", async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response("ok", { status: 200 }));
+    const remediation = buildRemediation({
+      evaluation: {
+        id: "eval-1",
+        riskFactors: [
+          { type: "test_coverage", score: 80, detail: { missing_tests: ["src/x.ts"] } },
+        ],
+        gateDecision: "block",
+        releaseReady: false,
+      },
+    });
+    await deliverWebhooks(
+      "https://hooks.example/events",
+      makeEvaluation({ gateDecision: "block", releaseReady: false, remediation }),
+      ["block", "trailhead.blocked"],
+      { riskThreshold: 70 },
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    const legacy = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string);
+    const semantic = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
+    expect(legacy.schema).toBeUndefined();
+    expect(legacy.decision).toBe("block");
+    expect(semantic.schema).toBe("trailhead.webhook.v1");
+    expect(semantic.event).toBe("trailhead.blocked");
+    expect(semantic.remediation.schema).toBe("trailhead.remediation.v1");
+    expect(semantic.prUrl).toBe("https://github.com/test-owner/test-repo/pull/42");
+  });
+
+  it("deliverWebhookEvent sends semantic payload only", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("ok", { status: 200 }));
+    await deliverWebhookEvent(
+      "https://hooks.example/events",
+      makeEvaluation({ releaseReady: true }),
+      { event: "trailhead.ready", kind: "trailhead" },
+    );
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string);
+    expect(body.event).toBe("trailhead.ready");
+    expect(body.releaseReady).toBe(true);
   });
 });
 

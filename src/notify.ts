@@ -1,6 +1,12 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import type { GateEvaluation } from "./types.js";
+import {
+  resolveWebhookDeliveries,
+  type ResolveTrailheadEventsOptions,
+  type TrailheadEventType,
+  type WebhookDelivery,
+} from "./trailhead-events.js";
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
 const STORE_TIMEOUT_MS = 10_000;
@@ -24,32 +30,41 @@ function isRetryableNetworkError(error: unknown): boolean {
   );
 }
 
-export async function sendWebhook(
-  url: string,
-  evaluation: GateEvaluation,
-): Promise<void> {
+function buildPrUrl(evaluation: GateEvaluation): string | undefined {
   const { owner, repo } = github.context.repo;
-  const prUrl = evaluation.prNumber
+  return evaluation.prNumber
     ? `https://github.com/${owner}/${repo}/pull/${evaluation.prNumber}`
     : undefined;
+}
 
+function slackTextForEvaluation(
+  evaluation: GateEvaluation,
+  prUrl: string | undefined,
+  eventLabel?: string,
+): string {
   const decisionEmoji: Record<string, string> = {
     allow: "✅",
     warn: "⚠️",
     block: "🚫",
   };
   const emoji = decisionEmoji[evaluation.gateDecision] ?? "";
-
-  const slackText =
-    `${emoji} Trailhead *${evaluation.gateDecision.toUpperCase()}* — ` +
+  const prefix = eventLabel ? `[${eventLabel}] ` : "";
+  return (
+    `${prefix}${emoji} Trailhead *${evaluation.gateDecision.toUpperCase()}* — ` +
     `risk ${evaluation.riskScore}/100` +
     (prUrl
       ? ` | <${prUrl}|PR #${evaluation.prNumber}>`
       : ` | ${evaluation.commitSha.substring(0, 7)}`) +
-    ` on \`${evaluation.repoId}\``;
+    ` on \`${evaluation.repoId}\``
+  );
+}
 
-  const payload = {
-    text: slackText,
+function buildLegacyWebhookPayload(
+  evaluation: GateEvaluation,
+  prUrl: string | undefined,
+): Record<string, unknown> {
+  return {
+    text: slackTextForEvaluation(evaluation, prUrl),
     decision: evaluation.gateDecision,
     riskScore: evaluation.riskScore,
     healthScore: evaluation.healthScore,
@@ -62,7 +77,41 @@ export async function sendWebhook(
     reportUrl: evaluation.reportUrl,
     timestamp: new Date().toISOString(),
   };
+}
 
+function buildTrailheadEventPayload(
+  evaluation: GateEvaluation,
+  event: TrailheadEventType,
+  prUrl: string | undefined,
+): Record<string, unknown> {
+  return {
+    schema: "trailhead.webhook.v1",
+    event,
+    text: slackTextForEvaluation(evaluation, prUrl, event),
+    evaluationId: evaluation.id,
+    decision: evaluation.gateDecision,
+    releaseReady: evaluation.releaseReady,
+    riskScore: evaluation.riskScore,
+    healthScore: evaluation.healthScore,
+    repoId: evaluation.repoId,
+    prNumber: evaluation.prNumber,
+    prUrl,
+    commitSha: evaluation.commitSha,
+    remediation: evaluation.remediation,
+    agentBriefMode: evaluation.agentBriefMode,
+    provenance: evaluation.pr?.provenance,
+    trustProfile: evaluation.trust_profile,
+    nextAction: evaluation.remediation?.next_action,
+    loopRound: evaluation.remediation?.loop_round,
+    maxLoopRounds: evaluation.remediation?.max_loop_rounds,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function postWebhookPayload(
+  url: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -78,6 +127,45 @@ export async function sendWebhook(
     }
   } catch (error) {
     core.debug(`Webhook delivery failed: ${error}`);
+  }
+}
+
+export async function sendWebhook(
+  url: string,
+  evaluation: GateEvaluation,
+): Promise<void> {
+  const prUrl = buildPrUrl(evaluation);
+  await postWebhookPayload(url, buildLegacyWebhookPayload(evaluation, prUrl));
+}
+
+export async function deliverWebhookEvent(
+  url: string,
+  evaluation: GateEvaluation,
+  delivery: WebhookDelivery,
+): Promise<void> {
+  const prUrl = buildPrUrl(evaluation);
+  const payload =
+    delivery.kind === "legacy"
+      ? buildLegacyWebhookPayload(evaluation, prUrl)
+      : buildTrailheadEventPayload(
+          evaluation,
+          delivery.event as TrailheadEventType,
+          prUrl,
+        );
+  await postWebhookPayload(url, payload);
+}
+
+export async function deliverWebhooks(
+  url: string,
+  evaluation: GateEvaluation,
+  subscribedEvents: Iterable<string>,
+  options: ResolveTrailheadEventsOptions = {},
+): Promise<void> {
+  const subscribed =
+    subscribedEvents instanceof Set ? subscribedEvents : new Set(subscribedEvents);
+  const deliveries = resolveWebhookDeliveries(evaluation, subscribed, options);
+  for (const delivery of deliveries) {
+    await deliverWebhookEvent(url, evaluation, delivery);
   }
 }
 

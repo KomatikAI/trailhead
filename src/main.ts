@@ -11,7 +11,7 @@ import {
   resolveCheckName,
   wrapCollapsibleSection,
 } from "./gate.js";
-import { sendWebhook, storeEvaluation } from "./notify.js";
+import { deliverWebhooks, storeEvaluation } from "./notify.js";
 import {
   computeDoraMetrics,
   formatDoraReport,
@@ -460,8 +460,11 @@ async function run(): Promise<void> {
       }
     }
 
-    if (config.webhookUrl && config.webhookEvents.includes(evaluation.gateDecision)) {
-      await sendWebhook(config.webhookUrl, evaluation);
+    if (config.webhookUrl) {
+      await deliverWebhooks(config.webhookUrl, evaluation, config.webhookEvents, {
+        riskThreshold: config.riskThreshold,
+        warnThreshold: config.warnThreshold,
+      });
     }
 
     const blockMerge = shouldBlockMerge(evaluation);

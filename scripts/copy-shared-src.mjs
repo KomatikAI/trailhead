@@ -32,6 +32,8 @@ const sharedFiles = [
   "ci-status-store.ts",
   "config-core.ts",
   "deployment-gate.ts",
+  "remediation.ts",
+  "trailhead-events.ts",
 ];
 
 const adapterFiles = ["gitlab.ts", "circleci.ts"];

@@ -77,7 +77,7 @@ describe("run (main entrypoint)", () => {
     vi.spyOn(gate, "formatGateReport").mockReturnValue("## Report");
     const commentSpy = vi.spyOn(gate, "postPrComment").mockResolvedValue();
     const checkSpy = vi.spyOn(gate, "createCheckRun").mockResolvedValue();
-    const webhookSpy = vi.spyOn(notify, "sendWebhook").mockResolvedValue();
+    const webhookSpy = vi.spyOn(notify, "deliverWebhooks").mockResolvedValue();
     const storeSpy = vi.spyOn(notify, "storeEvaluation").mockResolvedValue(true);
     setupInputs({
       "api-key": "test-key",
