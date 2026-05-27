@@ -4,6 +4,12 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.3.2] - 2026-05-27
+
+### Fixed
+
+- **CLI npm publish** — sync `cli/package.json` (and `app/`, `mcp/` workspace versions) to match the release tag so the release workflow can publish `@komatikai/trailhead`.
+
 ## [4.3.1] - 2026-05-27
 
 ### Added — Komatik hosted store read path

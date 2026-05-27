@@ -1,6 +1,6 @@
 {
   "name": "@trailhead/mcp-server",
-  "version": "4.2.2",
+  "version": "4.3.2",
   "private": true,
   "description": "MCP server exposing Trailhead deployment gate — health checks, risk scoring, DORA metrics, and policy enforcement as tools",
   "type": "module",

@@ -637,15 +637,15 @@ Runtime state lives in PostgreSQL, not in git-committed files.
 
 ### What this project is
 
-Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (released **v4.3.0**; floating tag **`@v4`** remains **v4.2.2**) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server`**) with 22 tools for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
+Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (released **v4.3.2** on `main`; floating tag **`@v4`** tracks latest major) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server`**) with 22 tools for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
 
 ### Current repo state (May 27, 2026)
 
 - **Branch model**: **`dev`** is the default integration branch — open all feature PRs against `dev`. Promote with fast-forward only: `dev` → `staging` → `main` (production). Do **not** merge features directly to `main`.
-- **Released tag**: **v4.3.0** on `main` (immutable). Floating **`@v4`** deliberately remains **v4.2.2** — pin consumers explicitly until fleet re-pin is approved.
-- **Phase A (v4.3.0):** A1–A4 merged (remediation schema, agent brief, semantic webhooks, loop bookkeeping in action).
-- **A6 fleet rollout:** ✅ 7 active satellites on `@v4.3.0` + `/api/trailhead/store` (cairn, frontier, kindling, pack, slipstream, sundog, trace). **Excluded:** drift, floe, traverse, watchtower (retired/archived; trace absorbed them).
-- **Komatik hosted store:** Loop columns + GET API in [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014); read path in [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236) → **v4.3.1** + fleet re-pin. See `docs/komatik-hosted-store.md`.
+- **Released tag**: **v4.3.2** on `main`. **`@v4`** floating tag updated by release workflow.
+- **Phase A (v4.3.0–v4.3.1):** A1–A4 merged (remediation schema, agent brief, semantic webhooks, loop bookkeeping in action); komatik hosted store read path in v4.3.1.
+- **A6 fleet rollout:** ✅ 7 active satellites on `@v4.3.0` + `/api/trailhead/store` (cairn, frontier, kindling, pack, slipstream, sundog, trace). **Re-pin to `@v4.3.2`** pending. **Excluded:** drift, floe, traverse, watchtower (retired/archived; trace absorbed them).
+- **Komatik hosted store:** Loop columns + GET API in [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014); read path in [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236). See `docs/komatik-hosted-store.md`.
 - **Tests:** 609+ root + 21 cloud on `dev`.
 - **Legacy compatibility**: `.deployguard.yml` configs and `DEPLOYGUARD_*` env vars still accepted where already shipped.
 - **Coordinator:** komatik-agents #175 merged; deploy pending suggestions→PR bridge — see `komatik-agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`.
