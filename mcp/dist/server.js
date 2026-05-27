@@ -6,6 +6,8 @@ import { computeRiskScore, decideGate, } from "./risk-engine.js";
 import { normalizeCheckRuns, evaluateRequiredChecks, } from "./ci-core.js";
 import { computeReleaseReady } from "./release-ready.js";
 import { registerAllAdapters, getAdapter, getAvailableAdapters, runAllAvailable, listAdapterNames, } from "./adapters/index.js";
+import { aggregateDetectorNoise, recommendPolicyTuning } from "./feedback-core.js";
+import { fetchCloudDetectorNoise, fetchCloudPolicyTuning, isCloudFeedbackEnabled, postCloudFeedback, } from "./cloud-feedback.js";
 registerAllAdapters();
 const HEALTH_CHECK_TIMEOUT_MS = 10_000;
 const VERCEL_TIMEOUT_MS = 10_000;
@@ -140,7 +142,7 @@ async function saveFeedbackRecords(records) {
 }
 const server = new McpServer({
     name: "trailhead",
-    version: "4.1.0",
+    version: "4.2.0",
 });
 // ---------------------------------------------------------------------------
 // Health check tools
@@ -1181,6 +1183,22 @@ server.tool("record-finding-feedback", "Record detector feedback for false-posit
     repo: z.string().optional().describe("Optional repository id"),
     reason: z.string().optional().describe("Optional freeform reason"),
 }, async ({ detector, disposition, repo, reason }) => {
+    if (isCloudFeedbackEnabled()) {
+        const cloudResult = await postCloudFeedback({
+            detector,
+            disposition,
+            repo,
+            reason,
+        });
+        if (cloudResult) {
+            return jsonResult({
+                stored: cloudResult.stored,
+                source: "trailhead-cloud",
+                detector,
+                disposition,
+            });
+        }
+    }
     const records = await loadFeedbackRecords();
     records.push({
         detector,
@@ -1200,69 +1218,42 @@ server.tool("record-finding-feedback", "Record detector feedback for false-posit
 server.tool("get-detector-noise", "Aggregate detector feedback and return false-positive rates by detector.", {
     repo: z.string().optional().describe("Optional repository id filter"),
 }, async ({ repo }) => {
+    if (isCloudFeedbackEnabled()) {
+        const cloud = await fetchCloudDetectorNoise(repo);
+        if (cloud) {
+            return jsonResult({ ...cloud, source: "trailhead-cloud" });
+        }
+    }
     const records = await loadFeedbackRecords();
     const filtered = repo ? records.filter((r) => r.repo === repo) : records;
-    const byDetector = new Map();
-    for (const record of filtered) {
-        const entry = byDetector.get(record.detector) ?? {
-            total: 0,
-            falsePositive: 0,
-            truePositive: 0,
-            dismissed: 0,
-        };
-        entry.total += 1;
-        if (record.disposition === "false_positive")
-            entry.falsePositive += 1;
-        if (record.disposition === "true_positive")
-            entry.truePositive += 1;
-        if (record.disposition === "dismissed")
-            entry.dismissed += 1;
-        byDetector.set(record.detector, entry);
-    }
-    const summary = [...byDetector.entries()].map(([detector, entry]) => ({
-        detector,
-        ...entry,
-        falsePositiveRate: entry.total > 0 ? Math.round((entry.falsePositive / entry.total) * 1000) / 10 : 0,
-    }));
     return jsonResult({
-        repo: repo ?? null,
-        recordsAnalyzed: filtered.length,
-        detectors: summary.sort((a, b) => b.falsePositiveRate - a.falsePositiveRate),
+        ...aggregateDetectorNoise(filtered.map((r, i) => ({
+            id: `local-${i}`,
+            orgId: "local",
+            ...r,
+        })), { repo }),
+        source: "local-file",
     });
 });
 server.tool("recommend-policy-tuning", "Propose detector threshold/policy tuning from observed feedback noise.", {
     repo: z.string().optional().describe("Optional repository id filter"),
     falsePositiveThreshold: z.number().min(0).max(100).default(15),
 }, async ({ repo, falsePositiveThreshold }) => {
+    if (isCloudFeedbackEnabled()) {
+        const cloud = await fetchCloudPolicyTuning(repo, falsePositiveThreshold);
+        if (cloud) {
+            return jsonResult({ ...cloud, source: "trailhead-cloud" });
+        }
+    }
     const records = await loadFeedbackRecords();
     const filtered = repo ? records.filter((r) => r.repo === repo) : records;
-    const detectorStats = new Map();
-    for (const record of filtered) {
-        const entry = detectorStats.get(record.detector) ?? { total: 0, falsePositive: 0 };
-        entry.total += 1;
-        if (record.disposition === "false_positive")
-            entry.falsePositive += 1;
-        detectorStats.set(record.detector, entry);
-    }
-    const recommendations = [...detectorStats.entries()]
-        .map(([detector, stat]) => ({
-        detector,
-        samples: stat.total,
-        falsePositiveRate: stat.total > 0 ? Math.round((stat.falsePositive / stat.total) * 1000) / 10 : 0,
-    }))
-        .filter((s) => s.falsePositiveRate > falsePositiveThreshold)
-        .map((s) => ({
-        detector: s.detector,
-        recommendation: `Reduce sensitivity or switch ${s.detector} to warn mode for this repo`,
-        expectedImpact: "Lower review noise while preserving detector visibility",
-        confidence: s.samples >= 20 ? "high" : s.samples >= 8 ? "medium" : "low",
-        falsePositiveRate: s.falsePositiveRate,
-    }));
     return jsonResult({
-        repo: repo ?? null,
-        falsePositiveThreshold,
-        recommendations,
-        generatedAt: new Date().toISOString(),
+        ...recommendPolicyTuning(filtered.map((r, i) => ({
+            id: `local-${i}`,
+            orgId: "local",
+            ...r,
+        })), { repo, falsePositiveThreshold }),
+        source: "local-file",
     });
 });
 server.tool("recommend-rollback", "Recommend rollback action based on canary failure and PR provenance.", {

@@ -132,6 +132,20 @@ export const GateEvaluation = z.object({
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
     storePersisted: z.boolean().optional(),
+    cross_repo_impact: z
+        .object({
+        services: z.array(z.object({
+            serviceName: z.string(),
+            touchedFiles: z.array(z.string()),
+            consumers: z.array(z.object({
+                id: z.string(),
+                repo: z.string().optional(),
+                branch: z.string().optional(),
+            })),
+            notify_webhook: z.string().url().optional(),
+        })),
+    })
+        .optional(),
 });
 export const GateApiResponse = z.object({
     id: z.string().optional(),
@@ -154,11 +168,20 @@ export const EnvironmentConfig = z.object({
     warn: z.number().min(0).max(100).optional(),
     require_security_clear: z.boolean().optional(),
 });
+export const ServiceConsumerRef = z.object({
+    repo: z.string().min(1),
+    name: z.string().optional(),
+    branch: z.string().optional(),
+    notify_webhook: z.string().url().optional(),
+});
+export const ServiceConsumer = z.union([z.string(), ServiceConsumerRef]);
+export const ConsumerRegistry = z.record(z.string(), ServiceConsumerRef);
 export const ServiceMapping = z.object({
     paths: z.array(z.string()),
     environment: z.string().optional(),
-    consumers: z.array(z.string()).default([]),
+    consumers: z.array(ServiceConsumer).default([]),
     contracts: z.array(z.string()).default([]),
+    notify_webhook: z.string().url().optional(),
 });
 export const SecurityConfig = z.object({
     severity_threshold: z.enum(["error", "warning", "note", "none"]).default("warning"),
@@ -230,6 +253,7 @@ export const RepoConfig = z.object({
     freeze: z.array(FreezeWindow).default([]),
     environments: z.record(EnvironmentConfig).default({}),
     services: z.record(ServiceMapping).default({}),
+    consumer_registry: z.record(ServiceConsumerRef).default({}),
     security: SecurityConfig.default({}),
     canary: CanaryConfig.optional(),
     escalation: z
@@ -305,6 +329,7 @@ export const RepoConfig = z.object({
             .object({
             enabled: z.boolean().default(true),
             mode: z.enum(["warn", "block"]).default("warn"),
+            consumer_registry_path: z.string().optional(),
         })
             .default({}),
     })

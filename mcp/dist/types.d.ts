@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CiManifest } from "./ci-manifest.js";
 export declare const GateDecision: z.ZodEnum<["allow", "warn", "block"]>;
 export type GateDecision = z.infer<typeof GateDecision>;
 export declare const HealthCheckResult: z.ZodObject<{
@@ -57,13 +58,13 @@ export declare const CiCheck: z.ZodObject<{
     detailsUrl: z.ZodOptional<z.ZodString>;
     required: z.ZodBoolean;
 }, "strip", z.ZodTypeAny, {
-    status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+    status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
     name: string;
     required: boolean;
     conclusion?: string | undefined;
     detailsUrl?: string | undefined;
 }, {
-    status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+    status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
     name: string;
     required: boolean;
     conclusion?: string | undefined;
@@ -78,13 +79,13 @@ export declare const CiSummary: z.ZodObject<{
         detailsUrl: z.ZodOptional<z.ZodString>;
         required: z.ZodBoolean;
     }, "strip", z.ZodTypeAny, {
-        status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+        status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
         name: string;
         required: boolean;
         conclusion?: string | undefined;
         detailsUrl?: string | undefined;
     }, {
-        status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+        status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
         name: string;
         required: boolean;
         conclusion?: string | undefined;
@@ -96,7 +97,7 @@ export declare const CiSummary: z.ZodObject<{
     missingCount: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
     checks: {
-        status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+        status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
         name: string;
         required: boolean;
         conclusion?: string | undefined;
@@ -108,7 +109,7 @@ export declare const CiSummary: z.ZodObject<{
     missingCount: number;
 }, {
     checks: {
-        status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+        status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
         name: string;
         required: boolean;
         conclusion?: string | undefined;
@@ -231,11 +232,11 @@ export declare const GateEvaluation: z.ZodObject<{
         strictness: z.ZodEnum<["baseline", "elevated", "strict"]>;
         reason: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        strictness: "baseline" | "elevated" | "strict";
         reason: string;
+        strictness: "baseline" | "elevated" | "strict";
     }, {
-        strictness: "baseline" | "elevated" | "strict";
         reason: string;
+        strictness: "baseline" | "elevated" | "strict";
     }>>;
     policyOverride: z.ZodOptional<z.ZodObject<{
         owner: z.ZodString;
@@ -289,13 +290,13 @@ export declare const GateEvaluation: z.ZodObject<{
             detailsUrl: z.ZodOptional<z.ZodString>;
             required: z.ZodBoolean;
         }, "strip", z.ZodTypeAny, {
-            status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+            status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
             name: string;
             required: boolean;
             conclusion?: string | undefined;
             detailsUrl?: string | undefined;
         }, {
-            status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+            status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
             name: string;
             required: boolean;
             conclusion?: string | undefined;
@@ -307,7 +308,7 @@ export declare const GateEvaluation: z.ZodObject<{
         missingCount: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         checks: {
-            status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+            status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
             name: string;
             required: boolean;
             conclusion?: string | undefined;
@@ -319,7 +320,7 @@ export declare const GateEvaluation: z.ZodObject<{
         missingCount: number;
     }, {
         checks: {
-            status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+            status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
             name: string;
             required: boolean;
             conclusion?: string | undefined;
@@ -342,6 +343,66 @@ export declare const GateEvaluation: z.ZodObject<{
     }>>;
     gateMode: z.ZodOptional<z.ZodEnum<["release-ready", "advisory", "risk-only"]>>;
     storePersisted: z.ZodOptional<z.ZodBoolean>;
+    cross_repo_impact: z.ZodOptional<z.ZodObject<{
+        services: z.ZodArray<z.ZodObject<{
+            serviceName: z.ZodString;
+            touchedFiles: z.ZodArray<z.ZodString, "many">;
+            consumers: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                repo: z.ZodOptional<z.ZodString>;
+                branch: z.ZodOptional<z.ZodString>;
+            }, "strip", z.ZodTypeAny, {
+                id: string;
+                repo?: string | undefined;
+                branch?: string | undefined;
+            }, {
+                id: string;
+                repo?: string | undefined;
+                branch?: string | undefined;
+            }>, "many">;
+            notify_webhook: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            serviceName: string;
+            touchedFiles: string[];
+            consumers: {
+                id: string;
+                repo?: string | undefined;
+                branch?: string | undefined;
+            }[];
+            notify_webhook?: string | undefined;
+        }, {
+            serviceName: string;
+            touchedFiles: string[];
+            consumers: {
+                id: string;
+                repo?: string | undefined;
+                branch?: string | undefined;
+            }[];
+            notify_webhook?: string | undefined;
+        }>, "many">;
+    }, "strip", z.ZodTypeAny, {
+        services: {
+            serviceName: string;
+            touchedFiles: string[];
+            consumers: {
+                id: string;
+                repo?: string | undefined;
+                branch?: string | undefined;
+            }[];
+            notify_webhook?: string | undefined;
+        }[];
+    }, {
+        services: {
+            serviceName: string;
+            touchedFiles: string[];
+            consumers: {
+                id: string;
+                repo?: string | undefined;
+                branch?: string | undefined;
+            }[];
+            notify_webhook?: string | undefined;
+        }[];
+    }>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     repoId: string;
@@ -361,6 +422,18 @@ export declare const GateEvaluation: z.ZodObject<{
         detail?: Record<string, unknown> | undefined;
     }[];
     evaluationMs: number;
+    cross_repo_impact?: {
+        services: {
+            serviceName: string;
+            touchedFiles: string[];
+            consumers: {
+                id: string;
+                repo?: string | undefined;
+                branch?: string | undefined;
+            }[];
+            notify_webhook?: string | undefined;
+        }[];
+    } | undefined;
     environment?: string | undefined;
     prNumber?: number | undefined;
     files?: string[] | undefined;
@@ -385,8 +458,8 @@ export declare const GateEvaluation: z.ZodObject<{
         resolve_sla_minutes?: number | undefined;
     } | undefined;
     trust_profile?: {
-        strictness: "baseline" | "elevated" | "strict";
         reason: string;
+        strictness: "baseline" | "elevated" | "strict";
     } | undefined;
     policyOverride?: {
         reason: string;
@@ -404,7 +477,7 @@ export declare const GateEvaluation: z.ZodObject<{
     releaseReadyReasons?: string[] | undefined;
     ci?: {
         checks: {
-            status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+            status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
             name: string;
             required: boolean;
             conclusion?: string | undefined;
@@ -440,6 +513,18 @@ export declare const GateEvaluation: z.ZodObject<{
         detail?: Record<string, unknown> | undefined;
     }[];
     evaluationMs: number;
+    cross_repo_impact?: {
+        services: {
+            serviceName: string;
+            touchedFiles: string[];
+            consumers: {
+                id: string;
+                repo?: string | undefined;
+                branch?: string | undefined;
+            }[];
+            notify_webhook?: string | undefined;
+        }[];
+    } | undefined;
     environment?: string | undefined;
     prNumber?: number | undefined;
     files?: string[] | undefined;
@@ -464,8 +549,8 @@ export declare const GateEvaluation: z.ZodObject<{
         resolve_sla_minutes?: number | undefined;
     } | undefined;
     trust_profile?: {
-        strictness: "baseline" | "elevated" | "strict";
         reason: string;
+        strictness: "baseline" | "elevated" | "strict";
     } | undefined;
     policyOverride?: {
         reason: string;
@@ -483,7 +568,7 @@ export declare const GateEvaluation: z.ZodObject<{
     releaseReadyReasons?: string[] | undefined;
     ci?: {
         checks: {
-            status: "pass" | "fail" | "skip" | "pending" | "stale" | "missing";
+            status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
             name: string;
             required: boolean;
             conclusion?: string | undefined;
@@ -607,20 +692,98 @@ export declare const EnvironmentConfig: z.ZodObject<{
     require_security_clear?: boolean | undefined;
 }>;
 export type EnvironmentConfig = z.infer<typeof EnvironmentConfig>;
+export declare const ServiceConsumerRef: z.ZodObject<{
+    repo: z.ZodString;
+    name: z.ZodOptional<z.ZodString>;
+    branch: z.ZodOptional<z.ZodString>;
+    notify_webhook: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    repo: string;
+    name?: string | undefined;
+    branch?: string | undefined;
+    notify_webhook?: string | undefined;
+}, {
+    repo: string;
+    name?: string | undefined;
+    branch?: string | undefined;
+    notify_webhook?: string | undefined;
+}>;
+export declare const ServiceConsumer: z.ZodUnion<[z.ZodString, z.ZodObject<{
+    repo: z.ZodString;
+    name: z.ZodOptional<z.ZodString>;
+    branch: z.ZodOptional<z.ZodString>;
+    notify_webhook: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    repo: string;
+    name?: string | undefined;
+    branch?: string | undefined;
+    notify_webhook?: string | undefined;
+}, {
+    repo: string;
+    name?: string | undefined;
+    branch?: string | undefined;
+    notify_webhook?: string | undefined;
+}>]>;
+export type ServiceConsumer = z.infer<typeof ServiceConsumer>;
+export declare const ConsumerRegistry: z.ZodRecord<z.ZodString, z.ZodObject<{
+    repo: z.ZodString;
+    name: z.ZodOptional<z.ZodString>;
+    branch: z.ZodOptional<z.ZodString>;
+    notify_webhook: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    repo: string;
+    name?: string | undefined;
+    branch?: string | undefined;
+    notify_webhook?: string | undefined;
+}, {
+    repo: string;
+    name?: string | undefined;
+    branch?: string | undefined;
+    notify_webhook?: string | undefined;
+}>>;
+export type ConsumerRegistry = z.infer<typeof ConsumerRegistry>;
 export declare const ServiceMapping: z.ZodObject<{
     paths: z.ZodArray<z.ZodString, "many">;
     environment: z.ZodOptional<z.ZodString>;
-    consumers: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    consumers: z.ZodDefault<z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodObject<{
+        repo: z.ZodString;
+        name: z.ZodOptional<z.ZodString>;
+        branch: z.ZodOptional<z.ZodString>;
+        notify_webhook: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        repo: string;
+        name?: string | undefined;
+        branch?: string | undefined;
+        notify_webhook?: string | undefined;
+    }, {
+        repo: string;
+        name?: string | undefined;
+        branch?: string | undefined;
+        notify_webhook?: string | undefined;
+    }>]>, "many">>;
     contracts: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    notify_webhook: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    consumers: (string | {
+        repo: string;
+        name?: string | undefined;
+        branch?: string | undefined;
+        notify_webhook?: string | undefined;
+    })[];
     paths: string[];
-    consumers: string[];
     contracts: string[];
     environment?: string | undefined;
+    notify_webhook?: string | undefined;
 }, {
     paths: string[];
     environment?: string | undefined;
-    consumers?: string[] | undefined;
+    consumers?: (string | {
+        repo: string;
+        name?: string | undefined;
+        branch?: string | undefined;
+        notify_webhook?: string | undefined;
+    })[] | undefined;
+    notify_webhook?: string | undefined;
     contracts?: string[] | undefined;
 }>;
 export type ServiceMapping = z.infer<typeof ServiceMapping>;
@@ -777,15 +940,15 @@ export declare const TrailheadContext: z.ZodObject<{
     }>>;
 }, "strip", z.ZodTypeAny, {
     name: string;
-    ci: {
-        required_checks: string[];
-        optional_checks: string[];
-        missing_required: "fail" | "skip";
-    };
     match: {
         base_branch: string[];
         head_branch: string[];
         labels: string[];
+    };
+    ci: {
+        required_checks: string[];
+        optional_checks: string[];
+        missing_required: "fail" | "skip";
     };
     thresholds: {
         warn?: number | undefined;
@@ -875,15 +1038,15 @@ export declare const RepoConfig: z.ZodObject<{
         }>>;
     }, "strip", z.ZodTypeAny, {
         name: string;
-        ci: {
-            required_checks: string[];
-            optional_checks: string[];
-            missing_required: "fail" | "skip";
-        };
         match: {
             base_branch: string[];
             head_branch: string[];
             labels: string[];
+        };
+        ci: {
+            required_checks: string[];
+            optional_checks: string[];
+            missing_required: "fail" | "skip";
         };
         thresholds: {
             warn?: number | undefined;
@@ -1006,18 +1169,62 @@ export declare const RepoConfig: z.ZodObject<{
     services: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodObject<{
         paths: z.ZodArray<z.ZodString, "many">;
         environment: z.ZodOptional<z.ZodString>;
-        consumers: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+        consumers: z.ZodDefault<z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodObject<{
+            repo: z.ZodString;
+            name: z.ZodOptional<z.ZodString>;
+            branch: z.ZodOptional<z.ZodString>;
+            notify_webhook: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            repo: string;
+            name?: string | undefined;
+            branch?: string | undefined;
+            notify_webhook?: string | undefined;
+        }, {
+            repo: string;
+            name?: string | undefined;
+            branch?: string | undefined;
+            notify_webhook?: string | undefined;
+        }>]>, "many">>;
         contracts: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+        notify_webhook: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
+        consumers: (string | {
+            repo: string;
+            name?: string | undefined;
+            branch?: string | undefined;
+            notify_webhook?: string | undefined;
+        })[];
         paths: string[];
-        consumers: string[];
         contracts: string[];
         environment?: string | undefined;
+        notify_webhook?: string | undefined;
     }, {
         paths: string[];
         environment?: string | undefined;
-        consumers?: string[] | undefined;
+        consumers?: (string | {
+            repo: string;
+            name?: string | undefined;
+            branch?: string | undefined;
+            notify_webhook?: string | undefined;
+        })[] | undefined;
+        notify_webhook?: string | undefined;
         contracts?: string[] | undefined;
+    }>>>;
+    consumer_registry: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodObject<{
+        repo: z.ZodString;
+        name: z.ZodOptional<z.ZodString>;
+        branch: z.ZodOptional<z.ZodString>;
+        notify_webhook: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        repo: string;
+        name?: string | undefined;
+        branch?: string | undefined;
+        notify_webhook?: string | undefined;
+    }, {
+        repo: string;
+        name?: string | undefined;
+        branch?: string | undefined;
+        notify_webhook?: string | undefined;
     }>>>;
     security: z.ZodDefault<z.ZodObject<{
         severity_threshold: z.ZodDefault<z.ZodEnum<["error", "warning", "note", "none"]>>;
@@ -1178,12 +1385,15 @@ export declare const RepoConfig: z.ZodObject<{
         cross_repo_impact: z.ZodDefault<z.ZodObject<{
             enabled: z.ZodDefault<z.ZodBoolean>;
             mode: z.ZodDefault<z.ZodEnum<["warn", "block"]>>;
+            consumer_registry_path: z.ZodOptional<z.ZodString>;
         }, "strip", z.ZodTypeAny, {
             enabled: boolean;
             mode: "warn" | "block";
+            consumer_registry_path?: string | undefined;
         }, {
             enabled?: boolean | undefined;
             mode?: "warn" | "block" | undefined;
+            consumer_registry_path?: string | undefined;
         }>>;
     }, "strip", z.ZodTypeAny, {
         ci_integrity: {
@@ -1214,6 +1424,7 @@ export declare const RepoConfig: z.ZodObject<{
         cross_repo_impact: {
             enabled: boolean;
             mode: "warn" | "block";
+            consumer_registry_path?: string | undefined;
         };
         session_correlation: {
             enabled: boolean;
@@ -1263,6 +1474,7 @@ export declare const RepoConfig: z.ZodObject<{
         cross_repo_impact?: {
             enabled?: boolean | undefined;
             mode?: "warn" | "block" | undefined;
+            consumer_registry_path?: string | undefined;
         } | undefined;
         session_correlation?: {
             enabled?: boolean | undefined;
@@ -1285,27 +1497,39 @@ export declare const RepoConfig: z.ZodObject<{
         } | undefined;
     }>>;
 }, "strip", z.ZodTypeAny, {
+    schema_version: number;
+    services: Record<string, {
+        consumers: (string | {
+            repo: string;
+            name?: string | undefined;
+            branch?: string | undefined;
+            notify_webhook?: string | undefined;
+        })[];
+        paths: string[];
+        contracts: string[];
+        environment?: string | undefined;
+        notify_webhook?: string | undefined;
+    }>;
     weights: Record<string, number>;
     thresholds: {
         warn?: number | undefined;
         risk?: number | undefined;
     };
-    schema_version: number;
     gate: {
         mode: "release-ready" | "advisory" | "risk-only";
         check_name: string;
     };
     contexts: {
         name: string;
-        ci: {
-            required_checks: string[];
-            optional_checks: string[];
-            missing_required: "fail" | "skip";
-        };
         match: {
             base_branch: string[];
             head_branch: string[];
             labels: string[];
+        };
+        ci: {
+            required_checks: string[];
+            optional_checks: string[];
+            missing_required: "fail" | "skip";
         };
         thresholds: {
             warn?: number | undefined;
@@ -1341,11 +1565,11 @@ export declare const RepoConfig: z.ZodObject<{
         risk?: number | undefined;
         require_security_clear?: boolean | undefined;
     }>;
-    services: Record<string, {
-        paths: string[];
-        consumers: string[];
-        contracts: string[];
-        environment?: string | undefined;
+    consumer_registry: Record<string, {
+        repo: string;
+        name?: string | undefined;
+        branch?: string | undefined;
+        notify_webhook?: string | undefined;
     }>;
     security: {
         severity_threshold: "error" | "warning" | "note" | "none";
@@ -1386,6 +1610,7 @@ export declare const RepoConfig: z.ZodObject<{
         cross_repo_impact: {
             enabled: boolean;
             mode: "warn" | "block";
+            consumer_registry_path?: string | undefined;
         };
         session_correlation: {
             enabled: boolean;
@@ -1413,12 +1638,24 @@ export declare const RepoConfig: z.ZodObject<{
         field_map?: Record<string, string> | undefined;
     } | undefined;
 }, {
+    schema_version?: number | undefined;
+    services?: Record<string, {
+        paths: string[];
+        environment?: string | undefined;
+        consumers?: (string | {
+            repo: string;
+            name?: string | undefined;
+            branch?: string | undefined;
+            notify_webhook?: string | undefined;
+        })[] | undefined;
+        notify_webhook?: string | undefined;
+        contracts?: string[] | undefined;
+    }> | undefined;
     weights?: Record<string, number> | undefined;
     thresholds?: {
         warn?: number | undefined;
         risk?: number | undefined;
     } | undefined;
-    schema_version?: number | undefined;
     gate?: {
         mode?: "release-ready" | "advisory" | "risk-only" | undefined;
         check_name?: string | undefined;
@@ -1469,11 +1706,11 @@ export declare const RepoConfig: z.ZodObject<{
         risk?: number | undefined;
         require_security_clear?: boolean | undefined;
     }> | undefined;
-    services?: Record<string, {
-        paths: string[];
-        environment?: string | undefined;
-        consumers?: string[] | undefined;
-        contracts?: string[] | undefined;
+    consumer_registry?: Record<string, {
+        repo: string;
+        name?: string | undefined;
+        branch?: string | undefined;
+        notify_webhook?: string | undefined;
     }> | undefined;
     security?: {
         severity_threshold?: "error" | "warning" | "note" | "none" | undefined;
@@ -1519,6 +1756,7 @@ export declare const RepoConfig: z.ZodObject<{
         cross_repo_impact?: {
             enabled?: boolean | undefined;
             mode?: "warn" | "block" | undefined;
+            consumer_registry_path?: string | undefined;
         } | undefined;
         session_correlation?: {
             enabled?: boolean | undefined;
@@ -1556,12 +1794,15 @@ export interface TrailheadConfig {
     webhookUrl?: string;
     webhookEvents: string[];
     evaluationStoreUrl?: string;
+    trailheadApiKey?: string;
     environment?: string;
     securityGate?: boolean;
     gateMode?: GateMode;
     waitForChecks?: boolean;
     waitTimeoutMinutes?: number;
     checkName?: string;
+    ciManifest?: CiManifest | null;
+    ciManifestPath?: string;
 }
 export interface TestRepairResult {
     testFile: string;

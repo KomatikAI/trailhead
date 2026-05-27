@@ -4,6 +4,8 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.2.0] - 2026-05-26
+
 ### Added
 
 - **CI manifest (E15)** — `ci-manifest.json` schema, `ci-manifest-path` action input, and orchestrator merge so path-filter job skips do not count as missing required checks. See [docs/ci-manifest.md](docs/ci-manifest.md).
@@ -11,7 +13,8 @@ All notable changes to Trailhead will be documented in this file.
 
 ### Changed
 
-- **Repository branch sync** — `main` is the active/default branch (`CHANGELOG` v4.0.0 note corrected).
+- **Version alignment** — `app/` and `mcp/` package versions bumped to match root (4.2.0).
+- **Repository branch sync** — `main` is the active/default branch; `dev` and `staging` are mirrors fast-forwarded on release.
 
 ## [4.1.0] - 2026-05-23
 

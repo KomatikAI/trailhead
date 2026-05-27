@@ -239,7 +239,7 @@ async function saveFeedbackRecords(records: DetectorFeedbackRecord[]): Promise<v
 
 const server = new McpServer({
   name: "trailhead",
-  version: "4.1.0",
+  version: "4.2.0",
 });
 
 // ---------------------------------------------------------------------------
