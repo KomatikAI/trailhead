@@ -4,7 +4,7 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
-## Unreleased
+## [4.2.1] - 2026-05-27
 
 ### Added — Multi-platform CI (E17)
 

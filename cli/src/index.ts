@@ -5,7 +5,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { runDoctorCommand } from "./run-doctor.js";
 
-const CLI_VERSION = "4.2.0";
+const CLI_VERSION = "4.2.1";
 
 const BOLD = "\x1b[1m";
 const GREEN = "\x1b[32m";

@@ -269,7 +269,7 @@ Example:
 
 This repository uses **`main`** as the active/default branch. `dev` and `staging` are kept in sync with `main` after each release. Open PRs should target **`main`** (CI runs on PRs to `main`).
 
-Current releases: **`@v4`** → **v4.2.0** (Advanced CI: E15 CI manifest + E16 cross-repo impact).
+Current releases: **`@v4`** → **v4.2.1** (E17 multi-platform CI, P1 polish, `trailhead doctor`).
 
 The unmerged legacy supply-chain experiment branch is known not to be promotion-ready: its
 targeted tests pass, but `app` and `mcp` builds fail until their prebuild scripts copy the

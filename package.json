@@ -1,6 +1,6 @@
 {
   "name": "trailhead",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "private": true,
   "description": "Release readiness gate for GitHub PRs — waits for CI, scores code risk, checks production health, and blocks merges that are not release-ready.",
   "license": "MIT",

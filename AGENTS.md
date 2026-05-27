@@ -637,14 +637,13 @@ Runtime state lives in PostgreSQL, not in git-committed files.
 
 ### What this project is
 
-Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (current release **v4.2.0**, floating tag **`v4`**) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server` v4.2.0**) with 22 tools for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
+Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (current release **v4.2.1**, floating tag **`v4`**) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server` v4.2.1**) with 22 tools for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
 
-### Current repo state (May 26, 2026)
+### Current repo state (May 27, 2026)
 
 - **Branch model**: `main` is the active/default branch and source of truth. `origin/dev` and `origin/staging` are release mirrors fast-forwarded to match `main`; all open PRs target `main`.
-- **v4.2.0 released**: E15 CI manifest (#216) and E16 cross-repo impact (#217). **533** root tests + **19** cloud tests.
-- **Next milestone**: E17 multi-platform CI adapters (#210–#212) for v4.2.1 or v4.3.
-- **v4.0 carryover backlog**: 20 open polish issues (mostly P1/P2 UX, docs, MCP tools) — triage separately from E17.
+- **v4.2.1 released**: E17 multi-platform CI (#218), P1 polish (#219), `trailhead doctor` (#220). **561** root tests + **19** cloud tests.
+- **Next milestone**: v4.3 backlog (docs batch, MCP `wait-for-ci-checks`, supply-chain experiment promotion).
 - **Legacy compatibility**: Trailhead remains backwards-compatible with existing `.deployguard.yml` configs and `DEPLOYGUARD_*` environment variables where those surfaces were already shipped.
 - **Known unpromoted branch**: `origin/experiment/rd-satellite/deployguard-supply-chain-risk` has useful supply-chain scoring work, but it is **not merge-ready**. Targeted tests pass, but `app` and `mcp` builds fail because shared `risk-engine.ts` imports `supply-chain.js` without copying that module during prebuild.
 
@@ -671,7 +670,7 @@ Trailhead is the canonical name for the deployment gate formerly known as Deploy
 - **Bundler**: `@vercel/ncc` → single CJS file at `dist/index.js`.
 - **TypeScript**: `moduleResolution: "Bundler"`, `module: "ESNext"` — required because `@actions/github@9` ships ESM-only exports.
 - **Linting**: ESLint + typescript-eslint + Prettier (CI enforces `format:check` before lint).
-- **Testing**: Vitest (533 root tests + 19 cloud tests as of May 2026).
+- **Testing**: Vitest (561 root tests + 19 cloud tests as of May 2026).
 
 ### CI pipeline
 
@@ -731,5 +730,5 @@ Trailhead is the canonical name for the deployment gate formerly known as Deploy
 | `app/src/handler.ts` | GitHub App webhook handler                          |
 | `app/src/server.ts`  | Hono HTTP server                                    |
 | `cli/src/index.ts`   | `trailhead init` wizard                             |
-| `src/__tests__/`     | Vitest test suite (518 tests)                       |
+| `src/__tests__/`     | Vitest test suite (561 tests)                       |
 | `cloud/src/__tests__/` | Cloud API tests (19 tests)                        |

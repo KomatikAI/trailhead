@@ -40946,7 +40946,9 @@ function parseYaml(input) {
                     const nextTrimmed = nextLine?.trim() ?? "";
                     const useArray = nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
                     child[itemKey] = useArray ? [] : {};
-                    if (!useArray && typeof child[itemKey] === "object" && child[itemKey] !== null) {
+                    if (!useArray &&
+                        typeof child[itemKey] === "object" &&
+                        child[itemKey] !== null) {
                         stack.push({ indent, value: child[itemKey] });
                     }
                 }
@@ -40983,9 +40985,7 @@ function parseYaml(input) {
             if (trimmedVal.startsWith("[") && trimmedVal.endsWith("]")) {
                 const inner = trimmedVal.slice(1, -1).trim();
                 container[key] =
-                    inner === ""
-                        ? []
-                        : inner.split(",").map((item) => parseScalar(item.trim()));
+                    inner === "" ? [] : inner.split(",").map((item) => parseScalar(item.trim()));
                 continue;
             }
             container[key] = parseScalar(rawVal);

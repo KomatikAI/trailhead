@@ -22,7 +22,7 @@ Transform Trailhead from a risk-scoring sidecar into a **Release Readiness Gate*
 | E16  | ✅ Done | External consumer registry, satellite webhooks, cross-repo PR comment | [#207–#209](https://github.com/KomatikAI/trailhead/issues/207)                                                                  |
 | E17  | ✅ Done | GitLab, CircleCI, generic webhook CI adapters                         | [#210–#212](https://github.com/KomatikAI/trailhead/issues/210) · epic [#114](https://github.com/KomatikAI/trailhead/issues/114) |
 
-Released **v4.2.0** with E15 + E16. E17 shipped in v4.2.1.
+Released **v4.2.0** with E15 + E16. **v4.2.1** completes v4.2 (E17, P1 polish, `trailhead doctor`).
 
 ## v4.1 Epics (complete — released v4.1.0)
 
