@@ -40,6 +40,8 @@ function findManifestJob(manifest, configuredName) {
 }
 function statusFromManifestJob(job) {
     switch (job.outcome) {
+        case "passed":
+            return "pass";
         case "skipped":
             return "skip";
         case "failed":

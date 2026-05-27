@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { parseCiExternalWebhook } from "./ci-external.js";
+import { defaultCiStatusStore } from "./ci-status-store.js";
 import { handleDeploymentProtectionRule, verifySignature } from "./handler.js";
 import { parseVercelPayload, parseGenericPayload, executeRollback } from "./rollback.js";
 
@@ -103,10 +105,54 @@ app.post("/webhook/deploy-outcome", async (c) => {
   });
 });
 
+app.post("/webhook/ci-status", async (c) => {
+  const secret = process.env.CI_WEBHOOK_SECRET ?? "";
+  const rawBody = await c.req.text();
+
+  if (secret) {
+    const sig = c.req.header("x-trailhead-signature-256") ?? "";
+    if (!verifySignature(rawBody, sig, secret)) {
+      return c.json({ error: "invalid signature" }, 401);
+    }
+  }
+
+  let payload;
+  try {
+    payload = parseCiExternalWebhook(JSON.parse(rawBody));
+  } catch {
+    return c.json({ error: "invalid payload" }, 400);
+  }
+
+  const repo = payload.repo ?? process.env.GITHUB_REPOSITORY ?? "";
+  if (!repo) {
+    return c.json({ error: "repo required in payload or GITHUB_REPOSITORY env" }, 400);
+  }
+
+  defaultCiStatusStore.put(repo, payload.commit_sha, payload);
+  logJson("info", "External CI status received", {
+    repo,
+    commit_sha: payload.commit_sha,
+    source: payload.source,
+    jobs: payload.jobs.length,
+  });
+
+  return c.json({ ok: true, jobs: payload.jobs.length });
+});
+
+app.get("/v1/ci-status/:owner/:repo/:sha", (c) => {
+  const fullName = `${c.req.param("owner")}/${c.req.param("repo")}`;
+  const sha = c.req.param("sha");
+  const entry = defaultCiStatusStore.get(fullName, sha);
+  if (!entry) {
+    return c.json({ error: "not found" }, 404);
+  }
+  return c.json(entry.payload);
+});
+
 app.get("/.well-known/trailhead.json", (c) =>
   c.json({
     name: "Trailhead",
-    version: "3.0.2",
+    version: "4.2.0",
     description:
       "Deployment gate — scores code risk, checks production health, blocks dangerous releases.",
     capabilities: [
@@ -116,6 +162,7 @@ app.get("/.well-known/trailhead.json", (c) =>
       "dora-metrics",
       "security-alerts",
       "canary-hooks",
+      "external-ci-webhook",
     ],
     homepage: "https://github.com/KomatikAI/trailhead",
   }),

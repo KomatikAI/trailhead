@@ -41811,6 +41811,8 @@ function findManifestJob(manifest, configuredName) {
 }
 function statusFromManifestJob(job) {
     switch (job.outcome) {
+        case "passed":
+            return "pass";
         case "skipped":
             return "skip";
         case "failed":
@@ -45329,6 +45331,137 @@ function resolveDeployEventsUrl(evaluationStoreUrl) {
     return evaluationStoreUrl.replace(/\/store\/?$/, "/deploy-event");
 }
 
+;// CONCATENATED MODULE: ./src/ci-adapters/circleci.ts
+function mapCircleCiJobStatus(status) {
+    switch (status) {
+        case "success":
+            return "passed";
+        case "failed":
+        case "failing":
+            return "failed";
+        case "canceled":
+        case "cancelled":
+            return "cancelled";
+        case "skipped":
+        case "not_run":
+            return "skipped";
+        case "running":
+        case "queued":
+        case "on_hold":
+        case "blocked":
+            return "pending";
+        default:
+            return "pending";
+    }
+}
+function circleCiJobsToManifestJobs(jobs) {
+    return jobs.map((job) => ({
+        name: job.name,
+        outcome: mapCircleCiJobStatus(job.status),
+        details_url: job.web_url,
+    }));
+}
+function revisionMatches(revision, commitSha) {
+    if (!revision)
+        return false;
+    return (revision === commitSha ||
+        revision.startsWith(commitSha) ||
+        commitSha.startsWith(revision));
+}
+async function fetchCircleCiManifest(options) {
+    const base = (options.apiUrl ?? "https://circleci.com/api/v2").replace(/\/$/, "");
+    const slug = encodeURIComponent(options.projectSlug);
+    const headers = {
+        "Circle-Token": options.token,
+        Accept: "application/json",
+    };
+    const pipelinesRes = await fetch(`${base}/project/${slug}/pipeline`, { headers });
+    if (!pipelinesRes.ok)
+        return null;
+    const pipelinesBody = (await pipelinesRes.json());
+    const pipeline = pipelinesBody.items?.find((item) => revisionMatches(item.vcs?.revision, options.commitSha));
+    if (!pipeline)
+        return null;
+    const workflowsRes = await fetch(`${base}/pipeline/${pipeline.id}/workflow`, {
+        headers,
+    });
+    if (!workflowsRes.ok)
+        return null;
+    const workflowsBody = (await workflowsRes.json());
+    const workflow = workflowsBody.items?.[0];
+    if (!workflow)
+        return null;
+    const jobsRes = await fetch(`${base}/workflow/${workflow.id}/job`, { headers });
+    if (!jobsRes.ok)
+        return null;
+    const jobsBody = (await jobsRes.json());
+    const jobs = jobsBody.items ?? [];
+    if (jobs.length === 0)
+        return null;
+    return {
+        schema_version: 1,
+        commit_sha: options.commitSha,
+        workflow: `circleci:${workflow.name}`,
+        jobs: circleCiJobsToManifestJobs(jobs),
+    };
+}
+
+;// CONCATENATED MODULE: ./src/ci-adapters/gitlab.ts
+function mapGitLabJobStatus(status) {
+    switch (status) {
+        case "success":
+            return "passed";
+        case "failed":
+            return "failed";
+        case "canceled":
+            return "cancelled";
+        case "skipped":
+            return "skipped";
+        case "running":
+        case "pending":
+        case "waiting":
+        case "preparing":
+        case "created":
+        case "scheduled":
+            return "pending";
+        default:
+            return "pending";
+    }
+}
+function gitLabJobsToManifestJobs(jobs) {
+    return jobs.map((job) => ({
+        name: job.name,
+        outcome: mapGitLabJobStatus(job.status),
+        details_url: job.web_url,
+    }));
+}
+async function fetchGitLabCiManifest(options) {
+    const base = options.apiUrl.replace(/\/$/, "");
+    const projectId = encodeURIComponent(String(options.projectId));
+    const sha = options.commitSha;
+    const headers = { "PRIVATE-TOKEN": options.token };
+    const pipelinesRes = await fetch(`${base}/projects/${projectId}/pipelines?sha=${encodeURIComponent(sha)}`, { headers });
+    if (!pipelinesRes.ok)
+        return null;
+    const pipelines = (await pipelinesRes.json());
+    if (!Array.isArray(pipelines) || pipelines.length === 0)
+        return null;
+    const pipeline = pipelines[0];
+    const jobsRes = await fetch(`${base}/projects/${projectId}/pipelines/${pipeline.id}/jobs`, { headers });
+    if (!jobsRes.ok)
+        return null;
+    const jobs = (await jobsRes.json());
+    if (!Array.isArray(jobs) || jobs.length === 0)
+        return null;
+    return {
+        schema_version: 1,
+        commit_sha: sha,
+        workflow: `gitlab:${pipeline.id}`,
+        run_id: pipeline.id,
+        jobs: gitLabJobsToManifestJobs(jobs),
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/ci-manifest.ts
 
 
@@ -45336,6 +45469,7 @@ function resolveDeployEventsUrl(evaluationStoreUrl) {
 /** Job outcome as emitted by path-filtered workflows (E15). */
 const CiManifestJobOutcome = enumType([
     "ran",
+    "passed",
     "skipped",
     "failed",
     "pending",
@@ -45378,6 +45512,131 @@ function readCiManifestFile(filePath) {
     catch {
         return null;
     }
+}
+
+;// CONCATENATED MODULE: ./src/ci-external.ts
+
+
+
+
+const CiExternalSource = enumType(["generic", "gitlab", "circleci", "webhook"]);
+/** Webhook payload for non-GitHub CI status (E17.3). Jobs reuse ci-manifest job shape. */
+const CiExternalWebhook = objectType({
+    schema_version: literalType(1),
+    commit_sha: stringType().min(7),
+    repo: stringType()
+        .regex(/^[^/]+\/[^/]+$/)
+        .optional(),
+    source: CiExternalSource.default("generic"),
+    generated_at: stringType().optional(),
+    workflow: stringType().optional(),
+    run_id: numberType().int().positive().optional(),
+    jobs: arrayType(CiManifestJob).min(1),
+});
+function parseCiExternalWebhook(raw) {
+    return CiExternalWebhook.parse(raw);
+}
+function externalStatusToManifest(payload) {
+    return {
+        schema_version: 1,
+        generated_at: payload.generated_at,
+        commit_sha: payload.commit_sha,
+        workflow: payload.workflow ?? payload.source,
+        run_id: payload.run_id,
+        jobs: payload.jobs,
+    };
+}
+function mergeCiManifests(...manifests) {
+    const valid = manifests.filter((manifest) => manifest != null && manifest.jobs.length > 0);
+    if (valid.length === 0)
+        return null;
+    const jobMap = new Map();
+    for (const manifest of valid) {
+        for (const job of manifest.jobs) {
+            jobMap.set(job.name.toLowerCase(), job);
+        }
+    }
+    return {
+        schema_version: 1,
+        generated_at: valid.find((manifest) => manifest.generated_at)?.generated_at,
+        commit_sha: valid.find((manifest) => manifest.commit_sha)?.commit_sha,
+        workflow: valid.find((manifest) => manifest.workflow)?.workflow,
+        run_id: valid.find((manifest) => manifest.run_id)?.run_id,
+        jobs: [...jobMap.values()],
+    };
+}
+async function fetchCiExternalStatus(url, options = {}) {
+    const headers = { Accept: "application/json" };
+    if (options.secret) {
+        headers.Authorization = `Bearer ${options.secret}`;
+    }
+    let fetchUrl = url;
+    if (options.commitSha) {
+        if (url.includes("{sha}")) {
+            fetchUrl = url.replaceAll("{sha}", options.commitSha);
+        }
+        else {
+            try {
+                const parsed = new URL(url);
+                parsed.searchParams.set("commit_sha", options.commitSha);
+                fetchUrl = parsed.toString();
+            }
+            catch {
+                fetchUrl = url;
+            }
+        }
+    }
+    try {
+        const response = await fetch(fetchUrl, { headers });
+        if (!response.ok)
+            return null;
+        const raw = await response.json();
+        try {
+            return externalStatusToManifest(parseCiExternalWebhook(raw));
+        }
+        catch {
+            return parseCiManifest(raw);
+        }
+    }
+    catch {
+        return null;
+    }
+}
+async function resolveCiManifests(options) {
+    const manifests = [];
+    if (options.ciManifestPath) {
+        const fromFile = readCiManifestFile(options.ciManifestPath);
+        if (fromFile)
+            manifests.push(fromFile);
+    }
+    if (options.ciExternalStatusUrl) {
+        const fromUrl = await fetchCiExternalStatus(options.ciExternalStatusUrl, {
+            secret: options.ciExternalStatusSecret,
+            commitSha: options.commitSha,
+        });
+        if (fromUrl)
+            manifests.push(fromUrl);
+    }
+    if (options.gitlabToken && options.gitlabProjectId) {
+        const fromGitLab = await fetchGitLabCiManifest({
+            apiUrl: options.gitlabApiUrl ?? "https://gitlab.com/api/v4",
+            token: options.gitlabToken,
+            projectId: options.gitlabProjectId,
+            commitSha: options.commitSha,
+        });
+        if (fromGitLab)
+            manifests.push(fromGitLab);
+    }
+    if (options.circleciToken && options.circleciProjectSlug) {
+        const fromCircleCi = await fetchCircleCiManifest({
+            token: options.circleciToken,
+            projectSlug: options.circleciProjectSlug,
+            commitSha: options.commitSha,
+        });
+        if (fromCircleCi)
+            manifests.push(fromCircleCi);
+    }
+    return mergeCiManifests(...manifests);
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -45594,15 +45853,33 @@ async function run() {
             evaluationStoreUrl: getInput("evaluation-store-url") || undefined,
         });
         const ciManifestPath = getInput("ci-manifest-path") || "";
-        let ciManifest = null;
-        if (ciManifestPath) {
-            ciManifest = readCiManifestFile(ciManifestPath);
-            if (ciManifest) {
-                info(`Loaded CI manifest from ${ciManifestPath} (${ciManifest.jobs.length} job(s))`);
-            }
-            else {
-                warning(`Could not parse ci-manifest at ${ciManifestPath}`);
-            }
+        const ciExternalStatusUrl = getInput("ci-external-status-url") || "";
+        const ciExternalStatusSecret = getInput("ci-external-status-secret") || "";
+        const gitlabToken = getInput("gitlab-token") || "";
+        const gitlabProjectId = getInput("gitlab-project-id") || "";
+        const gitlabApiUrl = getInput("gitlab-api-url") || "";
+        const circleciToken = getInput("circleci-token") || "";
+        const circleciProjectSlug = getInput("circleci-project-slug") || "";
+        const context = github_context;
+        const ciManifest = await resolveCiManifests({
+            ciManifestPath: ciManifestPath || undefined,
+            ciExternalStatusUrl: ciExternalStatusUrl || undefined,
+            ciExternalStatusSecret: ciExternalStatusSecret || undefined,
+            commitSha: context.sha,
+            gitlabApiUrl: gitlabApiUrl || undefined,
+            gitlabToken: gitlabToken || undefined,
+            gitlabProjectId: gitlabProjectId || undefined,
+            circleciToken: circleciToken || undefined,
+            circleciProjectSlug: circleciProjectSlug || undefined,
+        });
+        if (ciManifest) {
+            info(`Loaded CI manifest (${ciManifest.jobs.length} job(s))`);
+        }
+        else if (ciManifestPath ||
+            ciExternalStatusUrl ||
+            (gitlabToken && gitlabProjectId) ||
+            (circleciToken && circleciProjectSlug)) {
+            warning("External CI inputs were set but no CI manifest could be resolved");
         }
         const config = {
             apiKey: getInput("api-key") || "",
@@ -45656,7 +45933,6 @@ async function run() {
         if (policyOverride) {
             warning(`Governed override active (${policyOverride.linkedTicket}) by ${policyOverride.owner}; expires ${policyOverride.expiresAt}.`);
         }
-        const context = github_context;
         const commitSha = context.sha;
         const prNumber = context.payload.pull_request?.number;
         info(`Evaluating deployment gate for ${commitSha.substring(0, 7)}`);

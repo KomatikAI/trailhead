@@ -60,6 +60,8 @@ function findManifestJob(
 
 function statusFromManifestJob(job: CiManifestJob): CiCheckStatusEnum | undefined {
   switch (job.outcome) {
+    case "passed":
+      return "pass";
     case "skipped":
       return "skip";
     case "failed":

@@ -28,9 +28,13 @@ const sharedFiles = [
   "release-ready.ts",
   "ci-core.ts",
   "ci-manifest.ts",
+  "ci-external.ts",
+  "ci-status-store.ts",
   "config-core.ts",
   "deployment-gate.ts",
 ];
+
+const adapterFiles = ["gitlab.ts", "circleci.ts"];
 
 const cloudOnlyFiles = ["feedback-core.ts"];
 
@@ -60,6 +64,17 @@ fs.mkdirSync(targetDir, { recursive: true });
 
 for (const file of filesToCopy) {
   fs.copyFileSync(path.join(root, "src", file), path.join(targetDir, file));
+}
+
+if (targetName === "app" || targetName === "mcp") {
+  const adaptersDir = path.join(targetDir, "ci-adapters");
+  fs.mkdirSync(adaptersDir, { recursive: true });
+  for (const file of adapterFiles) {
+    fs.copyFileSync(
+      path.join(root, "src/ci-adapters", file),
+      path.join(adaptersDir, file),
+    );
+  }
 }
 
 if (targetName === "mcp") {

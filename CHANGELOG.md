@@ -4,6 +4,13 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+### Added — Multi-platform CI (E17)
+
+- **Generic webhook CI adapter (E17.3)** — `POST /webhook/ci-status` and `GET /v1/ci-status/:owner/:repo/:sha` on the Trailhead App; `ci-external-status-url` action input. See [docs/ci-external-webhook.md](docs/ci-external-webhook.md).
+- **GitLab pipeline adapter (E17.1)** — `gitlab-token`, `gitlab-project-id`, and `gitlab-api-url` action inputs poll GitLab job status.
+- **CircleCI workflow adapter (E17.2)** — `circleci-token` and `circleci-project-slug` action inputs poll CircleCI workflow jobs.
+- **`passed` manifest outcome** — external CI jobs that succeed without a GitHub Check run map to release-ready pass.
+
 ## [4.2.0] - 2026-05-26
 
 ### Added

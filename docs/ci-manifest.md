@@ -27,7 +27,7 @@ See [`schemas/ci-manifest.v1.json`](schemas/ci-manifest.v1.json).
 | ---------------- | ---------------------------------------------------------------------------------------- |
 | `schema_version` | Must be `1`                                                                              |
 | `jobs[].name`    | Job or check name — matched against `required_checks` in `.trailhead.yml` (prefix match) |
-| `jobs[].outcome` | `ran`, `skipped`, `failed`, `pending`, or `cancelled`                                    |
+| `jobs[].outcome` | `ran`, `passed`, `skipped`, `failed`, `pending`, or `cancelled`                                    |
 | `jobs[].reason`  | When `outcome` is `skipped`, use `paths-filter` for dorny/paths-filter skips             |
 
 ## Action input
