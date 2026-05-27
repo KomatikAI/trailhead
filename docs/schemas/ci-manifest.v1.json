@@ -22,7 +22,7 @@
           "name": { "type": "string", "minLength": 1 },
           "outcome": {
             "type": "string",
-            "enum": ["ran", "skipped", "failed", "pending", "cancelled"]
+            "enum": ["ran", "passed", "skipped", "failed", "pending", "cancelled"]
           },
           "reason": {
             "type": "string",

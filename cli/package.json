@@ -7,7 +7,8 @@
     "trailhead": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "prebuild": "node ../scripts/copy-shared-src.mjs cli",
+    "build": "npm run prebuild && tsc",
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js"
   },
@@ -24,7 +25,9 @@
     "dora"
   ],
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "zod": "^3.24.0"
+  },
   "devDependencies": {
     "@types/node": "^25.8.0",
     "typescript": "^6.0.3"

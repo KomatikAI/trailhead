@@ -17,6 +17,7 @@ out/
 .DS_Store
 coverage/
 cli/dist/
+cli/src/shared/
 .turbo/
 .firecrawl/
 
@@ -27,6 +28,9 @@ app/src/context-matcher.ts
 app/src/release-ready.ts
 app/src/ci-core.ts
 app/src/ci-manifest.ts
+app/src/ci-external.ts
+app/src/ci-status-store.ts
+app/src/ci-adapters/
 app/src/config-core.ts
 app/src/deployment-gate.ts
 mcp/src/risk-engine.ts
@@ -35,6 +39,9 @@ mcp/src/context-matcher.ts
 mcp/src/release-ready.ts
 mcp/src/ci-core.ts
 mcp/src/ci-manifest.ts
+mcp/src/ci-external.ts
+mcp/src/ci-status-store.ts
+mcp/src/ci-adapters/
 mcp/src/config-core.ts
 mcp/src/deployment-gate.ts
 mcp/src/feedback-core.ts

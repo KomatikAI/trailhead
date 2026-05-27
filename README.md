@@ -137,42 +137,49 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 
 ## Inputs
 
-| Input                      | Required | Default               | Description                                                                            |
-| -------------------------- | -------- | --------------------- | -------------------------------------------------------------------------------------- |
-| `github-token`             | No       | `${{ github.token }}` | GitHub token for PR analysis and comments                                              |
-| `risk-threshold`           | No       | `70`                  | Block the PR above this risk score (0-100)                                             |
-| `warn-threshold`           | No       | risk - 15             | Warn above this risk score (0-100)                                                     |
-| `health-check-urls`        | No       | —                     | Comma-separated URLs to health-check before scoring                                    |
-| `fail-mode`                | No       | env-aware             | Error policy: explicit `open`/`closed`, or auto (`production`=`closed`, others=`open`) |
-| `override-fail-mode`       | No       | —                     | Governed temporary override for fail mode (requires override metadata)                 |
-| `override-risk-threshold`  | No       | —                     | Governed temporary risk threshold override (0-100)                                     |
-| `override-warn-threshold`  | No       | —                     | Governed temporary warn threshold override (0-100)                                     |
-| `override-reason`          | No       | —                     | Required when any override is set                                                      |
-| `override-owner`           | No       | —                     | Required when any override is set                                                      |
-| `override-ticket`          | No       | —                     | Required when any override is set                                                      |
-| `override-expires-at`      | No       | —                     | Required when any override is set (ISO-8601)                                           |
-| `self-heal`                | No       | `false`               | Auto-repair failing tests (needs `TRAILHEAD_TEST_FAILURES` env)                        |
-| `add-risk-labels`          | No       | `true`                | Add `trailhead:low-risk` / `warn` / `high-risk` labels to the PR                       |
-| `reviewers-on-risk`        | No       | —                     | Comma-separated usernames to request review on warn/block                              |
-| `webhook-url`              | No       | —                     | URL to POST results to (Slack, Discord, custom)                                        |
-| `webhook-events`           | No       | `warn,block`          | Which decisions trigger the webhook                                                    |
-| `trailhead-api-key`        | No       | —                     | Trailhead Cloud API key — auto-configures store URL + auth (v4.1)                      |
-| `evaluation-store-url`     | No       | —                     | URL to POST evaluations for trend dashboards (BYOS; omit if using `trailhead-api-key`) |
-| `evaluation-store-secret`  | No       | —                     | Bearer token for `evaluation-store-url`                                                |
-| `evaluation-store-retries` | No       | `3`                   | Retry attempts for transient evaluation store failures                                 |
-| `dora-metrics`             | No       | `false`               | Compute DORA-5 metrics alongside the gate evaluation                                   |
-| `dora-environment`         | No       | —                     | Filter DORA metrics to a specific deployment environment                               |
-| `environment`              | No       | —                     | Target deployment environment (for per-env threshold overrides)                        |
-| `gate-mode`                | No       | from `.trailhead.yml` | `release-ready`, `advisory`, or `risk-only` (overrides config)                         |
-| `wait-for-checks`          | No       | auto in release-ready | Poll GitHub Checks until required checks complete or timeout                           |
-| `wait-timeout-minutes`     | No       | `30`                  | Max minutes to wait for required CI checks                                             |
-| `ci-manifest-path`         | No       | —                     | Path to `ci-manifest.json` for path-filter skip semantics (v4.2)                       |
-| `check-name`               | No       | auto by gate mode     | GitHub check run name (`Trailhead — Release Ready` or `Trailhead`)                     |
-| `security-gate`            | No       | `true`                | Enable Code Scanning alerts as a risk factor                                           |
-| `canary-webhook-secret`    | No       | —                     | HMAC secret for deploy outcome webhooks                                                |
-| `otel-endpoint`            | No       | —                     | OTLP HTTP endpoint for exporting evaluation spans                                      |
-| `otel-headers`             | No       | —                     | Auth headers for the OTLP endpoint (key=value, comma-separated)                        |
-| `api-key`                  | No       | —                     | API key for remote enrichment (omit for local-only)                                    |
+| Input                       | Required | Default               | Description                                                                            |
+| --------------------------- | -------- | --------------------- | -------------------------------------------------------------------------------------- |
+| `github-token`              | No       | `${{ github.token }}` | GitHub token for PR analysis and comments                                              |
+| `risk-threshold`            | No       | `70`                  | Block the PR above this risk score (0-100)                                             |
+| `warn-threshold`            | No       | risk - 15             | Warn above this risk score (0-100)                                                     |
+| `health-check-urls`         | No       | —                     | Comma-separated URLs to health-check before scoring                                    |
+| `fail-mode`                 | No       | env-aware             | Error policy: explicit `open`/`closed`, or auto (`production`=`closed`, others=`open`) |
+| `override-fail-mode`        | No       | —                     | Governed temporary override for fail mode (requires override metadata)                 |
+| `override-risk-threshold`   | No       | —                     | Governed temporary risk threshold override (0-100)                                     |
+| `override-warn-threshold`   | No       | —                     | Governed temporary warn threshold override (0-100)                                     |
+| `override-reason`           | No       | —                     | Required when any override is set                                                      |
+| `override-owner`            | No       | —                     | Required when any override is set                                                      |
+| `override-ticket`           | No       | —                     | Required when any override is set                                                      |
+| `override-expires-at`       | No       | —                     | Required when any override is set (ISO-8601)                                           |
+| `self-heal`                 | No       | `false`               | Auto-repair failing tests (needs `TRAILHEAD_TEST_FAILURES` env)                        |
+| `add-risk-labels`           | No       | `true`                | Add `trailhead:low-risk` / `warn` / `high-risk` labels to the PR                       |
+| `reviewers-on-risk`         | No       | —                     | Comma-separated usernames to request review on warn/block                              |
+| `webhook-url`               | No       | —                     | URL to POST results to (Slack, Discord, custom)                                        |
+| `webhook-events`            | No       | `warn,block`          | Which decisions trigger the webhook                                                    |
+| `trailhead-api-key`         | No       | —                     | Trailhead Cloud API key — auto-configures store URL + auth (v4.1)                      |
+| `evaluation-store-url`      | No       | —                     | URL to POST evaluations for trend dashboards (BYOS; omit if using `trailhead-api-key`) |
+| `evaluation-store-secret`   | No       | —                     | Bearer token for `evaluation-store-url`                                                |
+| `evaluation-store-retries`  | No       | `3`                   | Retry attempts for transient evaluation store failures                                 |
+| `dora-metrics`              | No       | `false`               | Compute DORA-5 metrics alongside the gate evaluation                                   |
+| `dora-environment`          | No       | —                     | Filter DORA metrics to a specific deployment environment                               |
+| `environment`               | No       | —                     | Target deployment environment (for per-env threshold overrides)                        |
+| `gate-mode`                 | No       | from `.trailhead.yml` | `release-ready`, `advisory`, or `risk-only` (overrides config)                         |
+| `wait-for-checks`           | No       | auto in release-ready | Poll GitHub Checks until required checks complete or timeout                           |
+| `wait-timeout-minutes`      | No       | `30`                  | Max minutes to wait for required CI checks                                             |
+| `ci-manifest-path`          | No       | —                     | Path to `ci-manifest.json` for path-filter skip semantics (v4.2)                       |
+| `ci-external-status-url`    | No       | —                     | URL to fetch external CI JSON (supports `{sha}`); see `docs/ci-external-webhook.md`    |
+| `ci-external-status-secret` | No       | —                     | Bearer token for `ci-external-status-url`                                              |
+| `gitlab-api-url`            | No       | GitLab.com API v4     | GitLab API base URL (with `gitlab-token` + `gitlab-project-id`)                        |
+| `gitlab-token`              | No       | —                     | GitLab token for pipeline job polling (E17.1)                                          |
+| `gitlab-project-id`         | No       | —                     | GitLab project ID or URL-encoded path                                                  |
+| `circleci-token`            | No       | —                     | CircleCI API token for workflow polling (E17.2)                                        |
+| `circleci-project-slug`     | No       | —                     | CircleCI project slug (e.g. `gh/org/repo`)                                             |
+| `check-name`                | No       | auto by gate mode     | GitHub check run name (`Trailhead — Release Ready` or `Trailhead`)                     |
+| `security-gate`             | No       | `true`                | Enable Code Scanning alerts as a risk factor                                           |
+| `canary-webhook-secret`     | No       | —                     | HMAC secret for deploy outcome webhooks                                                |
+| `otel-endpoint`             | No       | —                     | OTLP HTTP endpoint for exporting evaluation spans                                      |
+| `otel-headers`              | No       | —                     | Auth headers for the OTLP endpoint (key=value, comma-separated)                        |
+| `api-key`                   | No       | —                     | API key for remote enrichment (omit for local-only)                                    |
 
 ## Outputs
 
@@ -475,15 +482,16 @@ Interactive wizard that generates v2 `.trailhead.yml` and a `@v4` workflow with 
 
 ## Documentation
 
-| Doc                                                      | Description                               |
-| -------------------------------------------------------- | ----------------------------------------- |
-| [docs/README.md](docs/README.md)                         | Architecture, risk factors, configuration |
-| [docs/migration-v3-to-v4.md](docs/migration-v3-to-v4.md) | Upgrade from `@v3`                        |
-| [docs/evaluation-storage.md](docs/evaluation-storage.md) | Cloud vs bring-your-own-store             |
-| [docs/marketplace-tiers.md](docs/marketplace-tiers.md)   | Free / Pro / Team plans                   |
-| [docs/ci-manifest.md](docs/ci-manifest.md)               | Path-filter CI manifest (v4.2)            |
-| [docs/cross-repo-impact.md](docs/cross-repo-impact.md)   | Consumer registry + satellite webhooks    |
-| [cloud/README.md](cloud/README.md)                       | Cloud API and local dev                   |
+| Doc                                                        | Description                               |
+| ---------------------------------------------------------- | ----------------------------------------- |
+| [docs/README.md](docs/README.md)                           | Architecture, risk factors, configuration |
+| [docs/migration-v3-to-v4.md](docs/migration-v3-to-v4.md)   | Upgrade from `@v3`                        |
+| [docs/evaluation-storage.md](docs/evaluation-storage.md)   | Cloud vs bring-your-own-store             |
+| [docs/marketplace-tiers.md](docs/marketplace-tiers.md)     | Free / Pro / Team plans                   |
+| [docs/ci-manifest.md](docs/ci-manifest.md)                 | Path-filter CI manifest (v4.2)            |
+| [docs/ci-external-webhook.md](docs/ci-external-webhook.md) | GitLab/CircleCI/webhook CI adapters (E17) |
+| [docs/cross-repo-impact.md](docs/cross-repo-impact.md)     | Consumer registry + satellite webhooks    |
+| [cloud/README.md](cloud/README.md)                         | Cloud API and local dev                   |
 
 - [Multi-CI templates](examples/) — GitLab CI and CircleCI configurations
 - [Observability dashboards](examples/observability/) — Grafana and Datadog dashboard imports

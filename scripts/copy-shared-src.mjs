@@ -11,8 +11,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const targetName = process.argv[2];
 
-if (targetName !== "app" && targetName !== "mcp" && targetName !== "cloud") {
-  console.error("Usage: node scripts/copy-shared-src.mjs <app|mcp|cloud>");
+if (
+  targetName !== "app" &&
+  targetName !== "mcp" &&
+  targetName !== "cloud" &&
+  targetName !== "cli"
+) {
+  console.error("Usage: node scripts/copy-shared-src.mjs <app|mcp|cloud|cli>");
   process.exit(1);
 }
 
@@ -23,24 +28,53 @@ const sharedFiles = [
   "release-ready.ts",
   "ci-core.ts",
   "ci-manifest.ts",
+  "ci-external.ts",
+  "ci-status-store.ts",
   "config-core.ts",
   "deployment-gate.ts",
 ];
 
+const adapterFiles = ["gitlab.ts", "circleci.ts"];
+
 const cloudOnlyFiles = ["feedback-core.ts"];
+
+const cliFiles = [
+  "config-core.ts",
+  "types.ts",
+  "ci-core.ts",
+  "ci-manifest.ts",
+  "release-ready.ts",
+  "doctor.ts",
+];
 
 const filesToCopy =
   targetName === "cloud"
     ? cloudOnlyFiles
-    : targetName === "mcp"
-      ? [...sharedFiles, ...cloudOnlyFiles]
-      : sharedFiles;
+    : targetName === "cli"
+      ? cliFiles
+      : targetName === "mcp"
+        ? [...sharedFiles, ...cloudOnlyFiles]
+        : sharedFiles;
 
-const targetDir = path.join(root, targetName, "src");
+const targetDir =
+  targetName === "cli"
+    ? path.join(root, targetName, "src", "shared")
+    : path.join(root, targetName, "src");
 fs.mkdirSync(targetDir, { recursive: true });
 
 for (const file of filesToCopy) {
   fs.copyFileSync(path.join(root, "src", file), path.join(targetDir, file));
+}
+
+if (targetName === "app" || targetName === "mcp") {
+  const adaptersDir = path.join(targetDir, "ci-adapters");
+  fs.mkdirSync(adaptersDir, { recursive: true });
+  for (const file of adapterFiles) {
+    fs.copyFileSync(
+      path.join(root, "src/ci-adapters", file),
+      path.join(adaptersDir, file),
+    );
+  }
 }
 
 if (targetName === "mcp") {
@@ -63,4 +97,6 @@ if (targetName === "mcp") {
   }
 }
 
-console.log(`Copied ${filesToCopy.length} shared modules to ${targetName}/src/`);
+console.log(
+  `Copied ${filesToCopy.length} shared modules to ${targetDir.replace(root + path.sep, "")}/`,
+);

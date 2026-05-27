@@ -31,7 +31,7 @@ jobs:
 
       - name: Typecheck cli/
         run: |
-          cd cli && npm ci && npx tsc --noEmit
+          cd cli && npm ci && npm run prebuild && npx tsc --noEmit
 
       - name: Typecheck app/
         run: |

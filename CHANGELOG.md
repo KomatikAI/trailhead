@@ -4,6 +4,19 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## Unreleased
+
+### Added — Multi-platform CI (E17)
+
+- **Generic webhook CI adapter (E17.3)** — `POST /webhook/ci-status` and `GET /v1/ci-status/:owner/:repo/:sha` on the Trailhead App; `ci-external-status-url` action input. See [docs/ci-external-webhook.md](docs/ci-external-webhook.md).
+- **GitLab pipeline adapter (E17.1)** — `gitlab-token`, `gitlab-project-id`, and `gitlab-api-url` action inputs poll GitLab job status.
+- **CircleCI workflow adapter (E17.2)** — `circleci-token` and `circleci-project-slug` action inputs poll CircleCI workflow jobs.
+- **`passed` manifest outcome** — external CI jobs that succeed without a GitHub Check run map to release-ready pass.
+
+### Added — CLI
+
+- **`trailhead doctor` (#155)** — Validates `.trailhead.yml` and compares configured CI check names against recent GitHub check runs.
+
 ### Changed — v4.0 P1 polish
 
 - **PR comment UX (#143)** — Policy findings, DORA, and security sections collapse into `<details>` blocks.
@@ -13,6 +26,10 @@ All notable changes to Trailhead will be documented in this file.
 - **Evaluation store retries (#164)** — New `evaluation-store-retries` action input (default 3).
 - **Deploy tracker (#166)** — Exact SHA match with optional time-window fallback via repo variable.
 - **Docs (#167, #178)** — BYOS vs Cloud decision guide; roadmap epic links; supersede notice on `roadmap-agent-qa.md`.
+
+### Fixed
+
+- **YAML config parser** — Correctly parses `- name: main` context lists and inline flow arrays like `[Lint]`.
 
 ## [4.2.0] - 2026-05-26
 

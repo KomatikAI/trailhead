@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trailhead.dev/schemas/ci-webhook.v1.json",
+  "title": "Trailhead External CI Webhook",
+  "description": "Webhook payload for non-GitHub CI systems (GitLab, CircleCI, generic).",
+  "type": "object",
+  "required": ["schema_version", "commit_sha", "jobs"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "commit_sha": { "type": "string", "minLength": 7 },
+    "repo": {
+      "type": "string",
+      "pattern": "^[^/]+/[^/]+$"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["generic", "gitlab", "circleci", "webhook"]
+    },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "workflow": { "type": "string" },
+    "run_id": { "type": "integer", "minimum": 1 },
+    "jobs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "outcome"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "outcome": {
+            "type": "string",
+            "enum": ["ran", "passed", "skipped", "failed", "pending", "cancelled"]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "paths-filter",
+              "paths-ignore",
+              "manual",
+              "condition",
+              "concurrency",
+              "workflow_dispatch",
+              "other"
+            ]
+          },
+          "check_run_id": { "type": "integer", "minimum": 1 },
+          "details_url": { "type": "string", "format": "uri" }
+        }
+      }
+    }
+  }
+}

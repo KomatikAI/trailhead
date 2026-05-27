@@ -16,13 +16,13 @@ Transform Trailhead from a risk-scoring sidecar into a **Release Readiness Gate*
 
 ## v4.2 Epics
 
-| Epic | Status         | Description                                                           | Issues                                                                                                                          |
-| ---- | -------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| E15  | ✅ Done        | `ci-manifest.json` schema + Action input; merge with Checks API       | [#203–#206](https://github.com/KomatikAI/trailhead/issues/203)                                                                  |
-| E16  | ✅ Done        | External consumer registry, satellite webhooks, cross-repo PR comment | [#207–#209](https://github.com/KomatikAI/trailhead/issues/207)                                                                  |
-| E17  | 🔶 In progress | GitLab, CircleCI, generic webhook CI adapters                         | [#210–#212](https://github.com/KomatikAI/trailhead/issues/210) · epic [#114](https://github.com/KomatikAI/trailhead/issues/114) |
+| Epic | Status  | Description                                                           | Issues                                                                                                                          |
+| ---- | ------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| E15  | ✅ Done | `ci-manifest.json` schema + Action input; merge with Checks API       | [#203–#206](https://github.com/KomatikAI/trailhead/issues/203)                                                                  |
+| E16  | ✅ Done | External consumer registry, satellite webhooks, cross-repo PR comment | [#207–#209](https://github.com/KomatikAI/trailhead/issues/207)                                                                  |
+| E17  | ✅ Done | GitLab, CircleCI, generic webhook CI adapters                         | [#210–#212](https://github.com/KomatikAI/trailhead/issues/210) · epic [#114](https://github.com/KomatikAI/trailhead/issues/114) |
 
-Released **v4.2.0** with E15 + E16. E17 ships in a follow-up release.
+Released **v4.2.0** with E15 + E16. E17 shipped in v4.2.1.
 
 ## v4.1 Epics (complete — released v4.1.0)
 

@@ -1,108 +1,75 @@
-# Trailhead for CircleCI
+# Trailhead for CircleCI (release-ready mode)
 #
-# This config replicates Trailhead's risk scoring for CircleCI pull requests.
-# Since Trailhead is a GitHub Action, this template uses a Node.js script
-# to score changed files using the same logic as the shared risk engine.
+# Pair with the Trailhead GitHub Action on the same PR:
+#   circleci-token + circleci-project-slug inputs poll CircleCI automatically, OR
+#   POST job outcomes to the Trailhead App webhook (see docs/ci-external-webhook.md).
 #
 # Prerequisites:
-# - Set environment variables in CircleCI project settings:
-#   TRAILHEAD_RISK_THRESHOLD (default: 70)
-#   TRAILHEAD_WARN_THRESHOLD (default: 55)
-#   CIRCLE_TOKEN (for PR branch detection)
+# - GitHub PR gate: KomatikAI/trailhead@v4 with gate-mode: release-ready
+# - .trailhead.yml lists CircleCI job names in contexts[].ci.required_checks
 #
-# Merge into your .circleci/config.yml or use CircleCI orb syntax.
+# Merge into your .circleci/config.yml.
 
 version: 2.1
 
 jobs:
-  trailhead:
+  lint:
     docker:
       - image: cimg/node:20.0
     steps:
       - checkout
       - run:
-          name: Trailhead risk scoring
+          name: Lint
+          command: npm ci && npm run lint
+
+  test:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - run:
+          name: Test
+          command: npm ci && npm test
+
+  report-trailhead:
+    docker:
+      - image: curlimages/curl:8.5.0
+    steps:
+      - run:
+          name: Report external CI status to Trailhead
           command: |
-            RISK_THRESHOLD="${TRAILHEAD_RISK_THRESHOLD:-70}"
-            WARN_THRESHOLD="${TRAILHEAD_WARN_THRESHOLD:-55}"
-
-            # Determine base branch for diff
-            BASE_BRANCH="${CIRCLE_BRANCH:-main}"
-            if [ -n "$CIRCLE_PULL_REQUEST" ]; then
-              # Extract PR number and fetch base branch
-              git fetch origin main --depth=50 2>/dev/null || true
-              BASE_REF="origin/main"
-            else
-              echo "Not a pull request — skipping Trailhead."
+            if [ -z "$TRAILHEAD_CI_WEBHOOK_URL" ]; then
+              echo "TRAILHEAD_CI_WEBHOOK_URL not set — use circleci-* Action inputs instead."
               exit 0
             fi
 
-            echo "Trailhead — scoring changes against ${BASE_REF}"
+            PAYLOAD=$(cat <<EOF
+            {
+              "schema_version": 1,
+              "commit_sha": "${CIRCLE_SHA1}",
+              "repo": "${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}",
+              "source": "circleci",
+              "jobs": [
+                { "name": "lint", "outcome": "passed" },
+                { "name": "test", "outcome": "passed" }
+              ]
+            }
+            EOF
+            )
 
-            # Collect changed files
-            FILES_JSON=$(git diff --numstat "${BASE_REF}...HEAD" \
-              | awk '{print "{\"filename\":\""$3"\",\"changes\":"($1+$2)"}"}' \
-              | paste -sd ',' | sed 's/^/[/;s/$/]/')
-
-            if [ "$FILES_JSON" = "[]" ]; then
-              echo "No files changed — score 0, decision: allow"
-              exit 0
-            fi
-
-            node -e "
-              const files = JSON.parse(process.argv[1]);
-              const totalChanges = files.reduce((s, f) => s + f.changes, 0);
-              const fileCount = files.length;
-
-              const sensitivePatterns = [
-                /(?:^|\/)migrations\//i, /(?:^|\/)auth/i, /(?:^|\/)security/i,
-                /(?:^|\/)payment/i, /(?:^|\/)billing/i, /(?:^|\/)webhook/i,
-                /(?:^|\/)infrastructure\//i,
-              ];
-              const sensitiveCount = files.filter(f =>
-                sensitivePatterns.some(p => p.test(f.filename))
-              ).length;
-
-              const fileCountScore = Math.min(100, Math.round(30 * Math.log2(1 + fileCount)));
-              const churnScore = Math.min(100, Math.round(25 * Math.log2(1 + totalChanges / 50)));
-              const sensitiveScore = Math.min(100, sensitiveCount * 25);
-
-              const factors = [
-                { type: 'file_count', score: fileCountScore, weight: 2 },
-                { type: 'code_churn', score: churnScore, weight: 3 },
-              ];
-              if (sensitiveCount > 0) {
-                factors.push({ type: 'sensitive_files', score: sensitiveScore, weight: 3 });
-              }
-
-              const totalWeight = factors.reduce((s, f) => s + f.weight, 0);
-              const score = Math.round(factors.reduce((s, f) => s + f.score * f.weight, 0) / totalWeight);
-
-              const threshold = parseInt('${RISK_THRESHOLD}', 10);
-              const warnThreshold = parseInt('${WARN_THRESHOLD}', 10);
-              const decision = score > threshold ? 'block' : score > warnThreshold ? 'warn' : 'allow';
-
-              console.log('');
-              console.log('Trailhead Risk Report');
-              console.log('======================');
-              console.log('Score:    ' + score + '/100');
-              console.log('Decision: ' + decision.toUpperCase());
-              console.log('Files:    ' + fileCount);
-              console.log('Changes:  ' + totalChanges + ' lines');
-              if (sensitiveCount > 0) console.log('Sensitive: ' + sensitiveCount + ' file(s)');
-              console.log('');
-              factors.forEach(f => console.log('  ' + f.type + ': ' + f.score + '/100'));
-
-              if (decision === 'block') {
-                console.error('BLOCKED: risk score ' + score + ' exceeds threshold ' + threshold);
-                process.exit(1);
-              }
-            " "$FILES_JSON"
+            curl -fsS -X POST "$TRAILHEAD_CI_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD"
 
 workflows:
   pr-gate:
     jobs:
-      - trailhead:
+      - lint
+      - test
+      - report-trailhead:
+          requires:
+            - lint
+            - test
           filters:
             branches:
               ignore:

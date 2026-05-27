@@ -1,0 +1,88 @@
+import { RepoConfig } from "./types.js";
+export const SUPPORTED_CONFIG_SCHEMA_VERSIONS = new Set([1, 2]);
+export const CURRENT_CONFIG_SCHEMA_VERSION = 2;
+export function parseYaml(input) {
+    const lines = input
+        .split("\n")
+        .map((line) => line.replace(/\r$/, ""))
+        .filter((line) => line.trim() !== "" && !line.trim().startsWith("#"));
+    const root = {};
+    const stack = [{ indent: -1, value: root }];
+    const parseScalar = (value) => {
+        const v = value.trim();
+        if ((v.startsWith('"') && v.endsWith('"')) ||
+            (v.startsWith("'") && v.endsWith("'"))) {
+            return v.slice(1, -1);
+        }
+        if (v === "true")
+            return true;
+        if (v === "false")
+            return false;
+        if (v === "null")
+            return null;
+        const n = Number(v);
+        if (!Number.isNaN(n) && v !== "")
+            return n;
+        return v;
+    };
+    const findNextSignificantLine = (fromIndex) => {
+        for (let i = fromIndex + 1; i < lines.length; i += 1) {
+            const candidate = lines[i];
+            if (candidate.trim() !== "" && !candidate.trim().startsWith("#")) {
+                return candidate;
+            }
+        }
+        return null;
+    };
+    for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        const indent = line.match(/^ */)?.[0].length ?? 0;
+        const trimmed = line.trim();
+        while (stack.length > 1 && indent <= stack[stack.length - 1].indent) {
+            stack.pop();
+        }
+        const container = stack[stack.length - 1].value;
+        if (trimmed.startsWith("- ")) {
+            if (!Array.isArray(container))
+                continue;
+            const itemRaw = trimmed.slice(2).trim();
+            if (itemRaw === "") {
+                const child = {};
+                container.push(child);
+                stack.push({ indent, value: child });
+            }
+            else {
+                container.push(parseScalar(itemRaw));
+            }
+            continue;
+        }
+        const keyMatch = trimmed.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+        if (!keyMatch ||
+            typeof container !== "object" ||
+            container === null ||
+            Array.isArray(container)) {
+            continue;
+        }
+        const [, key, rawVal] = keyMatch;
+        if (rawVal !== "") {
+            container[key] = parseScalar(rawVal);
+            continue;
+        }
+        const nextLine = findNextSignificantLine(i);
+        const nextIndent = nextLine?.match(/^ */)?.[0].length ?? -1;
+        const nextTrimmed = nextLine?.trim() ?? "";
+        const useArray = nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
+        const child = useArray ? [] : {};
+        container[key] = child;
+        stack.push({ indent, value: child });
+    }
+    return root;
+}
+export function parseRepoConfigContent(content) {
+    const raw = parseYaml(content);
+    const parsed = RepoConfig.safeParse(raw);
+    if (!parsed.success)
+        return null;
+    return parsed.data;
+}
+//# sourceMappingURL=config-core.js.map
