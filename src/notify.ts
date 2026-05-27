@@ -96,6 +96,7 @@ function buildTrailheadEventPayload(
     repoId: evaluation.repoId,
     prNumber: evaluation.prNumber,
     prUrl,
+    headRef: evaluation.pr?.headRef,
     commitSha: evaluation.commitSha,
     remediation: evaluation.remediation,
     agentBriefMode: evaluation.agentBriefMode,

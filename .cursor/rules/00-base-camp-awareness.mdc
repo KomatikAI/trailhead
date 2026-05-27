@@ -9,7 +9,7 @@ alwaysApply: true
 > Last distributed: 2026-04-16
 
 ## What Is Base Camp?
-19 specialized AI agents run 24/7 on a headless NUC, autonomously creating branches, PRs, and merging code across 14 repositories. You are the quality gate.
+19 specialized AI agents run 24/7 on DGX Spark (Base Camp runtime), autonomously creating branches, PRs, and merging code across 14 repositories. You are the quality gate.
 
 ## 5 Mandatory Workflows
 1. **Session Start** — fetch origin, check agent PRs, check events table, check messages
@@ -24,9 +24,9 @@ alwaysApply: true
 - FULL REVIEW: schema migrations, RLS, Stripe/payment, auth, Edge Functions
 
 ## Agent Branch Patterns
-- `claude/<two-word-slug>` — NUC Claude Code
-- `agent/<agent-id>/<desc>` — NUC OpenClaw
-- `cursor/<desc>-<4hex>` — NUC Cursor
+- `claude/<two-word-slug>` — Claude Code session (scheduled on Spark)
+- `agent/<agent-id>/<desc>` — OpenClaw scheduled agent
+- `cursor/<desc>-<4hex>` — Cursor session (scheduled on Spark)
 - `cursor/<desc>` (no hex) — probably YOUR workspace
 
 ## MCP Bridge (user-komatik-readonly)

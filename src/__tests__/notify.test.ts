@@ -136,7 +136,12 @@ describe("deliverWebhooks", () => {
     });
     await deliverWebhooks(
       "https://hooks.example/events",
-      makeEvaluation({ gateDecision: "block", releaseReady: false, remediation }),
+      makeEvaluation({
+        gateDecision: "block",
+        releaseReady: false,
+        remediation,
+        pr: { headRef: "agent/frontend-dev/fix-nav" },
+      }),
       ["block", "trailhead.blocked"],
       { riskThreshold: 70 },
     );
@@ -150,6 +155,7 @@ describe("deliverWebhooks", () => {
     expect(semantic.event).toBe("trailhead.blocked");
     expect(semantic.remediation.schema).toBe("trailhead.remediation.v1");
     expect(semantic.prUrl).toBe("https://github.com/test-owner/test-repo/pull/42");
+    expect(semantic.headRef).toBe("agent/frontend-dev/fix-nav");
   });
 
   it("deliverWebhookEvent sends semantic payload only", async () => {

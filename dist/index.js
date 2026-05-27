@@ -40692,6 +40692,7 @@ const GateEvaluation = objectType({
     policyFindings: arrayType(stringType()).optional(),
     pr: objectType({
         provenance: PrProvenance.optional(),
+        headRef: stringType().optional(),
     })
         .optional(),
     session_correlation: objectType({
@@ -44042,6 +44043,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                         confidence: 0.2,
                         source: "not-detected",
                     },
+                headRef: prMatchCtx.headRef,
             }
             : undefined,
         session_correlation: sessionCorrelation && sessionCorrelation.burstCount > 0
@@ -44802,6 +44804,7 @@ function buildTrailheadEventPayload(evaluation, event, prUrl) {
         repoId: evaluation.repoId,
         prNumber: evaluation.prNumber,
         prUrl,
+        headRef: evaluation.pr?.headRef,
         commitSha: evaluation.commitSha,
         remediation: evaluation.remediation,
         agentBriefMode: evaluation.agentBriefMode,

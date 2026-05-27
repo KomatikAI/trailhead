@@ -14,7 +14,7 @@
 
 ## What Is Base Camp?
 
-A team of **19 specialized AI agents** runs **24/7** on a headless Intel NUC (Ubuntu 24.04 LTS),
+A team of **19 specialized AI agents** runs **24/7** on the DGX Spark Base Camp runtime,
 autonomously monitoring 14 repositories, creating branches, opening pull requests, merging code,
 running security scans, discovering knowledge, and coordinating through a custom MCP server
 with 40+ RBAC-enforced tools. This system is called **Base Camp** and lives in the
@@ -28,7 +28,7 @@ pass through human-supervised review. That review happens in YOUR workspace.
 
 ```
 ┌──────────────────────────────────────────────┐
-│  Base Camp NUC (24/7 Autonomous)               │
+│  Base Camp (Spark, 24/7 Autonomous)            │
 │  19 agents → branches → PRs → dev             │
 │                                                │
 │  GitHub Webhooks (BC6) ─────────────────┐     │
@@ -45,7 +45,7 @@ pass through human-supervised review. That review happens in YOUR workspace.
 └──────────────────────────────────────────────┘
 ```
 
-The NUC agents handle volume. You handle quality gates. Never merge agent code without review.
+The fleet agents handle volume. You handle quality gates. Never merge agent code without review.
 
 **New (BC6)**: GitHub webhooks deliver PR events to the `events` table in real-time.
 PR reviews are handled as **batch cron work** — Sentinel (security-qa) scans PRs during
@@ -109,13 +109,13 @@ Base Camp agents create branches with these naming patterns. Learn to recognize 
 
 | Pattern                                | Origin                            | Example                                         |
 | -------------------------------------- | --------------------------------- | ----------------------------------------------- |
-| `claude/<two-word-slug>`               | Claude Code session on NUC        | `claude/keen-bell`, `claude/flamboyant-faraday` |
+| `claude/<two-word-slug>`               | Claude Code session (scheduled on Spark) | `claude/keen-bell`, `claude/flamboyant-faraday` |
 | `agent/<agent-id>/<description>`       | OpenClaw scheduled agent          | `agent/frontend-dev/fix-nav-a11y`               |
-| `cursor/<description>-<4-char-hex>`    | Cursor session on NUC             | `cursor/deployguard-logic-issues-5ef5`          |
+| `cursor/<description>-<4-char-hex>`    | Cursor session (scheduled on Spark)      | `cursor/deployguard-logic-issues-5ef5`          |
 | `cursor/<description>` (no hex suffix) | **Probably YOUR local workspace** | `cursor/promote-dev-to-staging`                 |
 
 
-**Ambiguity warning**: Both local workspaces and the NUC create `cursor/`* branches. To
+**Ambiguity warning**: Both local workspaces and scheduled Spark agents create `cursor/`* branches. To
 confirm origin, check the commit author:
 
 ```bash
@@ -152,7 +152,7 @@ gh pr list --state merged --limit 20 \
 # 5. Check real-time GitHub events from Base Camp (BC6 webhook data)
 CallMcpTool(server="user-komatik-readonly", toolName="query_events", arguments={"limit": 10})
 
-# 6. Check if any NUC agent sent you a message
+# 6. Check if any fleet agent sent you a message
 CallMcpTool(server="user-komatik-readonly", toolName="get_messages", arguments={"agent_id": "cursor-workspace"})
 ```
 
@@ -310,7 +310,7 @@ RPCs have callers, imports resolve, and API response shapes match their consumer
 **Run this after merging a PR, completing a significant fix, or wrapping up a feature.**
 
 GitHub webhooks (BC6) deliver structural signals (files changed, PR merged) but not semantic
-context. Without this notification, NUC agents operate on stale mental models — they may
+context. Without this notification, fleet agents operate on stale mental models — they may
 duplicate already-completed work, file issues for fixed bugs, or produce reports with
 outdated status.
 
@@ -320,7 +320,7 @@ outdated status.
 CallMcpTool(server="user-komatik-readonly", toolName="send_message", arguments={
   "to_agent": "coordinator",
   "subject": "Work completed: [SHORT DESCRIPTION]",
-  "body": "PR #NNN merged to dev.\n\nWhat changed:\n- [bullet 1]\n- [bullet 2]\n\nWhat NUC agents should know:\n- [areas that are now fixed — don't duplicate]\n- [status changes agents should reflect in reports]\n\nOpen items requiring NUC action:\n- [migrations to run, deployments to verify, etc.]",
+  "body": "PR #NNN merged to dev.\n\nWhat changed:\n- [bullet 1]\n- [bullet 2]\n\nWhat fleet agents should know:\n- [areas that are now fixed — don't duplicate]\n- [status changes agents should reflect in reports]\n\nOpen items requiring fleet action:\n- [migrations to run, deployments to verify, etc.]",
   "priority": "normal"
 })
 ```
@@ -409,7 +409,7 @@ If you discover an agent merged harmful code (destructive SQL, auth bypass, secr
 
 ## Base Camp Infrastructure Reference
 
-These services run on the NUC (accessible via Tailscale VPN at `100.87.31.3`):
+These services run on the Base Camp Spark hosts (accessible via Tailscale VPN):
 
 
 | Service              | Port  | Purpose                                         |
@@ -455,7 +455,7 @@ Review results are visible via `query_events` or the dashboard Activity feed.
 
 ## Base Camp Agent Scheduling
 
-The agents run on cron schedules. All times are **US Pacific (PT)** — the NUC timezone.
+The agents run on cron schedules. All times are **US Pacific (PT)**.
 
 
 | Time (PT) | Agent                     | Activity                                   |
@@ -507,7 +507,7 @@ When your work conflicts with agent-created work:
 | Schema migration from agent     | **ALWAYS full line-by-line review** — never auto-merge       |
 | CI failure in events table      | Check if pipeline-ops is already on it before acting         |
 | Unsure about agent code quality | When in doubt, request changes. Better safe than sorry.      |
-| Found issue during PR review    | `create_task` to put it on the board for a NUC agent to pick up |
+| Found issue during PR review    | `create_task` to put it on the board for a fleet agent to pick up |
 | Need to redirect agent work     | `send_message` to coordinator — reads messages every 4 hours |
 | Made an architectural decision  | `log_decision` to record reasoning in the audit trail        |
 | Merged a PR or completed work  | **Workflow 5**: `send_message` to coordinator + `log_decision` + close board tasks |
@@ -520,9 +520,9 @@ When your work conflicts with agent-created work:
 
 ### The MCP Bridge — Read + Write (available in all Cursor workspaces)
 
-An MCP server (`komatik-readonly`) connects every Cursor workspace to the NUC's
+An MCP server (`komatik-readonly`) connects every Cursor workspace to Base Camp's
 PostgreSQL database over Tailscale. It exposes 12 read tools and 5 rate-limited write
-tools. Every write is tagged `cursor-workspace` so NUC agents know it came from you.
+tools. Every write is tagged `cursor-workspace` so fleet agents know it came from you.
 
 **Read tools (query state):**
 
@@ -539,11 +539,11 @@ Available read tools: `get_system_health`, `query_agent_runs`, `query_tasks`, `q
 `get_messages`, `query_sql` (SELECT only), `get_workflow`, `query_deals`, `query_contacts`,
 `query_invoices`, `query_financials`, `list_skill_proposals`.
 
-**Write tools (coordinate with NUC agents):**
+**Write tools (coordinate with fleet agents):**
 
 | Tool | What It Does | Limit/Session |
 | ---- | ------------ | ------------- |
-| `send_message` | Send async message to any NUC agent (delivered at their next cron session) | 10 |
+| `send_message` | Send async message to any fleet agent (delivered at their next cron session) | 10 |
 | `create_task` | Create a task on a project Kanban board (always lands in backlog) | 10 |
 | `update_task_status` | Move a task to a new column (backlog/in-progress/review/done) | 20 |
 | `log_decision` | Record a decision to the audit trail | 20 |
@@ -553,14 +553,14 @@ Available read tools: `get_system_health`, `query_agent_runs`, `query_tasks`, `q
 CallMcpTool(server="user-komatik-readonly", toolName="send_message", arguments={"to_agent": "coordinator", "subject": "Priority shift", "body": "Deprioritize floe bootstrap, focus on DeployGuard CI hardening", "priority": "high"})
 CallMcpTool(server="user-komatik-readonly", toolName="create_task", arguments={"project_slug": "komatik", "title": "Fix OAuth redirect bug", "description": "Users get 404 after callback", "priority": "high"})
 CallMcpTool(server="user-komatik-readonly", toolName="update_task_status", arguments={"task_id": "<uuid>", "column": "done"})
-CallMcpTool(server="user-komatik-readonly", toolName="log_decision", arguments={"title": "Chose JWT over sessions", "reasoning": "Stateless auth simplifies NUC agent access", "outcome": "Implementing JWT with 24h expiry", "confidence": "high"})
+CallMcpTool(server="user-komatik-readonly", toolName="log_decision", arguments={"title": "Chose JWT over sessions", "reasoning": "Stateless auth simplifies fleet agent access", "outcome": "Implementing JWT with 24h expiry", "confidence": "high"})
 CallMcpTool(server="user-komatik-readonly", toolName="propose_skill", arguments={"title": "Add Lighthouse CI", "description": "Run Lighthouse on every PR to track performance regressions", "skill_type": "cron"})
 ```
 
 **How to use write tools effectively:**
 
-- **Session start**: In addition to git fetch and `query_events`, check `get_messages(agent_id: "cursor-workspace")` to see if any NUC agent sent you a response.
-- **When you find an issue during review**: `create_task` to put it on the board so a NUC agent picks it up (e.g., missing RLS policy → create a critical task assigned to security-qa).
+- **Session start**: In addition to git fetch and `query_events`, check `get_messages(agent_id: "cursor-workspace")` to see if any fleet agent sent you a response.
+- **When you find an issue during review**: `create_task` to put it on the board so a fleet agent picks it up (e.g., missing RLS policy → create a critical task assigned to security-qa).
 - **When you need to redirect agent work**: `send_message` to the coordinator instead of waiting for David. The coordinator reads its inbox at every heartbeat (~every 3-4 hours).
 - **When you make an architectural decision**: `log_decision` to record the reasoning for the audit trail.
 
@@ -577,15 +577,15 @@ CallMcpTool(server="user-komatik-readonly", toolName="query_sql", arguments={"sq
 Even with the write bridge, some operations remain restricted:
 
 - Trigger cron jobs or agent sessions
-- Write files to the NUC workspace or repos
-- Create git branches, commits, or PRs on NUC repos
+- Write files to the Base Camp Spark workspace or repos
+- Create git branches, commits, or PRs on fleet-managed repos
 - Manipulate workflows (create, advance, complete, fail)
 - Reset circuit breakers
 - Create CRM records (deals, contacts, invoices)
 - Approve skill proposals
 - Access **OpenClaw gateway** internals (session scheduling, rate limits, queue depth)
 - View **MCP tool invocation logs** (which tools agents called, RBAC denials)
-- Read **live file contents** on the NUC (use `scripts/sync-to-cursor.sh` from the komatik-agents workspace for file sync)
+- Read **live file contents** on Spark (use `scripts/sync-to-cursor.sh` from the komatik-agents workspace for file sync)
 
 ### The Rule
 

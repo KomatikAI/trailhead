@@ -104,7 +104,12 @@ describe("run (main entrypoint)", () => {
     );
     expect(commentSpy).toHaveBeenCalledWith("## Report", 42, "ghp_test");
     expect(checkSpy).toHaveBeenCalled();
-    expect(webhookSpy).not.toHaveBeenCalled();
+    expect(webhookSpy).toHaveBeenCalledWith(
+      "https://hooks.slack.com/test",
+      eval_,
+      ["warn", "block"],
+      expect.objectContaining({ riskThreshold: expect.any(Number) }),
+    );
     expect(storeSpy).toHaveBeenCalledWith(
       "https://example.com/api/trailhead/store",
       eval_,
