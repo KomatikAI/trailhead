@@ -89,6 +89,59 @@ export const MatchedContext = z.object({
 });
 export type MatchedContext = z.infer<typeof MatchedContext>;
 
+export const RemediationSeverity = z.enum(["blocking", "warn", "advisory"]);
+export type RemediationSeverity = z.infer<typeof RemediationSeverity>;
+
+export const RemediationAutofixClass = z.enum([
+  "format",
+  "lint",
+  "import-fix",
+  "type-narrow",
+  "test-scaffold",
+  "doc-update",
+  "dependency-bump",
+]);
+export type RemediationAutofixClass = z.infer<typeof RemediationAutofixClass>;
+
+export const RemediationFix = z.object({
+  code: z.string(),
+  severity: RemediationSeverity,
+  title: z.string(),
+  detail: z.string(),
+  files: z.array(z.string()).default([]),
+  suggested_action: z.string().optional(),
+  suggested_command: z.string().optional(),
+  autofix_eligible: z.boolean().default(false),
+  autofix_class: RemediationAutofixClass.optional(),
+  policy_link: z.string().url().optional(),
+});
+export type RemediationFix = z.infer<typeof RemediationFix>;
+
+export const RemediationNextAction = z.enum([
+  "ready_to_merge",
+  "fix_and_retry",
+  "human_review_required",
+  "max_rounds_exceeded",
+]);
+export type RemediationNextAction = z.infer<typeof RemediationNextAction>;
+
+export const Remediation = z.object({
+  schema: z.literal("trailhead.remediation.v1").default("trailhead.remediation.v1"),
+  release_ready: z.boolean(),
+  fixes: z.array(RemediationFix),
+  blocking_count: z.number().int().min(0),
+  warn_count: z.number().int().min(0),
+  advisory_count: z.number().int().min(0),
+  autofix_eligible_count: z.number().int().min(0),
+  loop_round: z.number().int().min(0).default(0),
+  max_loop_rounds: z.number().int().min(0).default(3),
+  previous_evaluation_id: z.string().optional(),
+  fixes_resolved: z.array(z.string()).default([]),
+  fixes_introduced: z.array(z.string()).default([]),
+  next_action: RemediationNextAction,
+});
+export type Remediation = z.infer<typeof Remediation>;
+
 export const GateEvaluation = z.object({
   id: z.string(),
   repoId: z.string(),
@@ -152,6 +205,7 @@ export const GateEvaluation = z.object({
   context: MatchedContext.optional(),
   gateMode: GateMode.optional(),
   storePersisted: z.boolean().optional(),
+  remediation: Remediation.optional(),
   cross_repo_impact: z
     .object({
       services: z.array(

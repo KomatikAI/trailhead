@@ -40630,6 +40630,49 @@ const MatchedContext = objectType({
     name: stringType(),
     environment: stringType().optional(),
 });
+const RemediationSeverity = enumType(["blocking", "warn", "advisory"]);
+const RemediationAutofixClass = enumType([
+    "format",
+    "lint",
+    "import-fix",
+    "type-narrow",
+    "test-scaffold",
+    "doc-update",
+    "dependency-bump",
+]);
+const RemediationFix = objectType({
+    code: stringType(),
+    severity: RemediationSeverity,
+    title: stringType(),
+    detail: stringType(),
+    files: arrayType(stringType()).default([]),
+    suggested_action: stringType().optional(),
+    suggested_command: stringType().optional(),
+    autofix_eligible: booleanType().default(false),
+    autofix_class: RemediationAutofixClass.optional(),
+    policy_link: stringType().url().optional(),
+});
+const RemediationNextAction = enumType([
+    "ready_to_merge",
+    "fix_and_retry",
+    "human_review_required",
+    "max_rounds_exceeded",
+]);
+const Remediation = objectType({
+    schema: literalType("trailhead.remediation.v1").default("trailhead.remediation.v1"),
+    release_ready: booleanType(),
+    fixes: arrayType(RemediationFix),
+    blocking_count: numberType().int().min(0),
+    warn_count: numberType().int().min(0),
+    advisory_count: numberType().int().min(0),
+    autofix_eligible_count: numberType().int().min(0),
+    loop_round: numberType().int().min(0).default(0),
+    max_loop_rounds: numberType().int().min(0).default(3),
+    previous_evaluation_id: stringType().optional(),
+    fixes_resolved: arrayType(stringType()).default([]),
+    fixes_introduced: arrayType(stringType()).default([]),
+    next_action: RemediationNextAction,
+});
 const GateEvaluation = objectType({
     id: stringType(),
     repoId: stringType(),
@@ -40687,6 +40730,7 @@ const GateEvaluation = objectType({
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
     storePersisted: booleanType().optional(),
+    remediation: Remediation.optional(),
     cross_repo_impact: objectType({
         services: arrayType(objectType({
             serviceName: stringType(),
