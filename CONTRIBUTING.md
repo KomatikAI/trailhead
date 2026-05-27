@@ -57,7 +57,7 @@ docs/                # Architecture docs, ADRs
 3. Run the full CI suite locally: `npm run format:check && npm run lint && npm test`
 4. Rebuild the bundle: `npm run build`
 5. Commit both source and `dist/index.js`
-6. Open a PR against `main`
+6. Open a PR against **`dev`**
 
 ## Testing
 
@@ -83,7 +83,7 @@ When adding a new risk factor or adapter:
 
 ## Releases
 
-Releases are tagged on `main` and published via GitHub Actions. The `v3` major tag floats to the latest v3.x release.
+Releases are tagged on **`main`** (after `dev` → `staging` → `main` promotion) and published via GitHub Actions. The `v4` major tag floats to the latest v4.x release.
 
 ## Questions?
 

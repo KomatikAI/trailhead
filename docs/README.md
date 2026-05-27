@@ -267,9 +267,9 @@ Example:
 
 ## Branch and Release Context
 
-This repository uses **`main`** as the active/default branch. `dev` and `staging` are kept in sync with `main` after each release. Open PRs should target **`main`** (CI runs on PRs to `main`).
+This repository uses the **progressive branch model**: **`dev`** (integration/default) → **`staging`** (pre-production) → **`main`** (production). Open feature PRs against **`dev`**. CI runs on PRs to `dev` and on pushes to `dev`, `staging`, and `main`. Promote with fast-forward merges only; tag releases on `main`.
 
-Current releases: **`@v4`** → **v4.2.1** (E17 multi-platform CI, P1 polish, `trailhead doctor`).
+Current releases: **`@v4`** → **v4.2.1** on `main`/`staging`/`dev` mirrors; **v4.3** work lands on `dev` first.
 
 The unmerged legacy supply-chain experiment branch is known not to be promotion-ready: its
 targeted tests pass, but `app` and `mcp` builds fail until their prebuild scripts copy the
