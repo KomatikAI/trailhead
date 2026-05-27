@@ -1,5 +1,9 @@
 -- A4 loop bookkeeping columns for trailhead_evaluations
 -- Apply in Supabase SQL editor or via migration tooling.
+--
+-- **Trailhead Cloud only.** Komatik fleet store uses
+-- Komatik/supabase/migrations/20260527073857_trailhead_loop_bookkeeping.sql
+-- — deploy via Komatik PR, never MCP apply_migration to prod.
 
 ALTER TABLE trailhead_evaluations
   ADD COLUMN IF NOT EXISTS remediation jsonb,

@@ -637,21 +637,18 @@ Runtime state lives in PostgreSQL, not in git-committed files.
 
 ### What this project is
 
-Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (current release **v4.2.1**, floating tag **`v4`**) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server` v4.2.1**) with 22 tools for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
+Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (released **v4.3.0**; floating tag **`@v4`** remains **v4.2.2**) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server`**) with 22 tools for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
 
 ### Current repo state (May 27, 2026)
 
 - **Branch model**: **`dev`** is the default integration branch — open all feature PRs against `dev`. Promote with fast-forward only: `dev` → `staging` → `main` (production). Do **not** merge features directly to `main`.
-- **Released tag**: **v4.2.2** on `@v4`. **v4.3 Phase A** in progress on `dev`/`main` (ahead of tag):
-  - A1 remediation schema ✅
-  - A2 agent brief in PR comments ✅
-  - A3 semantic webhooks + MCP `get-remediation` / `subscribe-events` ✅
-  - A4 loop bookkeeping — PR targeting `dev`
-  - komatik-agents coordinator handler ✅ merged ([#175](https://github.com/KomatikAI/agents/pull/175)); **Spark deploy pending**
-- **Tests:** **609** root + **21** cloud (on `dev`; counts rise with A4)
-- **Legacy compatibility**: Trailhead remains backwards-compatible with existing `.deployguard.yml` configs and `DEPLOYGUARD_*` environment variables where those surfaces were already shipped.
-- **Known unpromoted branch**: `origin/experiment/rd-satellite/deployguard-supply-chain-risk` has useful supply-chain scoring work, but it is **not merge-ready**. Targeted tests pass, but `app` and `mcp` builds fail because shared `risk-engine.ts` imports `supply-chain.js` without copying that module during prebuild.
-- **Coordinator deploy gap**: `agent/*` branch routing is forward-built (inert until suggestions→PR bridge). Operator `claude/*`/`cursor/*` PRs are skipped — see `komatik-agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`.
+- **Released tag**: **v4.3.0** on `main` (immutable). Floating **`@v4`** deliberately remains **v4.2.2** — pin consumers explicitly until fleet re-pin is approved.
+- **Phase A (v4.3.0):** A1–A4 merged (remediation schema, agent brief, semantic webhooks, loop bookkeeping in action).
+- **A6 fleet rollout:** ✅ 7 active satellites on `@v4.3.0` + `/api/trailhead/store` (cairn, frontier, kindling, pack, slipstream, sundog, trace). **Excluded:** drift, floe, traverse, watchtower (retired/archived; trace absorbed them).
+- **Komatik hosted store:** Loop columns + GET API in [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014); read path in [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236) → **v4.3.1** + fleet re-pin. See `docs/komatik-hosted-store.md`.
+- **Tests:** 609+ root + 21 cloud on `dev`.
+- **Legacy compatibility**: `.deployguard.yml` configs and `DEPLOYGUARD_*` env vars still accepted where already shipped.
+- **Coordinator:** komatik-agents #175 merged; deploy pending suggestions→PR bridge — see `komatik-agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`.
 
 **Promotion (fast-forward only):**
 
@@ -671,6 +668,7 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 4. **Test healer proposes, developer approves** — self-healing changes are suggestions (e.g. PR comments), never force-pushed.
 5. **Shared risk engine** — `src/risk-engine.ts` is the canonical scoring implementation; MCP and app MUST use prebuild copies, not independent implementations. If `risk-engine.ts` imports a new local module, update both `app` and `mcp` prebuild flows and committed runtime artifacts.
 6. **Merge-base drift protection** — `fetchPrFiles` cross-checks GitHub's `pulls.listFiles` against commit-level files when >30 files reported; falls back to commit-derived list when API count exceeds 2x actual. Applied to Action, App, and MCP server.
+7. **No direct prod deploy via MCP** — never `apply_migration` or DDL against Komatik prod Supabase from Cursor MCP. Schema and store routes ship via **Komatik PR → merge → deploy** only. MCP is read-only for verification (`list_migrations`, SELECT). See `docs/komatik-hosted-store.md` and Komatik `docs/runbooks/TRAILHEAD-EVALUATION-STORE.md`.
 
 ### Dependencies
 
@@ -748,3 +746,4 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 | `cli/src/index.ts`   | `trailhead init` wizard                             |
 | `src/__tests__/`     | Vitest test suite (561 tests)                       |
 | `cloud/src/__tests__/` | Cloud API tests (19 tests)                        |
+| `docs/komatik-hosted-store.md` | Fleet evaluation store at komatik.ai        |

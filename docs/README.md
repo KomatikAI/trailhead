@@ -291,7 +291,7 @@ Human PRs (`claude/*`, `cursor/*`, explicit `human` provenance) are unchanged �
 
 This repository uses the **progressive branch model**: **`dev`** (integration/default) → **`staging`** (pre-production) → **`main`** (production). Open feature PRs against **`dev`**. CI runs on PRs to `dev` and on pushes to `dev`, `staging`, and `main`. Promote with fast-forward merges only; tag releases on `main`.
 
-**Current state (May 2026):** `@v4` tag **v4.2.2** on `main`; **v4.3 Phase A** (A1–A3) merged on `dev`/`main` ahead of the tag. **A4** loop bookkeeping in review. Release **v4.3.0** after Phase A exit criteria + fleet rollout.
+**Current state (May 2026):** **v4.3.0** released on `main` (explicit tag; `@v4` remains **v4.2.2**). Phase A A1–A4 merged. **A6** fleet pin + store URL migration complete on 7 active satellites. Komatik hosted store loop persistence: [komatik-hosted-store.md](./komatik-hosted-store.md). Pending: Komatik store PR + Trailhead v4.3.1 read path.
 
 The unmerged legacy supply-chain experiment branch is known not to be promotion-ready: its
 targeted tests pass, but `app` and `mcp` builds fail until their prebuild scripts copy the

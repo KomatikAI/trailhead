@@ -318,24 +318,33 @@ Trust scoring proper waits for Phase B, but the strict-everywhere rollout needs 
 - Auto-downgrade verified end-to-end on a synthetic high-FP detector fixture
 - Per-agent rolling stats query returns < 500ms p95 over Komatik's evaluation volume
 
-### A6 — Fleet rollout (21 repos)
+### A6 — Fleet rollout (active satellites)
+
+**Scope (May 2026):** Pin **`@v4.3.0`** (explicit tag; `@v4` stays on v4.2.2) and migrate `evaluation-store-url` to `https://komatik.ai/api/trailhead/store`.
 
 **Deliverables:**
 
-- `scripts/batch-v4.3-rollout-prs.mjs` — modeled on `scripts/batch-dora-permissions-prs.mjs`. Per repo:
-  - Bump `@v4` consumers to `@v4.3` in `.github/workflows/trailhead.yml`
-  - Add `presets: ["@trailhead/strict-agents"]` line to `.trailhead.yml` (creates the file if missing)
-  - Open a PR with standardized title `chore(trailhead): adopt v4.3 strict-agent gate + remediation loop`
-  - PR body explains the change, links to `docs/roadmap-v4.3-agent-autonomy.md`, includes rollback instructions
-- Each PR auto-labeled `trailhead-v4.3-rollout`
-- Script runs in dry-run mode by default; `--apply` flag actually opens PRs
-- Post-rollout dashboard: which repos have merged, which are pending, FP rate per repo first 7 days
+- `scripts/batch-v4.3-rollout-prs.mjs` — per active repo:
+  - Bump action ref → `KomatikAI/trailhead@v4.3.0`
+  - Flip store URL → `/api/trailhead/store`
+  - Handles `trailhead.yml` or legacy `deployguard.yml`; default branch `dev`
+- **Excluded:** drift, floe, traverse, watchtower (archived; trace absorbed them)
+
+**Status:** ✅ Merged on cairn, frontier, kindling, pack, slipstream, sundog, trace.
+
+**Follow-up (store loop fields):**
+
+- Komatik PR — persist A4 columns + `GET /api/trailhead/evaluations`
+- Trailhead v4.3.1 — `fetchPreviousEvaluationForPr` komatik list read path
+- Re-pin fleet `@v4.3.1` after both merge
+
+See [komatik-hosted-store.md](./komatik-hosted-store.md). **Do not apply Komatik migrations via MCP** — PR-only deploys.
 
 **Acceptance:**
 
-- All 21 PRs opened within a single script invocation
-- Dry-run output reviewable before any PR is created
-- 100% of merged adopters report a successful gate evaluation within 24 hours of merge
+- All active consumer PRs merged
+- Loop fields persist and round N+1 increments on smoke PR
+- `/api/deployguard/store` alias retired after confirmation
 
 ### A7 — Override mechanism
 
