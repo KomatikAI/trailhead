@@ -46,7 +46,17 @@ export {
   computeCanaryRiskFactor,
 } from "./canary.js";
 export type { DeployOutcome } from "./canary.js";
-export { sendWebhook, storeEvaluation } from "./notify.js";
+export {
+  sendWebhook,
+  deliverWebhooks,
+  deliverWebhookEvent,
+  storeEvaluation,
+} from "./notify.js";
+export {
+  parseWebhookEvents,
+  resolveTrailheadEventTypes,
+  resolveWebhookDeliveries,
+} from "./trailhead-events.js";
 export {
   attemptRepair,
   registerHealer,

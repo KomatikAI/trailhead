@@ -77,7 +77,7 @@ describe("run (main entrypoint)", () => {
     vi.spyOn(gate, "formatGateReport").mockReturnValue("## Report");
     const commentSpy = vi.spyOn(gate, "postPrComment").mockResolvedValue();
     const checkSpy = vi.spyOn(gate, "createCheckRun").mockResolvedValue();
-    const webhookSpy = vi.spyOn(notify, "sendWebhook").mockResolvedValue();
+    const webhookSpy = vi.spyOn(notify, "deliverWebhooks").mockResolvedValue();
     const storeSpy = vi.spyOn(notify, "storeEvaluation").mockResolvedValue(true);
     setupInputs({
       "api-key": "test-key",
@@ -104,7 +104,12 @@ describe("run (main entrypoint)", () => {
     );
     expect(commentSpy).toHaveBeenCalledWith("## Report", 42, "ghp_test");
     expect(checkSpy).toHaveBeenCalled();
-    expect(webhookSpy).not.toHaveBeenCalled();
+    expect(webhookSpy).toHaveBeenCalledWith(
+      "https://hooks.slack.com/test",
+      eval_,
+      ["warn", "block"],
+      expect.objectContaining({ riskThreshold: expect.any(Number) }),
+    );
     expect(storeSpy).toHaveBeenCalledWith(
       "https://example.com/api/trailhead/store",
       eval_,

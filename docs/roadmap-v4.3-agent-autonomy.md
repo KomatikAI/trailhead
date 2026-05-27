@@ -256,8 +256,9 @@ Trailhead emits `trailhead.evaluation` events to `webhook-url` and to MCP subscr
 
 **komatik-agents side:**
 
-- Coordinator (Koda) MCP handler reads events from `events` table (already BC6-wired)
-- New route: `trailhead.blocked` on agent-provenance PR → `send_message` to submitting agent with remediation JSON
+- `scripts/trailhead-coordinator-http.mjs` on Base Camp Spark receives `trailhead.webhook.v1` POSTs at `/api/webhooks/trailhead`
+- Routes `trailhead.blocked` (and related events) on agent-provenance PRs → `send_message` to submitting agent with remediation JSON
+- Also logs to `events` table (BC6-compatible metadata)
 - Submitting agent's next cron session picks up message, applies fixes, pushes, gate re-runs
 
 **Acceptance:**

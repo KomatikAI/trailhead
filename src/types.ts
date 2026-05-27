@@ -164,6 +164,7 @@ export const GateEvaluation = z.object({
   pr: z
     .object({
       provenance: PrProvenance.optional(),
+      headRef: z.string().optional(),
     })
     .optional(),
   session_correlation: z

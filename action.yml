@@ -72,7 +72,7 @@ inputs:
     required: false
     default: ""
   webhook-events:
-    description: "Which decisions trigger the webhook: comma-separated list of allow, warn, block."
+    description: "Comma-separated webhook triggers. Legacy gate decisions: allow, warn, block. Semantic agent events: trailhead.blocked, trailhead.warn_high_risk, trailhead.ready, trailhead.loop_exceeded."
     required: false
     default: "warn,block"
   trailhead-api-key:

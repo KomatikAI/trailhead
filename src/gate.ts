@@ -1775,6 +1775,7 @@ export async function evaluateGate(
               confidence: 0.2,
               source: "not-detected",
             } as PrProvenance),
+          headRef: prMatchCtx.headRef,
         }
       : undefined,
     session_correlation:

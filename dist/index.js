@@ -40692,6 +40692,7 @@ const GateEvaluation = objectType({
     policyFindings: arrayType(stringType()).optional(),
     pr: objectType({
         provenance: PrProvenance.optional(),
+        headRef: stringType().optional(),
     })
         .optional(),
     session_correlation: objectType({
@@ -44042,6 +44043,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                         confidence: 0.2,
                         source: "not-detected",
                     },
+                headRef: prMatchCtx.headRef,
             }
             : undefined,
         session_correlation: sessionCorrelation && sessionCorrelation.burstCount > 0
@@ -44674,7 +44676,64 @@ function formatGateReport(evaluation, riskThreshold) {
     return lines.join("\n");
 }
 
+;// CONCATENATED MODULE: ./src/trailhead-events.ts
+// Pure Trailhead semantic event resolution — no framework dependencies.
+// Maps gate evaluations to coordinator-friendly webhook event types.
+const LEGACY_WEBHOOK_EVENTS = (/* unused pure expression or super */ null && (["allow", "warn", "block"]));
+const TRAILHEAD_EVENT_TYPES = (/* unused pure expression or super */ null && ([
+    "trailhead.blocked",
+    "trailhead.warn_high_risk",
+    "trailhead.ready",
+    "trailhead.loop_exceeded",
+]));
+function parseWebhookEvents(input) {
+    return new Set(input
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean));
+}
+function isTrailheadEventType(value) {
+    return TRAILHEAD_EVENT_TYPES.includes(value);
+}
+function isLegacyWebhookEvent(value) {
+    return LEGACY_WEBHOOK_EVENTS.includes(value);
+}
+function resolveTrailheadEventTypes(evaluation, options = {}) {
+    const events = [];
+    const effectiveRiskThreshold = options.riskThreshold ?? 70;
+    const highRiskCutoff = effectiveRiskThreshold - 10;
+    if (evaluation.gateDecision === "block") {
+        events.push("trailhead.blocked");
+    }
+    if (evaluation.gateDecision === "warn" && evaluation.riskScore >= highRiskCutoff) {
+        events.push("trailhead.warn_high_risk");
+    }
+    if (evaluation.releaseReady === true) {
+        events.push("trailhead.ready");
+    }
+    if (evaluation.remediation?.next_action === "max_rounds_exceeded") {
+        events.push("trailhead.loop_exceeded");
+    }
+    return events;
+}
+function resolveWebhookDeliveries(evaluation, subscribed, options = {}) {
+    const deliveries = [];
+    if (subscribed.has(evaluation.gateDecision)) {
+        deliveries.push({ event: evaluation.gateDecision, kind: "legacy" });
+    }
+    for (const event of resolveTrailheadEventTypes(evaluation, options)) {
+        if (subscribed.has(event)) {
+            deliveries.push({ event, kind: "trailhead" });
+        }
+    }
+    return deliveries;
+}
+function evaluationMatchesTrailheadEvent(evaluation, event, options = {}) {
+    return resolveTrailheadEventTypes(evaluation, options).includes(event);
+}
+
 ;// CONCATENATED MODULE: ./src/notify.ts
+
 
 
 const WEBHOOK_TIMEOUT_MS = 10_000;
@@ -44695,25 +44754,30 @@ function isRetryableNetworkError(error) {
         msg.includes("etimedout") ||
         msg.includes("enotfound"));
 }
-async function sendWebhook(url, evaluation) {
+function buildPrUrl(evaluation) {
     const { owner, repo } = github_context.repo;
-    const prUrl = evaluation.prNumber
+    return evaluation.prNumber
         ? `https://github.com/${owner}/${repo}/pull/${evaluation.prNumber}`
         : undefined;
+}
+function slackTextForEvaluation(evaluation, prUrl, eventLabel) {
     const decisionEmoji = {
         allow: "✅",
         warn: "⚠️",
         block: "🚫",
     };
     const emoji = decisionEmoji[evaluation.gateDecision] ?? "";
-    const slackText = `${emoji} Trailhead *${evaluation.gateDecision.toUpperCase()}* — ` +
+    const prefix = eventLabel ? `[${eventLabel}] ` : "";
+    return (`${prefix}${emoji} Trailhead *${evaluation.gateDecision.toUpperCase()}* — ` +
         `risk ${evaluation.riskScore}/100` +
         (prUrl
             ? ` | <${prUrl}|PR #${evaluation.prNumber}>`
             : ` | ${evaluation.commitSha.substring(0, 7)}`) +
-        ` on \`${evaluation.repoId}\``;
-    const payload = {
-        text: slackText,
+        ` on \`${evaluation.repoId}\``);
+}
+function buildLegacyWebhookPayload(evaluation, prUrl) {
+    return {
+        text: slackTextForEvaluation(evaluation, prUrl),
         decision: evaluation.gateDecision,
         riskScore: evaluation.riskScore,
         healthScore: evaluation.healthScore,
@@ -44726,6 +44790,33 @@ async function sendWebhook(url, evaluation) {
         reportUrl: evaluation.reportUrl,
         timestamp: new Date().toISOString(),
     };
+}
+function buildTrailheadEventPayload(evaluation, event, prUrl) {
+    return {
+        schema: "trailhead.webhook.v1",
+        event,
+        text: slackTextForEvaluation(evaluation, prUrl, event),
+        evaluationId: evaluation.id,
+        decision: evaluation.gateDecision,
+        releaseReady: evaluation.releaseReady,
+        riskScore: evaluation.riskScore,
+        healthScore: evaluation.healthScore,
+        repoId: evaluation.repoId,
+        prNumber: evaluation.prNumber,
+        prUrl,
+        headRef: evaluation.pr?.headRef,
+        commitSha: evaluation.commitSha,
+        remediation: evaluation.remediation,
+        agentBriefMode: evaluation.agentBriefMode,
+        provenance: evaluation.pr?.provenance,
+        trustProfile: evaluation.trust_profile,
+        nextAction: evaluation.remediation?.next_action,
+        loopRound: evaluation.remediation?.loop_round,
+        maxLoopRounds: evaluation.remediation?.max_loop_rounds,
+        timestamp: new Date().toISOString(),
+    };
+}
+async function postWebhookPayload(url, payload) {
     try {
         const response = await fetch(url, {
             method: "POST",
@@ -44739,6 +44830,24 @@ async function sendWebhook(url, evaluation) {
     }
     catch (error) {
         core_debug(`Webhook delivery failed: ${error}`);
+    }
+}
+async function sendWebhook(url, evaluation) {
+    const prUrl = buildPrUrl(evaluation);
+    await postWebhookPayload(url, buildLegacyWebhookPayload(evaluation, prUrl));
+}
+async function deliverWebhookEvent(url, evaluation, delivery) {
+    const prUrl = buildPrUrl(evaluation);
+    const payload = delivery.kind === "legacy"
+        ? buildLegacyWebhookPayload(evaluation, prUrl)
+        : buildTrailheadEventPayload(evaluation, delivery.event, prUrl);
+    await postWebhookPayload(url, payload);
+}
+async function deliverWebhooks(url, evaluation, subscribedEvents, options = {}) {
+    const subscribed = subscribedEvents instanceof Set ? subscribedEvents : new Set(subscribedEvents);
+    const deliveries = resolveWebhookDeliveries(evaluation, subscribed, options);
+    for (const delivery of deliveries) {
+        await deliverWebhookEvent(url, evaluation, delivery);
     }
 }
 async function storeViaApiOnce(url, evaluation) {
@@ -46723,8 +46832,11 @@ async function run() {
                 await managePrLabels(prNumber, evaluation.gateDecision, config.githubToken);
             }
         }
-        if (config.webhookUrl && config.webhookEvents.includes(evaluation.gateDecision)) {
-            await sendWebhook(config.webhookUrl, evaluation);
+        if (config.webhookUrl) {
+            await deliverWebhooks(config.webhookUrl, evaluation, config.webhookEvents, {
+                riskThreshold: config.riskThreshold,
+                warnThreshold: config.warnThreshold,
+            });
         }
         const blockMerge = shouldBlockMerge(evaluation);
         if (!blockMerge) {

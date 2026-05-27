@@ -83,3 +83,52 @@ export async function fetchCloudPolicyTuning(
 export function cloudFeedbackHint(): string {
   return DEFAULT_CLOUD_BASE;
 }
+
+function cloudAuthHeaders(): Record<string, string> | null {
+  const base = cloudBaseUrl();
+  const key = cloudApiKey();
+  if (!base || !key) return null;
+  return {
+    Authorization: `Bearer ${key}`,
+    Accept: "application/json",
+  };
+}
+
+export async function fetchCloudEvaluations(
+  repoId?: string,
+): Promise<Array<Record<string, unknown>> | null> {
+  const headers = cloudAuthHeaders();
+  const base = cloudBaseUrl();
+  if (!headers || !base) return null;
+
+  const params = new URLSearchParams();
+  if (repoId) params.set("repo_id", repoId);
+  const qs = params.toString();
+  const response = await fetch(`${base}/v1/evaluations${qs ? `?${qs}` : ""}`, {
+    headers,
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) return null;
+  const body = (await response.json()) as {
+    evaluations?: Array<Record<string, unknown>>;
+  };
+  return body.evaluations ?? [];
+}
+
+export async function fetchCloudEvaluationById(
+  evaluationId: string,
+): Promise<Record<string, unknown> | null> {
+  const headers = cloudAuthHeaders();
+  const base = cloudBaseUrl();
+  if (!headers || !base) return null;
+
+  const response = await fetch(
+    `${base}/v1/evaluations/${encodeURIComponent(evaluationId)}`,
+    {
+      headers,
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  if (!response.ok) return null;
+  return (await response.json()) as Record<string, unknown>;
+}
