@@ -4,6 +4,18 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.3.1] - 2026-05-27
+
+### Added — Komatik hosted store read path
+
+- **`fetchPreviousEvaluationForPr()` komatik list API** — when `evaluation-store-url` points at `komatik.ai/api/trailhead/store` (or legacy `/api/deployguard/store`), the action resolves prior evaluations via `GET /api/trailhead/evaluations` so fleet repos can increment `loop_round` without Supabase credentials in the workflow.
+- **`resolveKomatikListUrl()`** — exported helper mapping store URL → evaluations list endpoint.
+
+### Documentation
+
+- **`docs/komatik-hosted-store.md`** — fleet store contract, A6 rollout status, retired repos, **PR-only deploy rule** (no MCP `apply_migration` to Komatik prod).
+- **AGENTS.md** — updated project state, hard rule #7, batch rollout script scoped to active satellites.
+
 ## [4.3.0] - 2026-05-27
 
 ### Added — Agent autonomy: Coach (Phase A)
