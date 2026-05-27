@@ -55,9 +55,41 @@ export function parseYaml(input: string): unknown {
         const child: Record<string, unknown> = {};
         container.push(child);
         stack.push({ indent, value: child });
-      } else {
-        container.push(parseScalar(itemRaw));
+        continue;
       }
+
+      const itemKeyMatch = itemRaw.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+      if (itemKeyMatch) {
+        const child: Record<string, unknown> = {};
+        const [, itemKey, itemVal] = itemKeyMatch;
+        if (itemVal === "") {
+          const nextLine = findNextSignificantLine(i);
+          const nextIndent = nextLine?.match(/^ */)?.[0].length ?? -1;
+          const nextTrimmed = nextLine?.trim() ?? "";
+          const useArray =
+            nextLine !== null && nextIndent > indent && nextTrimmed.startsWith("- ");
+          child[itemKey] = useArray ? [] : {};
+          if (!useArray && typeof child[itemKey] === "object" && child[itemKey] !== null) {
+            stack.push({ indent, value: child[itemKey] });
+          }
+        } else {
+          const trimmedVal = itemVal.trim();
+          if (trimmedVal.startsWith("[") && trimmedVal.endsWith("]")) {
+            const inner = trimmedVal.slice(1, -1).trim();
+            child[itemKey] =
+              inner === ""
+                ? []
+                : inner.split(",").map((item) => parseScalar(item.trim()));
+          } else {
+            child[itemKey] = parseScalar(itemVal);
+          }
+        }
+        container.push(child);
+        stack.push({ indent, value: child });
+        continue;
+      }
+
+      container.push(parseScalar(itemRaw));
       continue;
     }
 
@@ -73,6 +105,15 @@ export function parseYaml(input: string): unknown {
 
     const [, key, rawVal] = keyMatch;
     if (rawVal !== "") {
+      const trimmedVal = rawVal.trim();
+      if (trimmedVal.startsWith("[") && trimmedVal.endsWith("]")) {
+        const inner = trimmedVal.slice(1, -1).trim();
+        (container as Record<string, unknown>)[key] =
+          inner === ""
+            ? []
+            : inner.split(",").map((item) => parseScalar(item.trim()));
+        continue;
+      }
       (container as Record<string, unknown>)[key] = parseScalar(rawVal);
       continue;
     }

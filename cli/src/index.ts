@@ -3,6 +3,9 @@
 import * as readline from "node:readline";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { runDoctorCommand } from "./run-doctor.js";
+
+const CLI_VERSION = "4.2.0";
 
 const BOLD = "\x1b[1m";
 const GREEN = "\x1b[32m";
@@ -421,12 +424,18 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
 
+  if (command === "doctor") {
+    const code = await runDoctorCommand(args.slice(1));
+    process.exit(code);
+  }
+
   if (command !== "init") {
     print(`
-${BOLD}${GREEN}Trailhead CLI v3.0.2${RESET}
+${BOLD}${GREEN}Trailhead CLI v${CLI_VERSION}${RESET}
 
 ${BOLD}Usage:${RESET}
-  npx @komatikai/trailhead init    Interactive setup wizard
+  npx @komatikai/trailhead init     Interactive setup wizard
+  npx @komatikai/trailhead doctor   Validate config and CI check names
 
 ${BOLD}Learn more:${RESET}
   https://github.com/KomatikAI/trailhead
