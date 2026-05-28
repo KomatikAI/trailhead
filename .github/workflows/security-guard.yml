@@ -1,0 +1,44 @@
+name: security-guard
+
+# The autonomous-merge backstop. Scans the PR diff + body + commits for high-risk
+# ACTION classes (fetch-and-execute, CI/workflow edits, externally-cited security
+# fixes, fleet-critical dependency bumps) and BLOCKS until a human adds the
+# `security-reviewed` label. This is the keystone, mirroring `ci-gate`: the single
+# job below is the one that should be a REQUIRED status check, so no autonomous
+# soak-then-merge can land a poisoned-but-plausible change with no human in the loop.
+#
+# SEQUENCING LOCK: do not enable any auto-merge / soak-then-merge until this job is
+# a required status check on the protected branches. See docs/SECURITY-GUARD.md.
+
+on:
+  pull_request:
+    branches: [dev, staging, main]
+  # Reusable across repos: a consumer adds a 3-line caller (see docs/SECURITY-GUARD.md).
+  workflow_call: {}
+
+# Read-only: reads changed files, PR body, commits, and labels. Never writes —
+# the human override is a label a maintainer adds, not something CI grants itself.
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: security-guard-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-guard:
+    name: security-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so we can diff against the PR's merge-base.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Ensure base ref is available
+        run: git fetch origin "${{ github.event.pull_request.base.ref || github.base_ref || 'dev' }}" --depth=0 || true
+      - name: Scan diff for high-risk action patterns
+        run: node scripts/security-guard.mjs
