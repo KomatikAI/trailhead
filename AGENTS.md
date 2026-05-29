@@ -637,18 +637,22 @@ Runtime state lives in PostgreSQL, not in git-committed files.
 
 ### What this project is
 
-Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (released **v4.3.2** on `main`; floating tag **`@v4`** tracks latest major) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server`**) with 22 tools for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
+Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (released **v4.4.2** on `main`; floating tag **`@v4`** tracks latest major) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server`**) with **26 tools** for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
 
-### Current repo state (May 27, 2026)
+Phase B (v4.4.x) adds **Gate 1 submission checks** (`submission-gate: true`), **Phase 0 advisory suggestion heuristics**, **autofix planning** (`fixer-core`), **dynamic trust scoring**, and optional **Komatik credit metering** for `deploy_check`.
+
+### Current repo state (May 29, 2026)
 
 - **Branch model**: **`dev`** is the default integration branch — open all feature PRs against `dev`. Promote with fast-forward only: `dev` → `staging` → `main` (production). Do **not** merge features directly to `main`.
-- **Released tag**: **v4.3.2** on `main`. **`@v4`** floating tag updated by release workflow.
-- **Phase A (v4.3.0–v4.3.1):** A1–A4 merged (remediation schema, agent brief, semantic webhooks, loop bookkeeping in action); komatik hosted store read path in v4.3.1.
-- **A6 fleet rollout:** ✅ 7 active satellites on `@v4.3.0` + `/api/trailhead/store` (cairn, frontier, kindling, pack, slipstream, sundog, trace). **Re-pin to `@v4.3.2`** pending. **Excluded:** drift, floe, traverse, watchtower (retired/archived; trace absorbed them).
-- **Komatik hosted store:** Loop columns + GET API in [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014); read path in [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236). See `docs/komatik-hosted-store.md`.
-- **Tests:** 609+ root + 21 cloud on `dev`.
+- **Released tag**: **v4.4.2** on `main`. **`@v4`** floating tag updated by release workflow.
+- **Phase A (v4.3.0–v4.3.3):** Remediation schema, agent brief, semantic webhooks, loop bookkeeping, tuning digest, override label, self-test fixtures — merged.
+- **Phase B (v4.4.0–v4.4.2):** Gate 1 engine (15 checks), Phase 0 suggestion heuristics (14 advisory), fixer allowlist (dry-run), trust scoring, MCP `validate-submission` / `apply-autofix` / `get-trust-score`, credit metering ingest (v4.4.1). See `docs/submission-gate.md`.
+- **A6 fleet rollout:** 7 active satellites on `@v4.3.0` + hosted store. **Re-pin to `@v4.4.2`** recommended.
+- **B4 dogfood:** [komatik-agents #197](https://github.com/KomatikAI/agents/pull/197) open — `submission-gate: true`; enforce mode pending FP metrics.
+- **Komatik hosted store:** [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014); read path [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236). See `docs/komatik-hosted-store.md`.
+- **Tests:** 672 root + 21 cloud on `dev`.
 - **Legacy compatibility**: `.deployguard.yml` configs and `DEPLOYGUARD_*` env vars still accepted where already shipped.
-- **Coordinator:** komatik-agents #175 merged; deploy pending suggestions→PR bridge — see `komatik-agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`.
+- **Coordinator:** komatik-agents #175 merged; suggestions→PR bridge — see `komatik-agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`.
 
 **Promotion (fast-forward only):**
 
@@ -684,7 +688,7 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 - **Bundler**: `@vercel/ncc` → single CJS file at `dist/index.js`.
 - **TypeScript**: `moduleResolution: "Bundler"`, `module: "ESNext"` — required because `@actions/github@9` ships ESM-only exports.
 - **Linting**: ESLint + typescript-eslint + Prettier (CI enforces `format:check` before lint).
-- **Testing**: Vitest (609 root tests + 21 cloud tests on `dev` as of May 2026).
+- **Testing**: Vitest (672 root tests + 21 cloud tests on `dev` as of May 2026).
 
 ### CI pipeline
 
@@ -740,10 +744,17 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 | `src/config.ts`      | `.trailhead.yml` parser with legacy `.deployguard.yml` fallback |
 | `src/notify.ts`      | Webhook + evaluation store                          |
 | `src/otel.ts`        | OpenTelemetry span export                           |
-| `mcp/src/server.ts`  | MCP server (12 tools)                               |
+| `src/submission-engine.ts` | Gate 1 + Phase 0 submission checks          |
+| `src/submission-checks/` | Detectors, Phase 0 heuristics, helpers       |
+| `src/fixer-core.ts`  | Autofix allowlist + red-lane globs (Phase B2)       |
+| `src/trust-score.ts` | Dynamic agent trust profiles (Phase B3)             |
+| `src/credit-meter.ts`| Komatik deploy_check credit ingest (v4.4.1)         |
+| `mcp/src/server.ts`  | MCP server (26 tools)                               |
 | `app/src/handler.ts` | GitHub App webhook handler                          |
+| `app/src/fixer.ts`   | Autofix planner (dry-run in v4.4.x)                 |
 | `app/src/server.ts`  | Hono HTTP server                                    |
 | `cli/src/index.ts`   | `trailhead init` wizard                             |
-| `src/__tests__/`     | Vitest test suite (561 tests)                       |
-| `cloud/src/__tests__/` | Cloud API tests (19 tests)                        |
+| `src/__tests__/`     | Vitest test suite (672 tests)                       |
+| `cloud/src/__tests__/` | Cloud API tests (21 tests)                        |
+| `docs/submission-gate.md` | Gate 1 + Phase 0 reference                   |
 | `docs/komatik-hosted-store.md` | Fleet evaluation store at komatik.ai        |

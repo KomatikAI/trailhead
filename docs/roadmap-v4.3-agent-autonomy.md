@@ -414,7 +414,7 @@ Move agent-submission checks from `komatik-agents/scripts/lib/agent-gate-checks.
 - `secrets`, `destructive_sql`, `import_resolution`
 - `rls_new_tables`, `auth_route_auth`, `mock_placeholder`, `hardcoded_env`
 - `external_package_deps`, `sql_syntax_basic`, `large_file`
-- 14 Phase-0 stubs **with real logic** (output_size_min, action_extraction_present, referenced_files_exist, etc.)
+- [x] 14 Phase-0 checks **with real logic** (output_size_min, action_extraction_present, referenced_files_exist, etc.) — **v4.4.2**
 
 **New Action input:** `submission-gate: "true"` enables Gate 1 alongside the existing deploy gate. Default off (backward compat).
 
@@ -497,13 +497,15 @@ Flip `.trailhead/agents.yaml` from `mode: warn` to `mode: enforce` for agent-pro
 
 ## Phase B exit criteria
 
-- [ ] Gate 1 engine shipped in Trailhead product (`submission-gate: true` input)
-- [ ] Komatik's in-repo gate retired in favor of Trailhead Action
-- [ ] Fixer module commits at least 50 fixes on Komatik PRs with zero red-lane violations
-- [ ] Trust scoring live; probation/fast-track in active use
+- [x] Gate 1 engine shipped in Trailhead product (`submission-gate: true` input) — **v4.4.0**
+- [x] Phase 0 suggestion heuristics (14 advisory checks) — **v4.4.2**
+- [x] MCP parity: `validate-submission`, `apply-autofix`, `get-trust-score` — **v4.4.2**
+- [ ] Komatik's in-repo gate retired in favor of Trailhead Action — [agents #197](https://github.com/KomatikAI/agents/pull/197) open
+- [ ] Fixer module commits at least 50 fixes on Komatik PRs with zero red-lane violations (git write pending)
+- [ ] Trust scoring live with nightly hosted lookup; probation/fast-track in active use
 - [ ] **Measured:** ≥ 60% of agent PRs reach `release_ready: true` without human intervention
 - [ ] **Measured:** time-from-block-to-ready p50 ≤ 15 minutes (was: days, waiting for David)
-- [ ] Released as **v4.4.0**
+- [x] Released as **v4.4.0** (+ v4.4.1 credit metering, v4.4.2 Phase 0 + MCP)
 
 ---
 
@@ -673,8 +675,8 @@ Every new detector, autonomy lane, fixer class, and trust profile **must** have 
 
 Every new gate capability ships as an MCP tool in the same release:
 
-- Phase A: `get-remediation`, `subscribe-events`
-- Phase B: `validate-submission`, `apply-autofix`, `get-trust-score`
+- Phase A: `get-remediation`, `subscribe-events` ✅
+- Phase B: `validate-submission`, `apply-autofix`, `get-trust-score` ✅ (v4.4.2)
 - Phase C: `resolve-autonomy-tier`, `eligible-for-automerge`, `propose-revert`
 
 ### Backward compatibility

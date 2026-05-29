@@ -135,7 +135,7 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 - Trust profile strictness (`baseline`, `elevated`, `strict`)
 - Escalation status metadata and SLA fields
 
-### Agent autonomy (v4.3 — Phase A)
+### Agent autonomy (v4.3 Phase A + v4.4 Phase B)
 
 For agent-authored PRs, Trailhead ships a **remediation payload** in `evaluation-json` and an optional collapsed **Agent instructions** section in the PR comment. Semantic events (`trailhead.blocked`, `trailhead.warn_high_risk`, `trailhead.ready`, `trailhead.loop_exceeded`) can POST to your webhook when configured:
 
@@ -143,11 +143,14 @@ For agent-authored PRs, Trailhead ships a **remediation payload** in `evaluation
 - uses: KomatikAI/trailhead@v4
   with:
     gate-mode: release-ready
+    submission-gate: "true"
     webhook-url: ${{ secrets.TRAILHEAD_WEBHOOK_URL }}
     webhook-events: "block,warn,trailhead.blocked,trailhead.warn_high_risk,trailhead.ready,trailhead.loop_exceeded"
 ```
 
-MCP consumers can use **`get-remediation`** and **`subscribe-events`**. Human and operator branches (`claude/*`, `cursor/*`) keep today's fail-open behavior. See [docs/roadmap-v4.3-agent-autonomy.md](docs/roadmap-v4.3-agent-autonomy.md).
+**Phase B (v4.4.x):** Gate 1 submission checks (15 blocking + 14 Phase 0 advisory on suggestion markdown), trust scoring via `TRAILHEAD_AGENT_TRUST_JSON`, autofix planning, and MCP tools `validate-submission`, `apply-autofix`, `get-trust-score`. See [docs/submission-gate.md](docs/submission-gate.md).
+
+MCP consumers can also use **`get-remediation`** and **`subscribe-events`**. Human and operator branches (`claude/*`, `cursor/*`) keep today's fail-open behavior. See [docs/roadmap-v4.3-agent-autonomy.md](docs/roadmap-v4.3-agent-autonomy.md).
 
 **Branch model:** open PRs against **`dev`**, promote `dev` → `staging` → `main` (fast-forward). Tag releases on `main`.
 
@@ -192,6 +195,11 @@ MCP consumers can use **`get-remediation`** and **`subscribe-events`**. Human an
 | `circleci-project-slug`     | No       | —                     | CircleCI project slug (e.g. `gh/org/repo`)                                                   |
 | `check-name`                | No       | auto by gate mode     | GitHub check run name (`Trailhead — Release Ready` or `Trailhead`)                           |
 | `security-gate`             | No       | `true`                | Enable Code Scanning alerts as a risk factor                                                 |
+| `submission-gate`           | No       | `false`               | Enable Gate 1 agent submission checks (see `docs/submission-gate.md`)                        |
+| `credit-meter-url`          | No       | —                     | Komatik credit-meter-ingest URL for deploy_check billing (shadow by default)                 |
+| `credit-meter-secret`       | No       | —                     | Shared secret for credit-meter-ingest                                                        |
+| `credit-meter-shadow`       | No       | `true`                | Log credits without deducting (Komatik shadow mode)                                          |
+| `credit-meter-enforce`      | No       | `false`               | Deduct credits when Komatik app is in enforced mode                                          |
 | `canary-webhook-secret`     | No       | —                     | HMAC secret for deploy outcome webhooks                                                      |
 | `otel-endpoint`             | No       | —                     | OTLP HTTP endpoint for exporting evaluation spans                                            |
 | `otel-headers`              | No       | —                     | Auth headers for the OTLP endpoint (key=value, comma-separated)                              |
@@ -503,6 +511,8 @@ Interactive wizard that generates v2 `.trailhead.yml` and a `@v4` workflow with 
 | Doc                                                                        | Description                               |
 | -------------------------------------------------------------------------- | ----------------------------------------- |
 | [docs/README.md](docs/README.md)                                           | Architecture, risk factors, configuration |
+| [docs/submission-gate.md](docs/submission-gate.md)                         | Gate 1 + Phase 0 agent submission checks  |
+| [docs/komatik-credit-metering.md](docs/komatik-credit-metering.md)         | Komatik deploy_check credit ingest        |
 | [docs/roadmap-v4.3-agent-autonomy.md](docs/roadmap-v4.3-agent-autonomy.md) | v4.3 coach/fixer/autopilot plan           |
 | [docs/migration-v3-to-v4.md](docs/migration-v3-to-v4.md)                   | Upgrade from `@v3`                        |
 | [docs/evaluation-storage.md](docs/evaluation-storage.md)                   | Cloud vs bring-your-own-store             |

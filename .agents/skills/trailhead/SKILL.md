@@ -1,9 +1,9 @@
 ---
 name: trailhead
-description: "Use before merging PRs, deploying code, or when asked about deployment risk, DORA metrics, deploy safety, health checks, or release timing. Triggers: deploy, merge, PR review, risk score, deployment gate, DORA, change failure rate, deploy timing, freeze window, health check, rollback, canary, release."
+description: "Use before merging PRs, deploying code, or when asked about deployment risk, DORA metrics, deploy safety, health checks, or release timing. Triggers: deploy, merge, PR review, risk score, deployment gate, DORA, change failure rate, deploy timing, freeze window, health check, rollback, canary, release, submission gate, agent trust, autofix."
 metadata:
   author: komatik
-  version: "4.2.1"
+  version: "4.4.2"
 ---
 
 # Trailhead
@@ -24,12 +24,15 @@ Before suggesting deploy timing or approving a merge, run `evaluate-policy` to c
 **4. Recover from failures, don't ignore them.**
 If a health check returns `degraded` or `down` after deploy, surface it immediately. Run `get-deployment-status` and `explain-risk-factors` to help the developer diagnose. Do not silently continue.
 
+**5. Validate agent submissions before merge (Phase B).**
+For agent-authored PRs with suggestion markdown or high-risk diffs, run `validate-submission` on changed files. Gate 1 blocking findings require fix before merge; Phase 0 advisory findings are measurement-only.
+
 ## Risk Scoring
 
 Trailhead scores PRs on a 0–100 scale using policy-weighted factors (core + governance + security):
 
 | Factor                  | Weight | What triggers high scores                                               |
-| ----------------------- | ------ | ----------------------------------------------------------------------- | --- | --------------------------------------- |
+| ----------------------- | ------ | ----------------------------------------------------------------------- |
 | `security_alerts`       | 4      | Critical/high code scanning alerts                                      |
 | `code_churn`            | 3      | Large diffs, especially in sensitive files (auth 3x, infra 2x weight)   |
 | `sensitive_files`       | 3      | Changes to auth, migrations, payments, CI, secrets, env files           |
@@ -40,7 +43,7 @@ Trailhead scores PRs on a 0–100 scale using policy-weighted factors (core + go
 | `canary_status`         | 2      | Canary/progressive rollout signals                                      |
 | `author_history`        | 1      | Author unfamiliar with the repo (< 90-day commit history)               |
 | `pr_age`                | 1      | Stale PRs penalized                                                     |
-| `ci_integrity`          | 3      | CI confidence downgrades (`                                             |     | true`, `continue-on-error`, test wipes) |
+| `ci_integrity`          | 3      | CI confidence downgrades (bypass patterns, test deletion signals)       |
 | `workflow_security`     | 4      | Workflow hardening issues (unpinned actions, risky shell interpolation) |
 | `prompt_injection_risk` | 4      | Untrusted input flowing into prompt/command paths                       |
 | `supply_chain`          | 3      | New deps, major jumps, critical vuln markers                            |
@@ -58,10 +61,11 @@ When reviewing PRs or evaluating deploys, always check:
 - **Sensitive file changes require extra scrutiny.** Files matching auth, migration, payment, secret, or env patterns carry 2-3x weight in risk scoring. Flag these to the developer.
 - **Dependency changes need review.** Lock file and manifest changes can introduce supply chain risk. Call out major version bumps or new dependencies.
 - **Score > 70 requires human approval.** Do not auto-merge. Explain the risk factors and ask the developer to review.
+- **Submission gate:** Run `validate-submission` on agent PRs when `submission-gate` is enabled. Block on Gate 1 `blocking` severities.
 
 ## MCP Tools
 
-Use these tools via the Trailhead MCP server (22 tools). Tools that don't require environment variables work with zero configuration.
+Use these tools via the Trailhead MCP server (**26 tools**). Tools that don't require environment variables work with zero configuration.
 
 **Cloud-backed feedback:** Set `TRAILHEAD_CLOUD_API_URL` + `TRAILHEAD_API_KEY` to persist feedback, noise charts, and tuning proposals to Trailhead Cloud instead of a local file store.
 
@@ -71,6 +75,14 @@ Use these tools via the Trailhead MCP server (22 tools). Tools that don't requir
 - **`explain-risk-factors`** — Human-readable explanation of why a score is high. Use when score > 55.
 - **`evaluate-policy`** — Full policy check: risk + security alerts + DORA signals + freeze windows. Use before approving any merge.
 - **`get-security-alerts`** — Fetch open code scanning alerts grouped by severity. Block on criticals.
+- **`validate-submission`** — Gate 1 + Phase 0 submission checks on file patches or suggestion content. Returns checks, remediation fixes, blocking flag.
+
+### Agent loop (Phase A + B)
+
+- **`get-remediation`** — Read remediation block from evaluation JSON or Trailhead Cloud.
+- **`subscribe-events`** — Poll semantic webhook events until match.
+- **`apply-autofix`** — Plan allowlisted autofixes from remediation fixes (dry-run default; no git writes from MCP).
+- **`get-trust-score`** — Compute agent trust profile from rolling evaluation metrics.
 
 ### Post-Deploy (run after every deployment)
 
@@ -93,7 +105,7 @@ Use these tools via the Trailhead MCP server (22 tools). Tools that don't requir
 - **`check-supply-chain`** — Detect dependency-introduction and vulnerability signals.
 - **`query-overrides`** — Query governed override records by repo/environment/time window.
 - **`get-escalation-status`** — Evaluate escalation SLA state (`within_sla` vs `breached`).
-- **`record-finding-feedback`** — Capture true/false-positive feedback for detectors. Uses Trailhead Cloud when `TRAILHEAD_CLOUD_API_URL` + `TRAILHEAD_API_KEY` are set.
+- **`record-finding-feedback`** — Capture true/false-positive feedback for detectors. Uses Trailhead Cloud when configured.
 - **`get-detector-noise`** — Aggregate detector noise/false-positive rates (Cloud or local store).
 - **`recommend-policy-tuning`** — Generate threshold/mode tuning proposals from feedback (Cloud or local store).
 - **`recommend-rollback`** — Propose/trigger rollback recommendation from canary + provenance.
@@ -103,12 +115,14 @@ Use these tools via the Trailhead MCP server (22 tools). Tools that don't requir
 The standard Trailhead workflow for any PR:
 
 1. **Score** → `compute-risk-score` with the PR's changed files
-2. **If score > 55** → `explain-risk-factors` to show the developer what's driving risk
-3. **Check policy** → `evaluate-policy` for freeze windows, security alerts, DORA signals
-4. **If clear** → approve merge
-5. **After deploy** → `check-http-health` (and provider-specific checks if configured)
-6. **If health fails** → `get-deployment-status` + surface the issue immediately
-7. **After decision** → inspect rollout readiness (`rollout-readiness-json`) for go/review/hold guidance
+2. **If agent PR** → `validate-submission` when submission gate enabled
+3. **If score > 55** → `explain-risk-factors` to show the developer what's driving risk
+4. **Check policy** → `evaluate-policy` for freeze windows, security alerts, DORA signals
+5. **Trust** → `get-trust-score` when metrics available; respect probation strictness
+6. **If clear** → approve merge
+7. **After deploy** → `check-http-health` (and provider-specific checks if configured)
+8. **If health fails** → `get-deployment-status` + surface the issue immediately
+9. **After decision** → inspect rollout readiness (`rollout-readiness-json`) for go/review/hold guidance
 
 ## Configuration
 
@@ -120,17 +134,20 @@ Trailhead reads `.trailhead.yml` (or a legacy v1 config filename alias) from the
 - Health check endpoints
 - Webhook notification targets (Slack, Discord, custom)
 - Agent policy strictness (`policies.*`), escalation SLAs, service contracts/consumers
+- **Submission gate** (`submission.enabled`, `submission.mode`) — Gate 1 checks
+
+Action input: `submission-gate: "true"` enables Gate 1 alongside the deploy gate.
 
 If no config file exists, sensible defaults apply (block at 70, warn at 55).
 
 ## GitHub Action
 
-Trailhead also runs as a GitHub Action (`KomatikAI/trailhead@v3`). The MCP tools and the Action use the same risk engine — scores are identical regardless of interface. Use the MCP tools for interactive agent workflows; use the Action for CI automation.
+Trailhead runs as a GitHub Action (`KomatikAI/trailhead@v4`). The MCP tools and the Action use the same risk engine and submission engine — scores are identical regardless of interface. Use the MCP tools for interactive agent workflows; use the Action for CI automation.
 
 ## Repository Maintenance Notes
 
 - **`dev`** is the default integration branch. Feature PRs target `dev`.
 - **`staging`** and **`main`** are promotion targets only (`dev` → `staging` → `main`, fast-forward).
-- MCP prebuild copies `src/risk-engine.ts` and `src/adapters/*` into `mcp/src/`; matching `mcp/dist/risk-engine.*` and `mcp/dist/adapters/*` are intentionally committed runtime artifacts.
-- If `src/risk-engine.ts` imports another local module, update the `app/` and `mcp/` prebuild scripts and committed dist artifacts in the same change.
-- The legacy supply-chain experiment branch is not promotion-ready until app and MCP builds pass with the new `supply-chain` module.
+- **Released:** v4.4.2 on `main`; `@v4` tracks latest v4.x.
+- MCP prebuild copies shared modules from `src/` into `mcp/src/` and `app/src/`; `submission-checks/` is copied as a directory.
+- If `src/risk-engine.ts` or `src/submission-engine.ts` imports a new local module, update prebuild scripts and committed dist artifacts in the same change.

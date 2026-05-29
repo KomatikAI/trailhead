@@ -2,9 +2,9 @@
 
 > Canonical cross-product map: `komatik-agents/PRODUCT-MAP.md`.
 
-**Internal Komatik use:** Our agent PR gate — risk/quality gate on agent-authored PRs.
+**Internal Komatik use:** Our agent PR gate — risk/quality gate on agent-authored PRs, plus Gate 1 submission checks (`submission-gate: true`) and Phase 0 suggestion heuristics (v4.4.2).
 
-**External product (what we sell):** Anyone uses Trailhead's logic + architecture to check **their own** personal agents' work.
+**External product (what we sell):** Anyone uses Trailhead's logic + architecture to check **their own** personal agents' work — same submission engine, trust scoring, and MCP tools (`validate-submission`, `apply-autofix`, `get-trust-score`).
 
 ## Rule
 

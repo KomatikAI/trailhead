@@ -1,8 +1,8 @@
-# Agent submission fixture (Gate 1)
+# Agent submission fixture (Gate 1 + Phase 0)
 
 Minimal non-Komatik example showing **Gate 1** agent submission checks via the Trailhead Action.
 
-Gate 1 validates PR diffs for agent-quality issues (secrets, destructive SQL, missing RLS, auth on API routes, syntax, etc.) before the deploy gate runs.
+Gate 1 validates PR diffs for agent-quality issues (secrets, destructive SQL, missing RLS, auth on API routes, syntax, etc.) before the deploy gate runs. **Phase 0** (v4.4.2) adds advisory heuristics on `agents/*/suggestions/**/*.md` (output size, preambles, action extraction, etc.) — measurement only, does not block.
 
 ## Enable in your repo
 
@@ -24,7 +24,7 @@ gate:
 
 ```yaml
 # .github/workflows/trailhead.yml (snippet)
-- uses: KomatikAI/trailhead@v4
+- uses: KomatikAI/trailhead@v4.4.2
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     submission-gate: "true"
@@ -33,6 +33,20 @@ gate:
 ## Komatik fleet only
 
 Set `KOMATIK_INSTANCE: "true"` in the workflow env to enable SOUL integrity and DeployGuard stale-term checks. External repos should omit this.
+
+## MCP validation
+
+Agents can call **`validate-submission`** with the same file patches before opening a PR:
+
+```json
+{
+  "files": [{ "filename": "agents/coordinator/suggestions/brief.md", "content": "..." }],
+  "komatik_instance": true,
+  "mode": "block"
+}
+```
+
+Use **`get-trust-score`** with rolling metrics and **`apply-autofix`** to plan allowlisted fixes from remediation output.
 
 ## Trust scoring (optional)
 
@@ -52,10 +66,10 @@ Pass rolling agent metrics via `TRAILHEAD_AGENT_TRUST_JSON` until hosted trust l
 
 ## Local self-test
 
-Run the engine against sample patches in this directory:
+Run the engine against sample patches:
 
 ```bash
-npm test -- submission-engine
+npm test -- submission-engine phase0-detectors
 ```
 
-See `src/__tests__/submission-engine.test.ts` for programmatic examples.
+See `src/__tests__/submission-engine.test.ts` and `src/__tests__/phase0-detectors.test.ts`. Full reference: [docs/submission-gate.md](../../docs/submission-gate.md).

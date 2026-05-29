@@ -6,7 +6,7 @@ Trailhead is a release readiness gate available in three forms:
 
 1. **GitHub Action** (`@v4`) — the primary distribution. Runs in CI on every PR, waits for required checks, and publishes a composite **Release Ready** check.
 2. **GitHub App** (`app/`) — a webhook server that acts as a Custom Deployment Protection Rule with the same composite gate logic.
-3. **MCP Server** (`mcp/`) — 22 tools for AI agents via the Model Context Protocol.
+3. **MCP Server** (`mcp/`) — 26 tools for AI agents via the Model Context Protocol.
 4. **Trailhead Cloud** (`cloud/`) — optional hosted evaluation store, analytics dashboard, feedback loop, and org billing tiers (v4.1).
 
 All three runtime interfaces plus Cloud share a single **risk engine** (`src/risk-engine.ts`) and v4 modules (`ci-core.ts`, `release-ready.ts`, `context-matcher.ts`, `deployment-gate.ts`, `feedback-core.ts`) — pure TypeScript with no framework dependencies.
@@ -15,7 +15,8 @@ All three runtime interfaces plus Cloud share a single **risk engine** (`src/ris
 ┌──────────────────────────────────────────────────────────────────┐
 │  Shared modules (pure — no @actions deps)                         │
 │  risk-engine · ci-core · release-ready · context-matcher · types  │
-│  feedback-core · deployment-gate · config-core                    │
+│  feedback-core · deployment-gate · config-core · submission-engine │
+│  fixer-core · trust-score · credit-meter                          │
 ├──────────────────┬────────────────────┬───────────────────────────┤
 │  GitHub Action   │    GitHub App      │       MCP Server          │
 │  src/main.ts     │  app/handler.ts    │     mcp/server.ts         │
@@ -265,14 +266,25 @@ Example:
 }
 ```
 
-## Agent Autonomy (v4.3)
+## Agent Autonomy (v4.3 → v4.4)
 
-Trailhead is evolving from a human-supervised merge gate into a **coach → fixer → autopilot** loop for agent-authored PRs. Phase A (Coach) adds:
+Trailhead is evolving from a human-supervised merge gate into a **coach → fixer → autopilot** loop for agent-authored PRs.
+
+### Phase A — Coach (v4.3.x, shipped)
 
 - **`remediation` block** in `evaluation-json` — machine-readable fix checklist per gate run
 - **Agent brief** — collapsed PR comment section with JSON + human-readable steps
 - **Semantic webhooks** — `trailhead.blocked`, `trailhead.warn_high_risk`, `trailhead.ready`, `trailhead.loop_exceeded` (schema `trailhead.webhook.v1`)
 - **MCP tools** — `get-remediation`, `subscribe-events` (long-poll)
+
+### Phase B — Fixer (v4.4.x, partial)
+
+- **Gate 1 submission engine** — 15 blocking checks via `submission-gate: true` ([submission-gate.md](./submission-gate.md))
+- **Phase 0 suggestion heuristics** — 14 advisory checks on `agents/*/suggestions/**/*.md` (v4.4.2)
+- **Autofix allowlist** — `fixer-core` + `app/fixer.ts` (plan only; git write pending)
+- **Trust scoring** — `trust-score.ts`; `TRAILHEAD_AGENT_TRUST_JSON` env until hosted lookup
+- **MCP tools** — `validate-submission`, `apply-autofix`, `get-trust-score`
+- **Credit metering** — optional Komatik `deploy_check` ingest ([komatik-credit-metering.md](./komatik-credit-metering.md))
 
 Configure semantic delivery in workflow YAML:
 
@@ -291,11 +303,7 @@ Human PRs (`claude/*`, `cursor/*`, explicit `human` provenance) are unchanged �
 
 This repository uses the **progressive branch model**: **`dev`** (integration/default) → **`staging`** (pre-production) → **`main`** (production). Open feature PRs against **`dev`**. CI runs on PRs to `dev` and on pushes to `dev`, `staging`, and `main`. Promote with fast-forward merges only; tag releases on `main`.
 
-**Current state (May 2026):** **v4.3.0** released on `main` (explicit tag; `@v4` remains **v4.2.2**). Phase A A1–A4 merged. **A6** fleet pin + store URL migration complete on 7 active satellites. Komatik hosted store loop persistence: [komatik-hosted-store.md](./komatik-hosted-store.md). Pending: Komatik store PR + Trailhead v4.3.1 read path.
-
-The unmerged legacy supply-chain experiment branch is known not to be promotion-ready: its
-targeted tests pass, but `app` and `mcp` builds fail until their prebuild scripts copy the
-new `supply-chain` module alongside `risk-engine.ts`.
+**Current state (May 2026):** **v4.4.2** on `main` (`@v4` → same commit). Phase A shipped (v4.3.0–v4.3.3). Phase B core shipped (v4.4.0–v4.4.2): Gate 1, Phase 0, fixer plan, trust score, MCP parity, credit metering. **Pending B4:** komatik-agents enforce mode after FP metrics; fixer git write; hosted trust lookup. Komatik hosted store: [komatik-hosted-store.md](./komatik-hosted-store.md).
 
 ## Key Decisions
 
