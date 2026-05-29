@@ -152,17 +152,17 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       }
 
       const receivedAt = new Date().toISOString();
+      const agentFromPayload =
+        typeof payload.agentProvenanceId === "string"
+          ? payload.agentProvenanceId
+          : typeof (payload as Record<string, unknown>).agent_provenance_id === "string"
+            ? ((payload as Record<string, unknown>).agent_provenance_id as string)
+            : undefined;
       const stored: StoredEvaluation = {
         ...payload,
         orgId,
         receivedAt,
-        agentProvenanceId:
-          typeof payload.agentProvenanceId === "string"
-            ? payload.agentProvenanceId
-            : typeof (payload as { agent_provenance_id?: string }).agent_provenance_id ===
-                "string"
-              ? (payload as { agent_provenance_id: string }).agent_provenance_id
-              : undefined,
+        agentProvenanceId: agentFromPayload,
       };
       evaluations.set(stored.id, stored);
       idempotency.set(`${orgId}:${idem}`, stored.id);
