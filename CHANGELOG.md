@@ -4,6 +4,16 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.4.1] - 2026-05-29
+
+### Added
+
+- **Komatik credit metering** — `credit-meter-url` / `credit-meter-secret` Action inputs post `trailhead`/`deploy_check` to `credit-meter-ingest` (shadow by default, fail-open). See `docs/komatik-credit-metering.md`.
+
+### Changed
+
+- **security-guard** — allowlist `supabase.co` for credit-meter outbound calls.
+
 ## [4.4.0] - 2026-05-29
 
 ### Added — Phase B (Fixer / Gate 1 extraction)
