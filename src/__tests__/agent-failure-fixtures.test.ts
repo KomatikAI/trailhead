@@ -35,7 +35,7 @@ interface RemediationScenario {
   id: string;
   kind: "remediation";
   description?: string;
-  input: BuildRemediationInput;
+  input: BuildRemediationInput & { agentProvenance?: boolean };
 }
 
 interface RemediationSequenceScenario {
@@ -44,7 +44,7 @@ interface RemediationSequenceScenario {
   description?: string;
   steps: Array<{
     label: string;
-    input: BuildRemediationInput;
+    input: BuildRemediationInput & { agentProvenance?: boolean };
     expectedFile: string;
   }>;
 }
@@ -142,7 +142,10 @@ describe("A8 fleet agent failure fixtures", () => {
         const expected = loadJson<RemediationExpected>(
           path.join(fixturesRoot, fixtureId, "remediation.expected.json"),
         );
-        const remediation = buildRemediation(scenario.input);
+        const remediation = buildRemediation({
+          ...scenario.input,
+          agentProvenance: scenario.input.agentProvenance ?? true,
+        });
         assertRemediationMatches(remediation, expected, fixtureId);
       });
       continue;
@@ -156,6 +159,7 @@ describe("A8 fleet agent failure fixtures", () => {
           const remediation = buildRemediation({
             ...step.input,
             previousEvaluation: previous,
+            agentProvenance: step.input.agentProvenance ?? true,
           });
           const expected = loadJson<RemediationExpected>(
             path.join(fixturesRoot, fixtureId, step.expectedFile),

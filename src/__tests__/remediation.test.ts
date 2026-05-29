@@ -322,11 +322,45 @@ describe("buildRemediation", () => {
         }),
         loopRound: 1,
         maxLoopRounds: 5,
+        agentProvenance: true,
       });
       expect(remediation.next_action).toBe("fix_and_retry");
     });
 
-    it("returns human_review_required when not release-ready but no blockers", () => {
+    it("returns fix_and_retry for agent warn-only routine findings", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "warn",
+          releaseReady: false,
+          riskFactors: [factor("test_coverage", 45, { missing_tests: ["src/foo.ts"] })],
+        }),
+        agentProvenance: true,
+      });
+      expect(remediation.next_action).toBe("fix_and_retry");
+    });
+
+    it("returns human_review_required for agent red-lane findings", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          riskFactors: [],
+        }),
+        submissionChecks: [
+          {
+            code: "mock_placeholder",
+            severity: "blocking",
+            title: "Mock leak",
+            detail: "TODO(mock) in handler",
+            files: ["src/handler.ts"],
+          },
+        ],
+        agentProvenance: true,
+      });
+      expect(remediation.next_action).toBe("human_review_required");
+    });
+
+    it("returns human_review_required when not release-ready but no blockers (human PR)", () => {
       const remediation = buildRemediation({
         evaluation: evaluationFixture({
           gateDecision: "warn",

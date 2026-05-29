@@ -54,6 +54,7 @@ import {
   buildRemediation,
   formatAgentBrief,
   resolveAgentBriefMode,
+  isAgentProvenanceType,
 } from "./remediation.js";
 import {
   fetchPreviousEvaluationForPr,
@@ -978,10 +979,6 @@ interface AgentPolicyEnforcementResult {
   adjustedRiskThreshold?: number;
   forceBlock: boolean;
   findings: string[];
-}
-
-function isAgentProvenanceType(type: PrProvenance["type"]): boolean {
-  return type !== "human";
 }
 
 async function enforceAgentPrPolicies(params: {
@@ -2050,6 +2047,9 @@ export async function evaluateGate(
       },
       previousEvaluation,
       maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
+      agentProvenance: isAgentProvenanceType(
+        localEvaluation.pr?.provenance?.type ?? "unknown",
+      ),
     });
   }
 

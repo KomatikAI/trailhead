@@ -11,13 +11,21 @@ import { RemediationFix as RemediationFixSchema } from "./types.js";
 import { resolveLoopRound } from "./loop-bookkeeping.js";
 import { deriveSubmissionFixes } from "./submission-remediation.js";
 import type { SubmissionCheckResult } from "./submission-remediation.js";
+import { computeNextAction } from "./remediation-lanes.js";
+export {
+  RED_LANE_FIX_CODES,
+  ROUTINE_FIX_CODES,
+  classifyFixLane,
+  hasRedLaneFindings,
+  isAgentProvenanceType,
+  computeNextAction,
+} from "./remediation-lanes.js";
 import type {
   AgentBriefMode,
   GateEvaluation,
   PrProvenance,
   Remediation,
   RemediationAutofixClass,
-  RemediationNextAction,
   RemediationSeverity,
   RiskFactor,
 } from "./types.js";
@@ -272,25 +280,6 @@ function diffFixCodes(
   return { resolved, introduced };
 }
 
-function computeNextAction(args: {
-  releaseReady: boolean;
-  blockingCount: number;
-  loopRound: number;
-  maxLoopRounds: number;
-  redLane?: boolean;
-}): RemediationNextAction {
-  if (args.releaseReady) {
-    return args.redLane ? "human_review_required" : "ready_to_merge";
-  }
-  if (args.blockingCount === 0) {
-    return "human_review_required";
-  }
-  if (args.loopRound >= args.maxLoopRounds) {
-    return "max_rounds_exceeded";
-  }
-  return "fix_and_retry";
-}
-
 export function buildRemediation(input: BuildRemediationInput): Remediation {
   const fixes: RemediationFix[] = [];
 
@@ -350,8 +339,12 @@ export function buildRemediation(input: BuildRemediationInput): Remediation {
   const next_action = computeNextAction({
     releaseReady,
     blockingCount: blocking_count,
+    warnCount: warn_count,
+    advisoryCount: advisory_count,
     loopRound,
     maxLoopRounds,
+    agentProvenance: input.agentProvenance,
+    fixes: dedupedFixes,
   });
 
   return {
