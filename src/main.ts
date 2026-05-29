@@ -13,6 +13,11 @@ import {
 } from "./gate.js";
 import { deliverWebhooks, storeEvaluation } from "./notify.js";
 import {
+  meterDeployCheck,
+  resolveCreditMeterConfig,
+  resolveCreditMeterUserFromEnv,
+} from "./credit-meter.js";
+import {
   computeDoraMetrics,
   formatDoraReport,
   formatDeploymentFrequencyForOutput,
@@ -312,6 +317,50 @@ async function run(): Promise<void> {
     const evaluation = await evaluateGate(config, commitSha, prNumber);
     if (policyOverride && !evaluation.policyOverride) {
       evaluation.policyOverride = policyOverride;
+    }
+
+    const creditMeterConfig = resolveCreditMeterConfig({
+      url:
+        core.getInput("credit-meter-url") ||
+        readEnv("KOMATIK_CREDIT_METER_URL") ||
+        undefined,
+      secret:
+        core.getInput("credit-meter-secret") ||
+        readEnv("KOMATIK_CREDIT_METER_SECRET") ||
+        undefined,
+      shadow: core.getInput("credit-meter-shadow") !== "false",
+      enforce: core.getInput("credit-meter-enforce") === "true",
+    });
+
+    if (creditMeterConfig.enabled) {
+      try {
+        const creditUser = resolveCreditMeterUserFromEnv();
+        const creditResult = await meterDeployCheck(
+          evaluation,
+          creditMeterConfig,
+          creditUser,
+        );
+        evaluation.credit_meter = creditResult;
+        if (creditResult.metered && creditResult.shadow) {
+          core.info(
+            `Credit shadow meter: deploy_check would charge ${creditResult.would_charge ?? "?"} credits`,
+          );
+        } else if (creditResult.skipped && creditResult.reason === "no_member_identity") {
+          core.debug(
+            "Credit meter skipped — set TRAILHEAD_CREDIT_USER_ID or TRAILHEAD_CREDIT_USER_EMAIL",
+          );
+        } else if (
+          creditMeterConfig.enforce &&
+          creditResult.metered &&
+          creditResult.allowed === false
+        ) {
+          core.warning(
+            `Credit meter blocked deliverable (${creditResult.reason ?? "not allowed"}) — balance ${creditResult.balance ?? "?"}`,
+          );
+        }
+      } catch (err) {
+        core.warning(`Credit metering failed (non-blocking): ${err}`);
+      }
     }
 
     core.setOutput("health-score", evaluation.healthScore.toString());

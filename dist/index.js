@@ -40726,6 +40726,17 @@ const PolicyOverrideAudit = objectType({
     preOverrideReleaseReady: booleanType().optional(),
     preOverrideReasons: arrayType(stringType()).optional(),
 });
+const CreditMeterResult = objectType({
+    metered: booleanType(),
+    skipped: booleanType().optional(),
+    reason: stringType().optional(),
+    shadow: booleanType().optional(),
+    would_charge: numberType().optional(),
+    charged: numberType().optional(),
+    balance: numberType().optional(),
+    allowed: booleanType().optional(),
+    ok: booleanType().optional(),
+});
 const GateEvaluation = objectType({
     id: stringType(),
     repoId: stringType(),
@@ -40779,6 +40790,7 @@ const GateEvaluation = objectType({
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
     storePersisted: booleanType().optional(),
+    credit_meter: CreditMeterResult.optional(),
     remediation: Remediation.optional(),
     agentBriefMode: AgentBriefMode.optional(),
     submissionChecks: arrayType(SubmissionCheckResult).optional(),
@@ -46522,6 +46534,125 @@ async function storeEvaluation(url, evaluation, options = {}) {
     return false;
 }
 
+;// CONCATENATED MODULE: ./src/credit-meter.ts
+// Komatik prepaid-credit metering for Trailhead deliverables (deploy_check).
+// Calls credit-meter-ingest over HTTPS — fail-open; never throws to callers.
+const METER_TIMEOUT_MS = 10_000;
+const APP_SLUG = "trailhead";
+const ACTION_SLUG = "deploy_check";
+function resolveCreditMeterConfig(options) {
+    const url = options.url?.trim();
+    const secret = options.secret?.trim();
+    const enabled = Boolean(url && secret);
+    return {
+        enabled,
+        url,
+        secret,
+        shadow: options.shadow !== false,
+        enforce: options.enforce === true,
+    };
+}
+function resolveCreditMeterUserFromEnv() {
+    const userId = process.env.TRAILHEAD_CREDIT_USER_ID?.trim();
+    const email = process.env.TRAILHEAD_CREDIT_USER_EMAIL?.trim();
+    if (userId)
+        return { userId, email: email || undefined };
+    if (email)
+        return { email };
+    return null;
+}
+function parseIngestResponse(body) {
+    const r = (body ?? {});
+    if (r.skipped === true) {
+        return {
+            metered: false,
+            skipped: true,
+            reason: typeof r.reason === "string" ? r.reason : "skipped",
+            ok: r.ok === true,
+        };
+    }
+    const allowed = r.allowed;
+    const shadow = r.shadow === true;
+    const wouldCharge = typeof r.would_charge === "number"
+        ? r.would_charge
+        : typeof r.wouldCharge === "number"
+            ? r.wouldCharge
+            : undefined;
+    const charged = typeof r.charged === "number" ? r.charged : undefined;
+    return {
+        metered: true,
+        ok: r.ok !== false,
+        skipped: false,
+        shadow,
+        would_charge: wouldCharge ?? charged,
+        charged,
+        balance: typeof r.balance === "number" ? r.balance : undefined,
+        allowed: allowed === undefined ? true : allowed === true,
+        reason: typeof r.reason === "string" ? r.reason : undefined,
+    };
+}
+/** Record one deploy_check against the member's Komatik credit wallet. */
+async function meterDeployCheck(evaluation, config, user) {
+    if (!config.enabled || !config.url || !config.secret) {
+        return { metered: false, skipped: true, reason: "not_configured" };
+    }
+    if (!user?.userId && !user?.email) {
+        return { metered: false, skipped: true, reason: "no_member_identity" };
+    }
+    const idempotencyKey = `deploy-check:${evaluation.id}`;
+    const payload = {
+        appSlug: APP_SLUG,
+        actionSlug: ACTION_SLUG,
+        idempotencyKey,
+        shadow: config.shadow,
+        costCents: null,
+        metadata: {
+            evaluation_id: evaluation.id,
+            repo_id: evaluation.repoId,
+            commit_sha: evaluation.commitSha,
+            pr_number: evaluation.prNumber ?? null,
+            gate_decision: evaluation.gateDecision,
+            release_ready: evaluation.releaseReady ?? null,
+            gate_mode: evaluation.gateMode ?? null,
+        },
+    };
+    if (user.userId)
+        payload.userId = user.userId;
+    else if (user.email)
+        payload.email = user.email;
+    try {
+        const response = await fetch(config.url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-komatik-meter-secret": config.secret,
+            },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(METER_TIMEOUT_MS),
+        });
+        const text = await response.text();
+        let parsed = {};
+        try {
+            parsed = text ? JSON.parse(text) : {};
+        }
+        catch {
+            parsed = { error: text };
+        }
+        if (!response.ok) {
+            return {
+                metered: false,
+                skipped: true,
+                reason: `http_${response.status}`,
+                ok: false,
+            };
+        }
+        return parseIngestResponse(parsed);
+    }
+    catch {
+        return { metered: false, skipped: true, reason: "request_failed", ok: false };
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/dora.ts
 
 
@@ -48034,6 +48165,7 @@ function computeRolloutReadiness(evaluation) {
 
 
 
+
 class PolicyOverrideError extends Error {
     constructor(message) {
         super(message);
@@ -48275,6 +48407,37 @@ async function run() {
         const evaluation = await evaluateGate(config, commitSha, prNumber);
         if (policyOverride && !evaluation.policyOverride) {
             evaluation.policyOverride = policyOverride;
+        }
+        const creditMeterConfig = resolveCreditMeterConfig({
+            url: getInput("credit-meter-url") ||
+                readEnv("KOMATIK_CREDIT_METER_URL") ||
+                undefined,
+            secret: getInput("credit-meter-secret") ||
+                readEnv("KOMATIK_CREDIT_METER_SECRET") ||
+                undefined,
+            shadow: getInput("credit-meter-shadow") !== "false",
+            enforce: getInput("credit-meter-enforce") === "true",
+        });
+        if (creditMeterConfig.enabled) {
+            try {
+                const creditUser = resolveCreditMeterUserFromEnv();
+                const creditResult = await meterDeployCheck(evaluation, creditMeterConfig, creditUser);
+                evaluation.credit_meter = creditResult;
+                if (creditResult.metered && creditResult.shadow) {
+                    info(`Credit shadow meter: deploy_check would charge ${creditResult.would_charge ?? "?"} credits`);
+                }
+                else if (creditResult.skipped && creditResult.reason === "no_member_identity") {
+                    core_debug("Credit meter skipped — set TRAILHEAD_CREDIT_USER_ID or TRAILHEAD_CREDIT_USER_EMAIL");
+                }
+                else if (creditMeterConfig.enforce &&
+                    creditResult.metered &&
+                    creditResult.allowed === false) {
+                    warning(`Credit meter blocked deliverable (${creditResult.reason ?? "not allowed"}) — balance ${creditResult.balance ?? "?"}`);
+                }
+            }
+            catch (err) {
+                warning(`Credit metering failed (non-blocking): ${err}`);
+            }
         }
         setOutput("health-score", evaluation.healthScore.toString());
         setOutput("risk-score", evaluation.riskScore.toString());

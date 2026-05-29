@@ -197,6 +197,19 @@ export const PolicyOverrideAudit = z.object({
 });
 export type PolicyOverrideAudit = z.infer<typeof PolicyOverrideAudit>;
 
+export const CreditMeterResult = z.object({
+  metered: z.boolean(),
+  skipped: z.boolean().optional(),
+  reason: z.string().optional(),
+  shadow: z.boolean().optional(),
+  would_charge: z.number().optional(),
+  charged: z.number().optional(),
+  balance: z.number().optional(),
+  allowed: z.boolean().optional(),
+  ok: z.boolean().optional(),
+});
+export type CreditMeterResult = z.infer<typeof CreditMeterResult>;
+
 export const GateEvaluation = z.object({
   id: z.string(),
   repoId: z.string(),
@@ -255,6 +268,7 @@ export const GateEvaluation = z.object({
   context: MatchedContext.optional(),
   gateMode: GateMode.optional(),
   storePersisted: z.boolean().optional(),
+  credit_meter: CreditMeterResult.optional(),
   remediation: Remediation.optional(),
   agentBriefMode: AgentBriefMode.optional(),
   submissionChecks: z.array(SubmissionCheckResult).optional(),

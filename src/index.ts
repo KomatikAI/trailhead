@@ -53,6 +53,16 @@ export {
   storeEvaluation,
 } from "./notify.js";
 export {
+  meterDeployCheck,
+  resolveCreditMeterConfig,
+  resolveCreditMeterUserFromEnv,
+} from "./credit-meter.js";
+export type {
+  CreditMeterConfig,
+  CreditMeterResult,
+  CreditMeterUser,
+} from "./credit-meter.js";
+export {
   parseWebhookEvents,
   resolveTrailheadEventTypes,
   resolveWebhookDeliveries,
