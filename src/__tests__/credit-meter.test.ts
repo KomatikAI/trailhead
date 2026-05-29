@@ -75,7 +75,7 @@ describe("credit-meter", () => {
     );
 
     const config = resolveCreditMeterConfig({
-      url: "https://komatik.example/functions/v1/credit-meter-ingest",
+      url: "https://github.com/functions/v1/credit-meter-ingest",
       secret: "test-secret",
       shadow: true,
     });
@@ -112,7 +112,7 @@ describe("credit-meter", () => {
     const result = await meterDeployCheck(
       makeEvaluation(),
       resolveCreditMeterConfig({
-        url: "https://komatik.example/ingest",
+        url: "https://github.com/ingest",
         secret: "s",
       }),
       { email: "anon@example.com" },

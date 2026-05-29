@@ -71,6 +71,7 @@ const OUTBOUND_ALLOWLIST = [
   "astral.sh",
   "osv.dev",
   "nvd.nist.gov",
+  "supabase.co",
 ];
 
 const DEP_FILE = [
