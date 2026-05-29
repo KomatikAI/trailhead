@@ -34,6 +34,10 @@ remediation:
   enabled: true
   max_loop_rounds: 5
 
+submission:
+  enabled: true
+  mode: block
+
 override:
   enabled: true
   max_per_week: 5

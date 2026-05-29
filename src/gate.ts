@@ -67,6 +67,11 @@ import {
 } from "./override.js";
 import { runSubmissionGate, submissionGateShouldBlock } from "./submission-engine.js";
 import type { SubmissionCheckResult } from "./types.js";
+import {
+  computeAgentTrustScore,
+  strictnessFromTrust,
+  type AgentTrustMetrics,
+} from "./trust-score.js";
 
 export {
   isSensitiveFile,
@@ -82,6 +87,45 @@ export function sensitivityWeight(
   repoConfig?: RepoConfig | null,
 ): number {
   return sensitivityWeightShared(filename, repoConfig ?? null);
+}
+
+function parseDeclaredPackages(raw: string | undefined): string[] | undefined {
+  if (!raw?.trim()) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed.filter((entry): entry is string => typeof entry === "string");
+    }
+  } catch {
+    return raw
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+  return undefined;
+}
+
+function parseAgentTrustMetrics(raw: string | undefined): AgentTrustMetrics | null {
+  if (!raw?.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<AgentTrustMetrics>;
+    if (typeof parsed.evaluations !== "number") return null;
+    return {
+      evaluations: parsed.evaluations,
+      releaseReadyCount: parsed.releaseReadyCount ?? 0,
+      revertCount: parsed.revertCount ?? 0,
+      humanReviewRequiredCount: parsed.humanReviewRequiredCount ?? 0,
+      policyViolationCount: parsed.policyViolationCount ?? 0,
+      sensitivePathViolationCount: parsed.sensitivePathViolationCount ?? 0,
+      remediationRoundsToReady: Array.isArray(parsed.remediationRoundsToReady)
+        ? parsed.remediationRoundsToReady.filter(
+            (n): n is number => typeof n === "number",
+          )
+        : [],
+    };
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1724,10 +1768,15 @@ export async function evaluateGate(
     config.submissionGate === true || repoConfig?.submission?.enabled === true;
   if (submissionEnabled && files.length > 0) {
     submissionChecks = runSubmissionGate({
-      files,
+      files: files.map((f) => ({
+        filename: f.filename,
+        patch: f.patch,
+        additions: f.additions,
+      })),
       repoConfig,
       komatikInstance: process.env.KOMATIK_INSTANCE === "true",
       mode: submissionMode,
+      declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
     });
     if (submissionChecks.length > 0) {
       policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);
@@ -1860,15 +1909,17 @@ export async function evaluateGate(
   }
   const trustProfile =
     provenance?.type && provenance.type !== "human"
-      ? riskScore >= 75
-        ? {
-            strictness: "strict" as const,
-            reason: "Automated provenance with high composite risk score",
+      ? (() => {
+          const metrics = parseAgentTrustMetrics(process.env.TRAILHEAD_AGENT_TRUST_JSON);
+          const trust = metrics ? computeAgentTrustScore(metrics) : null;
+          if (trust && trust.thresholdDelta !== 0) {
+            adjustedRiskThreshold = Math.max(
+              0,
+              Math.min(100, adjustedRiskThreshold + trust.thresholdDelta),
+            );
           }
-        : {
-            strictness: "elevated" as const,
-            reason: "Automated provenance with elevated review requirements",
-          }
+          return strictnessFromTrust(trust, riskScore);
+        })()
       : {
           strictness: "baseline" as const,
           reason: "Human provenance or unknown automation signals",

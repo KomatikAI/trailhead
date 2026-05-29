@@ -28617,6 +28617,14 @@ module.exports = {
 
 /***/ }),
 
+/***/ 9922:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core");
+
+
+/***/ }),
+
 /***/ 2613:
 /***/ ((module) => {
 
@@ -40639,6 +40647,15 @@ const SubmissionCheckCode = enumType([
     "destructive_sql",
     "secrets",
     "path_format",
+    "syntax_validity",
+    "import_resolution",
+    "rls_new_tables",
+    "auth_route_auth",
+    "hardcoded_env",
+    "external_package_deps",
+    "sql_syntax_basic",
+    "large_file",
+    "soul_integrity",
 ]);
 const SubmissionCheckResult = objectType({
     code: SubmissionCheckCode,
@@ -40745,6 +40762,9 @@ const GateEvaluation = objectType({
     trust_profile: objectType({
         strictness: enumType(["baseline", "elevated", "strict"]),
         reason: stringType(),
+        score: numberType().min(0).max(1).optional(),
+        profile: enumType(["fast-track", "standard", "probation"]).optional(),
+        factors: recordType(numberType()).optional(),
     })
         .optional(),
     policyOverride: PolicyOverrideAudit.optional(),
@@ -40876,6 +40896,8 @@ const SubmissionConfig = objectType({
     enabled: booleanType().default(false),
     mode: enumType(["warn", "block"]).default("block"),
     stale_terms: arrayType(stringType()).optional(),
+    auth_route_allowlist: arrayType(stringType()).optional(),
+    max_file_lines: numberType().int().positive().optional(),
 });
 const RepoConfig = objectType({
     schema_version: numberType().int().positive().default(1),
@@ -42456,31 +42478,16 @@ function pickLatestPreviousEvaluation(rows, excludeEvaluationId) {
     return null;
 }
 
-;// CONCATENATED MODULE: ./src/submission-engine.ts
-// Gate 1 — agent submission quality (Phase B1).
-// Pure module: no @actions/*, octokit, or Node I/O.
-
-/** All Gate 1 check codes — keep in sync with A8 fixture manifest. */
-const SUBMISSION_CHECK_CODES = SubmissionCheckCode.options;
-const MOCK_PLACEHOLDER_PATTERNS = [
-    /\bTODO\s*\(\s*mock\s*\)/i,
-    /\bFIXME\s*\(\s*mock\s*\)/i,
-    /\bMOCK_[A-Z0-9_]+\b/,
-    /\bfakeImplementation\b/,
-    /\bstubResponse\s*\(/i,
-];
-const SECRET_PATTERNS = [
-    /\bsk_live_[A-Za-z0-9]{10,}\b/,
-    /\bsk_test_[A-Za-z0-9]{10,}\b/,
-    /\bghp_[A-Za-z0-9]{20,}\b/,
-    /\bAKIA[0-9A-Z]{16}\b/,
-];
-const DESTRUCTIVE_SQL_PATTERNS = [
-    /\bDROP\s+TABLE\b/i,
-    /\bTRUNCATE\s+TABLE\b/i,
-    /\bDROP\s+COLUMN\b/i,
-];
-const DEFAULT_STALE_TERMS = ["deployguard", "DeployGuard"];
+;// CONCATENATED MODULE: ./src/submission-checks/helpers.ts
+// Shared helpers for Gate 1 submission checks (pure, no I/O).
+function normalizePath(filePath) {
+    return filePath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+function extensionOf(filename) {
+    const base = normalizePath(filename);
+    const idx = base.lastIndexOf(".");
+    return idx >= 0 ? base.slice(idx).toLowerCase() : "";
+}
 function addedLines(patch) {
     if (!patch)
         return [];
@@ -42488,6 +42495,28 @@ function addedLines(patch) {
         .split("\n")
         .filter((line) => line.startsWith("+") && !line.startsWith("+++"))
         .map((line) => line.slice(1));
+}
+/** Approximate post-change file body from a unified diff hunk (context + additions). */
+function effectiveContentFromPatch(patch) {
+    if (!patch)
+        return "";
+    return patch
+        .split("\n")
+        .filter((line) => !line.startsWith("@@") && !line.startsWith("---") && !line.startsWith("+++"))
+        .filter((line) => !line.startsWith("-"))
+        .map((line) => (line.startsWith("+") || line.startsWith(" ") ? line.slice(1) : line))
+        .join("\n");
+}
+function fileContent(file) {
+    if (typeof file.content === "string")
+        return file.content;
+    return effectiveContentFromPatch(file.patch);
+}
+function lineCountFromPatch(patch) {
+    const content = effectiveContentFromPatch(patch);
+    if (!content)
+        return 0;
+    return content.split("\n").length;
 }
 function scanAddedContent(files, predicate) {
     const hits = [];
@@ -42499,86 +42528,155 @@ function scanAddedContent(files, predicate) {
     }
     return [...new Set(hits)];
 }
-function detectMockPlaceholder(files) {
-    const hits = scanAddedContent(files, (line) => MOCK_PLACEHOLDER_PATTERNS.some((re) => re.test(line)));
+function scanFileContent(files, predicate) {
+    const hits = [];
+    for (const file of files) {
+        const lines = fileContent(file).split("\n");
+        lines.forEach((line, index) => {
+            if (predicate(line, file.filename, index + 1)) {
+                hits.push({ file: file.filename, line: index + 1 });
+            }
+        });
+    }
+    return hits;
+}
+function prPathSet(files) {
+    return new Set(files.map((f) => normalizePath(f.filename)));
+}
+function isTestPath(filename) {
+    return /\/__tests__\/|\/test\/|\/fixtures\/|\.test\.|\.spec\./.test(filename);
+}
+
+;// CONCATENATED MODULE: ./src/submission-checks/detectors.ts
+// Gate 1 detectors — ported from komatik-agents agent-gate-checks (patch/content based).
+
+const OLD_NAME_PATTERNS = [
+    { oldName: "DeployGuard", newName: "Trailhead", pattern: /\bDeployGuard\b/g },
+    { oldName: "Daydream Studio", newName: "Sundog", pattern: /\bDaydream Studio\b/g },
+    {
+        oldName: "Storyboard Studio",
+        newName: "Kindling",
+        pattern: /\bStoryboard Studio\b/g,
+    },
+    { oldName: "Cognitive Debt", newName: "Drift", pattern: /\bCognitive Debt\b/g },
+    { oldName: "cognitive-debt", newName: "Drift", pattern: /\bcognitive-debt\b/g },
+];
+const MOCK_PATTERNS = [
+    /\bTODO\s*\(\s*mock\s*\)/i,
+    /\bFIXME\s*\(\s*mock\s*\)/i,
+    /\bMOCK_[A-Z0-9_]+\b/,
+    /\bfakeImplementation\b/,
+    /\bstubResponse\s*\(/i,
+    /\b(?:generate|create|build|get)(?:Mock|Fake|Dummy|Sample)\w*/g,
+    /\b(?:mockData|fakeData|sampleData|dummyData|testData)\b/g,
+    /\bTODO:\s*implement\b/gi,
+    /\bFIXME\b/g,
+    /\bplaceholder\b/gi,
+    /\blorem ipsum\b/gi,
+];
+const SECRET_PATTERNS = [
+    { name: "AWS access key", pattern: /\bAKIA[0-9A-Z]{16}\b/g },
+    { name: "GitHub token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g },
+    { name: "Stripe live key", pattern: /\bsk_live_[A-Za-z0-9]{10,}\b/g },
+    { name: "Stripe test key", pattern: /\bsk_test_[A-Za-z0-9]{10,}\b/g },
+    { name: "Private key block", pattern: /-----BEGIN [A-Z ]+PRIVATE KEY-----/g },
+    {
+        name: "Generic API key assignment",
+        pattern: /api[_-]?key\s*[:=]\s*['"][A-Za-z0-9_-]{32,}['"]/gi,
+    },
+];
+const HARDCODED_ENV_PATTERNS = [
+    { name: "localhost with port", pattern: /(?:['"`])localhost:\d{2,5}(?:['"`])/g },
+    {
+        name: "hardcoded private IP",
+        pattern: /(?:['"`])(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})(?::\d+)?(?:['"`])/g,
+    },
+];
+const NODE_BUILTINS = new Set([
+    "assert",
+    "async_hooks",
+    "buffer",
+    "child_process",
+    "cluster",
+    "console",
+    "constants",
+    "crypto",
+    "dgram",
+    "dns",
+    "events",
+    "fs",
+    "http",
+    "http2",
+    "https",
+    "module",
+    "net",
+    "os",
+    "path",
+    "process",
+    "stream",
+    "url",
+    "util",
+    "zlib",
+]);
+function result(partial) {
+    return { autofix_eligible: false, ...partial };
+}
+function detectMockPlaceholder(ctx) {
+    const hits = scanAddedContent(ctx.files, (line, filename) => {
+        if (isTestPath(filename))
+            return false;
+        if (/\.(md|txt)$/i.test(filename))
+            return false;
+        return MOCK_PATTERNS.some((re) => {
+            re.lastIndex = 0;
+            return re.test(line);
+        });
+    });
     if (hits.length === 0)
         return null;
-    return {
+    return result({
         code: "mock_placeholder",
         severity: "blocking",
         title: "Mock placeholder in production path",
-        detail: `Found mock/TODO placeholder patterns in ${hits.join(", ")}. Replace stubs before review.`,
+        detail: `Found mock/TODO placeholder patterns in ${hits.join(", ")}.`,
         files: hits,
         suggested_action: "Remove mock placeholders and implement real behavior.",
-        autofix_eligible: false,
-    };
+    });
 }
-function detectSecrets(files) {
-    const hits = scanAddedContent(files, (line) => SECRET_PATTERNS.some((re) => re.test(line)));
+function detectSecrets(ctx) {
+    const hits = scanAddedContent(ctx.files, (line) => SECRET_PATTERNS.some((entry) => {
+        entry.pattern.lastIndex = 0;
+        return entry.pattern.test(line);
+    }));
     if (hits.length === 0)
         return null;
-    return {
+    return result({
         code: "secrets",
         severity: "blocking",
         title: "Potential secret in diff",
-        detail: `Added lines match secret patterns in ${hits.join(", ")}. Rotate any exposed credential.`,
+        detail: `Added lines match secret patterns in ${hits.join(", ")}.`,
         files: hits,
-        suggested_action: "Remove secrets from source; use environment variables or a secret manager.",
-        autofix_eligible: false,
-    };
+        suggested_action: "Remove secrets; use environment variables or a secret manager.",
+    });
 }
-function detectDestructiveSql(files) {
-    const sqlFiles = files.filter((f) => /\.sql$/i.test(f.filename));
-    const hits = scanAddedContent(sqlFiles, (line) => DESTRUCTIVE_SQL_PATTERNS.some((re) => re.test(line)));
+function detectDestructiveSql(ctx) {
+    const sqlFiles = ctx.files.filter((f) => extensionOf(f.filename) === ".sql");
+    const hits = scanAddedContent(sqlFiles, (line) => /\b(DROP\s+TABLE|TRUNCATE|DELETE\s+FROM(?![^\n]*\bWHERE\b))/i.test(line));
     if (hits.length === 0)
         return null;
-    return {
+    return result({
         code: "destructive_sql",
         severity: "blocking",
         title: "Destructive SQL in migration",
         detail: `Added SQL contains destructive statements in ${hits.join(", ")}.`,
         files: hits,
-        suggested_action: "Use additive migrations; avoid DROP/TRUNCATE without explicit human approval.",
-        autofix_eligible: false,
-    };
+        suggested_action: "Use additive migrations; avoid DROP/TRUNCATE without human approval.",
+    });
 }
-function detectContextFreshness(files, staleTerms) {
-    if (staleTerms.length === 0)
-        return null;
-    const hits = scanAddedContent(files, (line) => staleTerms.some((term) => line.toLowerCase().includes(term.toLowerCase())));
-    if (hits.length === 0)
-        return null;
-    return {
-        code: "context_freshness",
-        severity: "warn",
-        title: "Stale naming or deprecated terms",
-        detail: `Added lines reference deprecated terms (${staleTerms.join(", ")}) in ${hits.join(", ")}.`,
-        files: hits,
-        suggested_action: "Update naming to match current product vocabulary (see BRAND.md / repo docs).",
-        autofix_eligible: true,
-    };
-}
-function detectPathFormat(files) {
-    const hits = files
-        .map((f) => f.filename)
-        .filter((name) => /^komatik-agents\/agents\//.test(name) || /\/agents\/agents\//.test(name));
-    if (hits.length === 0)
-        return null;
-    return {
-        code: "path_format",
-        severity: "warn",
-        title: "Suspicious agent path prefix",
-        detail: `Files use repo-name prefix in internal paths: ${hits.join(", ")}.`,
-        files: hits,
-        suggested_action: "Use agents/<agent-id>/... not <repo>/agents/... for agent workspace paths.",
-        autofix_eligible: false,
-    };
-}
-function detectArtifactIntegrity(files) {
-    const prPaths = new Set(files.map((f) => f.filename.replace(/\\/g, "/")));
+function detectArtifactIntegrity(ctx) {
     const referenced = new Set();
     const pathRefPattern = /(?:^|\s|['"`])([\w@./-]+\.(?:ts|tsx|js|jsx|md|sql|yml|yaml|json))(?:['"`]|\s|:)/g;
-    for (const file of files) {
+    for (const file of ctx.files) {
         for (const line of addedLines(file.patch)) {
             if (!/(?:import|from|require|see|fix|update)\s/i.test(line))
                 continue;
@@ -42586,7 +42684,7 @@ function detectArtifactIntegrity(files) {
                 const candidate = match[1]?.replace(/^\.\//, "");
                 if (!candidate || candidate.includes("*"))
                     continue;
-                if (!prPaths.has(candidate) && !candidate.startsWith("node:")) {
+                if (!ctx.prPaths.has(candidate) && !candidate.startsWith("node:")) {
                     referenced.add(candidate);
                 }
             }
@@ -42595,30 +42693,469 @@ function detectArtifactIntegrity(files) {
     if (referenced.size === 0)
         return null;
     const missing = [...referenced].slice(0, 8);
-    return {
+    return result({
         code: "artifact_integrity",
         severity: "blocking",
         title: "Referenced files missing from PR",
         detail: `Added lines reference paths not in this PR: ${missing.join(", ")}${referenced.size > 8 ? "…" : ""}.`,
         files: missing,
-        suggested_action: "Include the referenced files in this PR or fix hallucinated paths.",
-        autofix_eligible: false,
+        suggested_action: "Include referenced files or fix hallucinated paths.",
+    });
+}
+function isNamingAllowlisted(filename, line) {
+    const trimmed = line.trim();
+    if (/^import\s|^from\s|require\(/.test(trimmed))
+        return true;
+    if (/\.sql$/i.test(filename))
+        return true;
+    if (/(?:^|\/)migrations\//.test(filename))
+        return true;
+    if (/(?:^|\/)memory\//.test(filename))
+        return true;
+    if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(filename))
+        return true;
+    if (/^\[.*\]\(.*\)/.test(trimmed))
+        return true;
+    return false;
+}
+function detectContextFreshness(ctx) {
+    if (ctx.staleTerms.length === 0 && !ctx.komatikInstance)
+        return null;
+    const hits = [];
+    for (const file of ctx.files) {
+        for (const line of addedLines(file.patch)) {
+            if (isNamingAllowlisted(file.filename, line))
+                continue;
+            const terms = ctx.staleTerms.length > 0 ? ctx.staleTerms : [];
+            for (const term of terms) {
+                if (line.toLowerCase().includes(term.toLowerCase()))
+                    hits.push(file.filename);
+            }
+            if (ctx.komatikInstance) {
+                for (const entry of OLD_NAME_PATTERNS) {
+                    entry.pattern.lastIndex = 0;
+                    if (entry.pattern.test(line))
+                        hits.push(file.filename);
+                }
+            }
+        }
+    }
+    const unique = [...new Set(hits)];
+    if (unique.length === 0)
+        return null;
+    return result({
+        code: "context_freshness",
+        severity: "warn",
+        title: "Stale naming or deprecated terms",
+        detail: `Added lines reference deprecated terms in ${unique.join(", ")}.`,
+        files: unique,
+        suggested_action: "Update naming to current product vocabulary (see BRAND.md).",
+        autofix_eligible: true,
+    });
+}
+function detectPathFormat(ctx) {
+    if (!ctx.komatikInstance)
+        return null;
+    const hits = ctx.files
+        .map((f) => normalizePath(f.filename))
+        .filter((name) => /^komatik-agents\/agents\//.test(name) ||
+        /\/agents\/agents\//.test(name) ||
+        (!/^agents\/[a-z][a-z0-9-]*\/suggestions\//.test(name) &&
+            /\/suggestions\//.test(name) &&
+            !name.startsWith("agents/")));
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "path_format",
+        severity: "warn",
+        title: "Suspicious agent suggestion path",
+        detail: `Paths should match agents/<id>/suggestions/<project>/… — found: ${hits.join(", ")}.`,
+        files: hits,
+        suggested_action: "Use canonical agent suggestion paths without repo prefix.",
+    });
+}
+function detectHardcodedEnv(ctx) {
+    const hits = scanAddedContent(ctx.files, (line, filename) => {
+        if (/\.(md|txt)$/i.test(filename))
+            return false;
+        if (/^\s*\/\/|^\s*\*|^\s*#/.test(line))
+            return false;
+        return HARDCODED_ENV_PATTERNS.some((entry) => {
+            entry.pattern.lastIndex = 0;
+            return entry.pattern.test(line);
+        });
+    });
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "hardcoded_env",
+        severity: "blocking",
+        title: "Hardcoded environment value",
+        detail: `Added lines contain hardcoded localhost/IP patterns in ${hits.join(", ")}.`,
+        files: hits,
+        suggested_action: "Use environment variables or configuration instead of hardcoded hosts.",
+    });
+}
+function detectLargeFile(ctx) {
+    const hits = ctx.files
+        .filter((file) => {
+        const lines = typeof file.content === "string"
+            ? file.content.split("\n").length
+            : lineCountFromPatch(file.patch);
+        return lines > ctx.maxFileLines;
+    })
+        .map((f) => f.filename);
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "large_file",
+        severity: "warn",
+        title: "Large file in PR",
+        detail: `Files exceed ${ctx.maxFileLines} lines: ${hits.join(", ")}.`,
+        files: hits,
+        suggested_action: "Split large changes into smaller PRs.",
+    });
+}
+function extractRelativeImports(content) {
+    const imports = [];
+    const patterns = [
+        /\bimport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?['"](\.\.?[^'"]+)['"]/g,
+        /\brequire\(\s*['"](\.\.?[^'"]+)['"]\s*\)/g,
+    ];
+    for (const pattern of patterns) {
+        for (const match of content.matchAll(pattern)) {
+            if (match[1])
+                imports.push(match[1]);
+        }
+    }
+    return imports;
+}
+function resolveRelativeImport(fromFile, specifier, prPaths) {
+    const clean = specifier.split("?")[0].split("#")[0];
+    const baseDir = normalizePath(fromFile).split("/").slice(0, -1);
+    const segments = clean.replace(/^\.\//, "").split("/");
+    for (const segment of segments) {
+        if (segment === "..")
+            baseDir.pop();
+        else if (segment !== ".")
+            baseDir.push(segment);
+    }
+    const resolved = baseDir.join("/");
+    const candidates = [
+        resolved,
+        `${resolved}.ts`,
+        `${resolved}.tsx`,
+        `${resolved}.js`,
+        `${resolved}.jsx`,
+        `${resolved}/index.ts`,
+        `${resolved}/index.js`,
+    ];
+    return candidates.some((c) => prPaths.has(c));
+}
+function detectImportResolution(ctx) {
+    const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+    const hits = [];
+    for (const file of ctx.files) {
+        if (!codeExts.has(extensionOf(file.filename)))
+            continue;
+        const content = fileContent(file);
+        for (const specifier of extractRelativeImports(content)) {
+            if (!resolveRelativeImport(file.filename, specifier, ctx.prPaths)) {
+                hits.push(file.filename);
+                break;
+            }
+        }
+    }
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "import_resolution",
+        severity: "blocking",
+        title: "Unresolved relative import",
+        detail: `Relative imports could not be resolved within this PR: ${[...new Set(hits)].join(", ")}.`,
+        files: [...new Set(hits)],
+        suggested_action: "Add missing files to the PR or fix import paths.",
+    });
+}
+function detectRlsNewTables(ctx) {
+    const sqlFiles = ctx.files.filter((f) => extensionOf(f.filename) === ".sql");
+    const corpus = sqlFiles.map((f) => fileContent(f)).join("\n");
+    const hits = [];
+    const createTable = /\bCREATE\s+(?!TEMP(?:ORARY)?\s+)TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?((?:"?[A-Za-z_][\w$]*"?\.)?"?[A-Za-z_][\w$]*"?)/gi;
+    for (const file of sqlFiles) {
+        const content = fileContent(file);
+        for (const match of content.matchAll(createTable)) {
+            const table = match[1]?.replace(/"/g, "") ?? "";
+            const pattern = new RegExp(`ALTER\\s+TABLE\\s+(?:ONLY\\s+)?["']?${table.split(".").pop()}["']?\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i");
+            if (!pattern.test(corpus))
+                hits.push(file.filename);
+        }
+    }
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "rls_new_tables",
+        severity: "blocking",
+        title: "New table missing RLS",
+        detail: `CREATE TABLE without ENABLE ROW LEVEL SECURITY in ${[...new Set(hits)].join(", ")}.`,
+        files: [...new Set(hits)],
+        suggested_action: "Add ALTER TABLE ... ENABLE ROW LEVEL SECURITY for every new table.",
+    });
+}
+function isRouteAllowlisted(path, allowlist) {
+    return allowlist.some((entry) => path.includes(entry.replace(/^\//, "")));
+}
+function detectAuthRouteAuth(ctx) {
+    const routePattern = /(?:^|\/)(?:app\/api\/.+\/route|pages\/api\/.+)\.(?:ts|tsx|js|jsx)$/;
+    const authPattern = /\b(getUser|getSession|getServerSession|auth|requireAuth|withAuth)\s*\(/;
+    const hits = [];
+    for (const file of ctx.files) {
+        const normalized = normalizePath(file.filename);
+        if (!routePattern.test(normalized))
+            continue;
+        if (isRouteAllowlisted(normalized, ctx.authRouteAllowlist))
+            continue;
+        if (!authPattern.test(fileContent(file)))
+            hits.push(normalized);
+    }
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "auth_route_auth",
+        severity: "blocking",
+        title: "API route missing auth check",
+        detail: `Routes appear to lack session/user verification: ${hits.join(", ")}.`,
+        files: hits,
+        suggested_action: "Verify authenticated user before handling the request.",
+    });
+}
+function packageNameFromSpecifier(specifier) {
+    if (specifier.startsWith("@"))
+        return specifier.split("/").slice(0, 2).join("/");
+    return specifier.split("/")[0];
+}
+function isNodeBuiltin(specifier) {
+    const bare = specifier.startsWith("node:") ? specifier.slice(5) : specifier;
+    return NODE_BUILTINS.has(bare.split("/")[0]);
+}
+function detectExternalPackageDeps(ctx) {
+    if (ctx.declaredPackages.size === 0)
+        return null;
+    const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+    const hits = [];
+    for (const file of ctx.files) {
+        if (!codeExts.has(extensionOf(file.filename)))
+            continue;
+        const importPattern = /\b(?:import|from|require)\s*(?:\([^)]*|\(?)?['"]([^'"]+)['"]/g;
+        for (const match of fileContent(file).matchAll(importPattern)) {
+            const specifier = match[1];
+            if (!specifier || specifier.startsWith(".") || specifier.startsWith("@/"))
+                continue;
+            if (isNodeBuiltin(specifier))
+                continue;
+            const pkg = packageNameFromSpecifier(specifier);
+            if (!ctx.declaredPackages.has(pkg))
+                hits.push(`${file.filename} → ${pkg}`);
+        }
+    }
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "external_package_deps",
+        severity: "warn",
+        title: "Undeclared package import",
+        detail: hits.slice(0, 6).join("; "),
+        files: [...new Set(hits.map((h) => h.split(" → ")[0]))],
+        suggested_action: "Add the package to package.json or remove the import.",
+    });
+}
+function detectSqlSyntaxBasic(ctx) {
+    const hits = [];
+    for (const file of ctx.files.filter((f) => extensionOf(f.filename) === ".sql")) {
+        const content = fileContent(file);
+        const stripped = content.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+        const beginCount = (stripped.match(/\bBEGIN\b/gi) || []).length;
+        const endCount = (stripped.match(/\bEND\b\s*;/gi) || []).length;
+        if (beginCount > 0 && endCount === 0)
+            hits.push(file.filename);
+        else if (endCount > beginCount)
+            hits.push(file.filename);
+    }
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "sql_syntax_basic",
+        severity: "blocking",
+        title: "SQL block balance issue",
+        detail: `Possible unmatched BEGIN/END in ${hits.join(", ")}.`,
+        files: hits,
+        suggested_action: "Fix PL/pgSQL block structure before merging.",
+    });
+}
+let cachedSwcParse;
+function getSwcParse() {
+    if (cachedSwcParse !== undefined)
+        return cachedSwcParse;
+    try {
+        // Optional — install @swc/core locally for full parse; Action uses bracket fallback.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const swc = __nccwpck_require__(9922);
+        cachedSwcParse = swc.parseSync;
+    }
+    catch {
+        cachedSwcParse = null;
+    }
+    return cachedSwcParse;
+}
+function basicBracketBalance(content) {
+    let braces = 0;
+    let parens = 0;
+    let brackets = 0;
+    for (const ch of content) {
+        if (ch === "{")
+            braces += 1;
+        if (ch === "}")
+            braces -= 1;
+        if (ch === "(")
+            parens += 1;
+        if (ch === ")")
+            parens -= 1;
+        if (ch === "[")
+            brackets += 1;
+        if (ch === "]")
+            brackets -= 1;
+        if (braces < 0 || parens < 0 || brackets < 0)
+            return "Unbalanced brackets/parens";
+    }
+    if (braces !== 0 || parens !== 0 || brackets !== 0) {
+        return "Unclosed brackets/parens in diff hunk";
+    }
+    return null;
+}
+function parserOptionsFor(file) {
+    const ext = extensionOf(file.filename);
+    const isTs = ext === ".ts" || ext === ".tsx";
+    return {
+        syntax: isTs ? "typescript" : "ecmascript",
+        tsx: ext === ".tsx",
+        jsx: ext === ".jsx",
+        decorators: true,
+        dynamicImport: true,
+    };
+}
+function detectSyntaxValidity(ctx) {
+    const errors = [];
+    const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+    const swcParse = getSwcParse();
+    for (const file of ctx.files) {
+        const ext = extensionOf(file.filename);
+        const content = fileContent(file);
+        if (!content.trim())
+            continue;
+        try {
+            if (codeExts.has(ext)) {
+                if (swcParse) {
+                    swcParse(content, parserOptionsFor(file));
+                }
+                else {
+                    const balance = basicBracketBalance(content);
+                    if (balance)
+                        throw new Error(balance);
+                }
+            }
+            else if (ext === ".json") {
+                JSON.parse(content);
+            }
+        }
+        catch (error) {
+            errors.push({
+                file: file.filename,
+                message: error instanceof Error ? error.message.split("\n")[0] : String(error),
+            });
+        }
+    }
+    if (errors.length === 0)
+        return null;
+    return result({
+        code: "syntax_validity",
+        severity: "blocking",
+        title: "Syntax error in changed file",
+        detail: errors.map((e) => `${e.file}: ${e.message}`).join("; "),
+        files: errors.map((e) => e.file),
+        suggested_action: "Fix parse errors before resubmitting.",
+    });
+}
+function detectSoulIntegrity(ctx) {
+    if (!ctx.komatikInstance)
+        return null;
+    const hits = ctx.files
+        .map((f) => normalizePath(f.filename))
+        .filter((name) => /^agents\/[a-z][a-z0-9-]*\/SOUL\.md$/.test(name));
+    if (hits.length === 0)
+        return null;
+    return result({
+        code: "soul_integrity",
+        severity: "blocking",
+        title: "Agent SOUL.md modified",
+        detail: `SOUL changes require human review: ${hits.join(", ")}.`,
+        files: hits,
+        suggested_action: "Revert SOUL.md changes or request explicit human approval.",
+    });
+}
+function runAllDetectors(ctx) {
+    const checks = [
+        detectMockPlaceholder(ctx),
+        detectSecrets(ctx),
+        detectDestructiveSql(ctx),
+        detectSyntaxValidity(ctx),
+        detectImportResolution(ctx),
+        detectRlsNewTables(ctx),
+        detectAuthRouteAuth(ctx),
+        detectHardcodedEnv(ctx),
+        detectExternalPackageDeps(ctx),
+        detectSqlSyntaxBasic(ctx),
+        detectLargeFile(ctx),
+        detectArtifactIntegrity(ctx),
+        detectContextFreshness(ctx),
+        detectSoulIntegrity(ctx),
+        detectPathFormat(ctx),
+    ];
+    return checks.filter((check) => check !== null);
+}
+
+;// CONCATENATED MODULE: ./src/submission-engine.ts
+// Gate 1 — agent submission quality (Phase B1).
+// Pure module: no @actions/*, octokit, or Node I/O.
+
+
+
+/** All Gate 1 check codes — keep in sync with A8 fixture manifest. */
+const SUBMISSION_CHECK_CODES = SubmissionCheckCode.options;
+const DEFAULT_STALE_TERMS = ["deployguard", "DeployGuard"];
+const DEFAULT_AUTH_ROUTE_ALLOWLIST = [
+    "/api/auth/",
+    "/api/webhooks/",
+    "/api/health/",
+    "/api/metrics/",
+];
+function buildContext(options) {
+    const { files, repoConfig, komatikInstance = false } = options;
+    const staleTerms = repoConfig?.submission?.stale_terms ?? (komatikInstance ? DEFAULT_STALE_TERMS : []);
+    const declared = new Set(options.declaredPackages ?? []);
+    return {
+        files,
+        prPaths: prPathSet(files),
+        komatikInstance,
+        staleTerms,
+        authRouteAllowlist: repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
+        maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
+        declaredPackages: declared,
     };
 }
 function runSubmissionGate(options) {
-    const { files, repoConfig, komatikInstance = false } = options;
-    if (files.length === 0)
+    if (options.files.length === 0)
         return [];
-    const staleTerms = repoConfig?.submission?.stale_terms ?? (komatikInstance ? DEFAULT_STALE_TERMS : []);
-    const checks = [
-        detectMockPlaceholder(files),
-        detectSecrets(files),
-        detectDestructiveSql(files),
-        detectArtifactIntegrity(files),
-        detectContextFreshness(files, staleTerms),
-        komatikInstance ? detectPathFormat(files) : null,
-    ];
-    return checks.filter((check) => check !== null);
+    return runAllDetectors(buildContext(options));
 }
 function submissionGateShouldBlock(checks, mode = "block") {
     if (mode !== "block")
@@ -42642,6 +43179,9 @@ function deriveSubmissionFixes(checks) {
         files: check.files ?? [],
         suggested_action: check.suggested_action,
         autofix_eligible: check.autofix_eligible ?? false,
+        autofix_class: check.autofix_eligible && check.code === "context_freshness"
+            ? "doc-update"
+            : undefined,
     }));
 }
 
@@ -43405,7 +43945,104 @@ function applyLabelOverrideToEvaluation(evaluation, audit) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/trust-score.ts
+// Phase B3 — dynamic agent trust scoring (pure module).
+const WEIGHTS = {
+    release_ready_rate: 0.3,
+    revert_resistance: 0.2,
+    human_free_rate: 0.2,
+    remediation_efficiency: 0.15,
+    policy_violation_penalty: 0.075,
+    sensitive_path_penalty: 0.075,
+};
+function rate(numerator, denominator) {
+    if (denominator <= 0)
+        return 0;
+    return numerator / denominator;
+}
+function remediationEfficiency(rounds) {
+    if (rounds.length === 0)
+        return 0.5;
+    const avg = rounds.reduce((a, b) => a + b, 0) / rounds.length;
+    return Math.max(0, Math.min(1, 1 - (avg - 1) / 4));
+}
+function computeAgentTrustScore(metrics) {
+    const n = Math.max(metrics.evaluations, 0);
+    const releaseReadyRate = rate(metrics.releaseReadyCount, n);
+    const revertRate = rate(metrics.revertCount, n);
+    const humanReviewRate = rate(metrics.humanReviewRequiredCount, n);
+    const policyViolationRate = rate(metrics.policyViolationCount, n);
+    const sensitiveRate = rate(metrics.sensitivePathViolationCount, n);
+    const remEff = remediationEfficiency(metrics.remediationRoundsToReady);
+    const factors = {
+        release_ready_rate: releaseReadyRate,
+        revert_rate: revertRate,
+        human_review_required_rate: humanReviewRate,
+        remediation_efficiency: remEff,
+        policy_violation_rate: policyViolationRate,
+        sensitive_path_violation_rate: sensitiveRate,
+    };
+    const score = Math.max(0, Math.min(1, WEIGHTS.release_ready_rate * releaseReadyRate +
+        WEIGHTS.revert_resistance * (1 - revertRate) +
+        WEIGHTS.human_free_rate * (1 - humanReviewRate) +
+        WEIGHTS.remediation_efficiency * remEff -
+        WEIGHTS.policy_violation_penalty * policyViolationRate -
+        WEIGHTS.sensitive_path_penalty * sensitiveRate));
+    let profile = "standard";
+    if (score >= 0.85)
+        profile = "fast-track";
+    else if (score < 0.6)
+        profile = "probation";
+    const thresholdDelta = profile === "fast-track" ? 10 : profile === "probation" ? -10 : 0;
+    return {
+        score: Math.round(score * 1000) / 1000,
+        profile,
+        factors,
+        thresholdDelta,
+        autofixEnabled: profile !== "probation",
+    };
+}
+function strictnessFromTrust(trust, riskScore) {
+    if (!trust) {
+        return riskScore >= 75
+            ? {
+                strictness: "strict",
+                reason: "Automated provenance with high composite risk score",
+            }
+            : {
+                strictness: "elevated",
+                reason: "Automated provenance with elevated review requirements",
+            };
+    }
+    if (trust.profile === "probation") {
+        return {
+            strictness: "strict",
+            reason: `Agent trust score ${trust.score} — probation (human review required)`,
+            score: trust.score,
+            profile: trust.profile,
+            factors: trust.factors,
+        };
+    }
+    if (trust.profile === "fast-track" && riskScore < 60) {
+        return {
+            strictness: "baseline",
+            reason: `Agent trust score ${trust.score} — fast-track profile`,
+            score: trust.score,
+            profile: trust.profile,
+            factors: trust.factors,
+        };
+    }
+    return {
+        strictness: riskScore >= 75 ? "strict" : "elevated",
+        reason: `Agent trust score ${trust.score} (${trust.profile})`,
+        score: trust.score,
+        profile: trust.profile,
+        factors: trust.factors,
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/gate.ts
+
 
 
 
@@ -43424,6 +44061,46 @@ function applyLabelOverrideToEvaluation(evaluation, audit) {
 // Re-export sensitivityWeight with the RepoConfig-compatible signature
 function gate_sensitivityWeight(filename, repoConfig) {
     return sensitivityWeightShared(filename, repoConfig ?? null);
+}
+function parseDeclaredPackages(raw) {
+    if (!raw?.trim())
+        return undefined;
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            return parsed.filter((entry) => typeof entry === "string");
+        }
+    }
+    catch {
+        return raw
+            .split(",")
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+    }
+    return undefined;
+}
+function parseAgentTrustMetrics(raw) {
+    if (!raw?.trim())
+        return null;
+    try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.evaluations !== "number")
+            return null;
+        return {
+            evaluations: parsed.evaluations,
+            releaseReadyCount: parsed.releaseReadyCount ?? 0,
+            revertCount: parsed.revertCount ?? 0,
+            humanReviewRequiredCount: parsed.humanReviewRequiredCount ?? 0,
+            policyViolationCount: parsed.policyViolationCount ?? 0,
+            sensitivePathViolationCount: parsed.sensitivePathViolationCount ?? 0,
+            remediationRoundsToReady: Array.isArray(parsed.remediationRoundsToReady)
+                ? parsed.remediationRoundsToReady.filter((n) => typeof n === "number")
+                : [],
+        };
+    }
+    catch {
+        return null;
+    }
 }
 // ---------------------------------------------------------------------------
 // PR diff fetching via @actions/github
@@ -44649,10 +45326,15 @@ async function evaluateGate(config, commitSha, prNumber) {
     const submissionEnabled = config.submissionGate === true || repoConfig?.submission?.enabled === true;
     if (submissionEnabled && files.length > 0) {
         submissionChecks = runSubmissionGate({
-            files,
+            files: files.map((f) => ({
+                filename: f.filename,
+                patch: f.patch,
+                additions: f.additions,
+            })),
             repoConfig,
             komatikInstance: process.env.KOMATIK_INSTANCE === "true",
             mode: submissionMode,
+            declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
         });
         if (submissionChecks.length > 0) {
             policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);
@@ -44753,15 +45435,14 @@ async function evaluateGate(config, commitSha, prNumber) {
         policyFindings.push(`Escalation configured with ${escalationStatus.target_count} target(s); acknowledge within ${escalationStatus.acknowledge_sla_minutes} minutes.`);
     }
     const trustProfile = provenance?.type && provenance.type !== "human"
-        ? riskScore >= 75
-            ? {
-                strictness: "strict",
-                reason: "Automated provenance with high composite risk score",
+        ? (() => {
+            const metrics = parseAgentTrustMetrics(process.env.TRAILHEAD_AGENT_TRUST_JSON);
+            const trust = metrics ? computeAgentTrustScore(metrics) : null;
+            if (trust && trust.thresholdDelta !== 0) {
+                adjustedRiskThreshold = Math.max(0, Math.min(100, adjustedRiskThreshold + trust.thresholdDelta));
             }
-            : {
-                strictness: "elevated",
-                reason: "Automated provenance with elevated review requirements",
-            }
+            return strictnessFromTrust(trust, riskScore);
+        })()
         : {
             strictness: "baseline",
             reason: "Human provenance or unknown automation signals",

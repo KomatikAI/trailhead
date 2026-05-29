@@ -17,7 +17,16 @@
     "context_freshness",
     "destructive_sql",
     "secrets",
-    "path_format"
+    "path_format",
+    "syntax_validity",
+    "import_resolution",
+    "rls_new_tables",
+    "auth_route_auth",
+    "hardcoded_env",
+    "external_package_deps",
+    "sql_syntax_basic",
+    "large_file",
+    "soul_integrity"
   ],
   "coveredRiskFactors": [
     "test_coverage",

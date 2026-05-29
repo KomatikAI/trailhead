@@ -1,0 +1,22 @@
+# Copy into .github/workflows/ — validates agent PR quality (Gate 1) + release readiness.
+name: Trailhead
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: KomatikAI/trailhead@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          submission-gate: "true"
+        env:
+          # Optional: trust metrics JSON until Cloud nightly compute (B3 follow-up)
+          # TRAILHEAD_AGENT_TRUST_JSON: ${{ secrets.TRAILHEAD_AGENT_TRUST_JSON }}

@@ -4,6 +4,19 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.4.0] - 2026-05-29
+
+### Added — Phase B (Fixer / Gate 1 extraction)
+
+- **B1 Gate 1 engine** — `src/submission-engine.ts` + `src/submission-checks/` ports 15 checks from `komatik-agents` (secrets, destructive SQL, RLS, auth routes, syntax validity with optional `@swc/core` or bracket fallback, import resolution, mock placeholders, etc.). Action input `submission-gate: "true"` and `.trailhead.yml` `submission.enabled`. Komatik-only checks gated on `KOMATIK_INSTANCE=true`.
+- **B2 Autofix allowlist** — `src/fixer-core.ts` red-lane globs + allowlisted autofix classes; `app/src/fixer.ts` plans one fix per round (dry-run in v4.4.0; git write in follow-up App PR).
+- **B3 Trust scoring** — `src/trust-score.ts` computes fast-track / standard / probation profiles; `evaluateGate` reads `TRAILHEAD_AGENT_TRUST_JSON` and extends `trust_profile` with `score`, `profile`, `factors`.
+- **B4 dogfood wiring** — `presets/trailhead-strict-agents.yml` enables `submission.enabled`; `examples/agent-submission-fixture/` for external repos. Komatik `komatik-agents` CI flip to enforce mode is a separate PR after FP metrics.
+
+### Changed
+
+- **`scripts/copy-shared-src.mjs`** — copies `fixer-core`, `trust-score`, and `submission-checks/` into `app/` and `mcp/`.
+
 ## [4.3.3] - 2026-05-29
 
 ### Added — Phase A completion (A5–A8, A7)
