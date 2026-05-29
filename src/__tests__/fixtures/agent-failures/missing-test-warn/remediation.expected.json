@@ -1,0 +1,12 @@
+{
+  "release_ready": false,
+  "blocking_count": 0,
+  "warn_count": 1,
+  "advisory_count": 0,
+  "loop_round": 0,
+  "max_loop_rounds": 5,
+  "next_action": "human_review_required",
+  "fix_codes": [{ "code": "risk.test_coverage", "severity": "warn" }],
+  "fixes_introduced": ["risk.test_coverage"],
+  "fixes_resolved": []
+}

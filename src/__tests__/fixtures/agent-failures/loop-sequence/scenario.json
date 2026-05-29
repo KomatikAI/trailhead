@@ -1,0 +1,73 @@
+{
+  "id": "loop-sequence",
+  "kind": "remediation-sequence",
+  "description": "Loop bookkeeping rounds 0 → 1 → 2 until release ready (A4)",
+  "steps": [
+    {
+      "label": "round-0",
+      "input": {
+        "evaluation": {
+          "id": "eval-loop-0",
+          "gateDecision": "block",
+          "releaseReady": false,
+          "riskFactors": [
+            {
+              "type": "test_coverage",
+              "score": 85,
+              "detail": { "missing_tests": ["src/feature.ts"] }
+            }
+          ],
+          "ci": {
+            "checks": [{ "name": "Build", "status": "fail", "required": true }],
+            "allRequiredPassed": false,
+            "pendingCount": 0,
+            "failedCount": 1,
+            "missingCount": 0
+          }
+        },
+        "maxLoopRounds": 5
+      },
+      "expectedFile": "round-0.expected.json"
+    },
+    {
+      "label": "round-1",
+      "input": {
+        "evaluation": {
+          "id": "eval-loop-1",
+          "gateDecision": "block",
+          "releaseReady": false,
+          "riskFactors": [],
+          "ci": {
+            "checks": [{ "name": "Build", "status": "fail", "required": true }],
+            "allRequiredPassed": false,
+            "pendingCount": 0,
+            "failedCount": 1,
+            "missingCount": 0
+          }
+        },
+        "maxLoopRounds": 5
+      },
+      "expectedFile": "round-1.expected.json"
+    },
+    {
+      "label": "round-2-green",
+      "input": {
+        "evaluation": {
+          "id": "eval-loop-2",
+          "gateDecision": "allow",
+          "releaseReady": true,
+          "riskFactors": [],
+          "ci": {
+            "checks": [{ "name": "Build", "status": "pass", "required": true }],
+            "allRequiredPassed": true,
+            "pendingCount": 0,
+            "failedCount": 0,
+            "missingCount": 0
+          }
+        },
+        "maxLoopRounds": 5
+      },
+      "expectedFile": "round-2.expected.json"
+    }
+  ]
+}

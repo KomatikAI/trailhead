@@ -1,0 +1,12 @@
+{
+  "release_ready": true,
+  "blocking_count": 0,
+  "warn_count": 0,
+  "advisory_count": 0,
+  "loop_round": 2,
+  "max_loop_rounds": 5,
+  "next_action": "ready_to_merge",
+  "fix_codes": [],
+  "fixes_introduced": [],
+  "fixes_resolved": ["ci.failed"]
+}

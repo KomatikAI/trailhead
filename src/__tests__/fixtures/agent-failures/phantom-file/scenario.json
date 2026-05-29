@@ -1,0 +1,24 @@
+{
+  "id": "phantom-file",
+  "kind": "remediation",
+  "description": "Agent references a file not present in the PR diff (artifact_integrity blocker)",
+  "input": {
+    "evaluation": {
+      "id": "eval-phantom",
+      "gateDecision": "block",
+      "releaseReady": false,
+      "riskFactors": []
+    },
+    "submissionChecks": [
+      {
+        "code": "artifact_integrity",
+        "severity": "blocking",
+        "title": "Referenced file not in PR diff",
+        "detail": "Agent cited src/phantom.ts but that file is not part of this PR.",
+        "files": ["src/phantom.ts"],
+        "suggested_action": "Remove the phantom reference or add the file to the PR."
+      }
+    ],
+    "maxLoopRounds": 5
+  }
+}

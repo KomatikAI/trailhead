@@ -1,0 +1,46 @@
+{
+  "id": "multi-fix",
+  "kind": "remediation",
+  "description": "Agent PR with 3 blocking and 2 warn findings",
+  "input": {
+    "evaluation": {
+      "id": "eval-multi-fix",
+      "gateDecision": "block",
+      "releaseReady": false,
+      "riskFactors": [
+        {
+          "type": "test_coverage",
+          "score": 80,
+          "detail": { "missing_tests": ["src/service.ts"] }
+        },
+        {
+          "type": "pr_scope",
+          "score": 35,
+          "detail": { "file_count": 42, "line_count": 900 }
+        },
+        {
+          "type": "sensitive_files",
+          "score": 35,
+          "detail": { "files": ["src/auth/session.ts"] }
+        }
+      ],
+      "ci": {
+        "checks": [{ "name": "Build", "status": "fail", "required": true }],
+        "allRequiredPassed": false,
+        "pendingCount": 0,
+        "failedCount": 1,
+        "missingCount": 0
+      }
+    },
+    "submissionChecks": [
+      {
+        "code": "artifact_integrity",
+        "severity": "blocking",
+        "title": "Referenced file not in PR diff",
+        "detail": "Agent cited docs/phantom.md but that file is not in the PR.",
+        "files": ["docs/phantom.md"]
+      }
+    ],
+    "maxLoopRounds": 5
+  }
+}

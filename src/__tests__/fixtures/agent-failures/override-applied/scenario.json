@@ -1,0 +1,27 @@
+{
+  "id": "override-applied",
+  "kind": "override",
+  "description": "Valid trailhead-override label + reason forces release ready (A7)",
+  "input": {
+    "labels": ["trailhead-override"],
+    "comments": [
+      {
+        "body": "trailhead-override: on-call approved emergency deploy",
+        "author": "david"
+      }
+    ],
+    "config": { "enabled": true, "maxPerWeek": 5 },
+    "recentOverrideCount": 0,
+    "releaseResult": {
+      "releaseReady": false,
+      "reasons": ["Risk/policy gate decision is BLOCK"]
+    },
+    "gateDecision": "block",
+    "prNumber": 42
+  },
+  "expected": {
+    "kind": "applied",
+    "release_ready": true,
+    "policy_override_source": "label"
+  }
+}

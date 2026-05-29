@@ -29,7 +29,7 @@ jobs:
         run: npm run build
 
       - name: Run fixture and gate tests
-        run: npm run test -- src/__tests__/fixture-scenarios.test.ts src/__tests__/release-ready.test.ts src/__tests__/ci-orchestrator.test.ts src/__tests__/context-matcher.test.ts src/__tests__/config.test.ts src/__tests__/evaluate-gate.test.ts src/__tests__/gate.test.ts src/__tests__/mcp.test.ts
+        run: npm run test -- src/__tests__/fixture-scenarios.test.ts src/__tests__/agent-failure-fixtures.test.ts src/__tests__/release-ready.test.ts src/__tests__/ci-orchestrator.test.ts src/__tests__/context-matcher.test.ts src/__tests__/config.test.ts src/__tests__/evaluate-gate.test.ts src/__tests__/gate.test.ts src/__tests__/mcp.test.ts
 
       - name: Run Trailhead (release-ready mode)
         id: gate
