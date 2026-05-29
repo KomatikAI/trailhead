@@ -1,0 +1,19 @@
+# Example Gate 1 policy for external agent fleets (non-Komatik).
+schema_version: 2
+
+submission:
+  enabled: true
+  mode: block
+  max_file_lines: 1000
+  auth_route_allowlist:
+    - /api/auth/
+    - /api/webhooks/
+    - /api/health/
+
+gate:
+  mode: release-ready
+  agent_brief: collapsed
+
+remediation:
+  enabled: true
+  max_loop_rounds: 3

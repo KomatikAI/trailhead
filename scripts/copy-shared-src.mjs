@@ -36,6 +36,8 @@ const sharedFiles = [
   "loop-bookkeeping.ts",
   "submission-remediation.ts",
   "submission-engine.ts",
+  "fixer-core.ts",
+  "trust-score.ts",
   "remediation-lanes.ts",
   "trailhead-events.ts",
 ];
@@ -70,6 +72,20 @@ fs.mkdirSync(targetDir, { recursive: true });
 
 for (const file of filesToCopy) {
   fs.copyFileSync(path.join(root, "src", file), path.join(targetDir, file));
+}
+
+if (targetName === "app" || targetName === "mcp") {
+  const submissionChecksSrc = path.join(root, "src", "submission-checks");
+  const submissionChecksDest = path.join(targetDir, "submission-checks");
+  fs.mkdirSync(submissionChecksDest, { recursive: true });
+  for (const file of fs.readdirSync(submissionChecksSrc)) {
+    if (file.endsWith(".ts")) {
+      fs.copyFileSync(
+        path.join(submissionChecksSrc, file),
+        path.join(submissionChecksDest, file),
+      );
+    }
+  }
 }
 
 if (targetName === "app" || targetName === "mcp") {

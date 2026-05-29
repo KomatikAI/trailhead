@@ -102,6 +102,15 @@ export const SubmissionCheckCode = z.enum([
   "destructive_sql",
   "secrets",
   "path_format",
+  "syntax_validity",
+  "import_resolution",
+  "rls_new_tables",
+  "auth_route_auth",
+  "hardcoded_env",
+  "external_package_deps",
+  "sql_syntax_basic",
+  "large_file",
+  "soul_integrity",
 ]);
 export type SubmissionCheckCode = z.infer<typeof SubmissionCheckCode>;
 
@@ -228,6 +237,9 @@ export const GateEvaluation = z.object({
     .object({
       strictness: z.enum(["baseline", "elevated", "strict"]),
       reason: z.string(),
+      score: z.number().min(0).max(1).optional(),
+      profile: z.enum(["fast-track", "standard", "probation"]).optional(),
+      factors: z.record(z.number()).optional(),
     })
     .optional(),
   policyOverride: PolicyOverrideAudit.optional(),
@@ -403,6 +415,8 @@ export const SubmissionConfig = z.object({
   enabled: z.boolean().default(false),
   mode: z.enum(["warn", "block"]).default("block"),
   stale_terms: z.array(z.string()).optional(),
+  auth_route_allowlist: z.array(z.string()).optional(),
+  max_file_lines: z.number().int().positive().optional(),
 });
 export type SubmissionConfig = z.infer<typeof SubmissionConfig>;
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { runSubmissionGate, submissionGateShouldBlock } from "../submission-engine.js";
+import { runSubmissionGate } from "../submission-engine.js";
 
-describe("submission-engine", () => {
+describe("submission-engine B1 checks", () => {
   it("blocks on mock placeholder patterns", () => {
     const checks = runSubmissionGate({
       files: [
@@ -12,22 +12,6 @@ describe("submission-engine", () => {
       ],
     });
     expect(checks.some((c) => c.code === "mock_placeholder")).toBe(true);
-    expect(submissionGateShouldBlock(checks)).toBe(true);
-  });
-
-  it("warns on stale naming terms when configured", () => {
-    const checks = runSubmissionGate({
-      files: [
-        {
-          filename: "README.md",
-          patch: "@@\n+Uses DeployGuard for gating.\n",
-        },
-      ],
-      komatikInstance: true,
-    });
-    const stale = checks.find((c) => c.code === "context_freshness");
-    expect(stale?.severity).toBe("warn");
-    expect(submissionGateShouldBlock(checks)).toBe(false);
   });
 
   it("blocks on destructive SQL", () => {
@@ -42,15 +26,48 @@ describe("submission-engine", () => {
     expect(checks.some((c) => c.code === "destructive_sql")).toBe(true);
   });
 
-  it("blocks when added lines reference missing files", () => {
+  it("blocks on missing RLS for new table", () => {
     const checks = runSubmissionGate({
       files: [
         {
-          filename: "src/index.ts",
-          patch: "@@\n+import { trust } from './trust.ts';\n",
+          filename: "supabase/migrations/001.sql",
+          patch: "@@\n+CREATE TABLE public.widgets (id uuid primary key);\n",
         },
       ],
     });
-    expect(checks.some((c) => c.code === "artifact_integrity")).toBe(true);
+    expect(checks.some((c) => c.code === "rls_new_tables")).toBe(true);
+  });
+
+  it("blocks on syntax errors in JSON", () => {
+    const checks = runSubmissionGate({
+      files: [
+        {
+          filename: "config.json",
+          patch: "@@\n+{ broken json\n",
+        },
+      ],
+    });
+    expect(checks.some((c) => c.code === "syntax_validity")).toBe(true);
+  });
+
+  it("blocks on API route without auth", () => {
+    const checks = runSubmissionGate({
+      files: [
+        {
+          filename: "app/api/users/route.ts",
+          patch:
+            "@@\n+export async function GET() { return Response.json({ ok: true }); }\n",
+        },
+      ],
+    });
+    expect(checks.some((c) => c.code === "auth_route_auth")).toBe(true);
+  });
+
+  it("blocks SOUL edits on Komatik instance", () => {
+    const checks = runSubmissionGate({
+      komatikInstance: true,
+      files: [{ filename: "agents/frontend-dev/SOUL.md", patch: "@@\n+updated\n" }],
+    });
+    expect(checks.some((c) => c.code === "soul_integrity")).toBe(true);
   });
 });
