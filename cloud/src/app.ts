@@ -8,6 +8,12 @@ import {
   generateTuningYaml,
   recommendPolicyTuning,
 } from "./feedback-core.js";
+import {
+  buildAgentRecentEvaluations,
+  buildTuningDigestV1,
+  evaluateAutoDowngradeCandidates,
+  type DetectorDowngradeRecord,
+} from "./tuning-digest.js";
 import { createMemoryStore, parseSeedKeys } from "./store.js";
 import type { ApiKeyRecord, CloudStore, RateLimitState } from "./types.js";
 import {
@@ -297,8 +303,27 @@ export function createCloudApp(options: CloudAppOptions = {}): Hono {
   app.get("/v1/digest/preview", (c) => {
     const orgId = c.get("orgId") as string;
     const orgName = c.get("orgName") as string;
+    const repoId = c.req.query("repo_id") || undefined;
+    const schema = c.req.query("schema") ?? "legacy";
     const settings = store.getOrgSettings(orgId);
     const fpThreshold = settings.digest?.fpThreshold ?? 15;
+
+    if (schema === "v1" && repoId) {
+      const digest = buildTuningDigestV1({
+        repoId,
+        evaluations: store.listAllEvaluations(orgId),
+        feedback: store.listFeedback(orgId, repoId),
+        downgrades: store.listDetectorDowngrades(orgId),
+        fpThreshold: fpThreshold / 100,
+      });
+      return c.json({
+        enabled: settings.digest?.enabled ?? false,
+        channel: settings.digest?.channel ?? null,
+        destination: settings.digest?.destination ?? null,
+        ...digest,
+      });
+    }
+
     const noise = aggregateDetectorNoise(store.listFeedback(orgId), { fpThreshold });
     const digest = buildDigestPayload(noise, orgName);
     return c.json({
@@ -307,6 +332,125 @@ export function createCloudApp(options: CloudAppOptions = {}): Hono {
       destination: settings.digest?.destination ?? null,
       ...digest,
     });
+  });
+
+  app.get("/v1/digest/tuning", (c) => {
+    const orgId = c.get("orgId") as string;
+    const repoId = c.req.query("repo_id");
+    if (!repoId) {
+      return c.json({ error: "repo_id query parameter is required" }, 400);
+    }
+    const daysRaw = c.req.query("days");
+    const days = daysRaw ? parseInt(daysRaw, 10) : 7;
+    const settings = store.getOrgSettings(orgId);
+    const fpThreshold = (settings.digest?.fpThreshold ?? 15) / 100;
+    const digest = buildTuningDigestV1({
+      repoId,
+      evaluations: store.listAllEvaluations(orgId),
+      feedback: store.listFeedback(orgId, repoId),
+      downgrades: store.listDetectorDowngrades(orgId),
+      days: Number.isFinite(days) && days > 0 ? days : 7,
+      fpThreshold,
+    });
+    return c.json(digest);
+  });
+
+  app.post("/v1/digest/tuning/deliver", async (c) => {
+    const orgId = c.get("orgId") as string;
+    const settings = store.getOrgSettings(orgId);
+    if (!settings.digest?.enabled || !settings.digest.destination) {
+      return c.json({ error: "digest not configured — subscribe first" }, 400);
+    }
+
+    const daysRaw = c.req.query("days");
+    const days = daysRaw ? parseInt(daysRaw, 10) : 7;
+    const fpThreshold = (settings.digest.fpThreshold ?? 15) / 100;
+    const repos = store.listRepos(orgId);
+    const delivered: Array<{ repo: string; status: number }> = [];
+
+    for (const repo of repos) {
+      const digest = buildTuningDigestV1({
+        repoId: repo.fullName,
+        evaluations: store.listAllEvaluations(orgId),
+        feedback: store.listFeedback(orgId, repo.fullName),
+        downgrades: store.listDetectorDowngrades(orgId),
+        days: Number.isFinite(days) && days > 0 ? days : 7,
+        fpThreshold,
+      });
+      const response = await fetch(settings.digest.destination, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(digest),
+        signal: AbortSignal.timeout(10_000),
+      });
+      delivered.push({ repo: repo.fullName, status: response.status });
+    }
+
+    return c.json({ delivered, count: delivered.length });
+  });
+
+  app.get("/v1/agents/:agentId/recent-evaluations", (c) => {
+    const orgId = c.get("orgId") as string;
+    const agentId = c.req.param("agentId");
+    const repoId = c.req.query("repo_id") || undefined;
+    const daysRaw = c.req.query("days");
+    const days = daysRaw ? parseInt(daysRaw, 10) : 30;
+    const stats = buildAgentRecentEvaluations({
+      agentId,
+      evaluations: store.listAllEvaluations(orgId),
+      repoId,
+      days: Number.isFinite(days) && days > 0 ? days : 30,
+    });
+    return c.json(stats);
+  });
+
+  app.post("/v1/tuning/auto-downgrade/run", async (c) => {
+    const orgId = c.get("orgId") as string;
+    const settings = store.getOrgSettings(orgId);
+    if (settings.tuning?.autoDowngrade === false) {
+      return c.json({ skipped: true, reason: "auto_downgrade disabled for org" });
+    }
+
+    const daysRaw = c.req.query("days");
+    const days = daysRaw ? parseInt(daysRaw, 10) : 7;
+    const fpThreshold = (store.getOrgSettings(orgId).digest?.fpThreshold ?? 15) / 100;
+    const candidates = evaluateAutoDowngradeCandidates({
+      evaluations: store.listAllEvaluations(orgId),
+      feedback: store.listFeedback(orgId),
+      downgrades: store.listDetectorDowngrades(orgId),
+      days: Number.isFinite(days) && days > 0 ? days : 7,
+      fpThreshold,
+    });
+
+    const applied: DetectorDowngradeRecord[] = [];
+    for (const candidate of candidates) {
+      const record: DetectorDowngradeRecord = {
+        detectorCode: candidate.detector,
+        downgradedAt: new Date().toISOString(),
+        fpRateAtTrigger: candidate.fpRate,
+        tuningIssueUrl: `https://github.com/KomatikAI/trailhead/issues/new?title=${encodeURIComponent(`[tune] detector ${candidate.detector} auto-downgraded (FP rate ${Math.round(candidate.fpRate * 100)}%)`)}`,
+      };
+      store.recordDetectorDowngrade(orgId, record);
+      applied.push(record);
+
+      const destination = settings.digest?.destination;
+      if (destination) {
+        await fetch(destination, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "trailhead.detector_auto_downgraded",
+            detector: candidate.detector,
+            fp_rate: candidate.fpRate,
+            emissions: candidate.emissions,
+            tuning_issue: record.tuningIssueUrl,
+          }),
+          signal: AbortSignal.timeout(10_000),
+        }).catch(() => undefined);
+      }
+    }
+
+    return c.json({ applied, count: applied.length });
   });
 
   app.get("/v1/org/settings", (c) => {

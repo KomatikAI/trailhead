@@ -40849,11 +40849,17 @@ const OverrideConfig = objectType({
     enabled: booleanType().default(true),
     max_per_week: numberType().int().min(1).default(5),
 });
+const TuningConfig = objectType({
+    auto_downgrade: booleanType().default(true),
+    digest_webhook_url: stringType().url().optional(),
+    fp_threshold: numberType().min(0).max(1).default(0.15),
+});
 const RepoConfig = objectType({
     schema_version: numberType().int().positive().default(1),
     gate: GateConfig.default({}),
     remediation: RemediationConfig.optional(),
     override: OverrideConfig.optional(),
+    tuning: TuningConfig.optional(),
     contexts: arrayType(TrailheadContext).default([]),
     sensitivity: objectType({
         high: arrayType(stringType()).default([]),
@@ -45280,6 +45286,27 @@ function formatGateReport(evaluation, riskThreshold) {
     return lines.join("\n");
 }
 
+;// CONCATENATED MODULE: ./src/agent-provenance.ts
+/** Denormalised agent id for evaluation store group-by (A5). */
+function resolveAgentProvenanceId(evaluation) {
+    const pr = evaluation.pr;
+    if (!pr)
+        return null;
+    const source = pr.provenance?.source?.trim();
+    if (source)
+        return source;
+    const headRef = pr.headRef;
+    if (headRef) {
+        const match = headRef.match(/^agent\/([a-z0-9-]+)\//i);
+        if (match?.[1])
+            return match[1];
+    }
+    const type = pr.provenance?.type;
+    if (type && type !== "human")
+        return type;
+    return null;
+}
+
 ;// CONCATENATED MODULE: ./src/trailhead-events.ts
 // Pure Trailhead semantic event resolution — no framework dependencies.
 // Maps gate evaluations to coordinator-friendly webhook event types.
@@ -45341,6 +45368,7 @@ function evaluationMatchesTrailheadEvent(evaluation, event, options = {}) {
 }
 
 ;// CONCATENATED MODULE: ./src/notify.ts
+
 
 
 
@@ -45575,6 +45603,7 @@ function buildEvaluationStoreRow(evaluation) {
         fixes_introduced: remediation?.fixes_introduced ?? [],
         pr: evaluation.pr ?? null,
         policy_override: evaluation.policyOverride ?? null,
+        agent_provenance_id: resolveAgentProvenanceId(evaluation),
     };
 }
 async function storeEvaluation(url, evaluation, options = {}) {

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * A6 fleet rollout: pin Trailhead v4.3.2+ + migrate evaluation store URL.
+ * A6 fleet rollout: pin Trailhead v4.3.3+ + migrate evaluation store URL.
  *
  * Repos still on legacy deployguard store endpoint — active fleet only (see docs/komatik-hosted-store.md):
  *   cairn, frontier, kindling, pack, slipstream, sundog, trace
  * Excluded (retired/archived, trace absorbed): drift, floe, traverse, watchtower
  *
  * Deploy rule: Komatik schema/routes via PR only — never apply_migration to prod via MCP.
- *   1. Bump action ref → KomatikAI/trailhead@v4.3.2 (explicit tag, NOT @v4)
+ *   1. Bump action ref → KomatikAI/trailhead@v4.3.3 (explicit tag, NOT @v4)
  *   2. Flip evaluation-store-url → .../api/trailhead/store
  *
  * Workflow file: `.github/workflows/trailhead.yml` or `deployguard.yml` (legacy filename).
@@ -19,19 +19,19 @@
  *   node scripts/batch-v4.3-rollout-prs.mjs --only=kindling,sundog
  *   node scripts/batch-v4.3-rollout-prs.mjs --skip-missing-workflow
  *
- * Override release pin: TRAILHEAD_ROLLOUT_VERSION=4.3.2 node scripts/...
+ * Override release pin: TRAILHEAD_ROLLOUT_VERSION=4.3.3 node scripts/...
  */
 
 import { execFileSync } from "node:child_process";
 
 const ORG = "KomatikAI";
 const ACTION_REPO = "KomatikAI/trailhead";
-const BRANCH = "cursor/trailhead-v4.3.0-a6-rollout";
+const BRANCH = "cursor/trailhead-v4.3.3-a6-rollout";
 const WORKFLOW_CANDIDATES = [
   ".github/workflows/trailhead.yml",
   ".github/workflows/deployguard.yml",
 ];
-const TARGET_VERSION = process.env.TRAILHEAD_ROLLOUT_VERSION || "4.3.2";
+const TARGET_VERSION = process.env.TRAILHEAD_ROLLOUT_VERSION || "4.3.3";
 const TARGET_REF = `@v${TARGET_VERSION}`; // @v4.3.0
 const LEGACY_STORE = "/api/deployguard/store";
 const CANONICAL_STORE = "/api/trailhead/store";

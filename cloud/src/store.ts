@@ -38,6 +38,10 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
   const deployEvents: Array<{ orgId: string; payload: DeployEventPayload }> = [];
   const feedback: DetectorFeedbackRecord[] = [];
   const usageByOrgMonth = new Map<string, number>();
+  const detectorDowngrades = new Map<
+    string,
+    Map<string, import("./tuning-digest.js").DetectorDowngradeRecord>
+  >();
 
   function ensureOrg(orgId: string, orgName: string): OrgRecord {
     const existing = orgs.get(orgId);
@@ -152,6 +156,13 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
         ...payload,
         orgId,
         receivedAt,
+        agentProvenanceId:
+          typeof payload.agentProvenanceId === "string"
+            ? payload.agentProvenanceId
+            : typeof (payload as { agent_provenance_id?: string }).agent_provenance_id ===
+                "string"
+              ? (payload as { agent_provenance_id: string }).agent_provenance_id
+              : undefined,
       };
       evaluations.set(stored.id, stored);
       idempotency.set(`${orgId}:${idem}`, stored.id);
@@ -278,6 +289,34 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       orgId: string,
     ): Array<{ orgId: string; payload: DeployEventPayload }> {
       return deployEvents.filter((e) => e.orgId === orgId);
+    },
+
+    listDetectorDowngrades(orgId: string) {
+      const rows = detectorDowngrades.get(orgId);
+      return rows ? [...rows.values()] : [];
+    },
+
+    recordDetectorDowngrade(orgId, record) {
+      let orgRows = detectorDowngrades.get(orgId);
+      if (!orgRows) {
+        orgRows = new Map();
+        detectorDowngrades.set(orgId, orgRows);
+      }
+      orgRows.set(record.detectorCode, record);
+      return record;
+    },
+
+    revertDetectorDowngrade(orgId, detectorCode, revertedBy) {
+      const orgRows = detectorDowngrades.get(orgId);
+      const existing = orgRows?.get(detectorCode);
+      if (!existing || existing.revertedAt) return null;
+      const next = {
+        ...existing,
+        revertedAt: new Date().toISOString(),
+        revertedBy,
+      };
+      orgRows!.set(detectorCode, next);
+      return next;
     },
   };
 }

@@ -273,4 +273,85 @@ describe("Trailhead Cloud API", () => {
     });
     expect(res.status).toBe(403);
   });
+
+  it("returns tuning digest v1 for a repo", async () => {
+    await app.request("/v1/evaluations", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        ...sampleEvaluation("tuning-1"),
+        gateDecision: "warn",
+        agentProvenanceId: "frontend-dev",
+        remediation: {
+          fixes: [{ code: "risk.test_coverage", severity: "warn" }],
+        },
+        pr: { headRef: "agent/frontend-dev/fix-nav" },
+      }),
+    });
+
+    const res = await app.request(
+      "/v1/digest/tuning?repo_id=KomatikAI/trailhead&days=30",
+      { headers: authHeaders() },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { schema: string; totals: { agent_prs: number } };
+    expect(body.schema).toBe("trailhead.tuning-digest.v1");
+    expect(body.totals.agent_prs).toBeGreaterThan(0);
+  });
+
+  it("returns per-agent recent evaluations", async () => {
+    await app.request("/v1/evaluations", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        ...sampleEvaluation("agent-1"),
+        releaseReady: true,
+        agentProvenanceId: "frontend-dev",
+        remediation: { loop_round: 2, next_action: "ready_to_merge" },
+      }),
+    });
+
+    const res = await app.request("/v1/agents/frontend-dev/recent-evaluations?days=30", {
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { agent_id: string; evaluations: number };
+    expect(body.agent_id).toBe("frontend-dev");
+    expect(body.evaluations).toBeGreaterThan(0);
+  });
+
+  it("runs auto-downgrade when FP threshold exceeded", async () => {
+    for (let i = 0; i < 10; i += 1) {
+      await app.request("/v1/evaluations", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          ...sampleEvaluation(`ad-${i}`),
+          gateDecision: "warn",
+          remediation: {
+            fixes: [{ code: "policy.duplicate_logic", severity: "warn" }],
+          },
+        }),
+      });
+    }
+    for (let i = 0; i < 6; i += 1) {
+      await app.request("/v1/feedback", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          detector: "policy.duplicate_logic",
+          disposition: "false_positive",
+          repo: "KomatikAI/trailhead",
+        }),
+      });
+    }
+
+    const res = await app.request("/v1/tuning/auto-downgrade/run", {
+      method: "POST",
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { count: number };
+    expect(body.count).toBeGreaterThan(0);
+  });
 });

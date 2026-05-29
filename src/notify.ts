@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import type { GateEvaluation } from "./types.js";
+import { resolveAgentProvenanceId } from "./agent-provenance.js";
 import {
   resolveWebhookDeliveries,
   type ResolveTrailheadEventsOptions,
@@ -321,6 +322,7 @@ export function buildEvaluationStoreRow(
     fixes_introduced: remediation?.fixes_introduced ?? [],
     pr: evaluation.pr ?? null,
     policy_override: evaluation.policyOverride ?? null,
+    agent_provenance_id: resolveAgentProvenanceId(evaluation),
   };
 }
 
