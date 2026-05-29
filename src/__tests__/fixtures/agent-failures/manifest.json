@@ -26,7 +26,21 @@
     "external_package_deps",
     "sql_syntax_basic",
     "large_file",
-    "soul_integrity"
+    "soul_integrity",
+    "output_size_min",
+    "action_extraction_present",
+    "delta_section_present",
+    "preamble_absent",
+    "graduation_signals_section_present",
+    "fabricated_id_check",
+    "session_narrative_detection",
+    "incompleteness_self_flag",
+    "referenced_files_exist",
+    "prerequisite_secrets_check",
+    "dependency_dag_validation",
+    "uncommitted_fix_check",
+    "verification_owner_assigned",
+    "external_interface_validation"
   ],
   "coveredRiskFactors": [
     "test_coverage",

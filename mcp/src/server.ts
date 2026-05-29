@@ -41,6 +41,10 @@ import {
   TRAILHEAD_EVENT_TYPES,
   type TrailheadEventType,
 } from "./trailhead-events.js";
+import { runSubmissionGate, submissionGateShouldBlock } from "./submission-engine.js";
+import { deriveSubmissionFixes } from "./submission-remediation.js";
+import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
+import { computeAgentTrustScore } from "./trust-score.js";
 
 registerAllAdapters();
 
@@ -1956,6 +1960,167 @@ server.tool(
 );
 
 server.tool(
+  "validate-submission",
+  "Run Gate 1 submission checks (including Phase 0 suggestion heuristics) on PR file patches or full suggestion content.",
+  {
+    files: z
+      .array(
+        z.object({
+          filename: z.string(),
+          patch: z.string().optional(),
+          content: z.string().optional(),
+        }),
+      )
+      .min(1)
+      .describe("Changed files with unified diff patches and/or full content"),
+    komatik_instance: z
+      .boolean()
+      .optional()
+      .describe("Enable Komatik-only checks (SOUL, stale naming, etc.)"),
+    mode: z
+      .enum(["warn", "block"])
+      .default("block")
+      .describe("Whether blocking severities should fail the gate"),
+    declared_packages: z
+      .array(z.string())
+      .optional()
+      .describe("Root package.json dependency names for import resolution"),
+  },
+  async ({ files, komatik_instance, mode, declared_packages }): Promise<ToolReturn> => {
+    const checks = runSubmissionGate({
+      files,
+      komatikInstance: komatik_instance ?? false,
+      mode,
+      declaredPackages: declared_packages,
+    });
+    const fixes = deriveSubmissionFixes(checks);
+    const blocking = submissionGateShouldBlock(checks, mode);
+    const phase0Count = checks.filter((c) =>
+      [
+        "output_size_min",
+        "action_extraction_present",
+        "delta_section_present",
+        "preamble_absent",
+        "graduation_signals_section_present",
+        "fabricated_id_check",
+        "session_narrative_detection",
+        "incompleteness_self_flag",
+        "referenced_files_exist",
+        "prerequisite_secrets_check",
+        "dependency_dag_validation",
+        "uncommitted_fix_check",
+        "verification_owner_assigned",
+        "external_interface_validation",
+      ].includes(c.code),
+    ).length;
+
+    return jsonResult({
+      checks,
+      fixes,
+      blocking,
+      summary: {
+        total: checks.length,
+        blocking: checks.filter((c) => c.severity === "blocking").length,
+        warn: checks.filter((c) => c.severity === "warn").length,
+        advisory: checks.filter((c) => c.severity === "advisory").length,
+        phase0: phase0Count,
+      },
+    });
+  },
+);
+
+server.tool(
+  "apply-autofix",
+  "Plan allowlisted autofixes from remediation fixes (dry-run by default; no git writes from MCP).",
+  {
+    fixes: z
+      .array(
+        z.object({
+          code: z.string(),
+          severity: z.enum(["blocking", "warn", "advisory"]),
+          title: z.string(),
+          detail: z.string(),
+          files: z.array(z.string()).default([]),
+          suggested_action: z.string().optional(),
+          suggested_command: z.string().optional(),
+          autofix_eligible: z.boolean().default(false),
+          autofix_class: z
+            .enum([
+              "format",
+              "lint",
+              "import-fix",
+              "type-narrow",
+              "test-scaffold",
+              "doc-update",
+              "dependency-bump",
+            ])
+            .optional(),
+        }),
+      )
+      .min(1)
+      .describe("Remediation fixes (e.g. from validate-submission or get-remediation)"),
+    dry_run: z
+      .boolean()
+      .default(true)
+      .describe("When true (default), return plan only without executing commands"),
+  },
+  async ({ fixes, dry_run }): Promise<ToolReturn> => {
+    const plan = buildAutofixPlan(fixes);
+    const selected = selectAutofixCommit(plan);
+    return jsonResult({
+      dryRun: dry_run,
+      executed: false,
+      plan,
+      selectedCommit: selected,
+      note: dry_run
+        ? "MCP returns plans only; run autofix via GitHub App fixer or local CI."
+        : "Git execution is not available from MCP — use the returned plan in your runner.",
+    });
+  },
+);
+
+server.tool(
+  "get-trust-score",
+  "Compute dynamic agent trust score and profile from evaluation metrics (Phase B3).",
+  {
+    evaluations: z.number().int().min(0).describe("Total gate evaluations in window"),
+    release_ready_count: z
+      .number()
+      .int()
+      .min(0)
+      .describe("Evaluations ending release_ready"),
+    revert_count: z.number().int().min(0).default(0),
+    human_review_required_count: z.number().int().min(0).default(0),
+    policy_violation_count: z.number().int().min(0).default(0),
+    sensitive_path_violation_count: z.number().int().min(0).default(0),
+    remediation_rounds_to_ready: z
+      .array(z.number().int().min(0))
+      .default([])
+      .describe("Loop rounds for PRs that reached release_ready"),
+  },
+  async ({
+    evaluations,
+    release_ready_count,
+    revert_count,
+    human_review_required_count,
+    policy_violation_count,
+    sensitive_path_violation_count,
+    remediation_rounds_to_ready,
+  }): Promise<ToolReturn> => {
+    const trust = computeAgentTrustScore({
+      evaluations,
+      releaseReadyCount: release_ready_count,
+      revertCount: revert_count,
+      humanReviewRequiredCount: human_review_required_count,
+      policyViolationCount: policy_violation_count,
+      sensitivePathViolationCount: sensitive_path_violation_count,
+      remediationRoundsToReady: remediation_rounds_to_ready,
+    });
+    return jsonResult({ trust });
+  },
+);
+
+server.tool(
   "recommend-rollback",
   "Recommend rollback action based on canary failure and PR provenance.",
   {
@@ -2101,6 +2266,9 @@ server.resource(
               "recommend-policy-tuning",
               "get-remediation",
               "subscribe-events",
+              "validate-submission",
+              "apply-autofix",
+              "get-trust-score",
               "recommend-rollback",
             ],
             resources: ["trailhead://health", "trailhead://server-card"],
