@@ -4,6 +4,17 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.4.2] - 2026-05-29
+
+### Added
+
+- **Phase 0 submission checks** — 14 advisory suggestion heuristics (`output_size_min`, `action_extraction_present`, `delta_section_present`, etc.) on `agents/*/suggestions/**/*.md`, ported from komatik-agents weight=0 checks with real detection logic.
+- **MCP Phase B parity** — `validate-submission`, `apply-autofix`, `get-trust-score` tools (26 tools total).
+
+### Changed
+
+- **`SubmissionCheckCode`** extended to 29 codes; A8 fixture manifest updated.
+
 ## [4.4.1] - 2026-05-29
 
 ### Added
