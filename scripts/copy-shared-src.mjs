@@ -34,6 +34,7 @@ const sharedFiles = [
   "deployment-gate.ts",
   "remediation.ts",
   "loop-bookkeeping.ts",
+  "submission-remediation.ts",
   "trailhead-events.ts",
 ];
 
