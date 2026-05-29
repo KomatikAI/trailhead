@@ -42,7 +42,7 @@ function escapeRegexChar(ch: string): string {
 function globToRegex(glob: string): RegExp {
   let src = "^";
   for (let i = 0; i < glob.length; i++) {
-    const c = glob[i]!;
+    const c = glob.charAt(i);
     if (c === "*") {
       if (glob[i + 1] === "*") {
         src += ".*";
