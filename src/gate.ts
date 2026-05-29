@@ -1466,7 +1466,11 @@ async function applyLabelOverrideIfNeeded(input: {
 
   if (outcome.kind === "rejected") {
     core.warning(`Label override rejected: ${outcome.message}`);
-    await postOverrideRejectionComment(input.prNumber, outcome.message, input.githubToken);
+    await postOverrideRejectionComment(
+      input.prNumber,
+      outcome.message,
+      input.githubToken,
+    );
     return {
       ...input.evaluation,
       policyFindings: [...(input.evaluation.policyFindings ?? []), outcome.message],
