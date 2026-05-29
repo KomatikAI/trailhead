@@ -179,6 +179,22 @@ inputs:
     description: "API key for remote enrichment via a Trailhead cloud endpoint. Omit for local-only mode."
     required: false
     default: ""
+  credit-meter-url:
+    description: "Komatik credit-meter-ingest URL for deploy_check billing (e.g. https://<project>.supabase.co/functions/v1/credit-meter-ingest). Also KOMATIK_CREDIT_METER_URL."
+    required: false
+    default: ""
+  credit-meter-secret:
+    description: "Shared secret for credit-meter-ingest (x-komatik-meter-secret header). Prefer KOMATIK_CREDIT_METER_SECRET env/secret."
+    required: false
+    default: ""
+  credit-meter-shadow:
+    description: "Record shadow deploy_check credits without debiting balance (default true until credit_apps.enforced for trailhead)."
+    required: false
+    default: "true"
+  credit-meter-enforce:
+    description: "When true and credit meter returns allowed:false, emit a blocking warning. Does not block the gate unless paired with strict policy (fail-open default)."
+    required: false
+    default: "false"
 
 outputs:
   health-score:

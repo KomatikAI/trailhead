@@ -24,6 +24,10 @@ The store accepts **both**:
 
 Persisted loop columns (v4.3+): `remediation`, `loop_round`, `previous_evaluation_id`, `fixes_resolved`, `fixes_introduced`, `release_ready`, `pr`.
 
+## Credit metering (Komatik wallet)
+
+Trailhead can record `deploy_check` deliverables against the Komatik prepaid credit ledger via `credit-meter-ingest`. See **[komatik-credit-metering.md](./komatik-credit-metering.md)**.
+
 ### GET loop lookup
 
 ```
