@@ -5,7 +5,7 @@
   "advisory_count": 0,
   "loop_round": 0,
   "max_loop_rounds": 5,
-  "next_action": "human_review_required",
+  "next_action": "fix_and_retry",
   "fix_codes": [{ "code": "submission.context_freshness", "severity": "warn" }],
   "fixes_introduced": ["submission.context_freshness"],
   "fixes_resolved": []

@@ -5,7 +5,7 @@
   "advisory_count": 0,
   "loop_round": 0,
   "max_loop_rounds": 5,
-  "next_action": "fix_and_retry",
+  "next_action": "human_review_required",
   "fix_codes": [{ "code": "submission.mock_placeholder", "severity": "blocking" }],
   "fixes_introduced": ["submission.mock_placeholder"],
   "fixes_resolved": []
