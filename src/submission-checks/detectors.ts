@@ -11,6 +11,7 @@ import {
   normalizePath,
   scanAddedContent,
 } from "./helpers.js";
+import { runPhase0Detectors } from "./phase0-detectors.js";
 
 export const OLD_NAME_PATTERNS: Array<{
   oldName: string;
@@ -611,7 +612,7 @@ export function detectSoulIntegrity(
 }
 
 export function runAllDetectors(ctx: SubmissionCheckContext): SubmissionCheckResult[] {
-  const checks = [
+  const gate1 = [
     detectMockPlaceholder(ctx),
     detectSecrets(ctx),
     detectDestructiveSql(ctx),
@@ -627,6 +628,7 @@ export function runAllDetectors(ctx: SubmissionCheckContext): SubmissionCheckRes
     detectContextFreshness(ctx),
     detectSoulIntegrity(ctx),
     detectPathFormat(ctx),
-  ];
-  return checks.filter((check): check is SubmissionCheckResult => check !== null);
+  ].filter((check): check is SubmissionCheckResult => check !== null);
+
+  return [...gate1, ...runPhase0Detectors(ctx)];
 }

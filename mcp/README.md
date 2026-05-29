@@ -1,33 +1,38 @@
 # Trailhead MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Trailhead's deployment gate capabilities as 22 tools for AI agents.
+A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Trailhead's deployment gate capabilities as 26 tools for AI agents.
 
 ## Tools
 
-| Tool                      | Description                                               | Requires                                                   |
-| ------------------------- | --------------------------------------------------------- | ---------------------------------------------------------- |
-| `check-http-health`       | Check health of HTTP endpoints or provider adapters       | —                                                          |
-| `check-vercel-health`     | Check latest Vercel production deployment status          | `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`                        |
-| `check-supabase-health`   | Check Supabase REST health                                | `SUPABASE_URL`, `SUPABASE_ANON_KEY`                        |
-| `compute-risk-score`      | Compute weighted risk score from changed files            | —                                                          |
-| `detect-provenance`       | Classify PR provenance from author/branch/commit signals  | —                                                          |
-| `check-ci-integrity`      | Detect CI bypass/test-deletion/coverage-downgrade signals | —                                                          |
-| `check-supply-chain`      | Detect dependency-introduction/major-bump/vuln signals    | —                                                          |
-| `evaluate-deployment`     | Full evaluation (health checks + risk scoring)            | —                                                          |
-| `get-dora-metrics`        | Compute DORA metrics for a GitHub repo                    | `GITHUB_TOKEN`                                             |
-| `compare-risk-history`    | Compare risk across recently merged PRs                   | `GITHUB_TOKEN`                                             |
-| `explain-risk-factors`    | Explain risk-factor contributions in natural language     | —                                                          |
-| `evaluate-policy`         | Full policy evaluation for a PR/commit                    | `GITHUB_TOKEN`                                             |
-| `get-pr-release-status`   | Composite release readiness (CI + risk) for a PR          | `GITHUB_TOKEN`                                             |
-| `get-security-alerts`     | Fetch open code-scanning alerts by severity               | `GITHUB_TOKEN`                                             |
-| `get-deployment-status`   | Get deployment status for an environment                  | `GITHUB_TOKEN`                                             |
-| `suggest-deploy-timing`   | Suggest whether conditions are safe for deploy            | `GITHUB_TOKEN`                                             |
-| `query-overrides`         | Query governed override records                           | `TRAILHEAD_OVERRIDES_JSON` or `TRAILHEAD_OVERRIDES_INLINE` |
-| `get-escalation-status`   | Evaluate escalation SLA status                            | —                                                          |
-| `record-finding-feedback` | Persist detector feedback for tuning                      | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
-| `get-detector-noise`      | Aggregate false-positive/true-positive rates              | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
-| `recommend-policy-tuning` | Generate tuning recommendations from detector noise       | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
-| `recommend-rollback`      | Recommend rollback action from canary + provenance        | —                                                          |
+| Tool                      | Description                                                 | Requires                                                   |
+| ------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------- |
+| `check-http-health`       | Check health of HTTP endpoints or provider adapters         | —                                                          |
+| `check-vercel-health`     | Check latest Vercel production deployment status            | `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`                        |
+| `check-supabase-health`   | Check Supabase REST health                                  | `SUPABASE_URL`, `SUPABASE_ANON_KEY`                        |
+| `compute-risk-score`      | Compute weighted risk score from changed files              | —                                                          |
+| `detect-provenance`       | Classify PR provenance from author/branch/commit signals    | —                                                          |
+| `check-ci-integrity`      | Detect CI bypass/test-deletion/coverage-downgrade signals   | —                                                          |
+| `check-supply-chain`      | Detect dependency-introduction/major-bump/vuln signals      | —                                                          |
+| `evaluate-deployment`     | Full evaluation (health checks + risk scoring)              | —                                                          |
+| `get-dora-metrics`        | Compute DORA metrics for a GitHub repo                      | `GITHUB_TOKEN`                                             |
+| `compare-risk-history`    | Compare risk across recently merged PRs                     | `GITHUB_TOKEN`                                             |
+| `explain-risk-factors`    | Explain risk-factor contributions in natural language       | —                                                          |
+| `evaluate-policy`         | Full policy evaluation for a PR/commit                      | `GITHUB_TOKEN`                                             |
+| `get-pr-release-status`   | Composite release readiness (CI + risk) for a PR            | `GITHUB_TOKEN`                                             |
+| `get-security-alerts`     | Fetch open code-scanning alerts by severity                 | `GITHUB_TOKEN`                                             |
+| `get-deployment-status`   | Get deployment status for an environment                    | `GITHUB_TOKEN`                                             |
+| `suggest-deploy-timing`   | Suggest whether conditions are safe for deploy              | `GITHUB_TOKEN`                                             |
+| `query-overrides`         | Query governed override records                             | `TRAILHEAD_OVERRIDES_JSON` or `TRAILHEAD_OVERRIDES_INLINE` |
+| `get-escalation-status`   | Evaluate escalation SLA status                              | —                                                          |
+| `record-finding-feedback` | Persist detector feedback for tuning                        | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
+| `get-detector-noise`      | Aggregate false-positive/true-positive rates                | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
+| `recommend-policy-tuning` | Generate tuning recommendations from detector noise         | Cloud API or `TRAILHEAD_FEEDBACK_STORE` (optional)         |
+| `get-remediation`         | Read remediation block from evaluation JSON or Cloud        | Cloud API or inline `evaluation_json` (optional)           |
+| `subscribe-events`        | Poll Trailhead semantic webhook events until match          | `TRAILHEAD_EVENTS_JSON` or webhook feed (optional)         |
+| `validate-submission`     | Run Gate 1 + Phase 0 submission checks on file diffs        | —                                                          |
+| `apply-autofix`           | Plan allowlisted autofixes from remediation fixes (dry-run) | —                                                          |
+| `get-trust-score`         | Compute agent trust score/profile from evaluation metrics   | —                                                          |
+| `recommend-rollback`      | Recommend rollback action from canary + provenance          | —                                                          |
 
 ## Quick Start
 
@@ -95,7 +100,8 @@ When `TRAILHEAD_CLOUD_API_URL` and `TRAILHEAD_API_KEY` are set, feedback tools P
 
 Tools that don't require environment variables (for example, `compute-risk-score`,
 `evaluate-deployment`, `detect-provenance`, `check-ci-integrity`, `check-supply-chain`,
-`get-escalation-status`, `recommend-rollback`) work with zero configuration.
+`get-escalation-status`, `recommend-rollback`, `validate-submission`, `apply-autofix`,
+`get-trust-score`) work with zero configuration.
 
 ## Shared Risk Engine
 

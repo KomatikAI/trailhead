@@ -10,7 +10,7 @@ import type { RepoConfig, SubmissionCheckResult } from "./types.js";
 export type { SubmissionFileInfo } from "./submission-checks/types.js";
 export type { SubmissionCheckCode, SubmissionCheckResult } from "./types.js";
 
-/** All Gate 1 check codes — keep in sync with A8 fixture manifest. */
+/** Gate 1 + Phase 0 submission check codes — keep in sync with A8 fixture manifest. */
 export const SUBMISSION_CHECK_CODES = SubmissionCheckCode.options;
 
 const DEFAULT_STALE_TERMS = ["deployguard", "DeployGuard"];

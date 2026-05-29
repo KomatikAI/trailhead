@@ -111,6 +111,21 @@ export const SubmissionCheckCode = z.enum([
   "sql_syntax_basic",
   "large_file",
   "soul_integrity",
+  // Phase 0 — agent suggestion quality (advisory / weight=0 in komatik-agents)
+  "output_size_min",
+  "action_extraction_present",
+  "delta_section_present",
+  "preamble_absent",
+  "graduation_signals_section_present",
+  "fabricated_id_check",
+  "session_narrative_detection",
+  "incompleteness_self_flag",
+  "referenced_files_exist",
+  "prerequisite_secrets_check",
+  "dependency_dag_validation",
+  "uncommitted_fix_check",
+  "verification_owner_assigned",
+  "external_interface_validation",
 ]);
 export type SubmissionCheckCode = z.infer<typeof SubmissionCheckCode>;
 
