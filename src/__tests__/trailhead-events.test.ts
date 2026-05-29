@@ -79,6 +79,27 @@ describe("resolveTrailheadEventTypes", () => {
     );
     expect(events).toContain("trailhead.loop_exceeded");
   });
+
+  it("emits trailhead.override_applied for label policy overrides", () => {
+    const events = resolveTrailheadEventTypes(
+      evaluation({
+        gateDecision: "block",
+        releaseReady: true,
+        policyOverride: {
+          source: "label",
+          owner: "david",
+          reason: "approved hotfix",
+          linkedTicket: "override:pr#42",
+          expiresAt: "2026-06-01T00:00:00.000Z",
+          appliedAt: "2026-05-28T00:00:00.000Z",
+          changes: { releaseReady: true },
+          preOverrideDecision: "block",
+          preOverrideReleaseReady: false,
+        },
+      }),
+    );
+    expect(events).toContain("trailhead.override_applied");
+  });
 });
 
 describe("resolveWebhookDeliveries", () => {

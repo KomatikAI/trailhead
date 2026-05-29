@@ -105,6 +105,7 @@ function buildTrailheadEventPayload(
     nextAction: evaluation.remediation?.next_action,
     loopRound: evaluation.remediation?.loop_round,
     maxLoopRounds: evaluation.remediation?.max_loop_rounds,
+    policyOverride: evaluation.policyOverride,
     timestamp: new Date().toISOString(),
   };
 }
@@ -319,6 +320,7 @@ export function buildEvaluationStoreRow(
     fixes_resolved: remediation?.fixes_resolved ?? [],
     fixes_introduced: remediation?.fixes_introduced ?? [],
     pr: evaluation.pr ?? null,
+    policy_override: evaluation.policyOverride ?? null,
   };
 }
 

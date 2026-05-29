@@ -40674,6 +40674,24 @@ const Remediation = objectType({
     fixes_introduced: arrayType(stringType()).default([]),
     next_action: RemediationNextAction,
 });
+const PolicyOverrideChanges = objectType({
+    failMode: enumType(["open", "closed"]).optional(),
+    riskThreshold: numberType().min(0).max(100).optional(),
+    warnThreshold: numberType().min(0).max(100).optional(),
+    releaseReady: literalType(true).optional(),
+});
+const PolicyOverrideAudit = objectType({
+    source: enumType(["workflow", "label"]).default("workflow"),
+    owner: stringType(),
+    reason: stringType(),
+    linkedTicket: stringType(),
+    expiresAt: stringType(),
+    appliedAt: stringType(),
+    changes: PolicyOverrideChanges.default({}),
+    preOverrideDecision: GateDecision.optional(),
+    preOverrideReleaseReady: booleanType().optional(),
+    preOverrideReasons: arrayType(stringType()).optional(),
+});
 const GateEvaluation = objectType({
     id: stringType(),
     repoId: stringType(),
@@ -40712,18 +40730,10 @@ const GateEvaluation = objectType({
         reason: stringType(),
     })
         .optional(),
-    policyOverride: objectType({
-        owner: stringType(),
-        reason: stringType(),
-        linkedTicket: stringType(),
-        expiresAt: stringType(),
-        appliedAt: stringType(),
-        changes: objectType({
-            failMode: enumType(["open", "closed"]).optional(),
-            riskThreshold: numberType().min(0).max(100).optional(),
-            warnThreshold: numberType().min(0).max(100).optional(),
-        })
-            .default({}),
+    policyOverride: PolicyOverrideAudit.optional(),
+    labelOverrideFeedback: objectType({
+        status: enumType(["applied", "rejected"]),
+        message: stringType(),
     })
         .optional(),
     releaseReady: booleanType().optional(),
@@ -40835,10 +40845,15 @@ const RemediationConfig = objectType({
     enabled: booleanType().default(true),
     max_loop_rounds: numberType().int().min(0).default(3),
 });
+const OverrideConfig = objectType({
+    enabled: booleanType().default(true),
+    max_per_week: numberType().int().min(1).default(5),
+});
 const RepoConfig = objectType({
     schema_version: numberType().int().positive().default(1),
     gate: GateConfig.default({}),
     remediation: RemediationConfig.optional(),
+    override: OverrideConfig.optional(),
     contexts: arrayType(TrailheadContext).default([]),
     sensitivity: objectType({
         high: arrayType(stringType()).default([]),
@@ -42940,8 +42955,179 @@ async function fetchPreviousEvaluationForPr(params) {
         return null;
     }
 }
+function isLabelOverrideRow(row) {
+    const raw = row.policy_override ?? row.policyOverride;
+    if (!raw || typeof raw !== "object")
+        return false;
+    const source = raw.source;
+    return source === "label";
+}
+function rowCreatedAtMs(row) {
+    const createdAt = row.created_at ?? row.createdAt;
+    if (typeof createdAt !== "string")
+        return null;
+    const parsed = Date.parse(createdAt);
+    return Number.isNaN(parsed) ? null : parsed;
+}
+async function countRecentLabelOverrides(params) {
+    const windowDays = params.windowDays ?? 7;
+    const windowMs = windowDays * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - windowMs;
+    const listUrls = [];
+    if (params.storeUrl) {
+        const cloudUrl = resolveCloudListUrl(params.storeUrl);
+        const komatikUrl = resolveKomatikListUrl(params.storeUrl);
+        if (cloudUrl)
+            listUrls.push(cloudUrl);
+        if (komatikUrl)
+            listUrls.push(komatikUrl);
+    }
+    for (const listUrl of listUrls) {
+        try {
+            const url = new URL(listUrl);
+            url.searchParams.set("repo_id", params.repoId);
+            url.searchParams.set("limit", "100");
+            const response = await fetch(url.toString(), {
+                method: "GET",
+                headers: buildAuthHeaders(params),
+                signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+            });
+            if (!response.ok)
+                continue;
+            const body = (await response.json());
+            if (!Array.isArray(body.evaluations))
+                continue;
+            let count = 0;
+            for (const row of body.evaluations) {
+                if (!row || typeof row !== "object")
+                    continue;
+                const record = row;
+                if (!isLabelOverrideRow(record))
+                    continue;
+                const createdAtMs = rowCreatedAtMs(record);
+                if (createdAtMs !== null && createdAtMs < cutoff)
+                    continue;
+                count += 1;
+            }
+            return count;
+        }
+        catch {
+            // Try next store URL.
+        }
+    }
+    return null;
+}
+
+;// CONCATENATED MODULE: ./src/override.ts
+const OVERRIDE_LABEL = "trailhead-override";
+const OVERRIDE_COMMENT_PATTERN = /^trailhead-override:\s*(.+)/im;
+function hasOverrideLabel(labels) {
+    return labels.some((label) => label.toLowerCase() === OVERRIDE_LABEL);
+}
+function parseOverrideComment(comments) {
+    for (let index = comments.length - 1; index >= 0; index -= 1) {
+        const comment = comments[index];
+        const match = comment.body.trim().match(OVERRIDE_COMMENT_PATTERN);
+        if (!match?.[1]?.trim())
+            continue;
+        return {
+            reason: match[1].trim(),
+            author: comment.author?.trim() || "unknown",
+        };
+    }
+    return null;
+}
+function buildLabelOverrideAudit(input) {
+    const appliedAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    return {
+        source: "label",
+        owner: input.parsed.author,
+        reason: input.parsed.reason,
+        linkedTicket: `override:pr#${input.prNumber}`,
+        expiresAt,
+        appliedAt,
+        changes: { releaseReady: true },
+        preOverrideDecision: input.gateDecision,
+        preOverrideReleaseReady: input.releaseResult.releaseReady,
+        preOverrideReasons: input.releaseResult.reasons.length > 0
+            ? [...input.releaseResult.reasons]
+            : undefined,
+    };
+}
+function formatOverrideRejectionMessage(code) {
+    switch (code) {
+        case "missing_reason":
+            return ("The `trailhead-override` label is present but no valid override reason was found. " +
+                "Add a PR comment starting with `trailhead-override: <your reason>` " +
+                "(for example: `trailhead-override: emergency hotfix for prod outage`). " +
+                "The gate will re-evaluate on the next run after the comment is posted.");
+        case "disabled":
+            return ("The `trailhead-override` label is present but label overrides are disabled " +
+                "in this repo's `.trailhead.yml` (`override.enabled: false`).");
+        case "cap_exceeded":
+            return ("The `trailhead-override` label is present but this repo has reached its weekly " +
+                "override cap. File an issue in [KomatikAI/trailhead](https://github.com/KomatikAI/trailhead) " +
+                "linking this PR and the override pattern before applying another override.");
+        case "not_needed":
+            return "The `trailhead-override` label is present but release is already ready — no override applied.";
+        default: {
+            const _exhaustive = code;
+            return _exhaustive;
+        }
+    }
+}
+function resolveLabelOverride(input) {
+    if (!hasOverrideLabel(input.labels)) {
+        return { kind: "none" };
+    }
+    if (!input.config.enabled) {
+        return {
+            kind: "rejected",
+            code: "disabled",
+            message: formatOverrideRejectionMessage("disabled"),
+        };
+    }
+    if (input.releaseResult.releaseReady) {
+        return { kind: "none" };
+    }
+    const parsed = parseOverrideComment(input.comments);
+    if (!parsed) {
+        return {
+            kind: "rejected",
+            code: "missing_reason",
+            message: formatOverrideRejectionMessage("missing_reason"),
+        };
+    }
+    if (input.recentOverrideCount !== null &&
+        input.recentOverrideCount >= input.config.maxPerWeek) {
+        return {
+            kind: "rejected",
+            code: "cap_exceeded",
+            message: formatOverrideRejectionMessage("cap_exceeded"),
+        };
+    }
+    return {
+        kind: "applied",
+        audit: buildLabelOverrideAudit({
+            parsed,
+            prNumber: input.prNumber,
+            releaseResult: input.releaseResult,
+            gateDecision: input.gateDecision,
+        }),
+    };
+}
+function applyLabelOverrideToEvaluation(evaluation, audit) {
+    return {
+        ...evaluation,
+        releaseReady: true,
+        releaseReadyReasons: undefined,
+        policyOverride: audit,
+    };
+}
 
 ;// CONCATENATED MODULE: ./src/gate.ts
+
 
 
 
@@ -43943,6 +44129,76 @@ function getPrMatchContext() {
         labels: (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
     };
 }
+async function fetchPrCommentsForOverride(prNumber, token) {
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const { data: comments } = await octokit.rest.issues.listComments({
+            owner,
+            repo,
+            issue_number: prNumber,
+            per_page: 100,
+        });
+        return comments.map((comment) => ({
+            body: comment.body ?? "",
+            author: comment.user?.login ?? undefined,
+        }));
+    }
+    catch (error) {
+        core_debug(`Failed to fetch PR comments for override: ${error}`);
+        return [];
+    }
+}
+async function applyLabelOverrideIfNeeded(input) {
+    const overrideSettings = input.repoConfig?.override ?? {
+        enabled: true,
+        max_per_week: 5,
+    };
+    const comments = await fetchPrCommentsForOverride(input.prNumber, input.githubToken);
+    const recentOverrideCount = await countRecentLabelOverrides({
+        repoId: input.evaluation.repoId,
+        storeUrl: input.config.evaluationStoreUrl,
+        apiKey: input.config.trailheadApiKey,
+    });
+    if (recentOverrideCount === null) {
+        warning("Could not verify weekly override cap — proceeding without cap enforcement.");
+    }
+    const outcome = resolveLabelOverride({
+        labels: input.prMatchCtx.labels,
+        comments,
+        config: {
+            enabled: overrideSettings.enabled,
+            maxPerWeek: overrideSettings.max_per_week,
+        },
+        recentOverrideCount,
+        releaseResult: input.releaseResult,
+        gateDecision: input.gateDecision,
+        prNumber: input.prNumber,
+    });
+    if (outcome.kind === "applied") {
+        warning(`Label override applied by ${outcome.audit.owner}: ${outcome.audit.reason}`);
+        return {
+            ...applyLabelOverrideToEvaluation(input.evaluation, outcome.audit),
+            labelOverrideFeedback: {
+                status: "applied",
+                message: `Release override applied by \`${outcome.audit.owner}\`.`,
+            },
+        };
+    }
+    if (outcome.kind === "rejected") {
+        warning(`Label override rejected: ${outcome.message}`);
+        await postOverrideRejectionComment(input.prNumber, outcome.message, input.githubToken);
+        return {
+            ...input.evaluation,
+            policyFindings: [...(input.evaluation.policyFindings ?? []), outcome.message],
+            labelOverrideFeedback: {
+                status: "rejected",
+                message: outcome.message,
+            },
+        };
+    }
+    return input.evaluation;
+}
 // ---------------------------------------------------------------------------
 // Main evaluation entry point
 // ---------------------------------------------------------------------------
@@ -44329,6 +44585,18 @@ async function evaluateGate(config, commitSha, prNumber) {
         securityBlocked,
     });
     localEvaluation = applyReleaseReadyToEvaluation(localEvaluation, releaseResult, gateMode);
+    if (prNumber && config.githubToken && hasOverrideLabel(prMatchCtx.labels)) {
+        localEvaluation = await applyLabelOverrideIfNeeded({
+            evaluation: localEvaluation,
+            config,
+            repoConfig,
+            prMatchCtx,
+            prNumber,
+            releaseResult,
+            gateDecision,
+            githubToken: config.githubToken,
+        });
+    }
     if (config.apiKey) {
         const apiResponse = await callGateApi(config, localEvaluation);
         if (apiResponse) {
@@ -44390,6 +44658,42 @@ async function evaluateGate(config, commitSha, prNumber) {
 // ---------------------------------------------------------------------------
 // PR comment posting
 // ---------------------------------------------------------------------------
+async function postOverrideRejectionComment(prNumber, message, token) {
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const MARKER = "<!-- trailhead-override-feedback -->";
+        const body = `${MARKER}\n` +
+            `### Trailhead override rejected\n\n` +
+            `${message}\n\n` +
+            `_This comment is updated automatically when the \`trailhead-override\` label is present._`;
+        const { data: comments } = await octokit.rest.issues.listComments({
+            owner,
+            repo,
+            issue_number: prNumber,
+            per_page: 100,
+        });
+        const existing = comments.find((comment) => comment.body?.includes(MARKER));
+        if (existing) {
+            await octokit.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+            });
+            return;
+        }
+        await octokit.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number: prNumber,
+            body,
+        });
+    }
+    catch (error) {
+        core_debug(`Failed to post override rejection comment: ${error}`);
+    }
+}
 async function postPrComment(report, prNumber, token) {
     try {
         const octokit = getOctokit(token);
@@ -44838,16 +45142,26 @@ function formatGateReport(evaluation, riskThreshold) {
     }
     if (evaluation.policyOverride) {
         const override = evaluation.policyOverride;
-        const changes = [];
-        if (override.changes.failMode)
-            changes.push(`fail-mode=${override.changes.failMode}`);
-        if (override.changes.riskThreshold !== undefined) {
-            changes.push(`risk-threshold=${override.changes.riskThreshold}`);
+        if (override.source === "label") {
+            lines.push(`### Release Override (\`trailhead-override\`)`, ``, `- Author: \`${override.owner}\``, `- Reason: ${override.reason}`, `- Applied: \`${override.appliedAt}\``, `- Expires: \`${override.expiresAt}\``, `- Pre-override decision: \`${override.preOverrideDecision ?? evaluation.gateDecision}\``, `- Pre-override release ready: \`${override.preOverrideReleaseReady ?? false}\``, ...(override.preOverrideReasons && override.preOverrideReasons.length > 0
+                ? [
+                    `- Pre-override blockers:`,
+                    ...override.preOverrideReasons.map((reason) => `  - ${reason}`),
+                ]
+                : []), ``);
         }
-        if (override.changes.warnThreshold !== undefined) {
-            changes.push(`warn-threshold=${override.changes.warnThreshold}`);
+        else {
+            const changes = [];
+            if (override.changes.failMode)
+                changes.push(`fail-mode=${override.changes.failMode}`);
+            if (override.changes.riskThreshold !== undefined) {
+                changes.push(`risk-threshold=${override.changes.riskThreshold}`);
+            }
+            if (override.changes.warnThreshold !== undefined) {
+                changes.push(`warn-threshold=${override.changes.warnThreshold}`);
+            }
+            lines.push(`### Policy Override`, ``, `- Owner: \`${override.owner}\``, `- Ticket: \`${override.linkedTicket}\``, `- Reason: ${override.reason}`, `- Expires: \`${override.expiresAt}\``, `- Changes: ${changes.length > 0 ? changes.join(", ") : "none"}`, ``);
         }
-        lines.push(`### Policy Override`, ``, `- Owner: \`${override.owner}\``, `- Ticket: \`${override.linkedTicket}\``, `- Reason: ${override.reason}`, `- Expires: \`${override.expiresAt}\``, `- Changes: ${changes.length > 0 ? changes.join(", ") : "none"}`, ``);
     }
     if (evaluation.riskFactors.length > 0) {
         lines.push(`<details><summary><strong>Risk Factor Breakdown</strong> (${evaluation.riskFactors.length} factors)</summary>`, ``);
@@ -44897,6 +45211,7 @@ const TRAILHEAD_EVENT_TYPES = (/* unused pure expression or super */ null && ([
     "trailhead.warn_high_risk",
     "trailhead.ready",
     "trailhead.loop_exceeded",
+    "trailhead.override_applied",
 ]));
 function parseWebhookEvents(input) {
     return new Set(input
@@ -44925,6 +45240,9 @@ function resolveTrailheadEventTypes(evaluation, options = {}) {
     }
     if (evaluation.remediation?.next_action === "max_rounds_exceeded") {
         events.push("trailhead.loop_exceeded");
+    }
+    if (evaluation.policyOverride?.source === "label") {
+        events.push("trailhead.override_applied");
     }
     return events;
 }
@@ -45025,6 +45343,7 @@ function buildTrailheadEventPayload(evaluation, event, prUrl) {
         nextAction: evaluation.remediation?.next_action,
         loopRound: evaluation.remediation?.loop_round,
         maxLoopRounds: evaluation.remediation?.max_loop_rounds,
+        policyOverride: evaluation.policyOverride,
         timestamp: new Date().toISOString(),
     };
 }
@@ -45177,6 +45496,7 @@ function buildEvaluationStoreRow(evaluation) {
         fixes_resolved: remediation?.fixes_resolved ?? [],
         fixes_introduced: remediation?.fixes_introduced ?? [],
         pr: evaluation.pr ?? null,
+        policy_override: evaluation.policyOverride ?? null,
     };
 }
 async function storeEvaluation(url, evaluation, options = {}) {
@@ -46782,6 +47102,7 @@ function resolvePolicyOverride() {
         throw new PolicyOverrideError(`Override expired at ${expiresAt}. Extend expiry before applying.`);
     }
     return {
+        source: "workflow",
         owner,
         reason,
         linkedTicket,
@@ -46951,7 +47272,7 @@ async function run() {
         const prNumber = context.payload.pull_request?.number;
         info(`Evaluating deployment gate for ${commitSha.substring(0, 7)}`);
         const evaluation = await evaluateGate(config, commitSha, prNumber);
-        if (policyOverride) {
+        if (policyOverride && !evaluation.policyOverride) {
             evaluation.policyOverride = policyOverride;
         }
         setOutput("health-score", evaluation.healthScore.toString());

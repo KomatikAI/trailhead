@@ -55,7 +55,15 @@ import {
   formatAgentBrief,
   resolveAgentBriefMode,
 } from "./remediation.js";
-import { fetchPreviousEvaluationForPr } from "./evaluation-history.js";
+import {
+  fetchPreviousEvaluationForPr,
+  countRecentLabelOverrides,
+} from "./evaluation-history.js";
+import {
+  applyLabelOverrideToEvaluation,
+  hasOverrideLabel,
+  resolveLabelOverride,
+} from "./override.js";
 
 export {
   isSensitiveFile,
@@ -1380,6 +1388,102 @@ function getPrMatchContext(): PrMatchContext {
   };
 }
 
+async function fetchPrCommentsForOverride(
+  prNumber: number,
+  token: string,
+): Promise<Array<{ body: string; author?: string }>> {
+  try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+    const { data: comments } = await octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: prNumber,
+      per_page: 100,
+    });
+    return comments.map((comment) => ({
+      body: comment.body ?? "",
+      author: comment.user?.login ?? undefined,
+    }));
+  } catch (error) {
+    core.debug(`Failed to fetch PR comments for override: ${error}`);
+    return [];
+  }
+}
+
+async function applyLabelOverrideIfNeeded(input: {
+  evaluation: GateEvaluation;
+  config: TrailheadConfig;
+  repoConfig: RepoConfig | null;
+  prMatchCtx: PrMatchContext;
+  prNumber: number;
+  releaseResult: ReturnType<typeof computeReleaseReady>;
+  gateDecision: GateDecision;
+  githubToken: string;
+}): Promise<GateEvaluation> {
+  const overrideSettings = input.repoConfig?.override ?? {
+    enabled: true,
+    max_per_week: 5,
+  };
+
+  const comments = await fetchPrCommentsForOverride(input.prNumber, input.githubToken);
+  const recentOverrideCount = await countRecentLabelOverrides({
+    repoId: input.evaluation.repoId,
+    storeUrl: input.config.evaluationStoreUrl,
+    apiKey: input.config.trailheadApiKey,
+  });
+  if (recentOverrideCount === null) {
+    core.warning(
+      "Could not verify weekly override cap — proceeding without cap enforcement.",
+    );
+  }
+
+  const outcome = resolveLabelOverride({
+    labels: input.prMatchCtx.labels,
+    comments,
+    config: {
+      enabled: overrideSettings.enabled,
+      maxPerWeek: overrideSettings.max_per_week,
+    },
+    recentOverrideCount,
+    releaseResult: input.releaseResult,
+    gateDecision: input.gateDecision,
+    prNumber: input.prNumber,
+  });
+
+  if (outcome.kind === "applied") {
+    core.warning(
+      `Label override applied by ${outcome.audit.owner}: ${outcome.audit.reason}`,
+    );
+    return {
+      ...applyLabelOverrideToEvaluation(input.evaluation, outcome.audit),
+      labelOverrideFeedback: {
+        status: "applied",
+        message: `Release override applied by \`${outcome.audit.owner}\`.`,
+      },
+    };
+  }
+
+  if (outcome.kind === "rejected") {
+    core.warning(`Label override rejected: ${outcome.message}`);
+    await postOverrideRejectionComment(
+      input.prNumber,
+      outcome.message,
+      input.githubToken,
+    );
+    return {
+      ...input.evaluation,
+      policyFindings: [...(input.evaluation.policyFindings ?? []), outcome.message],
+      labelOverrideFeedback: {
+        status: "rejected",
+        message: outcome.message,
+      },
+    };
+  }
+
+  return input.evaluation;
+}
+
 // ---------------------------------------------------------------------------
 // Main evaluation entry point
 // ---------------------------------------------------------------------------
@@ -1876,6 +1980,19 @@ export async function evaluateGate(
     gateMode,
   );
 
+  if (prNumber && config.githubToken && hasOverrideLabel(prMatchCtx.labels)) {
+    localEvaluation = await applyLabelOverrideIfNeeded({
+      evaluation: localEvaluation,
+      config,
+      repoConfig,
+      prMatchCtx,
+      prNumber,
+      releaseResult,
+      gateDecision,
+      githubToken: config.githubToken,
+    });
+  }
+
   if (config.apiKey) {
     const apiResponse = await callGateApi(config, localEvaluation);
     if (apiResponse) {
@@ -1942,6 +2059,50 @@ export async function evaluateGate(
 // ---------------------------------------------------------------------------
 // PR comment posting
 // ---------------------------------------------------------------------------
+
+export async function postOverrideRejectionComment(
+  prNumber: number,
+  message: string,
+  token: string,
+): Promise<void> {
+  try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+    const MARKER = "<!-- trailhead-override-feedback -->";
+    const body =
+      `${MARKER}\n` +
+      `### Trailhead override rejected\n\n` +
+      `${message}\n\n` +
+      `_This comment is updated automatically when the \`trailhead-override\` label is present._`;
+
+    const { data: comments } = await octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: prNumber,
+      per_page: 100,
+    });
+    const existing = comments.find((comment) => comment.body?.includes(MARKER));
+
+    if (existing) {
+      await octokit.rest.issues.updateComment({
+        owner,
+        repo,
+        comment_id: existing.id,
+        body,
+      });
+      return;
+    }
+
+    await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: prNumber,
+      body,
+    });
+  } catch (error) {
+    core.debug(`Failed to post override rejection comment: ${error}`);
+  }
+}
 
 export async function postPrComment(
   report: string,
@@ -2556,24 +2717,45 @@ export function formatGateReport(
 
   if (evaluation.policyOverride) {
     const override = evaluation.policyOverride;
-    const changes: string[] = [];
-    if (override.changes.failMode) changes.push(`fail-mode=${override.changes.failMode}`);
-    if (override.changes.riskThreshold !== undefined) {
-      changes.push(`risk-threshold=${override.changes.riskThreshold}`);
+    if (override.source === "label") {
+      lines.push(
+        `### Release Override (\`trailhead-override\`)`,
+        ``,
+        `- Author: \`${override.owner}\``,
+        `- Reason: ${override.reason}`,
+        `- Applied: \`${override.appliedAt}\``,
+        `- Expires: \`${override.expiresAt}\``,
+        `- Pre-override decision: \`${override.preOverrideDecision ?? evaluation.gateDecision}\``,
+        `- Pre-override release ready: \`${override.preOverrideReleaseReady ?? false}\``,
+        ...(override.preOverrideReasons && override.preOverrideReasons.length > 0
+          ? [
+              `- Pre-override blockers:`,
+              ...override.preOverrideReasons.map((reason) => `  - ${reason}`),
+            ]
+          : []),
+        ``,
+      );
+    } else {
+      const changes: string[] = [];
+      if (override.changes.failMode)
+        changes.push(`fail-mode=${override.changes.failMode}`);
+      if (override.changes.riskThreshold !== undefined) {
+        changes.push(`risk-threshold=${override.changes.riskThreshold}`);
+      }
+      if (override.changes.warnThreshold !== undefined) {
+        changes.push(`warn-threshold=${override.changes.warnThreshold}`);
+      }
+      lines.push(
+        `### Policy Override`,
+        ``,
+        `- Owner: \`${override.owner}\``,
+        `- Ticket: \`${override.linkedTicket}\``,
+        `- Reason: ${override.reason}`,
+        `- Expires: \`${override.expiresAt}\``,
+        `- Changes: ${changes.length > 0 ? changes.join(", ") : "none"}`,
+        ``,
+      );
     }
-    if (override.changes.warnThreshold !== undefined) {
-      changes.push(`warn-threshold=${override.changes.warnThreshold}`);
-    }
-    lines.push(
-      `### Policy Override`,
-      ``,
-      `- Owner: \`${override.owner}\``,
-      `- Ticket: \`${override.linkedTicket}\``,
-      `- Reason: ${override.reason}`,
-      `- Expires: \`${override.expiresAt}\``,
-      `- Changes: ${changes.length > 0 ? changes.join(", ") : "none"}`,
-      ``,
-    );
   }
 
   if (evaluation.riskFactors.length > 0) {
