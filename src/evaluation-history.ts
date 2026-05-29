@@ -16,7 +16,11 @@ export interface FetchPreviousEvaluationParams {
   vercelBypass?: string;
 }
 
-function buildAuthHeaders(params: FetchPreviousEvaluationParams): Record<string, string> {
+function buildAuthHeaders(params: {
+  apiKey?: string;
+  storeSecret?: string;
+  vercelBypass?: string;
+}): Record<string, string> {
   const headers: Record<string, string> = { Accept: "application/json" };
   const secret = params.storeSecret ?? process.env.EVALUATION_STORE_SECRET;
   if (secret) {
@@ -186,4 +190,72 @@ export async function fetchPreviousEvaluationForPr(
   } catch {
     return null;
   }
+}
+
+function isLabelOverrideRow(row: Record<string, unknown>): boolean {
+  const raw = row.policy_override ?? row.policyOverride;
+  if (!raw || typeof raw !== "object") return false;
+  const source = (raw as Record<string, unknown>).source;
+  return source === "label";
+}
+
+function rowCreatedAtMs(row: Record<string, unknown>): number | null {
+  const createdAt = row.created_at ?? row.createdAt;
+  if (typeof createdAt !== "string") return null;
+  const parsed = Date.parse(createdAt);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export async function countRecentLabelOverrides(params: {
+  repoId: string;
+  storeUrl?: string;
+  apiKey?: string;
+  storeSecret?: string;
+  vercelBypass?: string;
+  windowDays?: number;
+}): Promise<number | null> {
+  const windowDays = params.windowDays ?? 7;
+  const windowMs = windowDays * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - windowMs;
+
+  const listUrls: string[] = [];
+  if (params.storeUrl) {
+    const cloudUrl = resolveCloudListUrl(params.storeUrl);
+    const komatikUrl = resolveKomatikListUrl(params.storeUrl);
+    if (cloudUrl) listUrls.push(cloudUrl);
+    if (komatikUrl) listUrls.push(komatikUrl);
+  }
+
+  for (const listUrl of listUrls) {
+    try {
+      const url = new URL(listUrl);
+      url.searchParams.set("repo_id", params.repoId);
+      url.searchParams.set("limit", "100");
+
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: buildAuthHeaders(params),
+        signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+      });
+      if (!response.ok) continue;
+
+      const body = (await response.json()) as { evaluations?: unknown[] };
+      if (!Array.isArray(body.evaluations)) continue;
+
+      let count = 0;
+      for (const row of body.evaluations) {
+        if (!row || typeof row !== "object") continue;
+        const record = row as Record<string, unknown>;
+        if (!isLabelOverrideRow(record)) continue;
+        const createdAtMs = rowCreatedAtMs(record);
+        if (createdAtMs !== null && createdAtMs < cutoff) continue;
+        count += 1;
+      }
+      return count;
+    } catch {
+      // Try next store URL.
+    }
+  }
+
+  return null;
 }

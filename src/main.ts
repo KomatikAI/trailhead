@@ -26,26 +26,13 @@ import { fetchCodeScanningAlerts, formatSecuritySection } from "./security.js";
 import { resolveEvaluationStoreUrl } from "./cloud-config.js";
 import { resolveCiManifests } from "./ci-external.js";
 import { computeRolloutReadiness } from "./rollout-readiness.js";
-import type { TrailheadConfig, TestRepairResult } from "./types.js";
+import type { TrailheadConfig, TestRepairResult, PolicyOverrideAudit } from "./types.js";
 
 class PolicyOverrideError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "PolicyOverrideError";
   }
-}
-
-interface PolicyOverrideAudit {
-  owner: string;
-  reason: string;
-  linkedTicket: string;
-  expiresAt: string;
-  appliedAt: string;
-  changes: {
-    failMode?: "open" | "closed";
-    riskThreshold?: number;
-    warnThreshold?: number;
-  };
 }
 
 function parseEvaluationStoreRetries(raw: string): number {
@@ -128,6 +115,7 @@ function resolvePolicyOverride(): PolicyOverrideAudit | null {
   }
 
   return {
+    source: "workflow",
     owner,
     reason,
     linkedTicket,
@@ -321,7 +309,7 @@ async function run(): Promise<void> {
     core.info(`Evaluating deployment gate for ${commitSha.substring(0, 7)}`);
 
     const evaluation = await evaluateGate(config, commitSha, prNumber);
-    if (policyOverride) {
+    if (policyOverride && !evaluation.policyOverride) {
       evaluation.policyOverride = policyOverride;
     }
 

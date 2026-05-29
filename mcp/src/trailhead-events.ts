@@ -11,6 +11,7 @@ export const TRAILHEAD_EVENT_TYPES = [
   "trailhead.warn_high_risk",
   "trailhead.ready",
   "trailhead.loop_exceeded",
+  "trailhead.override_applied",
 ] as const;
 export type TrailheadEventType = (typeof TRAILHEAD_EVENT_TYPES)[number];
 
@@ -65,6 +66,10 @@ export function resolveTrailheadEventTypes(
 
   if (evaluation.remediation?.next_action === "max_rounds_exceeded") {
     events.push("trailhead.loop_exceeded");
+  }
+
+  if (evaluation.policyOverride?.source === "label") {
+    events.push("trailhead.override_applied");
   }
 
   return events;

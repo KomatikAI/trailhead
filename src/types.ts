@@ -145,6 +145,28 @@ export const Remediation = z.object({
 });
 export type Remediation = z.infer<typeof Remediation>;
 
+export const PolicyOverrideChanges = z.object({
+  failMode: z.enum(["open", "closed"]).optional(),
+  riskThreshold: z.number().min(0).max(100).optional(),
+  warnThreshold: z.number().min(0).max(100).optional(),
+  releaseReady: z.literal(true).optional(),
+});
+export type PolicyOverrideChanges = z.infer<typeof PolicyOverrideChanges>;
+
+export const PolicyOverrideAudit = z.object({
+  source: z.enum(["workflow", "label"]).default("workflow"),
+  owner: z.string(),
+  reason: z.string(),
+  linkedTicket: z.string(),
+  expiresAt: z.string(),
+  appliedAt: z.string(),
+  changes: PolicyOverrideChanges.default({}),
+  preOverrideDecision: GateDecision.optional(),
+  preOverrideReleaseReady: z.boolean().optional(),
+  preOverrideReasons: z.array(z.string()).optional(),
+});
+export type PolicyOverrideAudit = z.infer<typeof PolicyOverrideAudit>;
+
 export const GateEvaluation = z.object({
   id: z.string(),
   repoId: z.string(),
@@ -187,20 +209,11 @@ export const GateEvaluation = z.object({
       reason: z.string(),
     })
     .optional(),
-  policyOverride: z
+  policyOverride: PolicyOverrideAudit.optional(),
+  labelOverrideFeedback: z
     .object({
-      owner: z.string(),
-      reason: z.string(),
-      linkedTicket: z.string(),
-      expiresAt: z.string(),
-      appliedAt: z.string(),
-      changes: z
-        .object({
-          failMode: z.enum(["open", "closed"]).optional(),
-          riskThreshold: z.number().min(0).max(100).optional(),
-          warnThreshold: z.number().min(0).max(100).optional(),
-        })
-        .default({}),
+      status: z.enum(["applied", "rejected"]),
+      message: z.string(),
     })
     .optional(),
   releaseReady: z.boolean().optional(),
@@ -351,10 +364,17 @@ export const RemediationConfig = z.object({
 });
 export type RemediationConfig = z.infer<typeof RemediationConfig>;
 
+export const OverrideConfig = z.object({
+  enabled: z.boolean().default(true),
+  max_per_week: z.number().int().min(1).default(5),
+});
+export type OverrideConfig = z.infer<typeof OverrideConfig>;
+
 export const RepoConfig = z.object({
   schema_version: z.number().int().positive().default(1),
   gate: GateConfig.default({}),
   remediation: RemediationConfig.optional(),
+  override: OverrideConfig.optional(),
   contexts: z.array(TrailheadContext).default([]),
   sensitivity: z
     .object({
