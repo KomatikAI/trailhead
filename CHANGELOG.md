@@ -4,6 +4,16 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+## [4.3.3] - 2026-05-29
+
+### Added — Phase A completion (A5–A8, A7)
+
+- **A5 tuning digest** — Cloud `trailhead.tuning-digest.v1` daily digest, per-agent `GET /v1/agents/:id/recent-evaluations`, auto-downgrade when detector FP rate ≥15%, `agent_provenance_id` on store rows.
+- **A7 override** — `trailhead-override` label + reason comment, audit trail, weekly cap.
+- **A8 self-test fixtures** — agent failure mode golden fixtures in Self-Test workflow.
+- **Lane-aware `next_action`** — red-lane findings → `human_review_required`; routine yellow-lane → `fix_and_retry` for agent PRs.
+- **security-guard** — CI backstop for autonomous merge; `security-reviewed` label override.
+
 ## [4.3.2] - 2026-05-27
 
 ### Fixed
