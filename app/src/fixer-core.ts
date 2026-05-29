@@ -35,17 +35,39 @@ export interface AutofixPlan {
   blocked: Array<{ fix: RemediationFix; reason: string }>;
 }
 
+function escapeRegexChar(ch: string): string {
+  return /[\\^$+?.()|{}[\]]/.test(ch) ? `\\${ch}` : ch;
+}
+
+function globToRegex(glob: string): RegExp {
+  let src = "^";
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i]!;
+    if (c === "*") {
+      if (glob[i + 1] === "*") {
+        src += ".*";
+        i++;
+      } else {
+        src += "[^/]*";
+      }
+    } else if (c === ".") {
+      src += "\\.";
+    } else {
+      src += escapeRegexChar(c);
+    }
+  }
+  src += "$";
+  return new RegExp(src);
+}
+
 function matchesGlob(path: string, glob: string): boolean {
   const normalized = path.replace(/\\/g, "/");
   if (glob.endsWith("/**")) {
-    const prefix = glob.slice(0, -3);
-    return normalized.includes(prefix.replace(/\*\*/g, ""));
+    const prefix = glob.slice(0, -3).replace(/\*\*/g, "");
+    return normalized.includes(prefix);
   }
   if (glob.includes("*")) {
-    const re = new RegExp(
-      `^${glob.replace(/\*\*/g, ".*").replace(/\*/g, "[^/]*").replace(/\./g, "\\.")}$`,
-    );
-    return re.test(normalized);
+    return globToRegex(glob).test(normalized);
   }
   return normalized.includes(glob);
 }

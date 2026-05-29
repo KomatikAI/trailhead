@@ -5,7 +5,7 @@
 
 import type { AutofixPlanItem } from "./fixer-core.js";
 import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
-import type { RemediationFix } from "../types.js";
+import type { RemediationFix } from "./types.js";
 
 export interface FixerCommitResult {
   committed: boolean;
