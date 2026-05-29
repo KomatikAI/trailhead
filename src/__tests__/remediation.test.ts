@@ -353,6 +353,7 @@ describe("buildRemediation", () => {
             title: "Mock leak",
             detail: "TODO(mock) in handler",
             files: ["src/handler.ts"],
+            autofix_eligible: false,
           },
         ],
         agentProvenance: true,

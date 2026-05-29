@@ -65,6 +65,8 @@ import {
   hasOverrideLabel,
   resolveLabelOverride,
 } from "./override.js";
+import { runSubmissionGate, submissionGateShouldBlock } from "./submission-engine.js";
+import type { SubmissionCheckResult } from "./types.js";
 
 export {
   isSensitiveFile,
@@ -1716,6 +1718,22 @@ export async function evaluateGate(
     policyFindings.push(...agentPolicy.findings);
   }
 
+  let submissionChecks: SubmissionCheckResult[] = [];
+  const submissionMode = repoConfig?.submission?.mode ?? "block";
+  const submissionEnabled =
+    config.submissionGate === true || repoConfig?.submission?.enabled === true;
+  if (submissionEnabled && files.length > 0) {
+    submissionChecks = runSubmissionGate({
+      files,
+      repoConfig,
+      komatikInstance: process.env.KOMATIK_INSTANCE === "true",
+      mode: submissionMode,
+    });
+    if (submissionChecks.length > 0) {
+      policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);
+    }
+  }
+
   const sessionCorrelation = await detectSessionCorrelation({
     prNumber,
     token: config.githubToken,
@@ -1767,7 +1785,9 @@ export async function evaluateGate(
     (sessionCorrelation &&
       sessionCfg &&
       sessionCorrelation.burstCount >= sessionCfg.threshold &&
-      sessionCfg.mode === "block")
+      sessionCfg.mode === "block") ||
+    (submissionChecks.length > 0 &&
+      submissionGateShouldBlock(submissionChecks, submissionMode))
       ? ("block" as GateDecision)
       : baselineDecision;
 
@@ -1891,6 +1911,7 @@ export async function evaluateGate(
     trust_profile: trustProfile,
     gateMode,
     context: matchedContext?.matched,
+    submissionChecks: submissionChecks.length > 0 ? submissionChecks : undefined,
     cross_repo_impact:
       crossRepoImpact.services.length > 0
         ? {
@@ -2050,6 +2071,7 @@ export async function evaluateGate(
       agentProvenance: isAgentProvenanceType(
         localEvaluation.pr?.provenance?.type ?? "unknown",
       ),
+      submissionChecks,
     });
   }
 

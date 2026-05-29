@@ -1,27 +1,12 @@
-// Submission-gate remediation (Phase B preview).
-// Maps agent submission check results to RemediationFix entries so fleet
-// fixtures can exercise failure modes before submission-engine.ts lands.
+// Submission-gate remediation mapping (Phase B).
+// Maps submission-engine check results to RemediationFix entries.
 
 import { RemediationFix as RemediationFixSchema } from "./types.js";
-import type { RemediationFix, RemediationSeverity } from "./types.js";
+import type { RemediationFix } from "./types.js";
+import type { SubmissionCheckResult } from "./submission-engine.js";
 
-export const SUBMISSION_CHECK_CODES = [
-  "artifact_integrity",
-  "mock_placeholder",
-  "context_freshness",
-] as const;
-
-export type SubmissionCheckCode = (typeof SUBMISSION_CHECK_CODES)[number];
-
-export interface SubmissionCheckResult {
-  code: SubmissionCheckCode;
-  severity: RemediationSeverity;
-  title: string;
-  detail: string;
-  files?: string[];
-  suggested_action?: string;
-  autofix_eligible?: boolean;
-}
+export type { SubmissionCheckResult } from "./submission-engine.js";
+export { SubmissionCheckCode, SUBMISSION_CHECK_CODES } from "./submission-engine.js";
 
 export function deriveSubmissionFixes(
   checks: SubmissionCheckResult[] | undefined,

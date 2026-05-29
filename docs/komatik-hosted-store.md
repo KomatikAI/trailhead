@@ -60,7 +60,7 @@ Reference copy for Trailhead Cloud hosted tier: `cloud/migrations/002_loop_bookk
 
 ## Fleet rollout status (May 2026)
 
-**A6 complete** for active consumers — pinned `@v4.3.0`, store URL on `/api/trailhead/store`:
+**A6 complete** for active DORA satellites — pinned `@v4.3.3`, store URL on `/api/trailhead/store`:
 
 | Repo                                                       | Status                                                                     |
 | ---------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -69,8 +69,8 @@ Reference copy for Trailhead Cloud hosted tier: `cloud/migrations/002_loop_bookk
 
 **Pending:**
 
-- [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014) — store persistence + GET API
-- [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236) — komatik list read path → tag **v4.3.1**, re-pin fleet
+- [Komatik migration](../runbooks/KOMATIK-A5-STORE-MIGRATION.md) — `agent_provenance_id` column + store mapper update
+- Strict-agent preset on remaining Base Camp repos — `scripts/batch-strict-preset-prs.mjs` (#229)
 
 ## Deployment rules (mandatory)
 
@@ -85,3 +85,4 @@ If prod was changed out-of-band, reconcile by renaming the local migration file 
 - [Evaluation storage](./evaluation-storage.md)
 - [Roadmap v4.3 Phase A](./roadmap-v4.3-agent-autonomy.md)
 - `scripts/batch-v4.3-rollout-prs.mjs` — fleet pin + store URL batch PRs
+- `scripts/batch-strict-preset-prs.mjs` — strict-agent `.trailhead.yml` preset (#229)

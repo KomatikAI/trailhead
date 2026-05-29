@@ -285,6 +285,7 @@ async function run(): Promise<void> {
       ciManifest,
       ciManifestPath: ciManifestPath || undefined,
       agentBrief,
+      submissionGate: core.getInput("submission-gate") === "true",
     };
 
     if (policyOverride?.changes.riskThreshold !== undefined) {

@@ -155,6 +155,10 @@ inputs:
     description: "Agent remediation brief in PR comments: off, collapsed (default for agent PRs), or expanded. Omit to use .trailhead.yml gate.agent_brief or provenance-based default."
     required: false
     default: ""
+  submission-gate:
+    description: "Enable Gate 1 agent submission checks (mock placeholders, artifact integrity, secrets, etc.). Default off; also enable via .trailhead.yml submission.enabled."
+    required: false
+    default: "false"
   security-gate:
     description: "Enable GitHub Code Scanning alert integration as a risk factor. Set to 'false' to disable."
     required: false
