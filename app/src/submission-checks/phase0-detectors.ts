@@ -22,7 +22,7 @@ const ACTION_SUFFIX = /(?:→\s*@[\w-]+|— No actions surfaced)\s*$/i;
 const UNVERIFIED_MARKER = /\[UNVERIFIED\]|verify after|needs verification/i;
 const OWNER_DUE = /Owner:\s*@[\w-]+[\s\S]{0,120}Due:\s*\d{4}-\d{2}-\d{2}/i;
 const FIX_CLAIM = /\b(fix applied|now working|is live|deployed successfully)\b/i;
-const MULTI_PHASE = /\bphase\s+[ab12]\b/i;
+const MULTI_PHASE = /\bphase\s+[ab12]\b/gi;
 const DEP_MATRIX = /\b(depends on:|dependency matrix|blocks:|x blocks y)\b/i;
 const RUNBOOK_HINT = /runbook|deploy(?:ment)? guide/i;
 const SECRETS_PREREQ =
@@ -300,7 +300,7 @@ export function detectDependencyDagValidation(
   const hits: string[] = [];
   for (const file of suggestionMarkdownFiles(ctx)) {
     const text = fileContent(file);
-    const phases = (text.match(/\bphase\s+[ab12]\b/gi) ?? []).length;
+    const phases = (text.match(MULTI_PHASE) ?? []).length;
     if (phases >= 2 && !DEP_MATRIX.test(text)) {
       hits.push(file.filename);
     }
