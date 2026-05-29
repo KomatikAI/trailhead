@@ -1,0 +1,43 @@
+# Strict-agent preset for Phase A fleet rollout (#229).
+# Merge into .trailhead.yml or adopt wholesale on repos without existing policy.
+
+schema_version: 2
+
+gate:
+  mode: release-ready
+  agent_brief: collapsed
+
+thresholds:
+  risk: 60
+  warn: 40
+
+policies:
+  agent_prs:
+    enabled: true
+    risk_threshold: 40
+    strict_on_unknown_provenance: true
+    require_code_owner_approval: true
+  ci_integrity:
+    mode: block
+  workflow_security:
+    mode: block
+  prompt_injection:
+    mode: block
+  pr_scope:
+    mode: warn
+    max_files: 30
+    max_changes: 1500
+  duplicate_logic:
+    mode: warn
+
+remediation:
+  enabled: true
+  max_loop_rounds: 5
+
+override:
+  enabled: true
+  max_per_week: 5
+
+tuning:
+  auto_downgrade: true
+  fp_threshold: 0.15

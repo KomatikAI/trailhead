@@ -14,7 +14,10 @@
   "coveredSubmissionCodes": [
     "artifact_integrity",
     "mock_placeholder",
-    "context_freshness"
+    "context_freshness",
+    "destructive_sql",
+    "secrets",
+    "path_format"
   ],
   "coveredRiskFactors": [
     "test_coverage",

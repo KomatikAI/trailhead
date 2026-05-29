@@ -17,18 +17,6 @@ import type { PlanTier } from "./billing.js";
 export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
   const keys = new Map<string, ApiKeyRecord>();
   const managedKeys = new Map<string, ManagedApiKey>();
-  for (const record of seedKeys) {
-    keys.set(record.key, record);
-    managedKeys.set(record.keyId, {
-      id: record.keyId,
-      orgId: record.orgId,
-      key: record.key,
-      label: record.label ?? "Seed key",
-      keyPreview: maskApiKey(record.key),
-      createdAt: new Date().toISOString(),
-      revokedAt: null,
-    });
-  }
 
   const orgs = new Map<string, OrgRecord>();
   const orgSettings = new Map<string, OrgSettings>();
@@ -60,6 +48,20 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       });
     }
     return org;
+  }
+
+  for (const record of seedKeys) {
+    keys.set(record.key, record);
+    managedKeys.set(record.keyId, {
+      id: record.keyId,
+      orgId: record.orgId,
+      key: record.key,
+      label: record.label ?? "Seed key",
+      keyPreview: maskApiKey(record.key),
+      createdAt: new Date().toISOString(),
+      revokedAt: null,
+    });
+    ensureOrg(record.orgId, record.orgName);
   }
 
   function getSettings(orgId: string): OrgSettings {

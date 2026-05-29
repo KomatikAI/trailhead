@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { createCloudApp } from "./app.js";
 import type { ApiKeyRecord } from "./types.js";
 
 const seedKeys: ApiKeyRecord[] = [
-  { orgId: "komatik", orgName: "Komatik", key: "thk_test_key" },
+  { keyId: "seed-komatik", orgId: "komatik", orgName: "Komatik", key: "thk_test_key" },
 ];
 
 function authHeaders(key = "thk_test_key"): Record<string, string> {
@@ -31,7 +31,11 @@ function sampleEvaluation(id = "eval-1") {
 }
 
 describe("Trailhead Cloud API", () => {
-  const app = createCloudApp({ seedKeys });
+  let app: ReturnType<typeof createCloudApp>;
+
+  beforeEach(() => {
+    app = createCloudApp({ seedKeys });
+  });
 
   it("rejects unauthenticated requests", async () => {
     const res = await app.request("/v1/evaluations", { method: "GET" });

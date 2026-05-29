@@ -29,6 +29,10 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
   "canary",
   "escalation",
   "policies",
+  "remediation",
+  "override",
+  "tuning",
+  "submission",
 ]);
 
 function warnUnknownTopLevelKeys(raw: unknown, configPath: string): void {

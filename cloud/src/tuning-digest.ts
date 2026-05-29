@@ -89,7 +89,7 @@ export interface AutoDowngradeCandidate {
 
 function inWindow(iso: string, start: Date, end: Date): boolean {
   const ts = new Date(iso).getTime();
-  return ts >= start.getTime() && ts < end.getTime();
+  return ts >= start.getTime() && ts <= end.getTime();
 }
 
 function median(values: number[]): number | null {

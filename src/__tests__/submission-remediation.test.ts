@@ -10,6 +10,7 @@ describe("deriveSubmissionFixes", () => {
         title: "Phantom file",
         detail: "Missing from diff",
         files: ["src/missing.ts"],
+        autofix_eligible: false,
       },
     ]);
 

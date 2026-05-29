@@ -95,6 +95,27 @@ export type MatchedContext = z.infer<typeof MatchedContext>;
 export const RemediationSeverity = z.enum(["blocking", "warn", "advisory"]);
 export type RemediationSeverity = z.infer<typeof RemediationSeverity>;
 
+export const SubmissionCheckCode = z.enum([
+  "artifact_integrity",
+  "mock_placeholder",
+  "context_freshness",
+  "destructive_sql",
+  "secrets",
+  "path_format",
+]);
+export type SubmissionCheckCode = z.infer<typeof SubmissionCheckCode>;
+
+export const SubmissionCheckResult = z.object({
+  code: SubmissionCheckCode,
+  severity: RemediationSeverity,
+  title: z.string(),
+  detail: z.string(),
+  files: z.array(z.string()).default([]),
+  suggested_action: z.string().optional(),
+  autofix_eligible: z.boolean().default(false),
+});
+export type SubmissionCheckResult = z.infer<typeof SubmissionCheckResult>;
+
 export const RemediationAutofixClass = z.enum([
   "format",
   "lint",
@@ -224,6 +245,7 @@ export const GateEvaluation = z.object({
   storePersisted: z.boolean().optional(),
   remediation: Remediation.optional(),
   agentBriefMode: AgentBriefMode.optional(),
+  submissionChecks: z.array(SubmissionCheckResult).optional(),
   cross_repo_impact: z
     .object({
       services: z.array(
@@ -377,12 +399,20 @@ export const TuningConfig = z.object({
 });
 export type TuningConfig = z.infer<typeof TuningConfig>;
 
+export const SubmissionConfig = z.object({
+  enabled: z.boolean().default(false),
+  mode: z.enum(["warn", "block"]).default("block"),
+  stale_terms: z.array(z.string()).optional(),
+});
+export type SubmissionConfig = z.infer<typeof SubmissionConfig>;
+
 export const RepoConfig = z.object({
   schema_version: z.number().int().positive().default(1),
   gate: GateConfig.default({}),
   remediation: RemediationConfig.optional(),
   override: OverrideConfig.optional(),
   tuning: TuningConfig.optional(),
+  submission: SubmissionConfig.optional(),
   contexts: z.array(TrailheadContext).default([]),
   sensitivity: z
     .object({
@@ -511,6 +541,7 @@ export interface TrailheadConfig {
   ciManifest?: CiManifest | null;
   ciManifestPath?: string;
   agentBrief?: AgentBriefMode;
+  submissionGate?: boolean;
 }
 
 export interface TestRepairResult {
