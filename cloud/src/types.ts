@@ -60,7 +60,7 @@ export type FeedbackPayload = z.infer<typeof FeedbackPayload>;
 
 export const DigestSubscribePayload = z.object({
   enabled: z.boolean(),
-  channel: z.enum(["slack", "email"]),
+  channel: z.enum(["slack", "email", "webhook"]),
   destination: z.string().min(3),
   fpThreshold: z.number().min(0).max(100).default(15),
 });
@@ -85,6 +85,7 @@ export type OrgSettingsPatch = z.infer<typeof OrgSettingsPatch>;
 export interface StoredEvaluation extends EvaluationPayload {
   orgId: string;
   receivedAt: string;
+  agentProvenanceId?: string;
 }
 
 export interface OrgRecord {
@@ -105,9 +106,12 @@ export interface OrgSettings {
   };
   digest?: {
     enabled: boolean;
-    channel: "slack" | "email";
+    channel: "slack" | "email" | "webhook";
     destination: string;
     fpThreshold: number;
+  };
+  tuning?: {
+    autoDowngrade: boolean;
   };
 }
 
@@ -181,6 +185,18 @@ export interface CloudStore {
   listManagedKeys(orgId: string): ManagedApiKey[];
   createApiKey(orgId: string, label?: string): { key: ManagedApiKey; secret: string };
   revokeApiKey(orgId: string, keyId: string): boolean;
+  listDetectorDowngrades(
+    orgId: string,
+  ): import("./tuning-digest.js").DetectorDowngradeRecord[];
+  recordDetectorDowngrade(
+    orgId: string,
+    record: import("./tuning-digest.js").DetectorDowngradeRecord,
+  ): import("./tuning-digest.js").DetectorDowngradeRecord;
+  revertDetectorDowngrade(
+    orgId: string,
+    detectorCode: string,
+    revertedBy: string,
+  ): import("./tuning-digest.js").DetectorDowngradeRecord | null;
 }
 
 export interface RateLimitState {

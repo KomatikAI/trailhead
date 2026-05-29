@@ -370,11 +370,19 @@ export const OverrideConfig = z.object({
 });
 export type OverrideConfig = z.infer<typeof OverrideConfig>;
 
+export const TuningConfig = z.object({
+  auto_downgrade: z.boolean().default(true),
+  digest_webhook_url: z.string().url().optional(),
+  fp_threshold: z.number().min(0).max(1).default(0.15),
+});
+export type TuningConfig = z.infer<typeof TuningConfig>;
+
 export const RepoConfig = z.object({
   schema_version: z.number().int().positive().default(1),
   gate: GateConfig.default({}),
   remediation: RemediationConfig.optional(),
   override: OverrideConfig.optional(),
+  tuning: TuningConfig.optional(),
   contexts: z.array(TrailheadContext).default([]),
   sensitivity: z
     .object({
