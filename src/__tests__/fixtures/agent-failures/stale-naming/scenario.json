@@ -1,0 +1,24 @@
+{
+  "id": "stale-naming",
+  "kind": "remediation",
+  "description": "Agent uses deprecated path/name from stale context (context_freshness warn)",
+  "input": {
+    "evaluation": {
+      "id": "eval-stale-naming",
+      "gateDecision": "warn",
+      "releaseReady": false,
+      "riskFactors": []
+    },
+    "submissionChecks": [
+      {
+        "code": "context_freshness",
+        "severity": "warn",
+        "title": "Stale naming or path reference",
+        "detail": "PR uses deployguard.yml but repo migrated to .trailhead.yml.",
+        "files": [".deployguard.yml"],
+        "suggested_action": "Rename references to match current BRAND.md / repo conventions."
+      }
+    ],
+    "maxLoopRounds": 5
+  }
+}

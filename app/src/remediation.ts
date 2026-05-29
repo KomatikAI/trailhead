@@ -9,6 +9,8 @@
 import type { z } from "zod";
 import { RemediationFix as RemediationFixSchema } from "./types.js";
 import { resolveLoopRound } from "./loop-bookkeeping.js";
+import { deriveSubmissionFixes } from "./submission-remediation.js";
+import type { SubmissionCheckResult } from "./submission-remediation.js";
 import type {
   AgentBriefMode,
   GateEvaluation,
@@ -38,6 +40,7 @@ export interface BuildRemediationInput {
   loopRound?: number;
   maxLoopRounds?: number;
   agentProvenance?: boolean;
+  submissionChecks?: SubmissionCheckResult[];
 }
 
 interface FactorCue {
@@ -307,6 +310,7 @@ export function buildRemediation(input: BuildRemediationInput): Remediation {
 
   fixes.push(...deriveCiFixes(input.evaluation.ci));
   fixes.push(...derivePolicyFindingFixes(input.evaluation.policyFindings));
+  fixes.push(...deriveSubmissionFixes(input.submissionChecks));
 
   // Deduplicate by code, keeping the highest severity occurrence.
   const severityRank: Record<RemediationSeverity, number> = {

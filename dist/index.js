@@ -42422,6 +42422,30 @@ function pickLatestPreviousEvaluation(rows, excludeEvaluationId) {
     return null;
 }
 
+;// CONCATENATED MODULE: ./src/submission-remediation.ts
+// Submission-gate remediation (Phase B preview).
+// Maps agent submission check results to RemediationFix entries so fleet
+// fixtures can exercise failure modes before submission-engine.ts lands.
+
+const SUBMISSION_CHECK_CODES = (/* unused pure expression or super */ null && ([
+    "artifact_integrity",
+    "mock_placeholder",
+    "context_freshness",
+]));
+function deriveSubmissionFixes(checks) {
+    if (!checks || checks.length === 0)
+        return [];
+    return checks.map((check) => RemediationFix.parse({
+        code: `submission.${check.code}`,
+        severity: check.severity,
+        title: check.title,
+        detail: check.detail,
+        files: check.files ?? [],
+        suggested_action: check.suggested_action,
+        autofix_eligible: check.autofix_eligible ?? false,
+    }));
+}
+
 ;// CONCATENATED MODULE: ./src/remediation.ts
 // Pure remediation derivation — no framework dependencies.
 // Maps gate findings (risk factors, CI failures, policy violations, release-ready
@@ -42430,6 +42454,7 @@ function pickLatestPreviousEvaluation(rows, excludeEvaluationId) {
 // Shared across the GitHub Action, MCP server, and GitHub App via the existing
 // prebuild copy pattern. Keep this module free of @actions/*, octokit, and Node
 // runtime imports so it stays portable.
+
 
 
 const SUGGESTED_TEST_COMMAND = "npm test -- --run";
@@ -42661,6 +42686,7 @@ function buildRemediation(input) {
     }
     fixes.push(...deriveCiFixes(input.evaluation.ci));
     fixes.push(...derivePolicyFindingFixes(input.evaluation.policyFindings));
+    fixes.push(...deriveSubmissionFixes(input.submissionChecks));
     // Deduplicate by code, keeping the highest severity occurrence.
     const severityRank = {
         blocking: 3,

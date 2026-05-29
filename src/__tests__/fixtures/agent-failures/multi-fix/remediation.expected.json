@@ -1,0 +1,24 @@
+{
+  "release_ready": false,
+  "blocking_count": 3,
+  "warn_count": 2,
+  "advisory_count": 0,
+  "loop_round": 0,
+  "max_loop_rounds": 5,
+  "next_action": "fix_and_retry",
+  "fix_codes": [
+    { "code": "ci.failed", "severity": "blocking" },
+    { "code": "risk.sensitive_files", "severity": "warn" },
+    { "code": "risk.test_coverage", "severity": "blocking" },
+    { "code": "policy.pr_scope", "severity": "warn" },
+    { "code": "submission.artifact_integrity", "severity": "blocking" }
+  ],
+  "fixes_introduced": [
+    "ci.failed",
+    "policy.pr_scope",
+    "risk.sensitive_files",
+    "risk.test_coverage",
+    "submission.artifact_integrity"
+  ],
+  "fixes_resolved": []
+}

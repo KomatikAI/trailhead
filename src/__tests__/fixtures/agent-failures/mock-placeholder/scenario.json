@@ -1,0 +1,24 @@
+{
+  "id": "mock-placeholder",
+  "kind": "remediation",
+  "description": "Mock/TODO placeholder leaked into production path (mock_placeholder block)",
+  "input": {
+    "evaluation": {
+      "id": "eval-mock-placeholder",
+      "gateDecision": "block",
+      "releaseReady": false,
+      "riskFactors": []
+    },
+    "submissionChecks": [
+      {
+        "code": "mock_placeholder",
+        "severity": "blocking",
+        "title": "Mock placeholder in production code",
+        "detail": "Found TODO(mock) stub in src/api/handler.ts — replace with real implementation.",
+        "files": ["src/api/handler.ts"],
+        "suggested_action": "Remove mock placeholders before requesting review."
+      }
+    ],
+    "maxLoopRounds": 5
+  }
+}

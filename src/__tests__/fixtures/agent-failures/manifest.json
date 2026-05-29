@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "fixtures": [
+    "phantom-file",
+    "missing-test-warn",
+    "missing-test-block",
+    "stale-naming",
+    "mock-placeholder",
+    "multi-fix",
+    "override-applied",
+    "override-rejected",
+    "loop-sequence"
+  ],
+  "coveredSubmissionCodes": [
+    "artifact_integrity",
+    "mock_placeholder",
+    "context_freshness"
+  ],
+  "coveredRiskFactors": [
+    "test_coverage",
+    "sensitive_files",
+    "ci_integrity",
+    "workflow_security",
+    "prompt_injection_risk",
+    "pr_scope",
+    "duplicate_logic",
+    "security_alerts",
+    "supply_chain"
+  ],
+  "coveredScenarios": [
+    "phantom-file",
+    "missing-test-warn",
+    "missing-test-block",
+    "stale-naming",
+    "mock-placeholder",
+    "multi-fix",
+    "override-applied",
+    "override-rejected",
+    "loop-sequence"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "override-rejected",
+  "kind": "override",
+  "description": "trailhead-override label without reason comment is rejected (A7)",
+  "input": {
+    "labels": ["trailhead-override"],
+    "comments": [{ "body": "Please merge this urgently", "author": "agent-bot" }],
+    "config": { "enabled": true, "maxPerWeek": 5 },
+    "recentOverrideCount": 0,
+    "releaseResult": {
+      "releaseReady": false,
+      "reasons": ["Required CI check \"Build\" is FAIL"]
+    },
+    "gateDecision": "block",
+    "prNumber": 99
+  },
+  "expected": {
+    "kind": "rejected",
+    "code": "missing_reason",
+    "release_ready": false
+  }
+}

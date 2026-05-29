@@ -1,0 +1,15 @@
+{
+  "release_ready": false,
+  "blocking_count": 2,
+  "warn_count": 0,
+  "advisory_count": 0,
+  "loop_round": 0,
+  "max_loop_rounds": 5,
+  "next_action": "fix_and_retry",
+  "fix_codes": [
+    { "code": "ci.failed", "severity": "blocking" },
+    { "code": "risk.test_coverage", "severity": "blocking" }
+  ],
+  "fixes_introduced": ["ci.failed", "risk.test_coverage"],
+  "fixes_resolved": []
+}

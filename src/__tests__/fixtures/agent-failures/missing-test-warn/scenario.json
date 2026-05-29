@@ -1,0 +1,20 @@
+{
+  "id": "missing-test-warn",
+  "kind": "remediation",
+  "description": "Missing tests for changed source at probation/warn tier (score below block threshold)",
+  "input": {
+    "evaluation": {
+      "id": "eval-missing-test-warn",
+      "gateDecision": "warn",
+      "releaseReady": false,
+      "riskFactors": [
+        {
+          "type": "test_coverage",
+          "score": 45,
+          "detail": { "missing_tests": ["src/widget.ts"] }
+        }
+      ]
+    },
+    "maxLoopRounds": 5
+  }
+}

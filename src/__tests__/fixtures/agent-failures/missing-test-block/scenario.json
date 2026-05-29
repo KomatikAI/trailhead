@@ -1,0 +1,20 @@
+{
+  "id": "missing-test-block",
+  "kind": "remediation",
+  "description": "Missing tests at strict/probation tier (high test_coverage score blocks)",
+  "input": {
+    "evaluation": {
+      "id": "eval-missing-test-block",
+      "gateDecision": "block",
+      "releaseReady": false,
+      "riskFactors": [
+        {
+          "type": "test_coverage",
+          "score": 85,
+          "detail": { "missing_tests": ["src/widget.ts", "src/widget/helpers.ts"] }
+        }
+      ]
+    },
+    "maxLoopRounds": 5
+  }
+}
