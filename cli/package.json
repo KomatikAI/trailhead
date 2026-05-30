@@ -2,13 +2,13 @@
   "name": "@komatikai/trailhead",
   "version": "4.4.4",
   "description": "Trailhead CLI — setup wizard and utilities for the Trailhead deployment gate",
-  "type": "module",
   "bin": {
     "trailhead": "dist/index.js"
   },
   "scripts": {
     "prebuild": "node ../scripts/copy-shared-src.mjs cli",
-    "build": "npm run prebuild && tsc",
+    "build": "node ../scripts/build-cli-bundle.mjs",
+    "typecheck": "npm run prebuild && tsc --noEmit",
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js"
   },
@@ -25,14 +25,13 @@
     "dora"
   ],
   "license": "MIT",
-  "dependencies": {
-    "@swc/core": "^1.15.40",
-    "js-yaml": "^4.1.1",
-    "zod": "^3.24.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.8.0",
-    "typescript": "^6.0.3"
+    "@vercel/ncc": "^0.38.4",
+    "js-yaml": "^4.1.1",
+    "typescript": "^6.0.3",
+    "zod": "^3.24.0"
   }
 }

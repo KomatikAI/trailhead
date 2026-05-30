@@ -99,6 +99,10 @@ describe("run (main entrypoint)", () => {
       expect.stringContaining('"gateDecision":"allow"'),
     );
     expect(core.setOutput).toHaveBeenCalledWith(
+      "verdict-json",
+      expect.stringContaining('"schema":"trailhead.verdict.v1"'),
+    );
+    expect(core.setOutput).toHaveBeenCalledWith(
       "rollout-readiness-json",
       expect.stringContaining('"band"'),
     );

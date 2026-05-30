@@ -31,7 +31,13 @@ jobs:
 
       - name: Typecheck cli/
         run: |
-          cd cli && npm ci && npm run prebuild && npx tsc --noEmit
+          cd cli && npm ci && npm run typecheck
+
+      - name: Build CLI bundle
+        run: npm run build:cli
+
+      - name: Verify CLI bundle (offline doctor)
+        run: node cli/dist/index.js doctor --offline --path .
 
       - name: Typecheck app/
         run: |

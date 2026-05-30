@@ -1,32 +1,39 @@
 # Trailhead CLI
 
-Interactive setup wizard and diagnostics for Trailhead. Generates `.trailhead.yml`, validates policy files, and compares configured CI check names against GitHub.
+Interactive setup wizard and diagnostics for Trailhead. Generates `.trailhead.yml`, validates policy files, compares configured CI check names against GitHub, and runs the submission gate (`validate-submission`).
+
+## Install (no build required)
+
+The published npm package ships a **prebuilt bundle** (`dist/index.js` + vendored `swc.*.node` bindings). You do not need to clone this repo or run `npm run build`.
+
+```bash
+npx @komatikai/trailhead doctor --offline
+npx @komatikai/trailhead init
+```
+
+Pin a version for CI:
+
+```bash
+npm install -D @komatikai/trailhead@4.4.4
+npx trailhead validate-submission --input bundle.json
+```
+
+### Migrating from vendored `cli-dist`
+
+Komatik agents and other repos that vendor `trailhead/cli-dist/` can replace the copy with an npm pin:
+
+```bash
+npm install -D @komatikai/trailhead@<tag>
+# invoke: npx trailhead validate-submission …
+```
+
+Set `TRAILHEAD_CLI=$(npm root)/.bin/trailhead` (or `npx trailhead`) in shadow-compare harnesses instead of a repo-relative `cli/dist/index.js`.
 
 ## Usage
 
-```bash
-npx @komatikai/trailhead init
-npx @komatikai/trailhead doctor
-```
-
 ### `trailhead init`
 
-No installation required. The wizard walks you through:
-
-1. **Gate mode** — release-ready, advisory, or risk-only
-2. **Branch model** — main-only or progressive promotion paths
-3. **Required checks** — CI job names for release-ready contexts
-4. **Sensitivity patterns** — which file paths are high/medium risk
-5. **Thresholds** — risk and warn scores
-6. **Freeze windows** — days and hours when deployments are blocked
-7. **Environments** — per-environment threshold overrides
-8. **Services** — monorepo service boundaries with path patterns
-9. **Security gate** — Code Scanning alerts as a risk factor
-10. **Canary tracking** — deploy outcome webhook type
-11. **DORA metrics** — compute DORA-5 alongside gate evaluations
-12. **Health checks** — URLs to probe before scoring
-13. **OpenTelemetry** — OTLP endpoint for evaluation span export
-14. **Evaluation store** — URL for persisting evaluations to a trend dashboard
+Interactive wizard — no GitHub token required. Creates `.trailhead.yml` and `.github/workflows/trailhead.yml`.
 
 ### `trailhead doctor`
 
@@ -43,8 +50,6 @@ GITHUB_TOKEN=ghp_... trailhead doctor --repo owner/repo
 trailhead doctor --json
 ```
 
-Options:
-
 | Flag                  | Description                            |
 | --------------------- | -------------------------------------- |
 | `--path <dir>`        | Directory to scan (default: cwd)       |
@@ -56,30 +61,26 @@ Options:
 
 Exit code `0` when there are no errors; `1` when config is missing/invalid or structural errors are found. Warnings do not fail the command.
 
-## Output (`init`)
+### `trailhead validate-submission`
 
-The wizard generates two files:
+Runs the canonical Gate 1 engine on a JSON payload of files (used by komatik-agents and MCP). See `cli/src/index.ts` for input shape.
 
-- **`.trailhead.yml`** — per-repo configuration
-- **`.github/workflows/trailhead.yml`** — GitHub Actions workflow with selected features
+## Development (this repo)
 
-## Development
+Source lives in `cli/src/`; shared modules are copied from `src/` at build time. **Do not commit `cli/dist/`** — CI and the release workflow build the bundle.
 
 ```bash
-cd cli
-npm install
-npm run build
-node dist/index.js doctor --offline --path ..
+# From repo root
+npm ci
+npm run build:cli
+node cli/dist/index.js doctor --offline --path .
+
+# Typecheck CLI sources only
+cd cli && npm ci && npm run typecheck
 ```
 
-The CLI copies shared validation modules from `src/` during prebuild. Build output goes to `cli/dist/` (gitignored — build before npm publish).
+Bundle pipeline: `scripts/build-cli-bundle.mjs` → `ncc` + `scripts/copy-swc-bindings.mjs` (same pattern as the GitHub Action).
 
 ## Publishing
 
-```bash
-cd cli
-npm run build
-npm publish
-```
-
-The package is published as `@komatikai/trailhead` on npm.
+On tag push (`v*`), `.github/workflows/release.yml` runs `npm run build:cli` on ubuntu-latest and publishes `@komatikai/trailhead` to npm. The tarball contains only `dist/` — no runtime `@swc/core` install step for consumers.

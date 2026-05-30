@@ -9,6 +9,10 @@ import {
 } from "../submission-checks/phase0-detectors.js";
 import type { SubmissionCheckContext } from "../submission-checks/types.js";
 import { prPathSet } from "../submission-checks/helpers.js";
+import {
+  buildRenamePatterns,
+  buildSlugOnlyPatterns,
+} from "../submission-checks/detector-policy.js";
 
 function ctx(
   files: Array<{ filename: string; content?: string; patch?: string }>,
@@ -29,6 +33,9 @@ function ctx(
     declaredPackages: new Set(),
     namingAllowlist: {},
     pathIgnorePatterns: [],
+    renamePatterns: buildRenamePatterns(undefined, { includeKomatikDefaults: true }),
+    slugOnlyPatterns: buildSlugOnlyPatterns(undefined),
+    detectorPolicy: {},
     repoPaths: repoPaths ? new Set(repoPaths) : undefined,
   };
 }

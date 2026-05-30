@@ -11,8 +11,14 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const distDir = path.join(root, "dist");
+const distArg = process.argv[2];
+const distDir = distArg ? path.resolve(distArg) : path.join(root, "dist");
 const swcRoot = path.join(root, "node_modules", "@swc");
+
+if (!fs.existsSync(distDir)) {
+  console.error(`copy-swc-bindings: dist directory not found: ${distDir}`);
+  process.exit(1);
+}
 
 const pkgJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf-8"));
 const swcVersion = (pkgJson.dependencies?.["@swc/core"] ?? "1.15.40").replace(

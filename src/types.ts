@@ -440,6 +440,21 @@ export const TuningConfig = z.object({
 });
 export type TuningConfig = z.infer<typeof TuningConfig>;
 
+export const SubmissionDetectorPolicyEntry = z.object({
+  enabled: z.boolean().optional(),
+  severity: z.enum(["block", "warn", "advisory", "blocking"]).optional(),
+  file_globs: z.array(z.string()).optional(),
+  path_ignore: z.array(z.string()).optional(),
+  weight: z.number().optional(),
+});
+export type SubmissionDetectorPolicyEntry = z.infer<typeof SubmissionDetectorPolicyEntry>;
+
+export const SubmissionRenamePattern = z.object({
+  old: z.string().min(1),
+  new: z.string().min(1),
+});
+export type SubmissionRenamePattern = z.infer<typeof SubmissionRenamePattern>;
+
 export const SubmissionConfig = z.object({
   enabled: z.boolean().default(false),
   mode: z.enum(["warn", "block"]).default("block"),
@@ -457,6 +472,12 @@ export const SubmissionConfig = z.object({
       skip_in_imports: z.boolean().optional(),
     })
     .optional(),
+  /** Project rename vocabulary — extends Komatik defaults when KOMATIK_INSTANCE=true. */
+  rename_patterns: z.array(SubmissionRenamePattern).optional(),
+  /** Extra slug-only regex sources (merged with product defaults). */
+  slug_only_patterns: z.array(z.string()).optional(),
+  /** Per-detector policy overrides (enable/severity/file scope). */
+  detectors: z.record(SubmissionDetectorPolicyEntry).optional(),
 });
 export type SubmissionConfig = z.infer<typeof SubmissionConfig>;
 

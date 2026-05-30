@@ -1,33 +1,25 @@
 // Gate 1 detectors — ported from komatik-agents agent-gate-checks (patch/content based).
 
-import type { SubmissionCheckResult } from "../types.js";
-import type { SubmissionCheckContext, SubmissionFileInfo } from "./types.js";
+import type { SubmissionCheckResult, SubmissionCheckCode } from "../types.js";
+import type { SubmissionCheckContext } from "./types.js";
 import {
   addedLines,
   extensionOf,
+  extractAllImports,
   fileContent,
+  isStaleArchivedPath,
   isTestPath,
   lineCountFromPatch,
+  linesForFreshnessScan,
   normalizePath,
   scanAddedContent,
 } from "./helpers.js";
+import type { NamingAllowlistConfig } from "./types.js";
 import { runPhase0Detectors } from "./phase0-detectors.js";
-
-export const OLD_NAME_PATTERNS: Array<{
-  oldName: string;
-  newName: string;
-  pattern: RegExp;
-}> = [
-  { oldName: "DeployGuard", newName: "Trailhead", pattern: /\bDeployGuard\b/g },
-  { oldName: "Daydream Studio", newName: "Sundog", pattern: /\bDaydream Studio\b/g },
-  {
-    oldName: "Storyboard Studio",
-    newName: "Kindling",
-    pattern: /\bStoryboard Studio\b/g,
-  },
-  { oldName: "Cognitive Debt", newName: "Drift", pattern: /\bCognitive Debt\b/g },
-  { oldName: "cognitive-debt", newName: "Drift", pattern: /\bcognitive-debt\b/g },
-];
+import { validateFileSyntax } from "./syntax-validity.js";
+import { matchesGlobs } from "../risk-engine.js";
+import { applyDetectorPolicy, artifactFileGlobs } from "./detector-policy.js";
+export { DEFAULT_RENAME_PATTERNS, OLD_NAME_PATTERNS } from "./policy-defaults.js";
 
 const MOCK_PATTERNS = [
   /\bTODO\s*\(\s*mock\s*\)/i,
@@ -39,6 +31,7 @@ const MOCK_PATTERNS = [
   /\b(?:mockData|fakeData|sampleData|dummyData|testData)\b/g,
   /\bTODO:\s*implement\b/gi,
   /\bFIXME\b/g,
+  /\bIn production,\s*use\b/i,
   /\bplaceholder\b/gi,
   /\blorem ipsum\b/gi,
 ];
@@ -158,20 +151,41 @@ export function detectDestructiveSql(
   });
 }
 
+// Only code files can carry hard file references; prose (.md/.mdx/.txt) merely
+// *mentions* paths and was the dominant artifact_integrity false-positive source.
+const ARTIFACT_BARE_IGNORE = new Set([
+  "package.json",
+  "package-lock.json",
+  "tsconfig.json",
+  "readme.md",
+]);
+
 export function detectArtifactIntegrity(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
   const referenced = new Set<string>();
-  const pathRefPattern =
-    /(?:^|\s|['"`])([\w@./-]+\.(?:ts|tsx|js|jsx|md|sql|yml|yaml|json))(?:['"`]|\s|:)/g;
+  const fileGlobs = artifactFileGlobs(ctx.detectorPolicy);
+  const pathIgnore = ctx.detectorPolicy.artifact_integrity?.pathIgnore ?? [];
+  // Only treat a path *literal* inside an import/require/export-from statement
+  // as a hard reference — natural-language "see X" / "fix Y" / "update Z" in
+  // prose is not a code dependency (the old prose trigger over-flagged docs).
+  const importRefPattern =
+    /(?:\bimport\b|\bfrom\b|\brequire\s*\(|\bexport\b[^'"`]*\bfrom\b)\s*['"`]([\w@./-]+\.(?:ts|tsx|js|jsx|sql|yml|yaml|json))['"`]/g;
 
   for (const file of ctx.files) {
+    if (!matchesGlobs(file.filename, fileGlobs)) continue;
+    if (pathIgnore.length > 0 && matchesGlobs(file.filename, pathIgnore)) continue;
+
     for (const line of addedLines(file.patch)) {
-      if (!/(?:import|from|require|see|fix|update)\s/i.test(line)) continue;
-      for (const match of line.matchAll(pathRefPattern)) {
+      importRefPattern.lastIndex = 0;
+      for (const match of line.matchAll(importRefPattern)) {
         const candidate = match[1]?.replace(/^\.\//, "");
         if (!candidate || candidate.includes("*")) continue;
-        if (!ctx.prPaths.has(candidate) && !candidate.startsWith("node:")) {
+        if (candidate.startsWith("node:")) continue;
+        // Skip bare, repo-ubiquitous manifest names (package.json, etc.).
+        const base = candidate.split("/").pop()?.toLowerCase() ?? "";
+        if (!candidate.includes("/") && ARTIFACT_BARE_IGNORE.has(base)) continue;
+        if (!ctx.prPaths.has(candidate)) {
           referenced.add(candidate);
         }
       }
@@ -190,37 +204,92 @@ export function detectArtifactIntegrity(
   });
 }
 
-function isNamingAllowlisted(filename: string, line: string): boolean {
+function isNamingAllowlisted(
+  filename: string,
+  line: string,
+  allowlist: NamingAllowlistConfig = {},
+  slugOnlyPatterns: RegExp[] = [],
+): boolean {
   const trimmed = line.trim();
-  if (/^import\s|^from\s|require\(/.test(trimmed)) return true;
-  if (/\.sql$/i.test(filename)) return true;
-  if (/(?:^|\/)migrations\//.test(filename)) return true;
-  if (/(?:^|\/)memory\//.test(filename)) return true;
-  if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(filename)) return true;
-  if (/^\[.*\]\(.*\)/.test(trimmed)) return true;
+  const path = normalizePath(filename);
+  const ext = extensionOf(filename);
+  const skipExtensions = allowlist.skip_extensions ?? [".sql"];
+  const skipPathPatterns = allowlist.skip_path_patterns ?? ["migrations/", "schema/"];
+  const skipCommentMarkers = allowlist.skip_comment_markers ?? [
+    "historical:",
+    "migration:",
+    "deprecated:",
+  ];
+
+  if (
+    allowlist.skip_in_imports !== false &&
+    /^import\s|^from\s|require\(/.test(trimmed)
+  ) {
+    return true;
+  }
+  if (skipExtensions.includes(ext)) return true;
+  if (skipPathPatterns.some((pattern) => path.includes(pattern))) return true;
+  if (
+    skipCommentMarkers.some((marker) =>
+      trimmed.toLowerCase().includes(marker.toLowerCase()),
+    )
+  ) {
+    return true;
+  }
+  if (/\/memory\//.test(path)) return true;
+  if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(path)) return true;
+  if (/^\[.*\]\(.*\)/.test(trimmed) || /\]\(http/.test(trimmed)) return true;
+
+  if (
+    slugOnlyPatterns.some((p) => p.test(trimmed)) &&
+    !/[A-Z]/.test(
+      trimmed.match(
+        /(?:cognitive-debt|storyboard-studio|daydream-studio|shadow-ai-governance)/,
+      )?.[0] ?? "",
+    )
+  ) {
+    return true;
+  }
+
+  if (/["'`/]/.test(trimmed)) {
+    const inStringOrPath =
+      /["'`/][^"'`]*(?:deployguard|storyboard-studio|daydream-studio|cognitive-debt|shadow-ai-governance|komatik-yggdrasil)[^"'`]*["'`/]/i;
+    if (inStringOrPath.test(trimmed)) return true;
+  }
+
   return false;
 }
 
 export function detectContextFreshness(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
-  if (ctx.staleTerms.length === 0 && !ctx.komatikInstance) return null;
+  if (ctx.staleTerms.length === 0 && ctx.renamePatterns.length === 0) {
+    return null;
+  }
 
   const hits: string[] = [];
   for (const file of ctx.files) {
-    for (const line of addedLines(file.patch)) {
-      if (isNamingAllowlisted(file.filename, line)) continue;
+    if (isStaleArchivedPath(file.filename, ctx.pathIgnorePatterns)) continue;
 
-      const terms = ctx.staleTerms.length > 0 ? ctx.staleTerms : [];
-      for (const term of terms) {
+    for (const line of linesForFreshnessScan(file)) {
+      if (
+        isNamingAllowlisted(
+          file.filename,
+          line,
+          ctx.namingAllowlist,
+          ctx.slugOnlyPatterns,
+        )
+      ) {
+        continue;
+      }
+
+      for (const term of ctx.staleTerms) {
         if (line.toLowerCase().includes(term.toLowerCase())) hits.push(file.filename);
       }
 
-      if (ctx.komatikInstance) {
-        for (const entry of OLD_NAME_PATTERNS) {
-          entry.pattern.lastIndex = 0;
-          if (entry.pattern.test(line)) hits.push(file.filename);
-        }
+      for (const entry of ctx.renamePatterns) {
+        entry.pattern.lastIndex = 0;
+        if (entry.pattern.test(line)) hits.push(file.filename);
       }
     }
   }
@@ -459,10 +528,12 @@ export function detectExternalPackageDeps(
 
   for (const file of ctx.files) {
     if (!codeExts.has(extensionOf(file.filename))) continue;
-    const importPattern = /\b(?:import|from|require)\s*(?:\([^)]*|\(?)?['"]([^'"]+)['"]/g;
-    for (const match of fileContent(file).matchAll(importPattern)) {
-      const specifier = match[1];
-      if (!specifier || specifier.startsWith(".") || specifier.startsWith("@/")) continue;
+
+    for (const imp of extractAllImports(fileContent(file))) {
+      const specifier = imp.specifier;
+      if (specifier.startsWith(".") || specifier.startsWith("/")) continue;
+      if (specifier.startsWith("@/") || specifier.startsWith("~/")) continue;
+      if (specifier.startsWith("http:") || specifier.startsWith("https:")) continue;
       if (isNodeBuiltin(specifier)) continue;
       const pkg = packageNameFromSpecifier(specifier);
       if (!ctx.declaredPackages.has(pkg)) hits.push(`${file.filename} → ${pkg}`);
@@ -480,116 +551,62 @@ export function detectExternalPackageDeps(
   });
 }
 
+function stripSqlComments(content: string): string {
+  return content.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
+function countPlpgsqlBlockBegins(sql: string): number {
+  const re = /\bBEGIN\b(?!\s+(?:TRANSACTION|WORK)\b)/gi;
+  return (sql.match(re) || []).length;
+}
+
+function countPlpgsqlBlockEnds(sql: string): number {
+  const re = /\bEND\s*(?!IF\b|LOOP\b|CASE\b)\s*(?:;|\$\$)/gi;
+  return (sql.match(re) || []).length;
+}
+
 export function detectSqlSyntaxBasic(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
   const hits: string[] = [];
   for (const file of ctx.files.filter((f) => extensionOf(f.filename) === ".sql")) {
-    const content = fileContent(file);
-    const stripped = content.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
-    const beginCount = (stripped.match(/\bBEGIN\b/gi) || []).length;
-    const endCount = (stripped.match(/\bEND\b\s*;/gi) || []).length;
-    if (beginCount > 0 && endCount === 0) hits.push(file.filename);
-    else if (endCount > beginCount) hits.push(file.filename);
+    const stripped = stripSqlComments(fileContent(file));
+    const beginCount = countPlpgsqlBlockBegins(stripped);
+    const endCount = countPlpgsqlBlockEnds(stripped);
+    if (beginCount > 0 && beginCount > endCount) hits.push(file.filename);
   }
   if (hits.length === 0) return null;
   return result({
     code: "sql_syntax_basic",
-    severity: "blocking",
+    severity: "warn",
     title: "SQL block balance issue",
-    detail: `Possible unmatched BEGIN/END in ${hits.join(", ")}.`,
+    detail: `Possible unclosed BEGIN block in ${hits.join(", ")}.`,
     files: hits,
-    suggested_action: "Fix PL/pgSQL block structure before merging.",
+    suggested_action: "Verify PL/pgSQL block structure before merging.",
   });
-}
-
-type SwcParseSync = (code: string, options: Record<string, unknown>) => unknown;
-
-let cachedSwcParse: SwcParseSync | null | undefined;
-
-function getSwcParse(): SwcParseSync | null {
-  if (cachedSwcParse !== undefined) return cachedSwcParse;
-  try {
-    // Optional — install @swc/core locally for full parse; Action uses bracket fallback.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const swc = require("@swc/core") as { parseSync: SwcParseSync };
-    cachedSwcParse = swc.parseSync;
-  } catch {
-    cachedSwcParse = null;
-  }
-  return cachedSwcParse;
-}
-
-function basicBracketBalance(content: string): string | null {
-  let braces = 0;
-  let parens = 0;
-  let brackets = 0;
-  for (const ch of content) {
-    if (ch === "{") braces += 1;
-    if (ch === "}") braces -= 1;
-    if (ch === "(") parens += 1;
-    if (ch === ")") parens -= 1;
-    if (ch === "[") brackets += 1;
-    if (ch === "]") brackets -= 1;
-    if (braces < 0 || parens < 0 || brackets < 0) return "Unbalanced brackets/parens";
-  }
-  if (braces !== 0 || parens !== 0 || brackets !== 0) {
-    return "Unclosed brackets/parens in diff hunk";
-  }
-  return null;
-}
-
-function parserOptionsFor(file: SubmissionFileInfo): Record<string, unknown> {
-  const ext = extensionOf(file.filename);
-  const isTs = ext === ".ts" || ext === ".tsx";
-  return {
-    syntax: isTs ? "typescript" : "ecmascript",
-    tsx: ext === ".tsx",
-    jsx: ext === ".jsx",
-    decorators: true,
-    dynamicImport: true,
-  };
 }
 
 export function detectSyntaxValidity(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
-  const errors: Array<{ file: string; message: string }> = [];
-  const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
-  const swcParse = getSwcParse();
+  const errors: string[] = [];
 
   for (const file of ctx.files) {
-    const ext = extensionOf(file.filename);
-    const content = fileContent(file);
-    if (!content.trim()) continue;
+    // Real parsers need the whole file — skip patch-only inputs (PR diff fragments).
+    if (typeof file.content !== "string") continue;
 
-    try {
-      if (codeExts.has(ext)) {
-        if (swcParse) {
-          swcParse(content, parserOptionsFor(file));
-        } else {
-          const balance = basicBracketBalance(content);
-          if (balance) throw new Error(balance);
-        }
-      } else if (ext === ".json") {
-        JSON.parse(content);
-      }
-    } catch (error) {
-      errors.push({
-        file: file.filename,
-        message: error instanceof Error ? error.message.split("\n")[0] : String(error),
-      });
-    }
+    const message = validateFileSyntax(file.filename, file.content);
+    if (message) errors.push(`${file.filename}: ${message}`);
   }
 
   if (errors.length === 0) return null;
   return result({
     code: "syntax_validity",
     severity: "blocking",
-    title: "Syntax error in changed file",
-    detail: errors.map((e) => `${e.file}: ${e.message}`).join("; "),
-    files: errors.map((e) => e.file),
-    suggested_action: "Fix parse errors before resubmitting.",
+    title: "Syntax error in submitted file",
+    detail: errors.slice(0, 12).join("; "),
+    files: errors.map((e) => e.split(": ")[0] ?? e),
+    suggested_action: "Fix the parse error before submitting.",
   });
 }
 
@@ -612,23 +629,33 @@ export function detectSoulIntegrity(
 }
 
 export function runAllDetectors(ctx: SubmissionCheckContext): SubmissionCheckResult[] {
+  const policy = ctx.detectorPolicy;
+  const finalize = (
+    code: SubmissionCheckCode,
+    check: SubmissionCheckResult | null,
+  ): SubmissionCheckResult | null => applyDetectorPolicy(code, check, policy);
+
   const gate1 = [
-    detectMockPlaceholder(ctx),
-    detectSecrets(ctx),
-    detectDestructiveSql(ctx),
-    detectSyntaxValidity(ctx),
-    detectImportResolution(ctx),
-    detectRlsNewTables(ctx),
-    detectAuthRouteAuth(ctx),
-    detectHardcodedEnv(ctx),
-    detectExternalPackageDeps(ctx),
-    detectSqlSyntaxBasic(ctx),
-    detectLargeFile(ctx),
-    detectArtifactIntegrity(ctx),
-    detectContextFreshness(ctx),
-    detectSoulIntegrity(ctx),
-    detectPathFormat(ctx),
+    finalize("mock_placeholder", detectMockPlaceholder(ctx)),
+    finalize("secrets", detectSecrets(ctx)),
+    finalize("destructive_sql", detectDestructiveSql(ctx)),
+    finalize("syntax_validity", detectSyntaxValidity(ctx)),
+    finalize("import_resolution", detectImportResolution(ctx)),
+    finalize("rls_new_tables", detectRlsNewTables(ctx)),
+    finalize("auth_route_auth", detectAuthRouteAuth(ctx)),
+    finalize("hardcoded_env", detectHardcodedEnv(ctx)),
+    finalize("external_package_deps", detectExternalPackageDeps(ctx)),
+    finalize("sql_syntax_basic", detectSqlSyntaxBasic(ctx)),
+    finalize("large_file", detectLargeFile(ctx)),
+    finalize("artifact_integrity", detectArtifactIntegrity(ctx)),
+    finalize("context_freshness", detectContextFreshness(ctx)),
+    finalize("soul_integrity", detectSoulIntegrity(ctx)),
+    finalize("path_format", detectPathFormat(ctx)),
   ].filter((check): check is SubmissionCheckResult => check !== null);
 
-  return [...gate1, ...runPhase0Detectors(ctx)];
+  const phase0 = runPhase0Detectors(ctx)
+    .map((check) => finalize(check.code, check))
+    .filter((check): check is SubmissionCheckResult => check !== null);
+
+  return [...gate1, ...phase0];
 }

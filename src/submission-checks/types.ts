@@ -7,6 +7,9 @@ export interface SubmissionFileInfo {
   additions?: number;
 }
 
+import type { DetectorPolicyMap } from "./detector-policy.js";
+import type { RenamePatternEntry } from "./policy-defaults.js";
+
 export interface NamingAllowlistConfig {
   skip_extensions?: string[];
   skip_path_patterns?: string[];
@@ -25,6 +28,9 @@ export interface SubmissionCheckContext {
   declaredPackages: Set<string>;
   /** Extra path segments to skip for context_freshness (merged with defaults). */
   pathIgnorePatterns: string[];
+  renamePatterns: RenamePatternEntry[];
+  slugOnlyPatterns: RegExp[];
+  detectorPolicy: DetectorPolicyMap;
   /**
    * Full set of paths that exist in the target repo (e.g. `git ls-files`),
    * used to tell a fabricated reference from a reference to an existing,

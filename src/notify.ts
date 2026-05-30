@@ -2,6 +2,8 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import type { GateEvaluation } from "./types.js";
 import { resolveAgentProvenanceId } from "./agent-provenance.js";
+import { readTrustRuntime } from "./trust-runtime.js";
+import { buildGateVerdict } from "./verdict.js";
 import {
   resolveWebhookDeliveries,
   type ResolveTrailheadEventsOptions,
@@ -107,6 +109,10 @@ function buildTrailheadEventPayload(
     loopRound: evaluation.remediation?.loop_round,
     maxLoopRounds: evaluation.remediation?.max_loop_rounds,
     policyOverride: evaluation.policyOverride,
+    verdict: buildGateVerdict(evaluation, {
+      trustRuntime: readTrustRuntime(),
+      agentId: resolveAgentProvenanceId(evaluation),
+    }),
     timestamp: new Date().toISOString(),
   };
 }

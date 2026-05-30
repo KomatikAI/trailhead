@@ -130,7 +130,7 @@ function projectSlugFromBundle(suggestionRoot) {
 const args = parseArgs(process.argv);
 if (!fs.existsSync(TRAILHEAD_CLI)) {
   console.error(
-    `Trailhead CLI not found at ${TRAILHEAD_CLI}. Run: cd cli && npm run build`,
+    `Trailhead CLI not found at ${TRAILHEAD_CLI}. Run: npm run build:cli (or npx @komatikai/trailhead)`,
   );
   process.exit(2);
 }

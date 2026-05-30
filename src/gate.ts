@@ -65,13 +65,15 @@ import {
   hasOverrideLabel,
   resolveLabelOverride,
 } from "./override.js";
-import { runSubmissionGate, submissionGateShouldBlock } from "./submission-engine.js";
-import type { SubmissionCheckResult } from "./types.js";
 import {
-  computeAgentTrustScore,
-  strictnessFromTrust,
-  type AgentTrustMetrics,
-} from "./trust-score.js";
+  runSubmissionGate,
+  getSubmissionConfigWarnings,
+  submissionGateShouldBlock,
+} from "./submission-engine.js";
+import type { SubmissionCheckResult } from "./types.js";
+import { computeAgentTrustScore, strictnessFromTrust } from "./trust-score.js";
+import { parseAgentTrustMetrics } from "./agent-trust-metrics.js";
+import { readTrustRuntime } from "./trust-runtime.js";
 
 export {
   isSensitiveFile,
@@ -103,29 +105,6 @@ function parseDeclaredPackages(raw: string | undefined): string[] | undefined {
       .filter(Boolean);
   }
   return undefined;
-}
-
-function parseAgentTrustMetrics(raw: string | undefined): AgentTrustMetrics | null {
-  if (!raw?.trim()) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<AgentTrustMetrics>;
-    if (typeof parsed.evaluations !== "number") return null;
-    return {
-      evaluations: parsed.evaluations,
-      releaseReadyCount: parsed.releaseReadyCount ?? 0,
-      revertCount: parsed.revertCount ?? 0,
-      humanReviewRequiredCount: parsed.humanReviewRequiredCount ?? 0,
-      policyViolationCount: parsed.policyViolationCount ?? 0,
-      sensitivePathViolationCount: parsed.sensitivePathViolationCount ?? 0,
-      remediationRoundsToReady: Array.isArray(parsed.remediationRoundsToReady)
-        ? parsed.remediationRoundsToReady.filter(
-            (n): n is number => typeof n === "number",
-          )
-        : [],
-    };
-  } catch {
-    return null;
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1767,6 +1746,9 @@ export async function evaluateGate(
   const submissionEnabled =
     config.submissionGate === true || repoConfig?.submission?.enabled === true;
   if (submissionEnabled && files.length > 0) {
+    for (const warning of getSubmissionConfigWarnings(repoConfig?.submission)) {
+      core.warning(warning);
+    }
     submissionChecks = runSubmissionGate({
       files: files.map((f) => ({
         filename: f.filename,
@@ -1910,14 +1892,31 @@ export async function evaluateGate(
   const trustProfile =
     provenance?.type && provenance.type !== "human"
       ? (() => {
-          const metrics = parseAgentTrustMetrics(process.env.TRAILHEAD_AGENT_TRUST_JSON);
+          const trustRuntime = readTrustRuntime();
+          const metrics = trustRuntime.enabled
+            ? parseAgentTrustMetrics(process.env.TRAILHEAD_AGENT_TRUST_JSON)
+            : null;
           const trust = metrics ? computeAgentTrustScore(metrics) : null;
-          if (trust && trust.thresholdDelta !== 0) {
-            adjustedRiskThreshold = Math.max(
-              0,
-              Math.min(100, adjustedRiskThreshold + trust.thresholdDelta),
-            );
+
+          if (trustRuntime.enabled && metrics) {
+            if (trust) {
+              core.info(
+                `[agent-trust] profile=${trust.profile} score=${trust.score}` +
+                  (trustRuntime.shadow ? " (shadow — threshold delta not applied)" : ""),
+              );
+              if (trustRuntime.enforce && trust.thresholdDelta !== 0) {
+                adjustedRiskThreshold = Math.max(
+                  0,
+                  Math.min(100, adjustedRiskThreshold + trust.thresholdDelta),
+                );
+              }
+            } else {
+              core.info(
+                "[agent-trust] metrics present but trust=null (cold start — insufficient evidence or flat signals)",
+              );
+            }
           }
+
           return strictnessFromTrust(trust, riskScore);
         })()
       : {

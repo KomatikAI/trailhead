@@ -1,0 +1,44 @@
+{
+  "schema": "trailhead.verdict.v1",
+  "evaluation_id": "dg-abc1234-1710000000000",
+  "repo_id": "KomatikAI/agents",
+  "commit_sha": "abc1234567890abcdef1234567890abcdef12345678",
+  "pr_number": 203,
+  "head_ref": "agent/pixel/suggestions/pack/ui-tweak",
+  "agent_id": "pixel",
+  "decision": "allow",
+  "gate_mode": "release-ready",
+  "release_ready": true,
+  "penalty": {
+    "total_score": 0,
+    "factor_scores": {},
+    "semantics": "lower_is_cleaner"
+  },
+  "risk": {
+    "score": 28,
+    "semantics": "higher_is_worse",
+    "factors": {
+      "file_count": 20,
+      "code_churn": 35
+    }
+  },
+  "trust_profile": {
+    "shadow": true,
+    "enforce": false,
+    "score": 0.81,
+    "profile": "fast-track",
+    "strictness": "baseline",
+    "reason": "Agent trust score 0.81 — fast-track profile",
+    "factors": {
+      "release_ready_rate": 0.95
+    }
+  },
+  "submission_checks": [],
+  "reasons": ["All submission checks passed"],
+  "evaluated_at": "2026-05-30T12:00:00.000Z",
+  "_legacy": {
+    "riskScore": 28,
+    "healthScore": 100,
+    "releaseReadyReasons": ["CI required checks passed"]
+  }
+}

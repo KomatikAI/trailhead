@@ -41,10 +41,17 @@ import {
   TRAILHEAD_EVENT_TYPES,
   type TrailheadEventType,
 } from "./trailhead-events.js";
-import { runSubmissionGate, submissionGateShouldBlock } from "./submission-engine.js";
+import {
+  runSubmissionGate,
+  getSubmissionConfigWarnings,
+  submissionGateShouldBlock,
+} from "./submission-engine.js";
 import { deriveSubmissionFixes } from "./submission-remediation.js";
 import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
+import { assessColdStartFromMetrics } from "./agent-trust-metrics.js";
 import { computeAgentTrustScore } from "./trust-score.js";
+import { buildGateVerdict } from "./verdict.js";
+import type { GateDecision, GateEvaluation, RiskFactor } from "./types.js";
 
 registerAllAdapters();
 
@@ -1260,8 +1267,30 @@ server.tool(
       /* skip */
     }
 
+    const structuredVerdict = buildGateVerdict({
+      id: `mcp-${owner}-${repo}-${Date.now()}`,
+      repoId: `${owner}/${repo}`,
+      commitSha: commitSha ?? "unknown",
+      prNumber,
+      healthScore: 100,
+      riskScore,
+      gateDecision: decision,
+      healthChecks: [],
+      riskFactors: riskFactors.map((factor) => ({
+        type: factor.type as RiskFactor["type"],
+        score: factor.score,
+      })),
+      evaluationMs: 0,
+      releaseReady,
+      releaseReadyReasons: reasons,
+      ci: ciSummary ?? undefined,
+      gateMode: "release-ready",
+      policyFindings: reasons.length > 0 ? reasons : undefined,
+    } satisfies GateEvaluation);
+
     return jsonResult({
-      verdict: decision,
+      verdict: structuredVerdict,
+      gate_decision: decision,
       riskScore,
       releaseReady: releaseReady ?? null,
       releaseReadyReasons: releaseReadyReasons ?? [],
@@ -1985,13 +2014,50 @@ server.tool(
       .array(z.string())
       .optional()
       .describe("Root package.json dependency names for import resolution"),
+    submission: z
+      .object({
+        stale_terms: z.array(z.string()).optional(),
+        rename_patterns: z
+          .array(z.object({ old: z.string(), new: z.string() }))
+          .optional(),
+        slug_only_patterns: z.array(z.string()).optional(),
+        path_ignore: z.array(z.string()).optional(),
+        naming_allowlist: z
+          .object({
+            skip_extensions: z.array(z.string()).optional(),
+            skip_path_patterns: z.array(z.string()).optional(),
+            skip_comment_markers: z.array(z.string()).optional(),
+            skip_in_imports: z.boolean().optional(),
+          })
+          .optional(),
+        detectors: z
+          .record(
+            z.object({
+              enabled: z.boolean().optional(),
+              severity: z.enum(["block", "warn", "advisory", "blocking"]).optional(),
+              file_globs: z.array(z.string()).optional(),
+              path_ignore: z.array(z.string()).optional(),
+            }),
+          )
+          .optional(),
+      })
+      .optional()
+      .describe("submission block from .trailhead.yml (detector policy + rename rules)"),
   },
-  async ({ files, komatik_instance, mode, declared_packages }): Promise<ToolReturn> => {
+  async ({
+    files,
+    komatik_instance,
+    mode,
+    declared_packages,
+    submission,
+  }): Promise<ToolReturn> => {
+    const repoConfig = submission ? { submission } : undefined;
     const checks = runSubmissionGate({
       files,
       komatikInstance: komatik_instance ?? false,
       mode,
       declaredPackages: declared_packages,
+      repoConfig: repoConfig as import("./types.js").RepoConfig | undefined,
     });
     const fixes = deriveSubmissionFixes(checks);
     const blocking = submissionGateShouldBlock(checks, mode);
@@ -2014,9 +2080,33 @@ server.tool(
       ].includes(c.code),
     ).length;
 
+    const configWarnings = getSubmissionConfigWarnings(submission);
+    const gateDecision: GateDecision = submissionGateShouldBlock(checks, mode)
+      ? "block"
+      : checks.some((check) => check.severity === "warn")
+        ? "warn"
+        : "allow";
+    const verdict = buildGateVerdict({
+      id: `sub-${Date.now()}`,
+      repoId: "mcp/submission",
+      commitSha: "0000000",
+      healthScore: 100,
+      riskScore: 0,
+      gateDecision,
+      healthChecks: [],
+      riskFactors: [],
+      evaluationMs: 0,
+      submissionChecks: checks,
+      gateMode: "advisory",
+      policyFindings: configWarnings.length > 0 ? configWarnings : undefined,
+    } satisfies GateEvaluation);
+
     return jsonResult({
       checks,
       fixes,
+      config_warnings: configWarnings,
+      verdict,
+      gate_decision: gateDecision,
       blocking,
       summary: {
         total: checks.length,
@@ -2081,7 +2171,7 @@ server.tool(
 
 server.tool(
   "get-trust-score",
-  "Compute dynamic agent trust score and profile from evaluation metrics (Phase B3).",
+  "Compute dynamic agent trust score and profile from evaluation metrics (Phase B3). Returns trust=null on cold start.",
   {
     evaluations: z.number().int().min(0).describe("Total gate evaluations in window"),
     release_ready_count: z
@@ -2097,6 +2187,22 @@ server.tool(
       .array(z.number().int().min(0))
       .default([])
       .describe("Loop rounds for PRs that reached release_ready"),
+    penalty_quality: z
+      .object({
+        mean: z.number(),
+        std_dev: z.number().min(0),
+        clean_rate: z.number().min(0).max(1),
+        sample_count: z.number().int().min(0),
+      })
+      .optional()
+      .describe("Aggregated gate penalty total_score stats (lower mean = cleaner)"),
+    feedback: z
+      .object({
+        ci_failures: z.number().int().min(0).optional(),
+        reverts: z.number().int().min(0).optional(),
+        human_review: z.number().int().min(0).optional(),
+      })
+      .optional(),
   },
   async ({
     evaluations,
@@ -2106,8 +2212,10 @@ server.tool(
     policy_violation_count,
     sensitive_path_violation_count,
     remediation_rounds_to_ready,
+    penalty_quality,
+    feedback,
   }): Promise<ToolReturn> => {
-    const trust = computeAgentTrustScore({
+    const metrics = {
       evaluations,
       releaseReadyCount: release_ready_count,
       revertCount: revert_count,
@@ -2115,8 +2223,33 @@ server.tool(
       policyViolationCount: policy_violation_count,
       sensitivePathViolationCount: sensitive_path_violation_count,
       remediationRoundsToReady: remediation_rounds_to_ready,
+      ...(penalty_quality
+        ? {
+            penaltyQuality: {
+              mean: penalty_quality.mean,
+              stdDev: penalty_quality.std_dev,
+              cleanRate: penalty_quality.clean_rate,
+              sampleCount: penalty_quality.sample_count,
+            },
+          }
+        : {}),
+      ...(feedback
+        ? {
+            feedback: {
+              ciFailures: feedback.ci_failures,
+              reverts: feedback.reverts,
+              humanReview: feedback.human_review,
+            },
+          }
+        : {}),
+    };
+    const trust = computeAgentTrustScore(metrics);
+    const coldStart = assessColdStartFromMetrics(metrics);
+    return jsonResult({
+      trust,
+      cold_start: trust ? null : coldStart,
+      schema: "trailhead.agent_trust_metrics.v1",
     });
-    return jsonResult({ trust });
   },
 );
 

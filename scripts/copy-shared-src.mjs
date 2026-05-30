@@ -38,6 +38,10 @@ const sharedFiles = [
   "submission-engine.ts",
   "fixer-core.ts",
   "trust-score.ts",
+  "agent-trust-metrics.ts",
+  "agent-trust-feedback.ts",
+  "verdict.ts",
+  "trust-runtime.ts",
   "remediation-lanes.ts",
   "trailhead-events.ts",
 ];
@@ -53,6 +57,7 @@ const cliFiles = [
   "ci-manifest.ts",
   "release-ready.ts",
   "doctor.ts",
+  "risk-engine.ts",
   "submission-engine.ts",
 ];
 

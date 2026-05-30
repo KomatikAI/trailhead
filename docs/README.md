@@ -282,7 +282,8 @@ Trailhead is evolving from a human-supervised merge gate into a **coach → fixe
 - **Gate 1 submission engine** — 15 blocking checks via `submission-gate: true` ([submission-gate.md](./submission-gate.md))
 - **Phase 0 suggestion heuristics** — 14 advisory checks on `agents/*/suggestions/**/*.md` (v4.4.2)
 - **Autofix allowlist** — `fixer-core` + `app/fixer.ts` (plan only; git write pending)
-- **Trust scoring** — `trust-score.ts`; `TRAILHEAD_AGENT_TRUST_JSON` env until hosted lookup
+- **Trust scoring** — `trust-score.ts`; versioned metrics via `TRAILHEAD_AGENT_TRUST_JSON` ([agent-trust-metrics.md](./agent-trust-metrics.md))
+- **Gate verdict** — stable `trailhead.verdict.v1` on Action `verdict-json` output ([verdict.md](./verdict.md))
 - **MCP tools** — `validate-submission`, `apply-autofix`, `get-trust-score`
 - **Credit metering** — optional Komatik `deploy_check` ingest ([komatik-credit-metering.md](./komatik-credit-metering.md))
 
