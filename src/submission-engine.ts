@@ -13,14 +13,27 @@ export type { SubmissionCheckCode, SubmissionCheckResult } from "./types.js";
 /** Gate 1 + Phase 0 submission check codes — keep in sync with A8 fixture manifest. */
 export const SUBMISSION_CHECK_CODES = SubmissionCheckCode.options;
 
-const DEFAULT_STALE_TERMS = ["deployguard", "DeployGuard"];
-
 const DEFAULT_AUTH_ROUTE_ALLOWLIST = [
   "/api/auth/",
   "/api/webhooks/",
   "/api/health/",
   "/api/metrics/",
 ];
+
+/** Package names declared in a package.json (legacy gate parity). */
+export function declaredPackageNamesFromPackageJson(
+  pkg: Record<string, unknown>,
+): string[] {
+  const sections = [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies",
+  ] as const;
+  return sections.flatMap((key) =>
+    Object.keys((pkg[key] as Record<string, string> | undefined) ?? {}),
+  );
+}
 
 export interface SubmissionEngineOptions {
   files: import("./submission-checks/types.js").SubmissionFileInfo[];
@@ -35,8 +48,7 @@ export interface SubmissionEngineOptions {
 
 function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext {
   const { files, repoConfig, komatikInstance = false } = options;
-  const staleTerms =
-    repoConfig?.submission?.stale_terms ?? (komatikInstance ? DEFAULT_STALE_TERMS : []);
+  const staleTerms = repoConfig?.submission?.stale_terms ?? [];
 
   const declared = new Set(options.declaredPackages ?? []);
 
@@ -45,6 +57,7 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
     prPaths: prPathSet(files),
     komatikInstance,
     staleTerms,
+    namingAllowlist: repoConfig?.submission?.naming_allowlist ?? {},
     authRouteAllowlist:
       repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
     maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,

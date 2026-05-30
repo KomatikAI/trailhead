@@ -5,16 +5,16 @@ import type { SubmissionCheckContext } from "./types.js";
 import {
   addedLines,
   extensionOf,
-  extractImportSpecifiersFromLine,
+  extractAllImports,
   fileContent,
-  isCrossRepoSatellitePath,
   isStaleArchivedPath,
   isTestPath,
-  isValidPackageSpecifier,
   lineCountFromPatch,
+  linesForFreshnessScan,
   normalizePath,
   scanAddedContent,
 } from "./helpers.js";
+import type { NamingAllowlistConfig } from "./types.js";
 import { runPhase0Detectors } from "./phase0-detectors.js";
 import { validateFileSyntax } from "./syntax-validity.js";
 
@@ -32,6 +32,13 @@ export const OLD_NAME_PATTERNS: Array<{
   },
   { oldName: "Cognitive Debt", newName: "Drift", pattern: /\bCognitive Debt\b/g },
   { oldName: "cognitive-debt", newName: "Drift", pattern: /\bcognitive-debt\b/g },
+];
+
+const SLUG_ONLY_PATTERNS = [
+  /\bcognitive-debt\b/,
+  /\bstoryboard-studio\b/,
+  /\bdaydream-studio\b/,
+  /\bshadow-ai-governance\b/,
 ];
 
 const MOCK_PATTERNS = [
@@ -196,30 +203,74 @@ export function detectArtifactIntegrity(
   });
 }
 
-function isNamingAllowlisted(filename: string, line: string): boolean {
+function isNamingAllowlisted(
+  filename: string,
+  line: string,
+  allowlist: NamingAllowlistConfig = {},
+): boolean {
   const trimmed = line.trim();
-  if (/^import\s|^from\s|require\(/.test(trimmed)) return true;
-  if (/\.sql$/i.test(filename)) return true;
-  if (/(?:^|\/)migrations\//.test(filename)) return true;
-  if (/(?:^|\/)memory\//.test(filename)) return true;
-  if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(filename)) return true;
-  if (/^\[.*\]\(.*\)/.test(trimmed)) return true;
+  const path = normalizePath(filename);
+  const ext = extensionOf(filename);
+  const skipExtensions = allowlist.skip_extensions ?? [".sql"];
+  const skipPathPatterns = allowlist.skip_path_patterns ?? ["migrations/", "schema/"];
+  const skipCommentMarkers = allowlist.skip_comment_markers ?? [
+    "historical:",
+    "migration:",
+    "deprecated:",
+  ];
+
+  if (
+    allowlist.skip_in_imports !== false &&
+    /^import\s|^from\s|require\(/.test(trimmed)
+  ) {
+    return true;
+  }
+  if (skipExtensions.includes(ext)) return true;
+  if (skipPathPatterns.some((pattern) => path.includes(pattern))) return true;
+  if (
+    skipCommentMarkers.some((marker) =>
+      trimmed.toLowerCase().includes(marker.toLowerCase()),
+    )
+  ) {
+    return true;
+  }
+  if (/\/memory\//.test(path)) return true;
+  if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(path)) return true;
+  if (/^\[.*\]\(.*\)/.test(trimmed) || /\]\(http/.test(trimmed)) return true;
+
+  if (
+    SLUG_ONLY_PATTERNS.some((p) => p.test(trimmed)) &&
+    !/[A-Z]/.test(
+      trimmed.match(
+        /(?:cognitive-debt|storyboard-studio|daydream-studio|shadow-ai-governance)/,
+      )?.[0] ?? "",
+    )
+  ) {
+    return true;
+  }
+
+  if (/["'`/]/.test(trimmed)) {
+    const inStringOrPath =
+      /["'`/][^"'`]*(?:deployguard|storyboard-studio|daydream-studio|cognitive-debt|shadow-ai-governance|komatik-yggdrasil)[^"'`]*["'`/]/i;
+    if (inStringOrPath.test(trimmed)) return true;
+  }
+
   return false;
 }
 
 export function detectContextFreshness(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
-  if (ctx.staleTerms.length === 0 && !ctx.komatikInstance) return null;
+  if (!ctx.komatikInstance && ctx.staleTerms.length === 0) return null;
 
   const hits: string[] = [];
   for (const file of ctx.files) {
     if (isStaleArchivedPath(file.filename, ctx.pathIgnorePatterns)) continue;
-    for (const line of addedLines(file.patch)) {
-      if (isNamingAllowlisted(file.filename, line)) continue;
 
-      const terms = ctx.staleTerms.length > 0 ? ctx.staleTerms : [];
-      for (const term of terms) {
+    for (const line of linesForFreshnessScan(file)) {
+      if (isNamingAllowlisted(file.filename, line, ctx.namingAllowlist)) continue;
+
+      for (const term of ctx.staleTerms) {
         if (line.toLowerCase().includes(term.toLowerCase())) hits.push(file.filename);
       }
 
@@ -466,16 +517,15 @@ export function detectExternalPackageDeps(
 
   for (const file of ctx.files) {
     if (!codeExts.has(extensionOf(file.filename))) continue;
-    if (isCrossRepoSatellitePath(file.filename, ctx.prPaths)) continue;
 
-    for (const line of fileContent(file).split("\n")) {
-      for (const specifier of extractImportSpecifiersFromLine(line)) {
-        if (!isValidPackageSpecifier(specifier)) continue;
-        if (specifier.startsWith(".") || specifier.startsWith("@/")) continue;
-        if (isNodeBuiltin(specifier)) continue;
-        const pkg = packageNameFromSpecifier(specifier);
-        if (!ctx.declaredPackages.has(pkg)) hits.push(`${file.filename} → ${pkg}`);
-      }
+    for (const imp of extractAllImports(fileContent(file))) {
+      const specifier = imp.specifier;
+      if (specifier.startsWith(".") || specifier.startsWith("/")) continue;
+      if (specifier.startsWith("@/") || specifier.startsWith("~/")) continue;
+      if (specifier.startsWith("http:") || specifier.startsWith("https:")) continue;
+      if (isNodeBuiltin(specifier)) continue;
+      const pkg = packageNameFromSpecifier(specifier);
+      if (!ctx.declaredPackages.has(pkg)) hits.push(`${file.filename} → ${pkg}`);
     }
   }
 

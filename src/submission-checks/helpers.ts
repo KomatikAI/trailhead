@@ -107,16 +107,6 @@ export function packageJsonPathForFile(
   return prPaths.has("package.json") ? "package.json" : null;
 }
 
-/** Agent bundle paths like `payments/pack/src/...` without a local package.json in the PR. */
-export function isCrossRepoSatellitePath(
-  filename: string,
-  prPaths: Set<string>,
-): boolean {
-  const path = normalizePath(filename);
-  if (!/^[a-z][a-z0-9-]+\/[\w.-]+\/.+/.test(path)) return false;
-  return packageJsonPathForFile(filename, prPaths) === null;
-}
-
 const VALID_PACKAGE_SPECIFIER = /^(@[\w.-]+\/[\w.-]+|[\w@][\w.-]*)(?:\/[\w./-]*)?$/;
 
 export function isValidPackageSpecifier(specifier: string): boolean {
@@ -126,21 +116,35 @@ export function isValidPackageSpecifier(specifier: string): boolean {
   return VALID_PACKAGE_SPECIFIER.test(specifier);
 }
 
-/** Extract module specifiers from a single source line (import/require). */
-export function extractImportSpecifiersFromLine(line: string): string[] {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("*")) return [];
-
-  const specifiers: string[] = [];
+/** Extract module specifiers from full file content (legacy agent-gate parity). */
+export function extractAllImports(
+  content: string,
+): Array<{ specifier: string; line: number }> {
+  const results: Array<{ specifier: string; line: number }> = [];
   const patterns = [
-    /^\s*import\s+(?:type\s+)?(?:[\w*{}\s,$]|[^\S\r\n])+\s+from\s+['"]([^'"]+)['"]/,
-    /^\s*import\s+['"]([^'"]+)['"]\s*;?\s*$/,
-    /require\s*\(\s*['"]([^'"]+)['"]\s*\)/,
+    /\bimport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?['"]([^'"]+)['"]/g,
+    /\bexport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)['"]([^'"]+)['"]/g,
+    /\brequire\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
   ];
 
   for (const pattern of patterns) {
-    const match = trimmed.match(pattern);
-    if (match?.[1]) specifiers.push(match[1]);
+    pattern.lastIndex = 0;
+    for (const match of content.matchAll(pattern)) {
+      const specifier = match[1];
+      if (!specifier) continue;
+      const line = content.slice(0, match.index ?? 0).split("\n").length;
+      results.push({ specifier, line });
+    }
   }
-  return specifiers;
+  return results;
+}
+
+export function linesForFreshnessScan(file: {
+  filename: string;
+  patch?: string;
+  content?: string;
+}): string[] {
+  if (typeof file.content === "string") return file.content.split("\n");
+  return addedLines(file.patch);
 }

@@ -21,7 +21,8 @@
     "format:check": "prettier --check .",
     "dev": "tsx watch src/main.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "shadow-compare": "node scripts/shadow-compare-gates.mjs"
   },
   "dependencies": {
     "@actions/core": "^3.0.1",

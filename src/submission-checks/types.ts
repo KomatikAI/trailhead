@@ -7,11 +7,19 @@ export interface SubmissionFileInfo {
   additions?: number;
 }
 
+export interface NamingAllowlistConfig {
+  skip_extensions?: string[];
+  skip_path_patterns?: string[];
+  skip_comment_markers?: string[];
+  skip_in_imports?: boolean;
+}
+
 export interface SubmissionCheckContext {
   files: SubmissionFileInfo[];
   prPaths: Set<string>;
   komatikInstance: boolean;
   staleTerms: string[];
+  namingAllowlist: NamingAllowlistConfig;
   authRouteAllowlist: string[];
   maxFileLines: number;
   declaredPackages: Set<string>;

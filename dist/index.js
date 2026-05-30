@@ -42199,6 +42199,14 @@ const SubmissionConfig = objectType({
     max_file_lines: numberType().int().positive().optional(),
     /** Path substrings to skip for context_freshness (e.g. archived suggestion dirs). */
     path_ignore: arrayType(stringType()).optional(),
+    /** Legacy naming allowlist — skip stale-term hits on imports, slugs in strings, etc. */
+    naming_allowlist: objectType({
+        skip_extensions: arrayType(stringType()).optional(),
+        skip_path_patterns: arrayType(stringType()).optional(),
+        skip_comment_markers: arrayType(stringType()).optional(),
+        skip_in_imports: booleanType().optional(),
+    })
+        .optional(),
 });
 const RepoConfig = objectType({
     schema_version: numberType().int().positive().default(1),
@@ -43862,13 +43870,6 @@ function packageJsonPathForFile(filename, prPaths) {
     }
     return prPaths.has("package.json") ? "package.json" : null;
 }
-/** Agent bundle paths like `payments/pack/src/...` without a local package.json in the PR. */
-function isCrossRepoSatellitePath(filename, prPaths) {
-    const path = normalizePath(filename);
-    if (!/^[a-z][a-z0-9-]+\/[\w.-]+\/.+/.test(path))
-        return false;
-    return packageJsonPathForFile(filename, prPaths) === null;
-}
 const VALID_PACKAGE_SPECIFIER = /^(@[\w.-]+\/[\w.-]+|[\w@][\w.-]*)(?:\/[\w./-]*)?$/;
 function isValidPackageSpecifier(specifier) {
     if (!specifier || specifier.startsWith(".") || specifier.startsWith("@/"))
@@ -43879,23 +43880,31 @@ function isValidPackageSpecifier(specifier) {
         return false;
     return VALID_PACKAGE_SPECIFIER.test(specifier);
 }
-/** Extract module specifiers from a single source line (import/require). */
-function extractImportSpecifiersFromLine(line) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("*"))
-        return [];
-    const specifiers = [];
+/** Extract module specifiers from full file content (legacy agent-gate parity). */
+function extractAllImports(content) {
+    const results = [];
     const patterns = [
-        /^\s*import\s+(?:type\s+)?(?:[\w*{}\s,$]|[^\S\r\n])+\s+from\s+['"]([^'"]+)['"]/,
-        /^\s*import\s+['"]([^'"]+)['"]\s*;?\s*$/,
-        /require\s*\(\s*['"]([^'"]+)['"]\s*\)/,
+        /\bimport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?['"]([^'"]+)['"]/g,
+        /\bexport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)['"]([^'"]+)['"]/g,
+        /\brequire\(\s*['"]([^'"]+)['"]\s*\)/g,
+        /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
     ];
     for (const pattern of patterns) {
-        const match = trimmed.match(pattern);
-        if (match?.[1])
-            specifiers.push(match[1]);
+        pattern.lastIndex = 0;
+        for (const match of content.matchAll(pattern)) {
+            const specifier = match[1];
+            if (!specifier)
+                continue;
+            const line = content.slice(0, match.index ?? 0).split("\n").length;
+            results.push({ specifier, line });
+        }
     }
-    return specifiers;
+    return results;
+}
+function linesForFreshnessScan(file) {
+    if (typeof file.content === "string")
+        return file.content.split("\n");
+    return addedLines(file.patch);
 }
 
 ;// CONCATENATED MODULE: ./src/submission-checks/phase0-detectors.ts
@@ -48194,6 +48203,12 @@ const OLD_NAME_PATTERNS = [
     { oldName: "Cognitive Debt", newName: "Drift", pattern: /\bCognitive Debt\b/g },
     { oldName: "cognitive-debt", newName: "Drift", pattern: /\bcognitive-debt\b/g },
 ];
+const SLUG_ONLY_PATTERNS = [
+    /\bcognitive-debt\b/,
+    /\bstoryboard-studio\b/,
+    /\bdaydream-studio\b/,
+    /\bshadow-ai-governance\b/,
+];
 const MOCK_PATTERNS = [
     /\bTODO\s*\(\s*mock\s*\)/i,
     /\bFIXME\s*\(\s*mock\s*\)/i,
@@ -48336,34 +48351,56 @@ function detectArtifactIntegrity(ctx) {
         suggested_action: "Include referenced files or fix hallucinated paths.",
     });
 }
-function isNamingAllowlisted(filename, line) {
+function isNamingAllowlisted(filename, line, allowlist = {}) {
     const trimmed = line.trim();
-    if (/^import\s|^from\s|require\(/.test(trimmed))
+    const path = normalizePath(filename);
+    const ext = extensionOf(filename);
+    const skipExtensions = allowlist.skip_extensions ?? [".sql"];
+    const skipPathPatterns = allowlist.skip_path_patterns ?? ["migrations/", "schema/"];
+    const skipCommentMarkers = allowlist.skip_comment_markers ?? [
+        "historical:",
+        "migration:",
+        "deprecated:",
+    ];
+    if (allowlist.skip_in_imports !== false &&
+        /^import\s|^from\s|require\(/.test(trimmed)) {
         return true;
-    if (/\.sql$/i.test(filename))
+    }
+    if (skipExtensions.includes(ext))
         return true;
-    if (/(?:^|\/)migrations\//.test(filename))
+    if (skipPathPatterns.some((pattern) => path.includes(pattern)))
         return true;
-    if (/(?:^|\/)memory\//.test(filename))
+    if (skipCommentMarkers.some((marker) => trimmed.toLowerCase().includes(marker.toLowerCase()))) {
         return true;
-    if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(filename))
+    }
+    if (/\/memory\//.test(path))
         return true;
-    if (/^\[.*\]\(.*\)/.test(trimmed))
+    if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(path))
         return true;
+    if (/^\[.*\]\(.*\)/.test(trimmed) || /\]\(http/.test(trimmed))
+        return true;
+    if (SLUG_ONLY_PATTERNS.some((p) => p.test(trimmed)) &&
+        !/[A-Z]/.test(trimmed.match(/(?:cognitive-debt|storyboard-studio|daydream-studio|shadow-ai-governance)/)?.[0] ?? "")) {
+        return true;
+    }
+    if (/["'`/]/.test(trimmed)) {
+        const inStringOrPath = /["'`/][^"'`]*(?:deployguard|storyboard-studio|daydream-studio|cognitive-debt|shadow-ai-governance|komatik-yggdrasil)[^"'`]*["'`/]/i;
+        if (inStringOrPath.test(trimmed))
+            return true;
+    }
     return false;
 }
 function detectContextFreshness(ctx) {
-    if (ctx.staleTerms.length === 0 && !ctx.komatikInstance)
+    if (!ctx.komatikInstance && ctx.staleTerms.length === 0)
         return null;
     const hits = [];
     for (const file of ctx.files) {
         if (isStaleArchivedPath(file.filename, ctx.pathIgnorePatterns))
             continue;
-        for (const line of addedLines(file.patch)) {
-            if (isNamingAllowlisted(file.filename, line))
+        for (const line of linesForFreshnessScan(file)) {
+            if (isNamingAllowlisted(file.filename, line, ctx.namingAllowlist))
                 continue;
-            const terms = ctx.staleTerms.length > 0 ? ctx.staleTerms : [];
-            for (const term of terms) {
+            for (const term of ctx.staleTerms) {
                 if (line.toLowerCase().includes(term.toLowerCase()))
                     hits.push(file.filename);
             }
@@ -48582,20 +48619,19 @@ function detectExternalPackageDeps(ctx) {
     for (const file of ctx.files) {
         if (!codeExts.has(extensionOf(file.filename)))
             continue;
-        if (isCrossRepoSatellitePath(file.filename, ctx.prPaths))
-            continue;
-        for (const line of fileContent(file).split("\n")) {
-            for (const specifier of extractImportSpecifiersFromLine(line)) {
-                if (!isValidPackageSpecifier(specifier))
-                    continue;
-                if (specifier.startsWith(".") || specifier.startsWith("@/"))
-                    continue;
-                if (isNodeBuiltin(specifier))
-                    continue;
-                const pkg = packageNameFromSpecifier(specifier);
-                if (!ctx.declaredPackages.has(pkg))
-                    hits.push(`${file.filename} → ${pkg}`);
-            }
+        for (const imp of extractAllImports(fileContent(file))) {
+            const specifier = imp.specifier;
+            if (specifier.startsWith(".") || specifier.startsWith("/"))
+                continue;
+            if (specifier.startsWith("@/") || specifier.startsWith("~/"))
+                continue;
+            if (specifier.startsWith("http:") || specifier.startsWith("https:"))
+                continue;
+            if (isNodeBuiltin(specifier))
+                continue;
+            const pkg = packageNameFromSpecifier(specifier);
+            if (!ctx.declaredPackages.has(pkg))
+                hits.push(`${file.filename} → ${pkg}`);
         }
     }
     if (hits.length === 0)
@@ -48707,22 +48743,32 @@ function runAllDetectors(ctx) {
 
 /** Gate 1 + Phase 0 submission check codes — keep in sync with A8 fixture manifest. */
 const SUBMISSION_CHECK_CODES = SubmissionCheckCode.options;
-const DEFAULT_STALE_TERMS = ["deployguard", "DeployGuard"];
 const DEFAULT_AUTH_ROUTE_ALLOWLIST = [
     "/api/auth/",
     "/api/webhooks/",
     "/api/health/",
     "/api/metrics/",
 ];
+/** Package names declared in a package.json (legacy gate parity). */
+function declaredPackageNamesFromPackageJson(pkg) {
+    const sections = [
+        "dependencies",
+        "devDependencies",
+        "peerDependencies",
+        "optionalDependencies",
+    ];
+    return sections.flatMap((key) => Object.keys(pkg[key] ?? {}));
+}
 function buildContext(options) {
     const { files, repoConfig, komatikInstance = false } = options;
-    const staleTerms = repoConfig?.submission?.stale_terms ?? (komatikInstance ? DEFAULT_STALE_TERMS : []);
+    const staleTerms = repoConfig?.submission?.stale_terms ?? [];
     const declared = new Set(options.declaredPackages ?? []);
     return {
         files,
         prPaths: prPathSet(files),
         komatikInstance,
         staleTerms,
+        namingAllowlist: repoConfig?.submission?.naming_allowlist ?? {},
         authRouteAllowlist: repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
         maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
         declaredPackages: declared,

@@ -15,6 +15,7 @@ function ctx(partial: Partial<SubmissionCheckContext>): SubmissionCheckContext {
     prPaths: new Set(),
     komatikInstance: false,
     staleTerms: [],
+    namingAllowlist: {},
     authRouteAllowlist: [],
     maxFileLines: 1000,
     declaredPackages: new Set(),
@@ -102,14 +103,14 @@ BEGIN
 });
 
 describe("external_package_deps", () => {
-  it("ignores garbage tokens from loose matching", () => {
+  it("ignores http URL tokens like legacy gate", () => {
     const check = detectExternalPackageDeps(
       ctx({
         declaredPackages: new Set(["zod"]),
         files: [
           {
             filename: "src/handler.ts",
-            content: `const url = "https://example.com";\nobj).toString();\n`,
+            content: `const url = "https://example.com";\n`,
           },
         ],
       }),
@@ -117,7 +118,7 @@ describe("external_package_deps", () => {
     expect(check).toBeNull();
   });
 
-  it("skips cross-repo satellite paths without local package.json", () => {
+  it("flags undeclared imports using project-scoped declared packages", () => {
     const check = detectExternalPackageDeps(
       ctx({
         declaredPackages: new Set(["zod"]),
@@ -129,23 +130,54 @@ describe("external_package_deps", () => {
         ],
       }),
     );
-    expect(check).toBeNull();
+    expect(check?.code).toBe("external_package_deps");
   });
 
-  it("flags undeclared imports under root package.json scope", () => {
+  it("flags undeclared re-exports", () => {
     const check = detectExternalPackageDeps(
       ctx({
         declaredPackages: new Set(["zod"]),
-        prPaths: new Set(["package.json", "src/handler.ts"]),
         files: [
           {
             filename: "src/handler.ts",
-            content: `import Stripe from 'stripe';\n`,
+            content: `export { foo } from 'stripe';\n`,
           },
         ],
       }),
     );
     expect(check?.code).toBe("external_package_deps");
+  });
+});
+
+describe("context_freshness", () => {
+  it("does not flag lowercase deployguard in quoted paths (legacy allowlist)", () => {
+    const check = detectContextFreshness(
+      ctx({
+        komatikInstance: true,
+        files: [
+          {
+            filename: "src/route.ts",
+            content: `const repo = "komatik-agents/deployguard/workflow";\n`,
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("flags branded DeployGuard outside allowlisted strings", () => {
+    const check = detectContextFreshness(
+      ctx({
+        komatikInstance: true,
+        files: [
+          {
+            filename: "src/route.ts",
+            content: `// rename DeployGuard to Trailhead\n`,
+          },
+        ],
+      }),
+    );
+    expect(check?.code).toBe("context_freshness");
   });
 });
 
