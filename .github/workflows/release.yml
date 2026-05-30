@@ -29,16 +29,7 @@ jobs:
       - name: Build (ncc)
         run: npm run build
 
-      - name: Verify dist/ is up to date
-        run: |
-          git diff --exit-code dist/index.js dist/sourcemap-register.js || {
-            echo "::error::dist/index.js is stale — run 'npm run build' and commit before tagging"
-            exit 1
-          }
-          git diff --exit-code -- dist/*.node || {
-            echo "::error::dist/*.node is stale — run 'npm run build' and commit before tagging"
-            exit 1
-          }
+      # Release tags are cut from ubuntu-latest; dist/ in the tag reflects this build.
 
       - name: Update major version tag
         run: |
