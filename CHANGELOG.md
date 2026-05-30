@@ -4,6 +4,25 @@ All notable changes to Trailhead will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- **Shadow comparison tooling** — `scripts/shadow-compare-gates.mjs` and `npm run shadow-compare` compare the legacy komatik-agents gate vs `validate-submission` on real suggestion bundles (per-`projectSlug` `package.json` resolution). See `docs/submission-gate.md`.
+- **`declaredPackageNamesFromPackageJson()`** — helper for callers wiring per-submission declared packages.
+
+### Changed
+
+- **`syntax_validity`** — real parse via `@swc/core` + `js-yaml` (`src/submission-checks/syntax-validity.ts`); parses full `file.content` only (skips patch-only PR fragments). Action bundle ships cross-platform `dist/swc.*.node` via `scripts/copy-swc-bindings.mjs`.
+- **`sql_syntax_basic`** — SQL-aware BEGIN/END heuristics; downgraded to **`warn`**; only flags unclosed `BEGIN` blocks.
+- **`external_package_deps`** — legacy `extractAllImports` parity (re-exports, dynamic import); callers pass `declaredPackages` scoped to submission `projectSlug`.
+- **`context_freshness`** — legacy naming allowlists (slug-only lines, deprecated names in quoted paths); no default lowercase `deployguard` stale-term sweep unless configured in `submission.stale_terms`.
+- **`mock_placeholder`** — adds `"In production, use"` pattern.
+- **CLI** — `@swc/core` + `js-yaml` dependencies for standalone `validate-submission`.
+- **CI** — PR/release workflows validate `npm run build` on ubuntu; dropped cross-host `dist/` git-diff check (ncc module IDs vary by build OS).
+
+### Fixed
+
+- Shadow comparison regressions from komatik-agents cutover prep ([#249](https://github.com/KomatikAI/trailhead/issues/249), merged [#250](https://github.com/KomatikAI/trailhead/pull/250)): **66/66 bundles, 0 divergent decisions** across 9 shared checks.
+
 ## [4.4.2] - 2026-05-29
 
 ### Added

@@ -38,6 +38,13 @@ Set `KOMATIK_INSTANCE: "true"` in the workflow env to enable SOUL integrity and 
 
 Agents can call **`validate-submission`** with the same file patches before opening a PR:
 
+```bash
+# From repo root with komatik-agents cloned alongside:
+KOMATIK_AGENTS_ROOT=../agents npm run shadow-compare
+```
+
+Verifies Trailhead matches the legacy gate on real suggestion bundles (see [docs/submission-gate.md](../../docs/submission-gate.md#shadow-comparison-cutover-gate)).
+
 ```json
 {
   "files": [{ "filename": "agents/coordinator/suggestions/brief.md", "content": "..." }],

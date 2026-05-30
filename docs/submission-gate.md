@@ -44,6 +44,35 @@ Phase 0 runs only on markdown under `agents/*/suggestions/**` (or any `**/sugges
 
 **`context_freshness`** uses legacy naming allowlists (slug-only lines, deprecated names in quoted paths, import lines) — not blanket lowercase `deployguard` matching unless configured via `submission.stale_terms`.
 
+Optional `.trailhead.yml` tuning:
+
+```yaml
+submission:
+  enabled: true
+  mode: block
+  stale_terms: [] # explicit only; omit for OLD_NAME_PATTERNS-only (legacy default)
+  path_ignore: ["/archive/"] # merged with default _stale/_archive skips
+  naming_allowlist:
+    skip_extensions: [".sql"]
+    skip_path_patterns: ["migrations/", "schema/"]
+    skip_comment_markers: ["historical:", "migration:", "deprecated:"]
+```
+
+## Shadow comparison (cutover gate)
+
+Before retiring `komatik-agents/scripts/lib/agent-gate-checks.js`, run the read-only divergence report against real suggestion bundles:
+
+```bash
+# Shallow clone komatik-agents dev, then:
+KOMATIK_AGENTS_ROOT=/path/to/agents npm run shadow-compare
+```
+
+Report written to `shadow-compare-out/shadow-compare-report.json` (gitignored). **Cutover criterion:** 0 divergent decisions on shared checks (`secrets`, `destructive_sql`, `syntax_validity`, `mock_placeholder`, `hardcoded_env`, `external_package_deps`, `sql_syntax_basic`, `large_file`, `context_freshness`).
+
+**Status (May 30, 2026):** 66/66 bundles compared, **0 divergent** after [#250](https://github.com/KomatikAI/trailhead/pull/250). Trailhead `validate-submission` is behavioral equivalent to the legacy gate for whole-file suggestion submissions.
+
+**Caller contract for `external_package_deps`:** pass `declaredPackages` from the submission's `projectSlug` package.json (lookup order: `{slug}/package.json`, `projects/{slug}/package.json`, repo root). Use `declaredPackageNamesFromPackageJson()` from `submission-engine.ts`. The shadow script does this automatically; komatik-agents cutover wiring must do the same per bundle.
+
 ### Phase 0 codes (v4.4.2)
 
 **Group A — output shape:** `output_size_min`, `action_extraction_present`, `delta_section_present`, `preamble_absent`, `graduation_signals_section_present`, `fabricated_id_check`, `session_narrative_detection`

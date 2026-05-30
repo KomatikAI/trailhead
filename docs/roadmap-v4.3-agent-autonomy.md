@@ -491,6 +491,8 @@ trust = w1 * release_ready_rate
 
 Flip `.trailhead/agents.yaml` from `mode: warn` to `mode: enforce` for agent-provenance PRs on `komatik-agents` once Gate 1 false-positive rate < 10% across 30 PRs.
 
+**Shadow parity (May 30, 2026):** Trailhead [#250](https://github.com/KomatikAI/trailhead/pull/250) — `npm run shadow-compare` reports **66/66 bundles, 0 divergent** on shared checks vs legacy `agent-gate-checks.js`. Next: wire komatik-agents CI to `validate-submission` / Action `submission-gate: true` and retire in-repo duplicate gate ([agents #197](https://github.com/KomatikAI/agents/pull/197)).
+
 **Acceptance:**
 
 - Gate 1 enforce on `komatik-agents` for 7 consecutive days with zero false-positive blocks reported
@@ -500,6 +502,7 @@ Flip `.trailhead/agents.yaml` from `mode: warn` to `mode: enforce` for agent-pro
 - [x] Gate 1 engine shipped in Trailhead product (`submission-gate: true` input) — **v4.4.0**
 - [x] Phase 0 suggestion heuristics (14 advisory checks) — **v4.4.2**
 - [x] MCP parity: `validate-submission`, `apply-autofix`, `get-trust-score` — **v4.4.2**
+- [x] Shadow parity vs legacy agent gate (66 bundles, 0 divergent) — **dev May 30, 2026** ([#250](https://github.com/KomatikAI/trailhead/pull/250))
 - [ ] Komatik's in-repo gate retired in favor of Trailhead Action — [agents #197](https://github.com/KomatikAI/agents/pull/197) open
 - [ ] Fixer module commits at least 50 fixes on Komatik PRs with zero red-lane violations (git write pending)
 - [ ] Trust scoring live with nightly hosted lookup; probation/fast-track in active use

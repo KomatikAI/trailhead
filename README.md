@@ -148,7 +148,7 @@ For agent-authored PRs, Trailhead ships a **remediation payload** in `evaluation
     webhook-events: "block,warn,trailhead.blocked,trailhead.warn_high_risk,trailhead.ready,trailhead.loop_exceeded"
 ```
 
-**Phase B (v4.4.x):** Gate 1 submission checks (15 blocking + 14 Phase 0 advisory on suggestion markdown), trust scoring via `TRAILHEAD_AGENT_TRUST_JSON`, autofix planning, and MCP tools `validate-submission`, `apply-autofix`, `get-trust-score`. See [docs/submission-gate.md](docs/submission-gate.md).
+**Phase B (v4.4.x):** Gate 1 submission checks (15 blocking + 14 Phase 0 advisory on suggestion markdown), trust scoring via `TRAILHEAD_AGENT_TRUST_JSON`, autofix planning, and MCP tools `validate-submission`, `apply-autofix`, `get-trust-score`. Real-parser `syntax_validity` and shadow parity vs legacy komatik-agents gate documented in [docs/submission-gate.md](docs/submission-gate.md) (`npm run shadow-compare`).
 
 MCP consumers can also use **`get-remediation`** and **`subscribe-events`**. Human and operator branches (`claude/*`, `cursor/*`) keep today's fail-open behavior. See [docs/roadmap-v4.3-agent-autonomy.md](docs/roadmap-v4.3-agent-autonomy.md).
 

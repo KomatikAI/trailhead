@@ -2,7 +2,7 @@
 
 > Canonical cross-product map: `komatik-agents/PRODUCT-MAP.md`.
 
-**Internal Komatik use:** Our agent PR gate — risk/quality gate on agent-authored PRs, plus Gate 1 submission checks (`submission-gate: true`) and Phase 0 suggestion heuristics (v4.4.2).
+**Internal Komatik use:** Our agent PR gate — risk/quality gate on agent-authored PRs, plus Gate 1 submission checks (`submission-gate: true`) and Phase 0 suggestion heuristics (v4.4.2). **May 2026:** Trailhead `validate-submission` reached **0 divergent** shadow parity vs legacy `agent-gate-checks.js` on 66 komatik-agents suggestion bundles — cutover to Trailhead as sole submission gate is unblocked (see `docs/submission-gate.md`, `npm run shadow-compare`).
 
 **External product (what we sell):** Anyone uses Trailhead's logic + architecture to check **their own** personal agents' work — same submission engine, trust scoring, and MCP tools (`validate-submission`, `apply-autofix`, `get-trust-score`).
 
