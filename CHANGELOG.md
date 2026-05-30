@@ -2,6 +2,12 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [4.4.6] - 2026-05-30
+
+### Fixed
+
+- **npm CLI publish** — `@komatikai/trailhead` tarball ~185 KB (external `@swc/core`); fixes failed 4.4.5 publish of 51 MB fat bundle.
+
 ## [4.4.5] - 2026-05-30
 
 Merged [#261](https://github.com/KomatikAI/trailhead/pull/261) (epic [#252](https://github.com/KomatikAI/trailhead/issues/252)).

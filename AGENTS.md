@@ -126,7 +126,7 @@ Phase B (v4.4.x) adds **Gate 1 submission checks** (`submission-gate: true`), **
 ### Current repo state (May 30, 2026)
 
 - **Branch model**: **`dev`** is the default integration branch — open all feature PRs against `dev`. Promote with fast-forward only: `dev` → `staging` → `main` (production). Do **not** merge features directly to `main`.
-- **Released tag**: **v4.4.5** on **`main`** (`d246321`). **`dev` / `staging` / `main` aligned.** **`@v4`** floating tag updated by release workflow on promote. npm `@komatikai/trailhead@4.4.5` publish uses slim tarball + `@swc/core` at install (retry after external-deps fix).
+- **Released tag**: **v4.4.6** (pending promote) after npm slim-bundle fix. **`@v4`** updated on tag push. npm `@komatikai/trailhead@4.4.6` — external `@swc/core` at install (~185 KB tarball).
 - **Phase A (v4.3.0–v4.3.3):** Remediation schema, agent brief, semantic webhooks, loop bookkeeping, tuning digest, override label, self-test fixtures — merged.
 - **Phase B (v4.4.0–v4.4.5 on `main`):** Gate 1 engine (15 checks), Phase 0 suggestion heuristics (14 advisory), fixer allowlist (dry-run), **full agent-trust loop** (metrics v1, feedback v1, verdict v1, shadow/enforce runtime), config-driven submission detectors, prebuilt CLI bundle, persona presets + audience-aware `trailhead init`, MCP `validate-submission` / `apply-autofix` / `get-trust-score`, credit metering ingest (v4.4.1). See `docs/submission-gate.md`, `docs/agent-trust-metrics.md`, `docs/verdict.md`, `docs/getting-started.md`.
 - **Submission gate cutover (May 30):** Real-parser `syntax_validity`, shadow parity **66/66 bundles, 0 divergent** ([#249](https://github.com/KomatikAI/trailhead/issues/249) / [#250](https://github.com/KomatikAI/trailhead/pull/250)).

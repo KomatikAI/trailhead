@@ -15,7 +15,7 @@ npx @komatikai/trailhead doctor --offline
 Pin a version for CI:
 
 ```bash
-npm install -D @komatikai/trailhead@4.4.5
+npm install -D @komatikai/trailhead@4.4.6
 npx trailhead validate-submission --input bundle.json
 ```
 
