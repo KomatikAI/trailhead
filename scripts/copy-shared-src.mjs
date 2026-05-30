@@ -53,6 +53,7 @@ const cliFiles = [
   "ci-manifest.ts",
   "release-ready.ts",
   "doctor.ts",
+  "submission-engine.ts",
 ];
 
 const filesToCopy =
@@ -74,7 +75,7 @@ for (const file of filesToCopy) {
   fs.copyFileSync(path.join(root, "src", file), path.join(targetDir, file));
 }
 
-if (targetName === "app" || targetName === "mcp") {
+if (targetName === "app" || targetName === "mcp" || targetName === "cli") {
   const submissionChecksSrc = path.join(root, "src", "submission-checks");
   const submissionChecksDest = path.join(targetDir, "submission-checks");
   fs.mkdirSync(submissionChecksDest, { recursive: true });
