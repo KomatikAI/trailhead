@@ -51,7 +51,7 @@ import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
 import { assessColdStartFromMetrics } from "./agent-trust-metrics.js";
 import { computeAgentTrustScore } from "./trust-score.js";
 import { buildGateVerdict } from "./verdict.js";
-import type { GateDecision, GateEvaluation } from "./types.js";
+import type { GateDecision, GateEvaluation, RiskFactor } from "./types.js";
 
 registerAllAdapters();
 
@@ -1277,7 +1277,7 @@ server.tool(
       gateDecision: decision,
       healthChecks: [],
       riskFactors: riskFactors.map((factor) => ({
-        type: factor.type,
+        type: factor.type as RiskFactor["type"],
         score: factor.score,
       })),
       evaluationMs: 0,
