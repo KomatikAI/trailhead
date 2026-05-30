@@ -38,6 +38,8 @@ const sharedFiles = [
   "submission-engine.ts",
   "fixer-core.ts",
   "trust-score.ts",
+  "agent-trust-metrics.ts",
+  "trust-runtime.ts",
   "remediation-lanes.ts",
   "trailhead-events.ts",
 ];

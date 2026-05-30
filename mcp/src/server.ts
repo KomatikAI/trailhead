@@ -44,6 +44,7 @@ import {
 import { runSubmissionGate, submissionGateShouldBlock } from "./submission-engine.js";
 import { deriveSubmissionFixes } from "./submission-remediation.js";
 import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
+import { assessColdStartFromMetrics } from "./agent-trust-metrics.js";
 import { computeAgentTrustScore } from "./trust-score.js";
 
 registerAllAdapters();
@@ -2081,7 +2082,7 @@ server.tool(
 
 server.tool(
   "get-trust-score",
-  "Compute dynamic agent trust score and profile from evaluation metrics (Phase B3).",
+  "Compute dynamic agent trust score and profile from evaluation metrics (Phase B3). Returns trust=null on cold start.",
   {
     evaluations: z.number().int().min(0).describe("Total gate evaluations in window"),
     release_ready_count: z
@@ -2097,6 +2098,22 @@ server.tool(
       .array(z.number().int().min(0))
       .default([])
       .describe("Loop rounds for PRs that reached release_ready"),
+    penalty_quality: z
+      .object({
+        mean: z.number(),
+        std_dev: z.number().min(0),
+        clean_rate: z.number().min(0).max(1),
+        sample_count: z.number().int().min(0),
+      })
+      .optional()
+      .describe("Aggregated gate penalty total_score stats (lower mean = cleaner)"),
+    feedback: z
+      .object({
+        ci_failures: z.number().int().min(0).optional(),
+        reverts: z.number().int().min(0).optional(),
+        human_review: z.number().int().min(0).optional(),
+      })
+      .optional(),
   },
   async ({
     evaluations,
@@ -2106,8 +2123,10 @@ server.tool(
     policy_violation_count,
     sensitive_path_violation_count,
     remediation_rounds_to_ready,
+    penalty_quality,
+    feedback,
   }): Promise<ToolReturn> => {
-    const trust = computeAgentTrustScore({
+    const metrics = {
       evaluations,
       releaseReadyCount: release_ready_count,
       revertCount: revert_count,
@@ -2115,8 +2134,33 @@ server.tool(
       policyViolationCount: policy_violation_count,
       sensitivePathViolationCount: sensitive_path_violation_count,
       remediationRoundsToReady: remediation_rounds_to_ready,
+      ...(penalty_quality
+        ? {
+            penaltyQuality: {
+              mean: penalty_quality.mean,
+              stdDev: penalty_quality.std_dev,
+              cleanRate: penalty_quality.clean_rate,
+              sampleCount: penalty_quality.sample_count,
+            },
+          }
+        : {}),
+      ...(feedback
+        ? {
+            feedback: {
+              ciFailures: feedback.ci_failures,
+              reverts: feedback.reverts,
+              humanReview: feedback.human_review,
+            },
+          }
+        : {}),
+    };
+    const trust = computeAgentTrustScore(metrics);
+    const coldStart = assessColdStartFromMetrics(metrics);
+    return jsonResult({
+      trust,
+      cold_start: trust ? null : coldStart,
+      schema: "trailhead.agent_trust_metrics.v1",
     });
-    return jsonResult({ trust });
   },
 );
 

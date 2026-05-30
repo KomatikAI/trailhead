@@ -1,17 +1,15 @@
 // Phase B3 — dynamic agent trust scoring (pure module).
 
-export type TrustProfileName = "fast-track" | "standard" | "probation";
+import {
+  assessColdStartFromMetrics,
+  DEFAULT_TRUST_COLLECTOR_CONFIG,
+  type AgentTrustMetrics,
+  type TrustCollectorConfig,
+} from "./agent-trust-metrics.js";
 
-export interface AgentTrustMetrics {
-  evaluations: number;
-  releaseReadyCount: number;
-  revertCount: number;
-  humanReviewRequiredCount: number;
-  policyViolationCount: number;
-  sensitivePathViolationCount: number;
-  /** Sum of loop rounds for PRs that reached release_ready. */
-  remediationRoundsToReady: number[];
-}
+export type { AgentTrustMetrics } from "./agent-trust-metrics.js";
+
+export type TrustProfileName = "fast-track" | "standard" | "probation";
 
 export interface AgentTrustResult {
   score: number;
@@ -23,9 +21,12 @@ export interface AgentTrustResult {
     remediation_efficiency: number;
     policy_violation_rate: number;
     sensitive_path_violation_rate: number;
+    penalty_clean_rate?: number;
+    penalty_mean_quality?: number;
   };
   thresholdDelta: number;
   autofixEnabled: boolean;
+  coldStart?: { reason: string };
 }
 
 const WEIGHTS = {
@@ -35,6 +36,7 @@ const WEIGHTS = {
   remediation_efficiency: 0.15,
   policy_violation_penalty: 0.075,
   sensitive_path_penalty: 0.075,
+  penalty_mean_quality: 0.05,
 };
 
 function rate(numerator: number, denominator: number): number {
@@ -48,36 +50,66 @@ function remediationEfficiency(rounds: number[]): number {
   return Math.max(0, Math.min(1, 1 - (avg - 1) / 4));
 }
 
-export function computeAgentTrustScore(metrics: AgentTrustMetrics): AgentTrustResult {
+function penaltyMeanQuality(
+  penaltyQuality: AgentTrustMetrics["penaltyQuality"],
+  noisyThreshold: number,
+): number | undefined {
+  if (!penaltyQuality || penaltyQuality.sampleCount <= 0) return undefined;
+  return Math.max(0, Math.min(1, 1 - penaltyQuality.mean / noisyThreshold));
+}
+
+export function computeAgentTrustScore(
+  metrics: AgentTrustMetrics,
+  options?: { config?: Partial<TrustCollectorConfig> },
+): AgentTrustResult | null {
+  const config = { ...DEFAULT_TRUST_COLLECTOR_CONFIG, ...options?.config };
+  const coldStart = assessColdStartFromMetrics(metrics, config);
+  if (!coldStart.emitTrust) {
+    return null;
+  }
+
   const n = Math.max(metrics.evaluations, 0);
   const releaseReadyRate = rate(metrics.releaseReadyCount, n);
+  const penaltyCleanRate = metrics.penaltyQuality?.cleanRate;
+  const releaseSignal =
+    penaltyCleanRate !== undefined
+      ? Math.max(releaseReadyRate, penaltyCleanRate)
+      : releaseReadyRate;
+
   const revertRate = rate(metrics.revertCount, n);
   const humanReviewRate = rate(metrics.humanReviewRequiredCount, n);
   const policyViolationRate = rate(metrics.policyViolationCount, n);
   const sensitiveRate = rate(metrics.sensitivePathViolationCount, n);
   const remEff = remediationEfficiency(metrics.remediationRoundsToReady);
+  const meanQuality = penaltyMeanQuality(
+    metrics.penaltyQuality,
+    config.noisyPenaltyThreshold,
+  );
 
   const factors = {
-    release_ready_rate: releaseReadyRate,
+    release_ready_rate: releaseSignal,
     revert_rate: revertRate,
     human_review_required_rate: humanReviewRate,
     remediation_efficiency: remEff,
     policy_violation_rate: policyViolationRate,
     sensitive_path_violation_rate: sensitiveRate,
+    ...(penaltyCleanRate !== undefined ? { penalty_clean_rate: penaltyCleanRate } : {}),
+    ...(meanQuality !== undefined ? { penalty_mean_quality: meanQuality } : {}),
   };
 
-  const score = Math.max(
-    0,
-    Math.min(
-      1,
-      WEIGHTS.release_ready_rate * releaseReadyRate +
-        WEIGHTS.revert_resistance * (1 - revertRate) +
-        WEIGHTS.human_free_rate * (1 - humanReviewRate) +
-        WEIGHTS.remediation_efficiency * remEff -
-        WEIGHTS.policy_violation_penalty * policyViolationRate -
-        WEIGHTS.sensitive_path_penalty * sensitiveRate,
-    ),
-  );
+  let score =
+    WEIGHTS.release_ready_rate * releaseSignal +
+    WEIGHTS.revert_resistance * (1 - revertRate) +
+    WEIGHTS.human_free_rate * (1 - humanReviewRate) +
+    WEIGHTS.remediation_efficiency * remEff -
+    WEIGHTS.policy_violation_penalty * policyViolationRate -
+    WEIGHTS.sensitive_path_penalty * sensitiveRate;
+
+  if (meanQuality !== undefined) {
+    score += WEIGHTS.penalty_mean_quality * meanQuality;
+  }
+
+  score = Math.max(0, Math.min(1, score));
 
   let profile: TrustProfileName = "standard";
   if (score >= 0.85) profile = "fast-track";
