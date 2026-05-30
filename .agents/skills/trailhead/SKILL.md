@@ -148,6 +148,6 @@ Trailhead runs as a GitHub Action (`KomatikAI/trailhead@v4`). The MCP tools and 
 
 - **`dev`** is the default integration branch. Feature PRs target `dev`.
 - **`staging`** and **`main`** are promotion targets only (`dev` → `staging` → `main`, fast-forward).
-- **Released:** v4.4.2 on `main`; `@v4` tracks latest v4.x.
+- **Released:** v4.4.3 on `main`; `@v4` tracks latest v4.x.
 - MCP prebuild copies shared modules from `src/` into `mcp/src/` and `app/src/`; `submission-checks/` is copied as a directory.
 - If `src/risk-engine.ts` or `src/submission-engine.ts` imports a new local module, update prebuild scripts and committed dist artifacts in the same change.

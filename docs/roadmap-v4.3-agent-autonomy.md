@@ -78,8 +78,7 @@ Phases are **gated by measured success criteria**, not calendar. Do not advance 
 
 **Rollout targets (21 repos):**
 
-- **Base Camp monitored (14):** Komatik, komatik-agents, komatik-base-camp, deployguard, daydream-studio, storyboard-studio, shieldcheck, reviewflow, mcp-brokerage, rescue-engineering, shadow-ai-governance, drift, komatik-yggdrasil, Bored
-- **DORA-enabled satellites (7):** trace, pack, cairn, kindling, sundog, frontier, slipstream
+- **Fleet monitored (20):** komatik, agents, frontier, pack, trailhead, trace, slipstream, lodge, sundog, kindling, vector, cairn, koda, experiments, .github (+ legacy redirects). See `KomatikAI/agents` `AGENTS.md` for canonical list.
 
 **Strict default preset (`presets/trailhead-strict-agents.yml`, shipped in v4.3.0):**
 
@@ -268,7 +267,7 @@ Trailhead emits `trailhead.evaluation` events to `webhook-url` and to MCP subscr
 
 **komatik-agents side:**
 
-- `scripts/trailhead-coordinator-http.mjs` on Base Camp Spark receives `trailhead.webhook.v1` POSTs at `/api/webhooks/trailhead` — **merged** ([#175](https://github.com/KomatikAI/agents/pull/175)); runbook: `komatik-agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`
+- `scripts/trailhead-coordinator-http.mjs` on Spark #1 (port 3199) receives `trailhead.webhook.v1` POSTs at `/api/webhooks/trailhead` — **merged** ([#175](https://github.com/KomatikAI/agents/pull/175)); runbook: `agents/docs/runbooks/TRAILHEAD-COORDINATOR.md`
 - Routes blocked/warn events on **`agent/<id>/*`** branches → `agent_messages` to submitting agent with remediation JSON (inert until Path-1 bridge)
 - **`claude/*` and `cursor/*`** operator branches → logged only (`operator-skip`) — David's PRs do not spam coordinator
 - Also logs to `events` table (BC6-compatible metadata); dedupes on `evaluationId`

@@ -74,7 +74,7 @@ Reference copy for Trailhead Cloud hosted tier: `cloud/migrations/002_loop_bookk
 **Pending:**
 
 - [Komatik migration](../runbooks/KOMATIK-A5-STORE-MIGRATION.md) — `agent_provenance_id` column + store mapper update
-- Strict-agent preset on remaining Base Camp repos — `scripts/batch-strict-preset-prs.mjs` (#229)
+- Strict-agent preset on remaining fleet repos — `scripts/batch-strict-preset-prs.mjs` (#229)
 
 ## Deployment rules (mandatory)
 

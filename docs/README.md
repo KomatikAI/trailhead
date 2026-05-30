@@ -295,7 +295,7 @@ Configure semantic delivery in workflow YAML:
     webhook-events: "block,warn,trailhead.blocked,trailhead.warn_high_risk,trailhead.ready,trailhead.loop_exceeded"
 ```
 
-Komatik Base Camp runs a coordinator receiver (`komatik-agents` PR #175) that routes remediation to fleet agents via `agent_messages`. See [docs/roadmap-v4.3-agent-autonomy.md](roadmap-v4.3-agent-autonomy.md) for the full plan.
+The Komatik fleet (`agents` repo) runs a Trailhead coordinator receiver (Spark port 3199, [PR #175](https://github.com/KomatikAI/agents/pull/175)) that routes remediation to fleet agents via `agent_messages`. See [docs/roadmap-v4.3-agent-autonomy.md](roadmap-v4.3-agent-autonomy.md) for the full plan.
 
 Human PRs (`claude/*`, `cursor/*`, explicit `human` provenance) are unchanged — fail-open defaults preserved.
 
@@ -303,7 +303,7 @@ Human PRs (`claude/*`, `cursor/*`, explicit `human` provenance) are unchanged �
 
 This repository uses the **progressive branch model**: **`dev`** (integration/default) → **`staging`** (pre-production) → **`main`** (production). Open feature PRs against **`dev`**. CI runs on PRs to `dev` and on pushes to `dev`, `staging`, and `main`. Promote with fast-forward merges only; tag releases on `main`.
 
-**Current state (May 2026):** **v4.4.2** on `main` (`@v4` → same commit). Phase A shipped (v4.3.0–v4.3.3). Phase B core shipped (v4.4.0–v4.4.2): Gate 1, Phase 0, fixer plan, trust score, MCP parity, credit metering. **Pending B4:** komatik-agents enforce mode after FP metrics; fixer git write; hosted trust lookup. Komatik hosted store: [komatik-hosted-store.md](./komatik-hosted-store.md).
+**Current state (May 2026):** **v4.4.3** on `main` (`@v4` → same commit). Phase A shipped (v4.3.0–v4.3.3). Phase B shipped through v4.4.3: Gate 1 with real-parser shadow parity, Phase 0, fixer plan, trust score, MCP parity, credit metering. **B4:** agents #197 dogfoods `submission-gate: true` in warn mode; enforce after FP metrics. Komatik hosted store: [komatik-hosted-store.md](./komatik-hosted-store.md).
 
 ## Key Decisions
 
