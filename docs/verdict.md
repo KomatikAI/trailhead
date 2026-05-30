@@ -2,7 +2,7 @@
 
 Stable, versioned output for collectors, event stores, and dashboards — replaces ad-hoc `agent_gate_decision.metadata` field guessing.
 
-Related: [agent-trust-metrics.md](./agent-trust-metrics.md) · [agent-trust-feedback.md](./agent-trust-feedback.md) · Epic [#252](https://github.com/KomatikAI/trailhead/issues/252) · Issue [#260](https://github.com/KomatikAI/trailhead/issues/260)
+Related: [agent-trust-metrics.md](./agent-trust-metrics.md) · [agent-trust-feedback.md](./agent-trust-feedback.md) · Epic [#252](https://github.com/KomatikAI/trailhead/issues/252) shipped ([#261](https://github.com/KomatikAI/trailhead/pull/261)) · Issue [#260](https://github.com/KomatikAI/trailhead/issues/260)
 
 ## Schema
 

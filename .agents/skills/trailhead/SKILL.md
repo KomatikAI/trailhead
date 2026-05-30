@@ -3,7 +3,7 @@ name: trailhead
 description: "Use before merging PRs, deploying code, or when asked about deployment risk, DORA metrics, deploy safety, health checks, or release timing. Triggers: deploy, merge, PR review, risk score, deployment gate, DORA, change failure rate, deploy timing, freeze window, health check, rollback, canary, release, submission gate, agent trust, autofix."
 metadata:
   author: komatik
-  version: "4.4.2"
+  version: "4.4.4-dev"
 ---
 
 # Trailhead
@@ -82,7 +82,9 @@ Use these tools via the Trailhead MCP server (**26 tools**). Tools that don't re
 - **`get-remediation`** — Read remediation block from evaluation JSON or Trailhead Cloud.
 - **`subscribe-events`** — Poll semantic webhook events until match.
 - **`apply-autofix`** — Plan allowlisted autofixes from remediation fixes (dry-run default; no git writes from MCP).
-- **`get-trust-score`** — Compute agent trust profile from rolling evaluation metrics.
+- **`get-trust-score`** — Compute agent trust profile from `trailhead.agent_trust_metrics.v1` (returns null profile on cold start).
+
+Action outputs **`verdict-json`** (`trailhead.verdict.v1`) and **`evaluation-json`** — new integrations should read `verdict.penalty` for pre-merge agent quality, not `riskScore` alone.
 
 ### Post-Deploy (run after every deployment)
 
@@ -118,7 +120,7 @@ The standard Trailhead workflow for any PR:
 2. **If agent PR** → `validate-submission` when submission gate enabled
 3. **If score > 55** → `explain-risk-factors` to show the developer what's driving risk
 4. **Check policy** → `evaluate-policy` for freeze windows, security alerts, DORA signals
-5. **Trust** → `get-trust-score` when metrics available; respect probation strictness
+5. **Trust** → `get-trust-score` when `TRAILHEAD_AGENT_TRUST_JSON` / metrics envelope present; **`null` trust = cold start** — do not treat as probation. Respect shadow vs enforce (`TRAILHEAD_TRUST_SHADOW`). Prefer **`verdict.penalty`** over deploy risk for agent quality signals.
 6. **If clear** → approve merge
 7. **After deploy** → `check-http-health` (and provider-specific checks if configured)
 8. **If health fails** → `get-deployment-status` + surface the issue immediately
@@ -134,7 +136,7 @@ Trailhead reads `.trailhead.yml` (or a legacy v1 config filename alias) from the
 - Health check endpoints
 - Webhook notification targets (Slack, Discord, custom)
 - Agent policy strictness (`policies.*`), escalation SLAs, service contracts/consumers
-- **Submission gate** (`submission.enabled`, `submission.mode`) — Gate 1 checks
+- **Submission gate** (`submission.enabled`, `submission.mode`, `submission.detectors.*`) — Gate 1 checks + per-detector policy ([#256](https://github.com/KomatikAI/trailhead/issues/256))
 
 Action input: `submission-gate: "true"` enables Gate 1 alongside the deploy gate.
 
@@ -146,8 +148,9 @@ Trailhead runs as a GitHub Action (`KomatikAI/trailhead@v4`). The MCP tools and 
 
 ## Repository Maintenance Notes
 
-- **`dev`** is the default integration branch. Feature PRs target `dev`.
+- **`dev`** is the default integration branch. Feature PRs target `dev`. **`dev` is ahead of `main`** with epic #252 / PR #261 (agent trust loop, verdict v1, CLI bundle).
 - **`staging`** and **`main`** are promotion targets only (`dev` → `staging` → `main`, fast-forward).
-- **Released:** v4.4.3 on `main`; `@v4` tracks latest v4.x.
+- **Released on `main`:** v4.4.4; **`@v4`** tracks latest v4.x after promote. CLI: `npx @komatikai/trailhead@4.4.4` (prebuilt bundle after next tag publish).
+- **Komatik agents dogfood:** [PR #206](https://github.com/KomatikAI/agents/pull/206) shadow collector; slim duplicated trust mirrors after merge. See `docs/agent-trust-metrics.md#komatik-fleet-integration`.
 - MCP prebuild copies shared modules from `src/` into `mcp/src/` and `app/src/`; `submission-checks/` is copied as a directory.
 - If `src/risk-engine.ts` or `src/submission-engine.ts` imports a new local module, update prebuild scripts and committed dist artifacts in the same change.

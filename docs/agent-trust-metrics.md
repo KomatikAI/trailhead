@@ -2,7 +2,33 @@
 
 Trailhead dynamic agent trust consumes a versioned metrics payload via `TRAILHEAD_AGENT_TRUST_JSON` (Action runtime) or the MCP `get-trust-score` tool.
 
-Reference collector: [KomatikAI/agents PR #203](https://github.com/KomatikAI/agents/pull/203) (`scripts/lib/agent-trust-collector.js`).
+Reference collector (komatik fleet): [KomatikAI/agents PR #206](https://github.com/KomatikAI/agents/pull/206) — shadow mode on `main`; duplicates product-owned helpers until slim follow-up.
+
+## Komatik fleet integration
+
+**Product owns (canonical — do not reimplement in agents):**
+
+| Module                        | Contract                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `src/agent-trust-metrics.ts`  | `trailhead.agent_trust_metrics.v1`, `parseAgentTrustMetrics`, `computeScoreDistribution`, `assessColdStart` |
+| `src/agent-trust-feedback.ts` | `trailhead.feedback.v1`, `rollupFeedbackForAgent`, `mergeFeedbackIntoMetrics`                               |
+| `src/trust-score.ts`          | `computeAgentTrustScore()` — returns `null` on cold start                                                   |
+| `src/verdict.ts`              | `trailhead.verdict.v1`; collectors read **`verdict.penalty`**, not deploy `risk.score`                      |
+| `cli/dist/` (npm)             | `validate-submission`, `doctor` — `@komatikai/trailhead@4.4.4` after promote/tag                            |
+
+**Agents repo keeps (fleet-specific):**
+
+- Events DB → metrics JSON extractor + Spark cron (`run-trust-shadow-report.sh`)
+- Injection of `TRAILHEAD_AGENT_TRUST_JSON` at gate runtime (shadow only until enforce)
+
+**Tracked debt after agents #206 merge:**
+
+1. Delete `scripts/lib/trust-score.cjs` mirror and duplicated distribution/cold-start/schema code
+2. Drop vendored `trailhead/cli-dist/` → npm pin `@komatikai/trailhead`
+3. Wire `log-gate-decision.js` to Action `verdict-json` / `verdict.penalty`
+4. Bump B4 `.trailhead.yml` pin `4.4.3` → `4.4.4` when trailhead promotes to `main`
+
+Epic [#252](https://github.com/KomatikAI/trailhead/issues/252) **shipped** on trailhead `dev` ([#261](https://github.com/KomatikAI/trailhead/pull/261)).
 
 ## Schema
 
@@ -87,4 +113,4 @@ Live `agent_gate_decision` events store **`total_score` as a penalty** (lower = 
 
 ## Related issues
 
-Epic [#252](https://github.com/KomatikAI/trailhead/issues/252): #253 cold-start, #254 penalty distribution, #255 schema, #259 shadow mode.
+Epic [#252](https://github.com/KomatikAI/trailhead/issues/252) shipped on trailhead `dev` ([#261](https://github.com/KomatikAI/trailhead/pull/261)): #253–#260. Komatik collector integration: [agents #206](https://github.com/KomatikAI/agents/pull/206).

@@ -126,14 +126,15 @@ Phase B (v4.4.x) adds **Gate 1 submission checks** (`submission-gate: true`), **
 ### Current repo state (May 30, 2026)
 
 - **Branch model**: **`dev`** is the default integration branch — open all feature PRs against `dev`. Promote with fast-forward only: `dev` → `staging` → `main` (production). Do **not** merge features directly to `main`.
-- **Released tag**: **v4.4.4** on `main`. **`@v4`** floating tag updated by release workflow.
+- **Released tag**: **v4.4.4** on **`main`**. **`dev` is ahead** with [#261](https://github.com/KomatikAI/trailhead/pull/261) (epic [#252](https://github.com/KomatikAI/trailhead/issues/252), `33613aa`). **`@v4`** floating tag updated by release workflow on promote.
 - **Phase A (v4.3.0–v4.3.3):** Remediation schema, agent brief, semantic webhooks, loop bookkeeping, tuning digest, override label, self-test fixtures — merged.
-- **Phase B (v4.4.0–v4.4.4):** Gate 1 engine (15 checks), Phase 0 suggestion heuristics (14 advisory), fixer allowlist (dry-run), trust scoring, MCP `validate-submission` / `apply-autofix` / `get-trust-score`, credit metering ingest (v4.4.1). See `docs/submission-gate.md`.
+- **Phase B (v4.4.0–v4.4.4+ on `dev`):** Gate 1 engine (15 checks), Phase 0 suggestion heuristics (14 advisory), fixer allowlist (dry-run), **full agent-trust loop** (metrics v1, feedback v1, verdict v1, shadow/enforce runtime), config-driven submission detectors, prebuilt CLI bundle, MCP `validate-submission` / `apply-autofix` / `get-trust-score`, credit metering ingest (v4.4.1). See `docs/submission-gate.md`, `docs/agent-trust-metrics.md`, `docs/verdict.md`.
 - **Submission gate cutover (May 30):** Real-parser `syntax_validity`, shadow parity **66/66 bundles, 0 divergent** ([#249](https://github.com/KomatikAI/trailhead/issues/249) / [#250](https://github.com/KomatikAI/trailhead/pull/250)).
-- **B4 dogfood:** [agents #197](https://github.com/KomatikAI/agents/pull/197) **merged** — PR-mode `submission-gate: true` @ `v4.4.3`; enforce mode pending FP metrics.
-- **A6 fleet rollout:** Re-pin satellites from `@v4.3.0` to **`@v4.4.3`** / `@v4`.
+- **B4 dogfood:** [agents #197](https://github.com/KomatikAI/agents/pull/197) **merged** — PR-mode `submission-gate: true` @ `v4.4.3`; enforce mode pending FP metrics; pin **4.4.4** after trailhead promote.
+- **Agent trust dogfood:** Product contracts graduated from komatik parallel build ([#261](https://github.com/KomatikAI/trailhead/pull/261)). [agents #206](https://github.com/KomatikAI/agents/pull/206) adds shadow collector on `main`; **follow-up** slims duplicated `scripts/lib/agent-trust-*.js` / `trust-score.cjs` to events→metrics + Spark cron only; wire `log-gate-decision.js` to `verdict.penalty`.
+- **A6 fleet rollout:** Re-pin satellites from `@v4.3.0` to **`@v4.4.4`** / `@v4` after promote.
 - **Komatik hosted store:** [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014); read path [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236). See `docs/komatik-hosted-store.md`.
-- **Tests:** 691 root + 21 cloud on `dev`.
+- **Tests:** 722 root + 21 cloud on `dev`.
 - **Legacy compatibility**: `.deployguard.yml` configs and `DEPLOYGUARD_*` env vars still accepted where already shipped.
 - **Coordinator:** Spark port 3199 — `agents/docs/runbooks/TRAILHEAD-COORDINATOR.md` ([#175](https://github.com/KomatikAI/agents/pull/175) merged).
 
@@ -171,7 +172,7 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 - **Bundler**: `@vercel/ncc` → single CJS file at `dist/index.js`.
 - **TypeScript**: `moduleResolution: "Bundler"`, `module: "ESNext"` — required because `@actions/github@9` ships ESM-only exports.
 - **Linting**: ESLint + typescript-eslint + Prettier (CI enforces `format:check` before lint).
-- **Testing**: Vitest (691 root tests + 21 cloud tests).
+- **Testing**: Vitest (722 root tests + 21 cloud tests).
 
 ### CI pipeline
 
@@ -179,9 +180,10 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 
 1. `npm run format:check` — Prettier
 2. `npm run lint` — ESLint + `tsc --noEmit`
-3. `tsc --noEmit` for `cli/`, `app/`, `mcp/` (each with prebuild where needed)
-4. `npx vitest run --coverage` — Vitest with coverage thresholds enforced (60/50/60/60)
-5. `npm run build` — ncc bundle (ubuntu; no cross-host `dist/` git-diff check)
+3. `tsc --noEmit` for `cli/`, `app/`, `mcp/`, `cloud/` (each with prebuild where needed)
+4. `npm run build:cli` + `node cli/dist/index.js doctor --offline`
+5. `npx vitest run --coverage` — Vitest with coverage thresholds enforced (60/50/60/60)
+6. `npm run build` — ncc bundle (ubuntu; no cross-host `dist/` git-diff check)
 
 **Note**: Feature work targets **`dev`**. Run build + tests after promoting `dev` → `staging` → `main`.
 
@@ -192,7 +194,7 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 - **`src/risk-engine.ts`** — pure module with no `@actions/*` deps, shared via prebuild copy to `mcp/src/` and `app/src/`.
 - **`mcp/src/adapters/*`** and **`mcp/dist/adapters/*`** — generated/prebuild copies that are intentionally committed so `mcp/dist/server.js` resolves runtime imports without a local build step.
 - **`app/`** and **`mcp/`** are separate TypeScript projects; match their local patterns when editing.
-- **`cli/`** — ESM wizard; run `cd cli && npx tsc` after edits.
+- **`cli/`** — ncc bundle via `npm run build:cli`; typecheck with `cd cli && npm run typecheck`. Published `@komatikai/trailhead` ships prebuilt `dist/` only.
 - Always run `npm run format` before committing — CI will reject unformatted code.
 - **`.trailhead.yml`** — canonical repo policy. `.deployguard.yml` is still accepted as a legacy fallback for consumers.
 
@@ -231,6 +233,11 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 | `scripts/shadow-compare-gates.mjs` | Legacy vs Trailhead divergence report        |
 | `src/fixer-core.ts`  | Autofix allowlist + red-lane globs (Phase B2)       |
 | `src/trust-score.ts` | Dynamic agent trust profiles (Phase B3)             |
+| `src/agent-trust-metrics.ts` | `trailhead.agent_trust_metrics.v1` schema + parser |
+| `src/agent-trust-feedback.ts` | `trailhead.feedback.v1` post-merge rollup          |
+| `src/trust-runtime.ts` | Shadow/enforce/kill switch for trust JSON           |
+| `src/verdict.ts` | `trailhead.verdict.v1` gate verdict contract            |
+| `scripts/build-cli-bundle.mjs` | ncc CLI bundle + vendored SWC bindings          |
 | `src/credit-meter.ts`| Komatik deploy_check credit ingest (v4.4.1)         |
 | `mcp/src/server.ts`  | MCP server (26 tools)                               |
 | `app/src/handler.ts` | GitHub App webhook handler                          |

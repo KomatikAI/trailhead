@@ -2,6 +2,27 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [Unreleased] — on `dev` (not yet on `main`)
+
+Merged [#261](https://github.com/KomatikAI/trailhead/pull/261) (epic [#252](https://github.com/KomatikAI/trailhead/issues/252), commit `33613aa`).
+
+### Added
+
+- **Agent trust metrics v1** — `trailhead.agent_trust_metrics.v1` schema, `parseAgentTrustMetrics`, `computeScoreDistribution`, `assessColdStart`, cold-start `null` scoring, `penaltyQuality` + `feedback` blocks ([#253](https://github.com/KomatikAI/trailhead/issues/253)–[#255](https://github.com/KomatikAI/trailhead/issues/255)).
+- **Trust runtime** — `TRAILHEAD_TRUST_SHADOW`, `TRAILHEAD_TRUST_ENFORCE`, kill switch; backward-compatible default applies threshold delta unless shadow is on ([#259](https://github.com/KomatikAI/trailhead/issues/259)).
+- **Post-merge feedback** — `trailhead.feedback.v1`, `rollupFeedbackForAgent`, `mergeFeedbackIntoMetrics` ([#257](https://github.com/KomatikAI/trailhead/issues/257)).
+- **Gate verdict v1** — `trailhead.verdict.v1` with penalty vs risk disambiguation; Action `verdict-json` output, webhook `verdict` block, MCP `verdict` on `validate-submission` / `evaluate-policy` ([#260](https://github.com/KomatikAI/trailhead/issues/260)).
+- **Config-driven submission detectors** — `submission.rename_patterns`, `slug_only_patterns`, `detectors.<code>` policy in `.trailhead.yml` ([#256](https://github.com/KomatikAI/trailhead/issues/256)).
+- **Prebuilt CLI bundle** — `npm run build:cli` (ncc + vendored `swc.*.node`); published `@komatikai/trailhead` tarball needs no runtime `@swc/core` install ([#258](https://github.com/KomatikAI/trailhead/issues/258)).
+
+### Changed
+
+- **Komatik dogfood alignment** — product contracts match agents penalty-semantics brief; collectors should migrate from duplicated `scripts/lib/agent-trust-*.js` to thin events→metrics extractors + published CLI (see [agent-trust-metrics.md](./docs/agent-trust-metrics.md#komatik-fleet-integration)).
+
+### Docs
+
+- [agent-trust-metrics.md](./docs/agent-trust-metrics.md), [agent-trust-feedback.md](./docs/agent-trust-feedback.md), [verdict.md](./docs/verdict.md), [submission-gate.md](./docs/submission-gate.md) (detector policy + CLI bundle notes).
+
 ## [4.4.4] - 2026-05-30
 
 ### Fixed

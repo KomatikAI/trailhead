@@ -16,7 +16,8 @@ All three runtime interfaces plus Cloud share a single **risk engine** (`src/ris
 │  Shared modules (pure — no @actions deps)                         │
 │  risk-engine · ci-core · release-ready · context-matcher · types  │
 │  feedback-core · deployment-gate · config-core · submission-engine │
-│  fixer-core · trust-score · credit-meter                          │
+│  fixer-core · trust-score · trust-runtime · agent-trust-metrics · verdict │
+│  agent-trust-feedback · credit-meter                                      │
 ├──────────────────┬────────────────────┬───────────────────────────┤
 │  GitHub Action   │    GitHub App      │       MCP Server          │
 │  src/main.ts     │  app/handler.ts    │     mcp/server.ts         │
@@ -32,7 +33,7 @@ All three runtime interfaces plus Cloud share a single **risk engine** (`src/ris
 
 ### CLI
 
-`npx @komatikai/trailhead init` generates `.trailhead.yml` and the workflow YAML interactively. See `cli/README.md`.
+`npx @komatikai/trailhead init` / `doctor` / `validate-submission` — **prebuilt npm bundle** (no consumer build; vendored `swc.*.node`). Repo devs: `npm run build:cli`. See [cli/README.md](../cli/README.md).
 
 ## Risk Scoring
 
@@ -277,15 +278,16 @@ Trailhead is evolving from a human-supervised merge gate into a **coach → fixe
 - **Semantic webhooks** — `trailhead.blocked`, `trailhead.warn_high_risk`, `trailhead.ready`, `trailhead.loop_exceeded` (schema `trailhead.webhook.v1`)
 - **MCP tools** — `get-remediation`, `subscribe-events` (long-poll)
 
-### Phase B — Fixer (v4.4.x, partial)
+### Phase B — Fixer (v4.4.x, shipped on `dev`)
 
-- **Gate 1 submission engine** — 15 blocking checks via `submission-gate: true` ([submission-gate.md](./submission-gate.md))
+- **Gate 1 submission engine** — 15 blocking checks via `submission-gate: true` ([submission-gate.md](./submission-gate.md)); **config-driven detector policy** in `.trailhead.yml` ([#256](https://github.com/KomatikAI/trailhead/issues/256))
 - **Phase 0 suggestion heuristics** — 14 advisory checks on `agents/*/suggestions/**/*.md` (v4.4.2)
 - **Autofix allowlist** — `fixer-core` + `app/fixer.ts` (plan only; git write pending)
-- **Trust scoring** — `trust-score.ts`; versioned metrics via `TRAILHEAD_AGENT_TRUST_JSON` ([agent-trust-metrics.md](./agent-trust-metrics.md))
+- **Agent trust loop** — `trailhead.agent_trust_metrics.v1`, cold-start null, shadow/enforce runtime, post-merge `trailhead.feedback.v1` ([agent-trust-metrics.md](./agent-trust-metrics.md), [agent-trust-feedback.md](./agent-trust-feedback.md); epic [#252](https://github.com/KomatikAI/trailhead/issues/252) / [#261](https://github.com/KomatikAI/trailhead/pull/261))
 - **Gate verdict** — stable `trailhead.verdict.v1` on Action `verdict-json` output ([verdict.md](./verdict.md))
 - **MCP tools** — `validate-submission`, `apply-autofix`, `get-trust-score`
 - **Credit metering** — optional Komatik `deploy_check` ingest ([komatik-credit-metering.md](./komatik-credit-metering.md))
+- **CLI bundle** — `@komatikai/trailhead` ships ncc `dist/` + cross-platform SWC bindings ([#258](https://github.com/KomatikAI/trailhead/issues/258))
 
 Configure semantic delivery in workflow YAML:
 
@@ -304,7 +306,7 @@ Human PRs (`claude/*`, `cursor/*`, explicit `human` provenance) are unchanged �
 
 This repository uses the **progressive branch model**: **`dev`** (integration/default) → **`staging`** (pre-production) → **`main`** (production). Open feature PRs against **`dev`**. CI runs on PRs to `dev` and on pushes to `dev`, `staging`, and `main`. Promote with fast-forward merges only; tag releases on `main`.
 
-**Current state (May 2026):** **v4.4.3** on `main` (`@v4` → same commit). Phase A shipped (v4.3.0–v4.3.3). Phase B shipped through v4.4.3: Gate 1 with real-parser shadow parity, Phase 0, fixer plan, trust score, MCP parity, credit metering. **B4:** agents #197 dogfoods `submission-gate: true` in warn mode; enforce after FP metrics. Komatik hosted store: [komatik-hosted-store.md](./komatik-hosted-store.md).
+**Current state (May 30, 2026):** **`dev`** is **ahead of `main`** with epic [#252](https://github.com/KomatikAI/trailhead/issues/252) shipped ([#261](https://github.com/KomatikAI/trailhead/pull/261), `33613aa`): agent trust metrics/feedback contracts, verdict v1, detector policy, prebuilt CLI bundle. **`main`** remains **v4.4.4** until `dev` → `staging` → `main` promotion. Phase A shipped (v4.3.0–v4.3.3). Phase B on `dev`: Gate 1 with real-parser shadow parity, Phase 0, fixer plan, full trust loop, MCP parity, credit metering. **B4:** agents #197 dogfoods `submission-gate: true` @ `v4.4.3`; bump to `v4.4.4` + slim trust collector after trailhead promote/npm publish. **Komatik agents:** [PR #206](https://github.com/KomatikAI/agents/pull/206) banks shadow trust corpus; follow-up deletes duplicated scorer/schema mirrors. **A6 fleet rollout:** re-pin satellites to `@v4.4.4` / `@v4` after promote.
 
 ## Key Decisions
 

@@ -2,9 +2,9 @@
 
 Correlates **post-merge outcomes** (CI, reverts, remediation rounds) to agent trust metrics. Closes the loop for outcome-based fields in `AgentTrustMetrics` that gate decisions alone cannot populate.
 
-Reference collector: [KomatikAI/agents PR #203](https://github.com/KomatikAI/agents/pull/203) (`scripts/lib/agent-trust-feedback.js`).
+Reference collector: [KomatikAI/agents PR #206](https://github.com/KomatikAI/agents/pull/206) (`scripts/lib/agent-trust-feedback.js` — slim to product `rollupFeedbackForAgent` in follow-up).
 
-Related: [agent-trust-metrics.md](./agent-trust-metrics.md) · Epic [#252](https://github.com/KomatikAI/trailhead/issues/252) · Issue [#257](https://github.com/KomatikAI/trailhead/issues/257)
+Related: [agent-trust-metrics.md](./agent-trust-metrics.md) · Epic [#252](https://github.com/KomatikAI/trailhead/issues/252) shipped ([#261](https://github.com/KomatikAI/trailhead/pull/261)) · Issue [#257](https://github.com/KomatikAI/trailhead/issues/257)
 
 ## Schema
 
