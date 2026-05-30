@@ -4,6 +4,10 @@ import * as readline from "node:readline";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { runDoctorCommand } from "./run-doctor.js";
+import {
+  runSubmissionGate,
+  submissionGateShouldBlock,
+} from "./shared/submission-engine.js";
 
 const CLI_VERSION = "4.2.1";
 
@@ -420,6 +424,95 @@ function generateWorkflowYml(options: {
   return lines.join("\n") + "\n";
 }
 
+/**
+ * Represent a full-file submission as an all-added unified-diff hunk so the
+ * gate's patch-based detectors (destructive SQL, secrets, hardcoded env, …)
+ * see the content as newly introduced. A suggestion bundle is whole proposed
+ * files with no diff; without this, those detectors scan zero added lines and
+ * silently under-report. Only applied when a file has content but no patch —
+ * a caller-supplied real patch (PR mode) is respected as-is.
+ */
+function asAddedPatch(content: string): string {
+  const lines = content.split("\n");
+  return `@@ -0,0 +1,${lines.length} @@\n${lines.map((l) => `+${l}`).join("\n")}\n`;
+}
+
+/**
+ * `validate-submission` — run the canonical submission gate on a JSON payload of
+ * files and print the per-check results as JSON. The runnable primitive other
+ * repos (e.g. komatik-agents) and the MCP tool use to invoke the shared engine.
+ *
+ * Input (via `--input <path>` or stdin), shape:
+ *   {
+ *     "files": [{ "filename": "...", "content"?: "...", "patch"?: "..." }],
+ *     "komatikInstance"?: boolean,
+ *     "repoPaths"?: string[],          // e.g. `git ls-files`
+ *     "declaredPackages"?: string[],
+ *     "mode"?: "warn" | "block"        // default "block"
+ *   }
+ *
+ * Output (stdout): { decision, shouldBlock, mode, checks: [...] }
+ * Exit code is always 0 on a successful evaluation (decision is in the JSON);
+ * non-zero only for bad input — callers read the decision, they don't rely on
+ * the exit code to gate.
+ */
+function runValidateSubmission(args: string[]): number {
+  const inputIdx = args.indexOf("--input");
+  let raw: string;
+  try {
+    raw =
+      inputIdx >= 0 && args[inputIdx + 1]
+        ? fs.readFileSync(args[inputIdx + 1] as string, "utf-8")
+        : fs.readFileSync(0, "utf-8");
+  } catch {
+    process.stderr.write("validate-submission: could not read input\n");
+    return 2;
+  }
+
+  let payload: {
+    files?: Array<{ filename: string; content?: string; patch?: string }>;
+    komatikInstance?: boolean;
+    komatik_instance?: boolean;
+    repoPaths?: string[];
+    repo_paths?: string[];
+    declaredPackages?: string[];
+    declared_packages?: string[];
+    mode?: "warn" | "block";
+  };
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    process.stderr.write("validate-submission: input is not valid JSON\n");
+    return 2;
+  }
+
+  const mode = payload.mode ?? "block";
+  const files = (payload.files ?? []).map((f) =>
+    typeof f.content === "string" && !f.patch
+      ? { ...f, patch: asAddedPatch(f.content) }
+      : f,
+  );
+  const checks = runSubmissionGate({
+    files,
+    komatikInstance: payload.komatikInstance ?? payload.komatik_instance ?? false,
+    repoPaths: payload.repoPaths ?? payload.repo_paths,
+    declaredPackages: payload.declaredPackages ?? payload.declared_packages,
+    mode,
+  });
+
+  const shouldBlock = submissionGateShouldBlock(checks, mode);
+  const decision = shouldBlock
+    ? "block"
+    : checks.some((c) => c.severity === "warn")
+      ? "warn"
+      : "allow";
+
+  process.stdout.write(
+    JSON.stringify({ decision, shouldBlock, mode, checks }, null, 2) + "\n",
+  );
+  return 0;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
@@ -429,13 +522,19 @@ async function main() {
     process.exit(code);
   }
 
+  if (command === "validate-submission") {
+    const code = runValidateSubmission(args.slice(1));
+    process.exit(code);
+  }
+
   if (command !== "init") {
     print(`
 ${BOLD}${GREEN}Trailhead CLI v${CLI_VERSION}${RESET}
 
 ${BOLD}Usage:${RESET}
-  npx @komatikai/trailhead init     Interactive setup wizard
-  npx @komatikai/trailhead doctor   Validate config and CI check names
+  npx @komatikai/trailhead init                Interactive setup wizard
+  npx @komatikai/trailhead doctor              Validate config and CI check names
+  npx @komatikai/trailhead validate-submission Run the submission gate on a files JSON payload
 
 ${BOLD}Learn more:${RESET}
   https://github.com/KomatikAI/trailhead
