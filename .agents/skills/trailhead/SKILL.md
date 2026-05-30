@@ -130,12 +130,12 @@ The standard Trailhead workflow for any PR:
 
 Start from a persona preset — see [docs/getting-started.md](docs/getting-started.md):
 
-| Preset | Command |
-| ------ | ------- |
-| Solo / small team | `npx @komatikai/trailhead init --preset solo` |
-| Platform / eng lead | `init --preset team` |
-| AI-authored PRs | `init --preset agent` |
-| Ops / production | `init --preset ops` |
+| Preset              | Command                                       |
+| ------------------- | --------------------------------------------- |
+| Solo / small team   | `npx @komatikai/trailhead init --preset solo` |
+| Platform / eng lead | `init --preset team`                          |
+| AI-authored PRs     | `init --preset agent`                         |
+| Ops / production    | `init --preset ops`                           |
 
 `.trailhead.yml` also supports custom thresholds, freeze windows, webhooks, submission gate (`submission.enabled`), and agent policies. Advanced fleet features: [docs/advanced-fleet.md](docs/advanced-fleet.md).
 

@@ -2,9 +2,9 @@
 
 All notable changes to Trailhead will be documented in this file.
 
-## [Unreleased] — on `dev` (not yet on `main`)
+## [4.4.5] - 2026-05-30
 
-Merged [#261](https://github.com/KomatikAI/trailhead/pull/261) (epic [#252](https://github.com/KomatikAI/trailhead/issues/252), commit `33613aa`).
+Merged [#261](https://github.com/KomatikAI/trailhead/pull/261) (epic [#252](https://github.com/KomatikAI/trailhead/issues/252)).
 
 ### Added
 

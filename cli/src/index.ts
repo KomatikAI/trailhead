@@ -8,7 +8,7 @@ import {
   submissionGateShouldBlock,
 } from "./shared/submission-engine.js";
 
-const CLI_VERSION = "4.4.4";
+const CLI_VERSION = "4.4.5";
 
 const BOLD = "\x1b[1m";
 const GREEN = "\x1b[32m";
