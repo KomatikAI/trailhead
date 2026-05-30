@@ -129,6 +129,7 @@ Phase B (v4.4.x) adds **Gate 1 submission checks** (`submission-gate: true`), **
 - **Released tag**: **v4.4.4** on `main`. **`@v4`** floating tag updated by release workflow.
 - **Phase A (v4.3.0–v4.3.3):** Remediation schema, agent brief, semantic webhooks, loop bookkeeping, tuning digest, override label, self-test fixtures — merged.
 - **Phase B (v4.4.0–v4.4.4):** Gate 1 engine (15 checks), Phase 0 suggestion heuristics (14 advisory), fixer allowlist (dry-run), trust scoring, MCP `validate-submission` / `apply-autofix` / `get-trust-score`, credit metering ingest (v4.4.1). See `docs/submission-gate.md`.
+- **Submission gate cutover (May 30):** Real-parser `syntax_validity`, shadow parity **66/66 bundles, 0 divergent** ([#249](https://github.com/KomatikAI/trailhead/issues/249) / [#250](https://github.com/KomatikAI/trailhead/pull/250)).
 - **B4 dogfood:** [agents #197](https://github.com/KomatikAI/agents/pull/197) **merged** — PR-mode `submission-gate: true` @ `v4.4.3`; enforce mode pending FP metrics.
 - **A6 fleet rollout:** Re-pin satellites from `@v4.3.0` to **`@v4.4.3`** / `@v4`.
 - **Komatik hosted store:** [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014); read path [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236). See `docs/komatik-hosted-store.md`.
