@@ -50,11 +50,11 @@ Collectors should omit `TRAILHEAD_AGENT_TRUST_JSON` when cold-start applies. The
 
 ## Shadow / enforce runtime (#259)
 
-| Env var                   | Default | Effect                                                                 |
-| ------------------------- | ------- | ---------------------------------------------------------------------- |
-| `TRAILHEAD_TRUST_ENABLED` | enabled | Kill switch (`false` ignores trust JSON entirely)                      |
-| `TRAILHEAD_TRUST_SHADOW`  | off     | Log trust profile; **do not** apply `thresholdDelta`                   |
-| `TRAILHEAD_TRUST_ENFORCE` | off     | Collector: inject JSON. Gate applies threshold unless shadow is on     |
+| Env var                   | Default | Effect                                                             |
+| ------------------------- | ------- | ------------------------------------------------------------------ |
+| `TRAILHEAD_TRUST_ENABLED` | enabled | Kill switch (`false` ignores trust JSON entirely)                  |
+| `TRAILHEAD_TRUST_SHADOW`  | off     | Log trust profile; **do not** apply `thresholdDelta`               |
+| `TRAILHEAD_TRUST_ENFORCE` | off     | Collector: inject JSON. Gate applies threshold unless shadow is on |
 
 ## Ingestion forms
 

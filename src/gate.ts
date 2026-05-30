@@ -65,7 +65,11 @@ import {
   hasOverrideLabel,
   resolveLabelOverride,
 } from "./override.js";
-import { runSubmissionGate, submissionGateShouldBlock } from "./submission-engine.js";
+import {
+  runSubmissionGate,
+  getSubmissionConfigWarnings,
+  submissionGateShouldBlock,
+} from "./submission-engine.js";
 import type { SubmissionCheckResult } from "./types.js";
 import { computeAgentTrustScore, strictnessFromTrust } from "./trust-score.js";
 import { parseAgentTrustMetrics } from "./agent-trust-metrics.js";
@@ -1742,6 +1746,9 @@ export async function evaluateGate(
   const submissionEnabled =
     config.submissionGate === true || repoConfig?.submission?.enabled === true;
   if (submissionEnabled && files.length > 0) {
+    for (const warning of getSubmissionConfigWarnings(repoConfig?.submission)) {
+      core.warning(warning);
+    }
     submissionChecks = runSubmissionGate({
       files: files.map((f) => ({
         filename: f.filename,

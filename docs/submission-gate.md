@@ -58,6 +58,41 @@ submission:
     skip_comment_markers: ["historical:", "migration:", "deprecated:"]
 ```
 
+### Detector policy (#256)
+
+Move **policy** into config; detector **logic** stays in the product. No source edits required for rename rules or per-detector scope/severity.
+
+```yaml
+submission:
+  rename_patterns:
+    - old: DeployGuard
+      new: Trailhead
+    - old: AcmeCorp
+      new: BetaInc
+  slug_only_patterns:
+    - "\\blegacy-slug\\b"
+  detectors:
+    artifact_integrity:
+      enabled: true
+      file_globs: ["**/*.{ts,tsx,js,jsx,mjs,cjs}"]
+      path_ignore: ["docs/**"]
+      severity: block # block | warn | advisory (maps block → blocking)
+    context_freshness:
+      enabled: true
+      severity: warn
+    mock_placeholder:
+      enabled: false
+```
+
+- **`rename_patterns`** — extends Komatik defaults when `KOMATIK_INSTANCE=true`; usable standalone on any repo
+- **`detectors.<code>.enabled`** — skip a detector entirely
+- **`detectors.<code>.severity`** — override default severity (`block` → `blocking`)
+- **`detectors.<code>.file_globs`** — limit which files a detector scans (`artifact_integrity` default: code extensions only)
+- **`detectors.<code>.path_ignore`** — skip paths matching globs for that detector
+- Unknown detector keys → Action warning (same pattern as unknown top-level config keys)
+
+MCP `validate-submission` accepts the same `submission` object shape as `.trailhead.yml` and returns `config_warnings` for unknown keys.
+
 ## Shadow comparison (cutover gate)
 
 Before retiring `komatik-agents/scripts/lib/agent-gate-checks.js`, run the read-only divergence report against real suggestion bundles:

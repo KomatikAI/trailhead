@@ -4,11 +4,18 @@
 import { runAllDetectors } from "./submission-checks/detectors.js";
 import type { SubmissionCheckContext } from "./submission-checks/types.js";
 import { prPathSet } from "./submission-checks/helpers.js";
+import {
+  buildRenamePatterns,
+  buildSlugOnlyPatterns,
+  getSubmissionConfigWarnings,
+  resolveDetectorPolicy,
+} from "./submission-checks/detector-policy.js";
 import { SubmissionCheckCode } from "./types.js";
 import type { RepoConfig, SubmissionCheckResult } from "./types.js";
 
 export type { SubmissionFileInfo } from "./submission-checks/types.js";
 export type { SubmissionCheckCode, SubmissionCheckResult } from "./types.js";
+export { getSubmissionConfigWarnings };
 
 /** Gate 1 + Phase 0 submission check codes — keep in sync with A8 fixture manifest. */
 export const SUBMISSION_CHECK_CODES = SubmissionCheckCode.options;
@@ -51,6 +58,7 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
   const staleTerms = repoConfig?.submission?.stale_terms ?? [];
 
   const declared = new Set(options.declaredPackages ?? []);
+  const { policy } = resolveDetectorPolicy(repoConfig?.submission);
 
   return {
     files,
@@ -63,6 +71,11 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
     maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
     declaredPackages: declared,
     pathIgnorePatterns: repoConfig?.submission?.path_ignore ?? [],
+    renamePatterns: buildRenamePatterns(repoConfig?.submission, {
+      includeKomatikDefaults: komatikInstance,
+    }),
+    slugOnlyPatterns: buildSlugOnlyPatterns(repoConfig?.submission),
+    detectorPolicy: policy,
     repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
   };
 }

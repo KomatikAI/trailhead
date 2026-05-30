@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectArtifactIntegrity,
   detectContextFreshness,
   detectExternalPackageDeps,
   detectMockPlaceholder,
@@ -7,19 +8,29 @@ import {
   detectSyntaxValidity,
 } from "../submission-checks/detectors.js";
 import type { SubmissionCheckContext } from "../submission-checks/types.js";
+import {
+  buildRenamePatterns,
+  buildSlugOnlyPatterns,
+} from "../submission-checks/detector-policy.js";
 import { validateFileSyntax } from "../submission-checks/syntax-validity.js";
 
 function ctx(partial: Partial<SubmissionCheckContext>): SubmissionCheckContext {
+  const komatikInstance = partial.komatikInstance ?? false;
   return {
     files: [],
     prPaths: new Set(),
-    komatikInstance: false,
+    komatikInstance,
     staleTerms: [],
     namingAllowlist: {},
     authRouteAllowlist: [],
     maxFileLines: 1000,
     declaredPackages: new Set(),
     pathIgnorePatterns: [],
+    renamePatterns:
+      partial.renamePatterns ??
+      buildRenamePatterns(undefined, { includeKomatikDefaults: komatikInstance }),
+    slugOnlyPatterns: partial.slugOnlyPatterns ?? buildSlugOnlyPatterns(undefined),
+    detectorPolicy: partial.detectorPolicy ?? {},
     ...partial,
   };
 }
@@ -211,5 +222,47 @@ describe("mock_placeholder", () => {
       }),
     );
     expect(check?.code).toBe("mock_placeholder");
+  });
+});
+
+describe("artifact_integrity config scope", () => {
+  it("does not flag markdown when scoped to code file globs", () => {
+    const check = detectArtifactIntegrity(
+      ctx({
+        files: [
+          {
+            filename: "docs/guide.md",
+            patch: "@@\n+See src/missing.ts for details\n",
+          },
+        ],
+        prPaths: new Set(["docs/guide.md"]),
+        detectorPolicy: {
+          artifact_integrity: {
+            fileGlobs: ["**/*.{ts,tsx,js,jsx,mjs,cjs}"],
+          },
+        },
+      }),
+    );
+    expect(check).toBeNull();
+  });
+});
+
+describe("context_freshness custom rename patterns", () => {
+  it("flags configured rename vocabulary without Komatik defaults", () => {
+    const check = detectContextFreshness(
+      ctx({
+        komatikInstance: false,
+        renamePatterns: buildRenamePatterns({
+          rename_patterns: [{ old: "AcmeCorp", new: "BetaInc" }],
+        }),
+        files: [
+          {
+            filename: "README.md",
+            content: "Welcome to AcmeCorp platform\n",
+          },
+        ],
+      }),
+    );
+    expect(check?.code).toBe("context_freshness");
   });
 });

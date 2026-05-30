@@ -41,7 +41,11 @@ import {
   TRAILHEAD_EVENT_TYPES,
   type TrailheadEventType,
 } from "./trailhead-events.js";
-import { runSubmissionGate, submissionGateShouldBlock } from "./submission-engine.js";
+import {
+  runSubmissionGate,
+  getSubmissionConfigWarnings,
+  submissionGateShouldBlock,
+} from "./submission-engine.js";
 import { deriveSubmissionFixes } from "./submission-remediation.js";
 import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
 import { assessColdStartFromMetrics } from "./agent-trust-metrics.js";
@@ -1986,13 +1990,50 @@ server.tool(
       .array(z.string())
       .optional()
       .describe("Root package.json dependency names for import resolution"),
+    submission: z
+      .object({
+        stale_terms: z.array(z.string()).optional(),
+        rename_patterns: z
+          .array(z.object({ old: z.string(), new: z.string() }))
+          .optional(),
+        slug_only_patterns: z.array(z.string()).optional(),
+        path_ignore: z.array(z.string()).optional(),
+        naming_allowlist: z
+          .object({
+            skip_extensions: z.array(z.string()).optional(),
+            skip_path_patterns: z.array(z.string()).optional(),
+            skip_comment_markers: z.array(z.string()).optional(),
+            skip_in_imports: z.boolean().optional(),
+          })
+          .optional(),
+        detectors: z
+          .record(
+            z.object({
+              enabled: z.boolean().optional(),
+              severity: z.enum(["block", "warn", "advisory", "blocking"]).optional(),
+              file_globs: z.array(z.string()).optional(),
+              path_ignore: z.array(z.string()).optional(),
+            }),
+          )
+          .optional(),
+      })
+      .optional()
+      .describe("submission block from .trailhead.yml (detector policy + rename rules)"),
   },
-  async ({ files, komatik_instance, mode, declared_packages }): Promise<ToolReturn> => {
+  async ({
+    files,
+    komatik_instance,
+    mode,
+    declared_packages,
+    submission,
+  }): Promise<ToolReturn> => {
+    const repoConfig = submission ? { submission } : undefined;
     const checks = runSubmissionGate({
       files,
       komatikInstance: komatik_instance ?? false,
       mode,
       declaredPackages: declared_packages,
+      repoConfig: repoConfig as import("./types.js").RepoConfig | undefined,
     });
     const fixes = deriveSubmissionFixes(checks);
     const blocking = submissionGateShouldBlock(checks, mode);
@@ -2018,6 +2059,7 @@ server.tool(
     return jsonResult({
       checks,
       fixes,
+      config_warnings: getSubmissionConfigWarnings(submission),
       blocking,
       summary: {
         total: checks.length,

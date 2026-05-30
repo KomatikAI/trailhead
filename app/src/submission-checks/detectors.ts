@@ -1,6 +1,6 @@
 // Gate 1 detectors — ported from komatik-agents agent-gate-checks (patch/content based).
 
-import type { SubmissionCheckResult } from "../types.js";
+import type { SubmissionCheckResult, SubmissionCheckCode } from "../types.js";
 import type { SubmissionCheckContext } from "./types.js";
 import {
   addedLines,
@@ -17,33 +17,9 @@ import {
 import type { NamingAllowlistConfig } from "./types.js";
 import { runPhase0Detectors } from "./phase0-detectors.js";
 import { validateFileSyntax } from "./syntax-validity.js";
-
-export const OLD_NAME_PATTERNS: Array<{
-  oldName: string;
-  newName: string;
-  pattern: RegExp;
-}> = [
-  { oldName: "DeployGuard", newName: "Trailhead", pattern: /\bDeployGuard\b/g },
-  { oldName: "Daydream Studio", newName: "Sundog", pattern: /\bDaydream Studio\b/g },
-  {
-    oldName: "Storyboard Studio",
-    newName: "Kindling",
-    pattern: /\bStoryboard Studio\b/g,
-  },
-  { oldName: "Cognitive Debt", newName: "Drift", pattern: /\bCognitive Debt\b/g },
-  { oldName: "cognitive-debt", newName: "Drift", pattern: /\bcognitive-debt\b/g },
-  { oldName: "Undercurrent", newName: "Slipstream", pattern: /\bUndercurrent\b/g },
-  { oldName: "Yggdrasil", newName: "Cairn", pattern: /\bYggdrasil\b/g },
-  { oldName: "Bored", newName: "Lodge", pattern: /\bBored\b/g },
-  { oldName: "Forge", newName: "Pack", pattern: /\bForge\b/g },
-];
-
-const SLUG_ONLY_PATTERNS = [
-  /\bcognitive-debt\b/,
-  /\bstoryboard-studio\b/,
-  /\bdaydream-studio\b/,
-  /\bshadow-ai-governance\b/,
-];
+import { matchesGlobs } from "../risk-engine.js";
+import { applyDetectorPolicy, artifactFileGlobs } from "./detector-policy.js";
+export { DEFAULT_RENAME_PATTERNS, OLD_NAME_PATTERNS } from "./policy-defaults.js";
 
 const MOCK_PATTERNS = [
   /\bTODO\s*\(\s*mock\s*\)/i,
@@ -177,9 +153,6 @@ export function detectDestructiveSql(
 
 // Only code files can carry hard file references; prose (.md/.mdx/.txt) merely
 // *mentions* paths and was the dominant artifact_integrity false-positive source.
-const ARTIFACT_CODE_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
-// Repo-ubiquitous manifests are referenced everywhere and are never the kind of
-// "hallucinated/missing artifact" this check is meant to catch.
 const ARTIFACT_BARE_IGNORE = new Set([
   "package.json",
   "package-lock.json",
@@ -191,6 +164,8 @@ export function detectArtifactIntegrity(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
   const referenced = new Set<string>();
+  const fileGlobs = artifactFileGlobs(ctx.detectorPolicy);
+  const pathIgnore = ctx.detectorPolicy.artifact_integrity?.pathIgnore ?? [];
   // Only treat a path *literal* inside an import/require/export-from statement
   // as a hard reference — natural-language "see X" / "fix Y" / "update Z" in
   // prose is not a code dependency (the old prose trigger over-flagged docs).
@@ -198,8 +173,8 @@ export function detectArtifactIntegrity(
     /(?:\bimport\b|\bfrom\b|\brequire\s*\(|\bexport\b[^'"`]*\bfrom\b)\s*['"`]([\w@./-]+\.(?:ts|tsx|js|jsx|sql|yml|yaml|json))['"`]/g;
 
   for (const file of ctx.files) {
-    // Prose/doc files only mention paths; never flag them as missing code refs.
-    if (!ARTIFACT_CODE_EXTS.has(extensionOf(file.filename))) continue;
+    if (!matchesGlobs(file.filename, fileGlobs)) continue;
+    if (pathIgnore.length > 0 && matchesGlobs(file.filename, pathIgnore)) continue;
 
     for (const line of addedLines(file.patch)) {
       importRefPattern.lastIndex = 0;
@@ -233,6 +208,7 @@ function isNamingAllowlisted(
   filename: string,
   line: string,
   allowlist: NamingAllowlistConfig = {},
+  slugOnlyPatterns: RegExp[] = [],
 ): boolean {
   const trimmed = line.trim();
   const path = normalizePath(filename);
@@ -265,7 +241,7 @@ function isNamingAllowlisted(
   if (/^\[.*\]\(.*\)/.test(trimmed) || /\]\(http/.test(trimmed)) return true;
 
   if (
-    SLUG_ONLY_PATTERNS.some((p) => p.test(trimmed)) &&
+    slugOnlyPatterns.some((p) => p.test(trimmed)) &&
     !/[A-Z]/.test(
       trimmed.match(
         /(?:cognitive-debt|storyboard-studio|daydream-studio|shadow-ai-governance)/,
@@ -287,24 +263,33 @@ function isNamingAllowlisted(
 export function detectContextFreshness(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
-  if (!ctx.komatikInstance && ctx.staleTerms.length === 0) return null;
+  if (ctx.staleTerms.length === 0 && ctx.renamePatterns.length === 0) {
+    return null;
+  }
 
   const hits: string[] = [];
   for (const file of ctx.files) {
     if (isStaleArchivedPath(file.filename, ctx.pathIgnorePatterns)) continue;
 
     for (const line of linesForFreshnessScan(file)) {
-      if (isNamingAllowlisted(file.filename, line, ctx.namingAllowlist)) continue;
+      if (
+        isNamingAllowlisted(
+          file.filename,
+          line,
+          ctx.namingAllowlist,
+          ctx.slugOnlyPatterns,
+        )
+      ) {
+        continue;
+      }
 
       for (const term of ctx.staleTerms) {
         if (line.toLowerCase().includes(term.toLowerCase())) hits.push(file.filename);
       }
 
-      if (ctx.komatikInstance) {
-        for (const entry of OLD_NAME_PATTERNS) {
-          entry.pattern.lastIndex = 0;
-          if (entry.pattern.test(line)) hits.push(file.filename);
-        }
+      for (const entry of ctx.renamePatterns) {
+        entry.pattern.lastIndex = 0;
+        if (entry.pattern.test(line)) hits.push(file.filename);
       }
     }
   }
@@ -644,23 +629,33 @@ export function detectSoulIntegrity(
 }
 
 export function runAllDetectors(ctx: SubmissionCheckContext): SubmissionCheckResult[] {
+  const policy = ctx.detectorPolicy;
+  const finalize = (
+    code: SubmissionCheckCode,
+    check: SubmissionCheckResult | null,
+  ): SubmissionCheckResult | null => applyDetectorPolicy(code, check, policy);
+
   const gate1 = [
-    detectMockPlaceholder(ctx),
-    detectSecrets(ctx),
-    detectDestructiveSql(ctx),
-    detectSyntaxValidity(ctx),
-    detectImportResolution(ctx),
-    detectRlsNewTables(ctx),
-    detectAuthRouteAuth(ctx),
-    detectHardcodedEnv(ctx),
-    detectExternalPackageDeps(ctx),
-    detectSqlSyntaxBasic(ctx),
-    detectLargeFile(ctx),
-    detectArtifactIntegrity(ctx),
-    detectContextFreshness(ctx),
-    detectSoulIntegrity(ctx),
-    detectPathFormat(ctx),
+    finalize("mock_placeholder", detectMockPlaceholder(ctx)),
+    finalize("secrets", detectSecrets(ctx)),
+    finalize("destructive_sql", detectDestructiveSql(ctx)),
+    finalize("syntax_validity", detectSyntaxValidity(ctx)),
+    finalize("import_resolution", detectImportResolution(ctx)),
+    finalize("rls_new_tables", detectRlsNewTables(ctx)),
+    finalize("auth_route_auth", detectAuthRouteAuth(ctx)),
+    finalize("hardcoded_env", detectHardcodedEnv(ctx)),
+    finalize("external_package_deps", detectExternalPackageDeps(ctx)),
+    finalize("sql_syntax_basic", detectSqlSyntaxBasic(ctx)),
+    finalize("large_file", detectLargeFile(ctx)),
+    finalize("artifact_integrity", detectArtifactIntegrity(ctx)),
+    finalize("context_freshness", detectContextFreshness(ctx)),
+    finalize("soul_integrity", detectSoulIntegrity(ctx)),
+    finalize("path_format", detectPathFormat(ctx)),
   ].filter((check): check is SubmissionCheckResult => check !== null);
 
-  return [...gate1, ...runPhase0Detectors(ctx)];
+  const phase0 = runPhase0Detectors(ctx)
+    .map((check) => finalize(check.code, check))
+    .filter((check): check is SubmissionCheckResult => check !== null);
+
+  return [...gate1, ...phase0];
 }
