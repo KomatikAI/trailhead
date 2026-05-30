@@ -32,6 +32,10 @@ export const OLD_NAME_PATTERNS: Array<{
   },
   { oldName: "Cognitive Debt", newName: "Drift", pattern: /\bCognitive Debt\b/g },
   { oldName: "cognitive-debt", newName: "Drift", pattern: /\bcognitive-debt\b/g },
+  { oldName: "Undercurrent", newName: "Slipstream", pattern: /\bUndercurrent\b/g },
+  { oldName: "Yggdrasil", newName: "Cairn", pattern: /\bYggdrasil\b/g },
+  { oldName: "Bored", newName: "Lodge", pattern: /\bBored\b/g },
+  { oldName: "Forge", newName: "Pack", pattern: /\bForge\b/g },
 ];
 
 const SLUG_ONLY_PATTERNS = [
@@ -171,20 +175,42 @@ export function detectDestructiveSql(
   });
 }
 
+// Only code files can carry hard file references; prose (.md/.mdx/.txt) merely
+// *mentions* paths and was the dominant artifact_integrity false-positive source.
+const ARTIFACT_CODE_EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+// Repo-ubiquitous manifests are referenced everywhere and are never the kind of
+// "hallucinated/missing artifact" this check is meant to catch.
+const ARTIFACT_BARE_IGNORE = new Set([
+  "package.json",
+  "package-lock.json",
+  "tsconfig.json",
+  "readme.md",
+]);
+
 export function detectArtifactIntegrity(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
   const referenced = new Set<string>();
-  const pathRefPattern =
-    /(?:^|\s|['"`])([\w@./-]+\.(?:ts|tsx|js|jsx|md|sql|yml|yaml|json))(?:['"`]|\s|:)/g;
+  // Only treat a path *literal* inside an import/require/export-from statement
+  // as a hard reference — natural-language "see X" / "fix Y" / "update Z" in
+  // prose is not a code dependency (the old prose trigger over-flagged docs).
+  const importRefPattern =
+    /(?:\bimport\b|\bfrom\b|\brequire\s*\(|\bexport\b[^'"`]*\bfrom\b)\s*['"`]([\w@./-]+\.(?:ts|tsx|js|jsx|sql|yml|yaml|json))['"`]/g;
 
   for (const file of ctx.files) {
+    // Prose/doc files only mention paths; never flag them as missing code refs.
+    if (!ARTIFACT_CODE_EXTS.has(extensionOf(file.filename))) continue;
+
     for (const line of addedLines(file.patch)) {
-      if (!/(?:import|from|require|see|fix|update)\s/i.test(line)) continue;
-      for (const match of line.matchAll(pathRefPattern)) {
+      importRefPattern.lastIndex = 0;
+      for (const match of line.matchAll(importRefPattern)) {
         const candidate = match[1]?.replace(/^\.\//, "");
         if (!candidate || candidate.includes("*")) continue;
-        if (!ctx.prPaths.has(candidate) && !candidate.startsWith("node:")) {
+        if (candidate.startsWith("node:")) continue;
+        // Skip bare, repo-ubiquitous manifest names (package.json, etc.).
+        const base = candidate.split("/").pop()?.toLowerCase() ?? "";
+        if (!candidate.includes("/") && ARTIFACT_BARE_IGNORE.has(base)) continue;
+        if (!ctx.prPaths.has(candidate)) {
           referenced.add(candidate);
         }
       }
