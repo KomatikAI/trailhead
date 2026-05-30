@@ -29,6 +29,8 @@ export interface SubmissionEngineOptions {
   mode?: "warn" | "block";
   /** Declared npm package names from root package.json (optional). */
   declaredPackages?: string[];
+  /** Paths that exist in the target repo (e.g. `git ls-files`), optional. */
+  repoPaths?: string[];
 }
 
 function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext {
@@ -47,6 +49,7 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
       repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
     maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
     declaredPackages: declared,
+    repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
   };
 }
 

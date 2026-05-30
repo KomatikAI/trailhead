@@ -15,4 +15,11 @@ export interface SubmissionCheckContext {
   authRouteAllowlist: string[];
   maxFileLines: number;
   declaredPackages: Set<string>;
+  /**
+   * Full set of paths that exist in the target repo (e.g. `git ls-files`),
+   * used to tell a fabricated reference from a reference to an existing,
+   * unchanged file. When absent, existence-dependent checks stay dormant
+   * rather than flag every path that simply isn't part of this PR.
+   */
+  repoPaths?: Set<string>;
 }
