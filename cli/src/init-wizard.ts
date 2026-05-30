@@ -393,7 +393,6 @@ export async function runInitWizard(args: string[]): Promise<number> {
   print(`\n${BOLD}Writing files...${RESET}\n`);
   writeInitArtifacts(profile, cwd);
 
-  const configPath = path.join(cwd, ".trailhead.yml");
   print(`  ${GREEN}✓${RESET} .trailhead.yml`);
 
   const workflowPath = path.join(cwd, ".github", "workflows", "trailhead.yml");
