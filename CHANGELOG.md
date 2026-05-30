@@ -2,6 +2,12 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [4.4.4] - 2026-05-30
+
+### Fixed
+
+- **CLI npm publish** — add `@types/js-yaml` to `cli/` devDependencies (release workflow TypeScript build).
+
 ## [4.4.3] - 2026-05-30
 
 ### Added
