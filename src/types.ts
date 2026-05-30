@@ -446,6 +446,17 @@ export const SubmissionConfig = z.object({
   stale_terms: z.array(z.string()).optional(),
   auth_route_allowlist: z.array(z.string()).optional(),
   max_file_lines: z.number().int().positive().optional(),
+  /** Path substrings to skip for context_freshness (e.g. archived suggestion dirs). */
+  path_ignore: z.array(z.string()).optional(),
+  /** Legacy naming allowlist — skip stale-term hits on imports, slugs in strings, etc. */
+  naming_allowlist: z
+    .object({
+      skip_extensions: z.array(z.string()).optional(),
+      skip_path_patterns: z.array(z.string()).optional(),
+      skip_comment_markers: z.array(z.string()).optional(),
+      skip_in_imports: z.boolean().optional(),
+    })
+    .optional(),
 });
 export type SubmissionConfig = z.infer<typeof SubmissionConfig>;
 

@@ -1,17 +1,22 @@
 // Gate 1 detectors — ported from komatik-agents agent-gate-checks (patch/content based).
 
 import type { SubmissionCheckResult } from "../types.js";
-import type { SubmissionCheckContext, SubmissionFileInfo } from "./types.js";
+import type { SubmissionCheckContext } from "./types.js";
 import {
   addedLines,
   extensionOf,
+  extractAllImports,
   fileContent,
+  isStaleArchivedPath,
   isTestPath,
   lineCountFromPatch,
+  linesForFreshnessScan,
   normalizePath,
   scanAddedContent,
 } from "./helpers.js";
+import type { NamingAllowlistConfig } from "./types.js";
 import { runPhase0Detectors } from "./phase0-detectors.js";
+import { validateFileSyntax } from "./syntax-validity.js";
 
 export const OLD_NAME_PATTERNS: Array<{
   oldName: string;
@@ -29,6 +34,13 @@ export const OLD_NAME_PATTERNS: Array<{
   { oldName: "cognitive-debt", newName: "Drift", pattern: /\bcognitive-debt\b/g },
 ];
 
+const SLUG_ONLY_PATTERNS = [
+  /\bcognitive-debt\b/,
+  /\bstoryboard-studio\b/,
+  /\bdaydream-studio\b/,
+  /\bshadow-ai-governance\b/,
+];
+
 const MOCK_PATTERNS = [
   /\bTODO\s*\(\s*mock\s*\)/i,
   /\bFIXME\s*\(\s*mock\s*\)/i,
@@ -39,6 +51,7 @@ const MOCK_PATTERNS = [
   /\b(?:mockData|fakeData|sampleData|dummyData|testData)\b/g,
   /\bTODO:\s*implement\b/gi,
   /\bFIXME\b/g,
+  /\bIn production,\s*use\b/i,
   /\bplaceholder\b/gi,
   /\blorem ipsum\b/gi,
 ];
@@ -190,29 +203,74 @@ export function detectArtifactIntegrity(
   });
 }
 
-function isNamingAllowlisted(filename: string, line: string): boolean {
+function isNamingAllowlisted(
+  filename: string,
+  line: string,
+  allowlist: NamingAllowlistConfig = {},
+): boolean {
   const trimmed = line.trim();
-  if (/^import\s|^from\s|require\(/.test(trimmed)) return true;
-  if (/\.sql$/i.test(filename)) return true;
-  if (/(?:^|\/)migrations\//.test(filename)) return true;
-  if (/(?:^|\/)memory\//.test(filename)) return true;
-  if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(filename)) return true;
-  if (/^\[.*\]\(.*\)/.test(trimmed)) return true;
+  const path = normalizePath(filename);
+  const ext = extensionOf(filename);
+  const skipExtensions = allowlist.skip_extensions ?? [".sql"];
+  const skipPathPatterns = allowlist.skip_path_patterns ?? ["migrations/", "schema/"];
+  const skipCommentMarkers = allowlist.skip_comment_markers ?? [
+    "historical:",
+    "migration:",
+    "deprecated:",
+  ];
+
+  if (
+    allowlist.skip_in_imports !== false &&
+    /^import\s|^from\s|require\(/.test(trimmed)
+  ) {
+    return true;
+  }
+  if (skipExtensions.includes(ext)) return true;
+  if (skipPathPatterns.some((pattern) => path.includes(pattern))) return true;
+  if (
+    skipCommentMarkers.some((marker) =>
+      trimmed.toLowerCase().includes(marker.toLowerCase()),
+    )
+  ) {
+    return true;
+  }
+  if (/\/memory\//.test(path)) return true;
+  if (/RESEARCH\.md$|BRAND\.md$|CHANGELOG\.md$/.test(path)) return true;
+  if (/^\[.*\]\(.*\)/.test(trimmed) || /\]\(http/.test(trimmed)) return true;
+
+  if (
+    SLUG_ONLY_PATTERNS.some((p) => p.test(trimmed)) &&
+    !/[A-Z]/.test(
+      trimmed.match(
+        /(?:cognitive-debt|storyboard-studio|daydream-studio|shadow-ai-governance)/,
+      )?.[0] ?? "",
+    )
+  ) {
+    return true;
+  }
+
+  if (/["'`/]/.test(trimmed)) {
+    const inStringOrPath =
+      /["'`/][^"'`]*(?:deployguard|storyboard-studio|daydream-studio|cognitive-debt|shadow-ai-governance|komatik-yggdrasil)[^"'`]*["'`/]/i;
+    if (inStringOrPath.test(trimmed)) return true;
+  }
+
   return false;
 }
 
 export function detectContextFreshness(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
-  if (ctx.staleTerms.length === 0 && !ctx.komatikInstance) return null;
+  if (!ctx.komatikInstance && ctx.staleTerms.length === 0) return null;
 
   const hits: string[] = [];
   for (const file of ctx.files) {
-    for (const line of addedLines(file.patch)) {
-      if (isNamingAllowlisted(file.filename, line)) continue;
+    if (isStaleArchivedPath(file.filename, ctx.pathIgnorePatterns)) continue;
 
-      const terms = ctx.staleTerms.length > 0 ? ctx.staleTerms : [];
-      for (const term of terms) {
+    for (const line of linesForFreshnessScan(file)) {
+      if (isNamingAllowlisted(file.filename, line, ctx.namingAllowlist)) continue;
+
+      for (const term of ctx.staleTerms) {
         if (line.toLowerCase().includes(term.toLowerCase())) hits.push(file.filename);
       }
 
@@ -459,10 +517,12 @@ export function detectExternalPackageDeps(
 
   for (const file of ctx.files) {
     if (!codeExts.has(extensionOf(file.filename))) continue;
-    const importPattern = /\b(?:import|from|require)\s*(?:\([^)]*|\(?)?['"]([^'"]+)['"]/g;
-    for (const match of fileContent(file).matchAll(importPattern)) {
-      const specifier = match[1];
-      if (!specifier || specifier.startsWith(".") || specifier.startsWith("@/")) continue;
+
+    for (const imp of extractAllImports(fileContent(file))) {
+      const specifier = imp.specifier;
+      if (specifier.startsWith(".") || specifier.startsWith("/")) continue;
+      if (specifier.startsWith("@/") || specifier.startsWith("~/")) continue;
+      if (specifier.startsWith("http:") || specifier.startsWith("https:")) continue;
       if (isNodeBuiltin(specifier)) continue;
       const pkg = packageNameFromSpecifier(specifier);
       if (!ctx.declaredPackages.has(pkg)) hits.push(`${file.filename} → ${pkg}`);
@@ -480,116 +540,62 @@ export function detectExternalPackageDeps(
   });
 }
 
+function stripSqlComments(content: string): string {
+  return content.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
+function countPlpgsqlBlockBegins(sql: string): number {
+  const re = /\bBEGIN\b(?!\s+(?:TRANSACTION|WORK)\b)/gi;
+  return (sql.match(re) || []).length;
+}
+
+function countPlpgsqlBlockEnds(sql: string): number {
+  const re = /\bEND\s*(?!IF\b|LOOP\b|CASE\b)\s*(?:;|\$\$)/gi;
+  return (sql.match(re) || []).length;
+}
+
 export function detectSqlSyntaxBasic(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
   const hits: string[] = [];
   for (const file of ctx.files.filter((f) => extensionOf(f.filename) === ".sql")) {
-    const content = fileContent(file);
-    const stripped = content.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
-    const beginCount = (stripped.match(/\bBEGIN\b/gi) || []).length;
-    const endCount = (stripped.match(/\bEND\b\s*;/gi) || []).length;
-    if (beginCount > 0 && endCount === 0) hits.push(file.filename);
-    else if (endCount > beginCount) hits.push(file.filename);
+    const stripped = stripSqlComments(fileContent(file));
+    const beginCount = countPlpgsqlBlockBegins(stripped);
+    const endCount = countPlpgsqlBlockEnds(stripped);
+    if (beginCount > 0 && beginCount > endCount) hits.push(file.filename);
   }
   if (hits.length === 0) return null;
   return result({
     code: "sql_syntax_basic",
-    severity: "blocking",
+    severity: "warn",
     title: "SQL block balance issue",
-    detail: `Possible unmatched BEGIN/END in ${hits.join(", ")}.`,
+    detail: `Possible unclosed BEGIN block in ${hits.join(", ")}.`,
     files: hits,
-    suggested_action: "Fix PL/pgSQL block structure before merging.",
+    suggested_action: "Verify PL/pgSQL block structure before merging.",
   });
-}
-
-type SwcParseSync = (code: string, options: Record<string, unknown>) => unknown;
-
-let cachedSwcParse: SwcParseSync | null | undefined;
-
-function getSwcParse(): SwcParseSync | null {
-  if (cachedSwcParse !== undefined) return cachedSwcParse;
-  try {
-    // Optional — install @swc/core locally for full parse; Action uses bracket fallback.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const swc = require("@swc/core") as { parseSync: SwcParseSync };
-    cachedSwcParse = swc.parseSync;
-  } catch {
-    cachedSwcParse = null;
-  }
-  return cachedSwcParse;
-}
-
-function basicBracketBalance(content: string): string | null {
-  let braces = 0;
-  let parens = 0;
-  let brackets = 0;
-  for (const ch of content) {
-    if (ch === "{") braces += 1;
-    if (ch === "}") braces -= 1;
-    if (ch === "(") parens += 1;
-    if (ch === ")") parens -= 1;
-    if (ch === "[") brackets += 1;
-    if (ch === "]") brackets -= 1;
-    if (braces < 0 || parens < 0 || brackets < 0) return "Unbalanced brackets/parens";
-  }
-  if (braces !== 0 || parens !== 0 || brackets !== 0) {
-    return "Unclosed brackets/parens in diff hunk";
-  }
-  return null;
-}
-
-function parserOptionsFor(file: SubmissionFileInfo): Record<string, unknown> {
-  const ext = extensionOf(file.filename);
-  const isTs = ext === ".ts" || ext === ".tsx";
-  return {
-    syntax: isTs ? "typescript" : "ecmascript",
-    tsx: ext === ".tsx",
-    jsx: ext === ".jsx",
-    decorators: true,
-    dynamicImport: true,
-  };
 }
 
 export function detectSyntaxValidity(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
-  const errors: Array<{ file: string; message: string }> = [];
-  const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
-  const swcParse = getSwcParse();
+  const errors: string[] = [];
 
   for (const file of ctx.files) {
-    const ext = extensionOf(file.filename);
-    const content = fileContent(file);
-    if (!content.trim()) continue;
+    // Real parsers need the whole file — skip patch-only inputs (PR diff fragments).
+    if (typeof file.content !== "string") continue;
 
-    try {
-      if (codeExts.has(ext)) {
-        if (swcParse) {
-          swcParse(content, parserOptionsFor(file));
-        } else {
-          const balance = basicBracketBalance(content);
-          if (balance) throw new Error(balance);
-        }
-      } else if (ext === ".json") {
-        JSON.parse(content);
-      }
-    } catch (error) {
-      errors.push({
-        file: file.filename,
-        message: error instanceof Error ? error.message.split("\n")[0] : String(error),
-      });
-    }
+    const message = validateFileSyntax(file.filename, file.content);
+    if (message) errors.push(`${file.filename}: ${message}`);
   }
 
   if (errors.length === 0) return null;
   return result({
     code: "syntax_validity",
     severity: "blocking",
-    title: "Syntax error in changed file",
-    detail: errors.map((e) => `${e.file}: ${e.message}`).join("; "),
-    files: errors.map((e) => e.file),
-    suggested_action: "Fix parse errors before resubmitting.",
+    title: "Syntax error in submitted file",
+    detail: errors.slice(0, 12).join("; "),
+    files: errors.map((e) => e.split(": ")[0] ?? e),
+    suggested_action: "Fix the parse error before submitting.",
   });
 }
 

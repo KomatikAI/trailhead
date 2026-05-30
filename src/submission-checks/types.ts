@@ -7,14 +7,24 @@ export interface SubmissionFileInfo {
   additions?: number;
 }
 
+export interface NamingAllowlistConfig {
+  skip_extensions?: string[];
+  skip_path_patterns?: string[];
+  skip_comment_markers?: string[];
+  skip_in_imports?: boolean;
+}
+
 export interface SubmissionCheckContext {
   files: SubmissionFileInfo[];
   prPaths: Set<string>;
   komatikInstance: boolean;
   staleTerms: string[];
+  namingAllowlist: NamingAllowlistConfig;
   authRouteAllowlist: string[];
   maxFileLines: number;
   declaredPackages: Set<string>;
+  /** Extra path segments to skip for context_freshness (merged with defaults). */
+  pathIgnorePatterns: string[];
   /**
    * Full set of paths that exist in the target repo (e.g. `git ls-files`),
    * used to tell a fabricated reference from a reference to an existing,

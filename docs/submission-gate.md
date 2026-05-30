@@ -36,6 +36,14 @@ Phase 0 runs only on markdown under `agents/*/suggestions/**` (or any `**/sugges
 
 `artifact_integrity`, `mock_placeholder`, `context_freshness`, `destructive_sql`, `secrets`, `path_format`, `syntax_validity`, `import_resolution`, `rls_new_tables`, `auth_route_auth`, `hardcoded_env`, `external_package_deps`, `sql_syntax_basic`, `large_file`, `soul_integrity` (Komatik instance only).
 
+**`syntax_validity`** uses `@swc/core` (JS/TS), `JSON.parse` (`.json`), and `js-yaml` (`.yaml`/`.yml`/markdown frontmatter). It runs only when **`file.content`** holds the full file body — never on a partial diff hunk. Patch-only inputs (typical PR diff mode in the Action) are skipped; whole-file submission mode (`validate-submission`, suggestion bundles) is the supported path. The ncc Action bundle ships platform `@swc/core` native bindings in `dist/swc.*.node`.
+
+**`external_package_deps`** resolves declared packages from the submission's **`projectSlug` package.json`** (same lookup order as legacy: `{slug}/package.json`, `projects/{slug}/package.json`, root fallback). Callers must pass the matching `declaredPackages` list — see `declaredPackageNamesFromPackageJson()` and `npm run shadow-compare`.
+
+**`sql_syntax_basic`** is advisory (`warn`): flags unclosed `BEGIN` blocks only, excluding `END IF` / `END LOOP` / `END CASE` / `END$$` terminators.
+
+**`context_freshness`** uses legacy naming allowlists (slug-only lines, deprecated names in quoted paths, import lines) — not blanket lowercase `deployguard` matching unless configured via `submission.stale_terms`.
+
 ### Phase 0 codes (v4.4.2)
 
 **Group A — output shape:** `output_size_min`, `action_extraction_present`, `delta_section_present`, `preamble_absent`, `graduation_signals_section_present`, `fabricated_id_check`, `session_narrative_detection`

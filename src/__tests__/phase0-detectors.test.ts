@@ -27,6 +27,8 @@ function ctx(
     authRouteAllowlist: [],
     maxFileLines: 1000,
     declaredPackages: new Set(),
+    namingAllowlist: {},
+    pathIgnorePatterns: [],
     repoPaths: repoPaths ? new Set(repoPaths) : undefined,
   };
 }

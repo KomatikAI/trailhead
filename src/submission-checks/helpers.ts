@@ -81,3 +81,70 @@ export function prPathSet(files: SubmissionFileInfo[]): Set<string> {
 export function isTestPath(filename: string): boolean {
   return /\/__tests__\/|\/test\/|\/fixtures\/|\.test\.|\.spec\./.test(filename);
 }
+
+/** Default archived/stale path segments skipped by context_freshness. */
+export const DEFAULT_STALE_PATH_IGNORE = ["/_stale/", "/_archive/", "/.archive/"];
+
+export function isStaleArchivedPath(
+  filename: string,
+  extraPatterns: string[] = [],
+): boolean {
+  const path = normalizePath(filename);
+  return [...DEFAULT_STALE_PATH_IGNORE, ...extraPatterns].some((segment) =>
+    path.includes(segment),
+  );
+}
+
+export function packageJsonPathForFile(
+  filename: string,
+  prPaths: Set<string>,
+): string | null {
+  const parts = normalizePath(filename).split("/");
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const candidate = [...parts.slice(0, i), "package.json"].filter(Boolean).join("/");
+    if (prPaths.has(candidate)) return candidate;
+  }
+  return prPaths.has("package.json") ? "package.json" : null;
+}
+
+const VALID_PACKAGE_SPECIFIER = /^(@[\w.-]+\/[\w.-]+|[\w@][\w.-]*)(?:\/[\w./-]*)?$/;
+
+export function isValidPackageSpecifier(specifier: string): boolean {
+  if (!specifier || specifier.startsWith(".") || specifier.startsWith("@/")) return false;
+  if (/^https?:|^node:/.test(specifier)) return false;
+  if (/[:()\\]/.test(specifier)) return false;
+  return VALID_PACKAGE_SPECIFIER.test(specifier);
+}
+
+/** Extract module specifiers from full file content (legacy agent-gate parity). */
+export function extractAllImports(
+  content: string,
+): Array<{ specifier: string; line: number }> {
+  const results: Array<{ specifier: string; line: number }> = [];
+  const patterns = [
+    /\bimport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?['"]([^'"]+)['"]/g,
+    /\bexport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)['"]([^'"]+)['"]/g,
+    /\brequire\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
+  ];
+
+  for (const pattern of patterns) {
+    pattern.lastIndex = 0;
+    for (const match of content.matchAll(pattern)) {
+      const specifier = match[1];
+      if (!specifier) continue;
+      const line = content.slice(0, match.index ?? 0).split("\n").length;
+      results.push({ specifier, line });
+    }
+  }
+  return results;
+}
+
+export function linesForFreshnessScan(file: {
+  filename: string;
+  patch?: string;
+  content?: string;
+}): string[] {
+  if (typeof file.content === "string") return file.content.split("\n");
+  return addedLines(file.patch);
+}
