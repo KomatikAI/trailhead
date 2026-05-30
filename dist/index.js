@@ -42756,17 +42756,20 @@ function detectSessionNarrativeDetection(ctx) {
         const text = fileContent(file);
         const re = new RegExp(SESSION_NARRATIVE.source, SESSION_NARRATIVE.flags);
         const matches = text.match(re);
-        if (matches && matches.length > 0) {
+        // Per-file threshold: flag a single document dense with first-person
+        // session narration, not a cumulative count that a large multi-file
+        // submission would trip just by volume.
+        if (matches && matches.length >= NARRATIVE_MATCH_THRESHOLD) {
             total += matches.length;
             hits.push(file.filename);
         }
     }
-    if (total < NARRATIVE_MATCH_THRESHOLD)
+    if (hits.length === 0)
         return null;
     return advisory({
         code: "session_narrative_detection",
         title: "Session narrative instead of file content",
-        detail: `${total} first-person session phrases across ${hits.join(", ")}.`,
+        detail: `${total} first-person session phrases in ${hits.join(", ")}.`,
         files: hits,
         suggested_action: "Replace narration with concrete diffs, paths, and commands.",
     });
@@ -42790,12 +42793,21 @@ function detectIncompletenessSelfFlag(ctx) {
     });
 }
 function detectReferencedFilesExist(ctx) {
+    // Needs a repo file listing to tell a fabricated path from a reference to an
+    // existing, unchanged file. Without it, stay dormant — flagging every path
+    // that merely isn't part of this PR is almost all false positives.
+    if (!ctx.repoPaths)
+        return null;
+    const repoPaths = ctx.repoPaths;
     const missing = [];
     for (const file of suggestionMarkdownFiles(ctx)) {
         const text = fileContent(file);
         for (const ref of extractFileRefs(text)) {
-            const inPr = ctx.prPaths.has(ref) || [...ctx.prPaths].some((p) => p.endsWith(`/${ref}`));
-            if (!inPr && !hasToBeCreatedMarker(text, ref)) {
+            const known = ctx.prPaths.has(ref) ||
+                repoPaths.has(ref) ||
+                [...ctx.prPaths].some((p) => p.endsWith(`/${ref}`)) ||
+                [...repoPaths].some((p) => p.endsWith(`/${ref}`));
+            if (!known && !hasToBeCreatedMarker(text, ref)) {
                 missing.push(`${file.filename}: ${ref}`);
             }
         }
@@ -42804,7 +42816,7 @@ function detectReferencedFilesExist(ctx) {
         return null;
     return advisory({
         code: "referenced_files_exist",
-        title: "Referenced path not in PR",
+        title: "Referenced path missing from PR and repo",
         detail: missing.slice(0, 12).join("; "),
         files: missing.map((m) => m.split(": ")[0] ?? m),
         suggested_action: 'Include the file in the PR or mark adjacent "to-be-created".',
@@ -43541,6 +43553,7 @@ function buildContext(options) {
         authRouteAllowlist: repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
         maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
         declaredPackages: declared,
+        repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
     };
 }
 function runSubmissionGate(options) {

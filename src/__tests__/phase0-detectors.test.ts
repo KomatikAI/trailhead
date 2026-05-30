@@ -4,12 +4,15 @@ import {
   detectActionExtractionPresent,
   detectOutputSizeMin,
   detectPreambleAbsent,
+  detectReferencedFilesExist,
+  detectSessionNarrativeDetection,
 } from "../submission-checks/phase0-detectors.js";
 import type { SubmissionCheckContext } from "../submission-checks/types.js";
 import { prPathSet } from "../submission-checks/helpers.js";
 
 function ctx(
   files: Array<{ filename: string; content?: string; patch?: string }>,
+  repoPaths?: string[],
 ): SubmissionCheckContext {
   const normalized = files.map((f) => ({
     filename: f.filename,
@@ -24,6 +27,7 @@ function ctx(
     authRouteAllowlist: [],
     maxFileLines: 1000,
     declaredPackages: new Set(),
+    repoPaths: repoPaths ? new Set(repoPaths) : undefined,
   };
 }
 
@@ -102,5 +106,60 @@ describe("phase0 submission detectors", () => {
       files: [{ filename: "README.md", content: "Let me explain this project." }],
     });
     expect(checks.some((c) => c.code === "preamble_absent")).toBe(false);
+  });
+
+  describe("referenced_files_exist precision", () => {
+    const fileReferencing = (path: string) => [
+      {
+        filename: "agents/coordinator/suggestions/plan.md",
+        content: `Update the loader in \`${path}\` before the next run.`,
+      },
+    ];
+
+    it("stays dormant without a repo file listing (no false accusation)", () => {
+      const check = detectReferencedFilesExist(ctx(fileReferencing("src/loader.ts")));
+      expect(check).toBeNull();
+    });
+
+    it("passes when the referenced file exists in the repo but not the PR", () => {
+      const check = detectReferencedFilesExist(
+        ctx(fileReferencing("src/loader.ts"), ["src/loader.ts", "src/other.ts"]),
+      );
+      expect(check).toBeNull();
+    });
+
+    it("flags a referenced path absent from both PR and repo", () => {
+      const check = detectReferencedFilesExist(
+        ctx(fileReferencing("src/loader.ts"), ["src/other.ts"]),
+      );
+      expect(check?.code).toBe("referenced_files_exist");
+      expect(check?.severity).toBe("advisory");
+    });
+  });
+
+  describe("session_narrative_detection threshold is per-file", () => {
+    it("flags a single document dense with session narration", () => {
+      const check = detectSessionNarrativeDetection(
+        ctx([
+          {
+            filename: "agents/rd-satellite/suggestions/log.md",
+            content:
+              "I queried the table. I reviewed the diffs. I will implement the fix.",
+          },
+        ]),
+      );
+      expect(check?.code).toBe("session_narrative_detection");
+    });
+
+    it("does not flag narration spread thin across many files", () => {
+      const check = detectSessionNarrativeDetection(
+        ctx([
+          { filename: "agents/a/suggestions/x.md", content: "I queried the table." },
+          { filename: "agents/b/suggestions/y.md", content: "I reviewed the diffs." },
+          { filename: "agents/c/suggestions/z.md", content: "I checked the logs." },
+        ]),
+      );
+      expect(check).toBeNull();
+    });
   });
 });
