@@ -57,6 +57,7 @@ const cliFiles = [
   "ci-manifest.ts",
   "release-ready.ts",
   "doctor.ts",
+  "risk-engine.ts",
   "submission-engine.ts",
 ];
 

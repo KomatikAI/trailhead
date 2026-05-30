@@ -57,12 +57,16 @@ jobs:
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
+          cache: npm
 
-      - name: Build CLI
-        working-directory: cli
-        run: |
-          npm ci
-          npm run build
+      - name: Install root deps (ncc + @swc/core for bundle)
+        run: npm ci
+
+      - name: Build CLI bundle
+        run: npm run build:cli
+
+      - name: Verify CLI bundle
+        run: node cli/dist/index.js doctor --offline --path .
 
       - name: Publish to npm
         working-directory: cli
