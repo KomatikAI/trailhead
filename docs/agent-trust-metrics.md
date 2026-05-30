@@ -31,13 +31,15 @@ Reference collector: [KomatikAI/agents PR #203](https://github.com/KomatikAI/age
 | `penaltyQuality.cleanRate`   | 0–1    | Share of evaluations with penalty ≤ `cleanPenaltyThreshold` (default 1)                 |
 | `penaltyQuality.sampleCount` | int    | Evaluations used for penalty stats                                                      |
 
-### Optional post-merge feedback (#257 precursor)
+### Optional post-merge feedback (#257)
 
 | Field                  | Type |
 | ---------------------- | ---- |
 | `feedback.ciFailures`  | int  |
 | `feedback.reverts`     | int  |
 | `feedback.humanReview` | int  |
+
+Ingest events via **`trailhead.feedback.v1`** — see [agent-trust-feedback.md](./agent-trust-feedback.md).
 
 ## Cold start (#253)
 
