@@ -57,7 +57,13 @@ jobs:
 
       - name: Verify dist/ is up to date
         run: |
-          git diff --exit-code dist/ || {
-            echo "::error::dist/ is out of date — run 'npm run build' and commit the result"
+          # licenses.txt varies slightly by ncc host OS (native binding metadata);
+          # index.js + platform .node binaries are the runtime contract.
+          git diff --exit-code dist/index.js dist/sourcemap-register.js || {
+            echo "::error::dist/index.js is out of date — run 'npm run build' and commit"
+            exit 1
+          }
+          git diff --exit-code -- dist/*.node || {
+            echo "::error::dist/*.node is out of date — run 'npm run build' and commit"
             exit 1
           }
