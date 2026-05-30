@@ -4,7 +4,7 @@ Interactive setup wizard and diagnostics for Trailhead. Generates `.trailhead.ym
 
 ## Install (no build required)
 
-The published npm package ships a **prebuilt bundle** (`dist/index.js` + vendored `swc.*.node` bindings). You do not need to clone this repo or run `npm run build`.
+The published npm package ships a **prebuilt JS bundle** (`dist/index.js`) plus **`@swc/core`** as a runtime dependency (one platform-native binding installed via npm optionalDependencies — ~25 MB download, not 135 MB). No repo clone or local build required.
 
 ```bash
 npx @komatikai/trailhead init              # interactive — pick solo / team / agent / ops
@@ -15,7 +15,7 @@ npx @komatikai/trailhead doctor --offline
 Pin a version for CI:
 
 ```bash
-npm install -D @komatikai/trailhead@4.4.4
+npm install -D @komatikai/trailhead@4.4.5
 npx trailhead validate-submission --input bundle.json
 ```
 
@@ -82,8 +82,8 @@ node cli/dist/index.js doctor --offline --path .
 cd cli && npm ci && npm run typecheck
 ```
 
-Bundle pipeline: `scripts/build-cli-bundle.mjs` → `ncc` + `scripts/copy-swc-bindings.mjs` (same pattern as the GitHub Action).
+Bundle pipeline: `scripts/build-cli-bundle.mjs` → `ncc` with `@swc/core` external (Action bundle still vendors `swc.*.node` via `copy-swc-bindings.mjs`).
 
 ## Publishing
 
-On tag push (`v*`), `.github/workflows/release.yml` runs `npm run build:cli` on ubuntu-latest and publishes `@komatikai/trailhead` to npm. The tarball contains only `dist/` — no runtime `@swc/core` install step for consumers.
+On tag push (`v*`), `.github/workflows/release.yml` runs `npm run build:cli`, `npm ci --omit=dev` in `cli/`, then publishes `@komatikai/trailhead`. The npm tarball ships `dist/` plus `@swc/core` in `dependencies` (platform binding resolved at install).

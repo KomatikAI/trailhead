@@ -13,11 +13,15 @@ Merged [#261](https://github.com/KomatikAI/trailhead/pull/261) (epic [#252](http
 - **Post-merge feedback** — `trailhead.feedback.v1`, `rollupFeedbackForAgent`, `mergeFeedbackIntoMetrics` ([#257](https://github.com/KomatikAI/trailhead/issues/257)).
 - **Gate verdict v1** — `trailhead.verdict.v1` with penalty vs risk disambiguation; Action `verdict-json` output, webhook `verdict` block, MCP `verdict` on `validate-submission` / `evaluate-policy` ([#260](https://github.com/KomatikAI/trailhead/issues/260)).
 - **Config-driven submission detectors** — `submission.rename_patterns`, `slug_only_patterns`, `detectors.<code>` policy in `.trailhead.yml` ([#256](https://github.com/KomatikAI/trailhead/issues/256)).
-- **Prebuilt CLI bundle** — `npm run build:cli` (ncc + vendored `swc.*.node`); published `@komatikai/trailhead` tarball needs no runtime `@swc/core` install ([#258](https://github.com/KomatikAI/trailhead/issues/258)).
+- **Prebuilt CLI bundle** — `npm run build:cli` (ncc); npm publish ships `dist/` + `@swc/core` dependency (one platform binding at install, not all five vendored in tarball) ([#258](https://github.com/KomatikAI/trailhead/issues/258)).
 
 ### Changed
 
 - **Komatik dogfood alignment** — product contracts match agents penalty-semantics brief; collectors should migrate from duplicated `scripts/lib/agent-trust-*.js` to thin events→metrics extractors + published CLI (see [agent-trust-metrics.md](./docs/agent-trust-metrics.md#komatik-fleet-integration)).
+
+### Fixed
+
+- **npm CLI publish** — stop vendoring all five `swc.*.node` binaries in the npm tarball (~51 MB); external `@swc/core` resolves one platform binding at `npm install` (~185 KB publish tarball).
 
 ### Added (personas)
 

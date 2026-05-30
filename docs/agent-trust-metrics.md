@@ -14,7 +14,7 @@ Reference collector (komatik fleet): [KomatikAI/agents PR #206](https://github.c
 | `src/agent-trust-feedback.ts` | `trailhead.feedback.v1`, `rollupFeedbackForAgent`, `mergeFeedbackIntoMetrics`                               |
 | `src/trust-score.ts`          | `computeAgentTrustScore()` — returns `null` on cold start                                                   |
 | `src/verdict.ts`              | `trailhead.verdict.v1`; collectors read **`verdict.penalty`**, not deploy `risk.score`                      |
-| `cli/dist/` (npm)             | `validate-submission`, `doctor` — `@komatikai/trailhead@4.4.4` after promote/tag                            |
+| `cli/dist/` (npm)             | `validate-submission`, `doctor` — `@komatikai/trailhead@4.4.5` (+ `@swc/core` at install)                   |
 
 **Agents repo keeps (fleet-specific):**
 

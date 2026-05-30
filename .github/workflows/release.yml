@@ -65,11 +65,21 @@ jobs:
       - name: Build CLI bundle
         run: npm run build:cli
 
+      - name: Install CLI runtime deps (@swc/core optional platform binding)
+        working-directory: cli
+        run: npm ci --omit=dev
+
       - name: Verify CLI bundle
         run: node cli/dist/index.js doctor --offline --path .
 
+      - name: Confirm npm auth
+        working-directory: cli
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish to npm
         working-directory: cli
-        run: npm publish --access public
+        run: npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

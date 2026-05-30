@@ -104,7 +104,7 @@ KOMATIK_AGENTS_ROOT=/path/to/agents npm run shadow-compare
 # TRAILHEAD_CLI="$(npm root -g)/@komatikai/trailhead/dist/index.js"  # after npm i -g
 ```
 
-The published **`@komatikai/trailhead`** npm package ships a prebuilt `dist/index.js` with vendored `swc.*.node` bindings — no `@swc/core` install at consumer time. See `cli/README.md`.
+The published **`@komatikai/trailhead`** npm package ships a prebuilt `dist/index.js` plus `@swc/core` as a runtime dependency (one platform binding at install). See `cli/README.md`.
 
 Report written to `shadow-compare-out/shadow-compare-report.json` (gitignored). **Cutover criterion:** 0 divergent decisions on shared checks (`secrets`, `destructive_sql`, `syntax_validity`, `mock_placeholder`, `hardcoded_env`, `external_package_deps`, `sql_syntax_basic`, `large_file`, `context_freshness`).
 
