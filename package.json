@@ -14,7 +14,7 @@
   },
   "main": "dist/index.js",
   "scripts": {
-    "build": "ncc build src/main.ts -o dist --source-map --license licenses.txt",
+    "build": "ncc build src/main.ts -o dist --source-map --license licenses.txt && node scripts/copy-swc-bindings.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && tsc --noEmit",
     "format": "prettier --write .",
@@ -26,10 +26,13 @@
   "dependencies": {
     "@actions/core": "^3.0.1",
     "@actions/github": "^9.1.1",
+    "@swc/core": "^1.15.40",
+    "js-yaml": "^4.1.1",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.8.0",
     "@vercel/ncc": "^0.38.4",
     "@vitest/coverage-v8": "^4.1.6",

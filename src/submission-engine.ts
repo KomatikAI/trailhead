@@ -49,6 +49,7 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
       repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
     maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
     declaredPackages: declared,
+    pathIgnorePatterns: repoConfig?.submission?.path_ignore ?? [],
     repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
   };
 }

@@ -81,3 +81,66 @@ export function prPathSet(files: SubmissionFileInfo[]): Set<string> {
 export function isTestPath(filename: string): boolean {
   return /\/__tests__\/|\/test\/|\/fixtures\/|\.test\.|\.spec\./.test(filename);
 }
+
+/** Default archived/stale path segments skipped by context_freshness. */
+export const DEFAULT_STALE_PATH_IGNORE = ["/_stale/", "/_archive/", "/.archive/"];
+
+export function isStaleArchivedPath(
+  filename: string,
+  extraPatterns: string[] = [],
+): boolean {
+  const path = normalizePath(filename);
+  return [...DEFAULT_STALE_PATH_IGNORE, ...extraPatterns].some((segment) =>
+    path.includes(segment),
+  );
+}
+
+export function packageJsonPathForFile(
+  filename: string,
+  prPaths: Set<string>,
+): string | null {
+  const parts = normalizePath(filename).split("/");
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const candidate = [...parts.slice(0, i), "package.json"].filter(Boolean).join("/");
+    if (prPaths.has(candidate)) return candidate;
+  }
+  return prPaths.has("package.json") ? "package.json" : null;
+}
+
+/** Agent bundle paths like `payments/pack/src/...` without a local package.json in the PR. */
+export function isCrossRepoSatellitePath(
+  filename: string,
+  prPaths: Set<string>,
+): boolean {
+  const path = normalizePath(filename);
+  if (!/^[a-z][a-z0-9-]+\/[\w.-]+\/.+/.test(path)) return false;
+  return packageJsonPathForFile(filename, prPaths) === null;
+}
+
+const VALID_PACKAGE_SPECIFIER = /^(@[\w.-]+\/[\w.-]+|[\w@][\w.-]*)(?:\/[\w./-]*)?$/;
+
+export function isValidPackageSpecifier(specifier: string): boolean {
+  if (!specifier || specifier.startsWith(".") || specifier.startsWith("@/")) return false;
+  if (/^https?:|^node:/.test(specifier)) return false;
+  if (/[:()\\]/.test(specifier)) return false;
+  return VALID_PACKAGE_SPECIFIER.test(specifier);
+}
+
+/** Extract module specifiers from a single source line (import/require). */
+export function extractImportSpecifiersFromLine(line: string): string[] {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("*")) return [];
+
+  const specifiers: string[] = [];
+  const patterns = [
+    /^\s*import\s+(?:type\s+)?(?:[\w*{}\s,$]|[^\S\r\n])+\s+from\s+['"]([^'"]+)['"]/,
+    /^\s*import\s+['"]([^'"]+)['"]\s*;?\s*$/,
+    /require\s*\(\s*['"]([^'"]+)['"]\s*\)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern);
+    if (match?.[1]) specifiers.push(match[1]);
+  }
+  return specifiers;
+}

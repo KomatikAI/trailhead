@@ -38,12 +38,12 @@ describe("submission-engine B1 checks", () => {
     expect(checks.some((c) => c.code === "rls_new_tables")).toBe(true);
   });
 
-  it("blocks on syntax errors in JSON", () => {
+  it("blocks on syntax errors in JSON when full content is provided", () => {
     const checks = runSubmissionGate({
       files: [
         {
           filename: "config.json",
-          patch: "@@\n+{ broken json\n",
+          content: "{ broken json",
         },
       ],
     });

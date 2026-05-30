@@ -446,6 +446,8 @@ export const SubmissionConfig = z.object({
   stale_terms: z.array(z.string()).optional(),
   auth_route_allowlist: z.array(z.string()).optional(),
   max_file_lines: z.number().int().positive().optional(),
+  /** Path substrings to skip for context_freshness (e.g. archived suggestion dirs). */
+  path_ignore: z.array(z.string()).optional(),
 });
 export type SubmissionConfig = z.infer<typeof SubmissionConfig>;
 
