@@ -6,19 +6,38 @@
 
 **Release readiness gate for GitHub PRs.** Trailhead waits for required CI checks, scores code risk, checks production health, integrates security signals, and produces a single **Release Ready** decision — one check, one ruleset, one merge gate.
 
+## Who is this for?
+
+| You                       | What Trailhead gives you                             | Start                                                |
+| ------------------------- | ---------------------------------------------------- | ---------------------------------------------------- |
+| **Solo dev / small team** | One “actually ready to merge?” check beyond CI green | [`init --preset solo`](#quick-start)                 |
+| **Platform / eng lead**   | Same policy across repos (dev → staging → main)      | [`presets/team.yml`](presets/team.yml)               |
+| **Shop using AI on PRs**  | Submission gate before agent code hits main          | [`presets/agent-guard.yml`](presets/agent-guard.yml) |
+| **Ops-minded team**       | Freeze windows, health probes, DORA                  | [`presets/ops.yml`](presets/ops.yml)                 |
+
+Full walkthrough: **[docs/getting-started.md](docs/getting-started.md)** · Fleet/advanced: **[docs/advanced-fleet.md](docs/advanced-fleet.md)**
+
 ## Quick Start
 
-**Option A — Interactive setup (recommended for v4):**
+**Option A — Interactive setup (recommended):**
 
 ```bash
 npx @komatikai/trailhead init
 ```
 
-The wizard generates a v2 `.trailhead.yml` with `gate.mode: release-ready`, branch-aware contexts, and a workflow pinned to `@v4`.
+Pick your audience (solo, team, AI PRs, ops) — the wizard only asks relevant questions. Or skip prompts:
 
-**Option B — Manual setup:**
+```bash
+npx @komatikai/trailhead init --preset solo
+```
 
-Create `.github/workflows/trailhead.yml` in your repo:
+**Option B — Copy a preset:**
+
+```bash
+cp presets/solo.yml .trailhead.yml
+```
+
+**Option C — Manual workflow:**
 
 ```yaml
 name: Trailhead
@@ -135,26 +154,65 @@ Beyond the scalar risk score, Trailhead now emits governance context in `evaluat
 - Trust profile strictness (`baseline`, `elevated`, `strict`)
 - Escalation status metadata and SLA fields
 
-### Agent autonomy (v4.3 Phase A + v4.4 Phase B)
+### Agent governance (optional)
 
-For agent-authored PRs, Trailhead ships a **remediation payload** in `evaluation-json` and an optional collapsed **Agent instructions** section in the PR comment. Semantic events (`trailhead.blocked`, `trailhead.warn_high_risk`, `trailhead.ready`, `trailhead.loop_exceeded`) can POST to your webhook when configured:
+For **AI-authored PRs**, enable the submission gate and remediation loop — see [docs/getting-started.md](docs/getting-started.md#ai-authored-prs) and [docs/advanced-fleet.md](docs/advanced-fleet.md). Most repos start with the solo preset and add this later.
 
-```yaml
-- uses: KomatikAI/trailhead@v4
-  with:
-    gate-mode: release-ready
-    submission-gate: "true"
-    webhook-url: ${{ secrets.TRAILHEAD_WEBHOOK_URL }}
-    webhook-events: "block,warn,trailhead.blocked,trailhead.warn_high_risk,trailhead.ready,trailhead.loop_exceeded"
-```
+**Branch model (this repo):** open PRs against **`dev`**, promote `dev` → `staging` → `main` (fast-forward). Tag releases on `main`.
 
-**Phase B (v4.4.x):** Gate 1 submission checks (15 blocking + 14 Phase 0 advisory), versioned **agent trust** (`trailhead.agent_trust_metrics.v1`, cold-start null, shadow/enforce), **gate verdict** (`trailhead.verdict.v1` / `verdict-json`), config-driven submission detectors, prebuilt CLI (`npx @komatikai/trailhead`), autofix planning, MCP tools `validate-submission`, `apply-autofix`, `get-trust-score`. Trust metrics via `TRAILHEAD_AGENT_TRUST_JSON`. Shadow parity vs legacy komatik-agents gate: [docs/submission-gate.md](docs/submission-gate.md) (`npm run shadow-compare`). **On `dev`:** epic [#252](https://github.com/KomatikAI/trailhead/issues/252) / [#261](https://github.com/KomatikAI/trailhead/pull/261); promote to `main` for `@v4` consumers.
+## Action inputs
 
-MCP consumers can also use **`get-remediation`** and **`subscribe-events`**. Human and operator branches (`claude/*`, `cursor/*`) keep today's fail-open behavior. See [docs/roadmap-v4.3-agent-autonomy.md](docs/roadmap-v4.3-agent-autonomy.md).
+### Core
 
-**Branch model:** open PRs against **`dev`**, promote `dev` → `staging` → `main` (fast-forward). Tag releases on `main`.
+| Input                  | Required | Default               | Description                                          |
+| ---------------------- | -------- | --------------------- | ---------------------------------------------------- |
+| `github-token`         | No       | `${{ github.token }}` | GitHub token for PR analysis and comments            |
+| `gate-mode`            | No       | from `.trailhead.yml` | `release-ready`, `advisory`, or `risk-only`          |
+| `risk-threshold`       | No       | `70`                  | Block the PR above this risk score (0-100)           |
+| `warn-threshold`       | No       | risk - 15             | Warn above this risk score (0-100)                   |
+| `wait-for-checks`      | No       | auto in release-ready | Poll GitHub Checks until required checks complete    |
+| `wait-timeout-minutes` | No       | `30`                  | Max minutes to wait for required CI checks           |
+| `health-check-urls`    | No       | —                     | Comma-separated URLs to health-check before scoring  |
+| `security-gate`        | No       | `true`                | Enable Code Scanning alerts as a risk factor         |
+| `submission-gate`      | No       | `false`               | Gate 1 agent submission checks — see getting-started |
+| `check-name`           | No       | auto by gate mode     | GitHub check run name                                |
+| `add-risk-labels`      | No       | `true`                | Add `trailhead:*-risk` labels to the PR              |
 
-## Inputs
+### Optional (integrations)
+
+| Input                             | Default    | Description                                           |
+| --------------------------------- | ---------- | ----------------------------------------------------- |
+| `webhook-url`                     | —          | POST results (Slack, Discord, custom)                 |
+| `webhook-events`                  | warn,block | Decisions and semantic events                         |
+| `trailhead-api-key`               | —          | Trailhead Cloud API key (auto-configures store)       |
+| `evaluation-store-url`            | —          | BYOS evaluation trend store URL                       |
+| `evaluation-store-secret`         | —          | Bearer token for evaluation store                     |
+| `dora-metrics`                    | `false`    | Compute DORA-5 metrics alongside gate                 |
+| `dora-environment`                | —          | Filter DORA metrics to one environment                |
+| `environment`                     | —          | Target deployment environment for threshold overrides |
+| `otel-endpoint`                   | —          | OTLP HTTP endpoint for evaluation spans               |
+| `ci-manifest-path`                | —          | Path-filter skip semantics (v4.2)                     |
+| `canary-webhook-secret`           | —          | HMAC secret for deploy outcome webhooks               |
+| `self-heal`                       | `false`    | Auto-repair failing tests (needs env payload)         |
+| `reviewers-on-risk`               | —          | Request review on warn/block                          |
+| `fail-mode`                       | env-aware  | `open` / `closed` error policy                        |
+| `gitlab-token` / `circleci-token` | —          | External CI adapters (GitLab, CircleCI)               |
+
+### Advanced (overrides, fleet, billing)
+
+| Input                  | Description                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| `override-*`           | Governed temporary threshold/fail-mode overrides (reason, owner, ticket, expiry required) |
+| `credit-meter-url`     | Komatik hosted billing ingest — ignore unless using Komatik metering                      |
+| `credit-meter-secret`  | Shared secret for credit-meter-ingest                                                     |
+| `credit-meter-shadow`  | Log credits without deducting (default `true`)                                            |
+| `credit-meter-enforce` | Deduct credits when billing app is in enforce mode                                        |
+| `api-key`              | Remote enrichment API key (omit for local-only)                                           |
+
+Full input list and outputs below. Legacy table retained for reference:
+
+<details>
+<summary>Complete inputs table (all fields)</summary>
 
 | Input                       | Required | Default               | Description                                                                                  |
 | --------------------------- | -------- | --------------------- | -------------------------------------------------------------------------------------------- |
@@ -204,6 +262,8 @@ MCP consumers can also use **`get-remediation`** and **`subscribe-events`**. Hum
 | `otel-endpoint`             | No       | —                     | OTLP HTTP endpoint for exporting evaluation spans                                            |
 | `otel-headers`              | No       | —                     | Auth headers for the OTLP endpoint (key=value, comma-separated)                              |
 | `api-key`                   | No       | —                     | API key for remote enrichment (omit for local-only)                                          |
+
+</details>
 
 ## Outputs
 

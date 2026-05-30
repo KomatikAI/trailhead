@@ -131,7 +131,7 @@ function prBody(name, plan) {
     "## What changes",
     "",
     plan.action === "create"
-      ? `- Add \`${CONFIG_PATH}\` from [\`presets/trailhead-strict-agents.yml\`](https://github.com/KomatikAI/trailhead/blob/main/presets/trailhead-strict-agents.yml)`
+      ? `- Add \`${CONFIG_PATH}\` from [\`presets/agent-guard.yml\`](https://github.com/KomatikAI/trailhead/blob/main/presets/agent-guard.yml) (legacy: [\`trailhead-strict-agents.yml\`](https://github.com/KomatikAI/trailhead/blob/main/presets/trailhead-strict-agents.yml))`
       : `- Replace \`${CONFIG_PATH}\` with the fleet strict-agent preset (prior config was minimal or missing agent_prs)`,
     "",
     "Key settings: `agent_prs.risk_threshold: 40`, blocking CI/workflow/prompt policies, remediation loop (5 rounds), override cap.",

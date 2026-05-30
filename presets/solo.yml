@@ -1,0 +1,28 @@
+# Solo / small team — one repo, one "Release Ready" check beyond CI green.
+# Adopt: cp presets/solo.yml .trailhead.yml  (or: npx @komatikai/trailhead init → solo)
+
+schema_version: 2
+
+gate:
+  mode: release-ready
+
+thresholds:
+  risk: 70
+  warn: 55
+
+contexts:
+  - name: main
+    match:
+      base_branch:
+        - main
+        - master
+    environment: production
+    ci:
+      required_checks:
+        - CI
+        - Build
+      missing_required: fail
+
+security:
+  severity_threshold: warning
+  block_on_critical: true

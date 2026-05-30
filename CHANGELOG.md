@@ -19,6 +19,13 @@ Merged [#261](https://github.com/KomatikAI/trailhead/pull/261) (epic [#252](http
 
 - **Komatik dogfood alignment** — product contracts match agents penalty-semantics brief; collectors should migrate from duplicated `scripts/lib/agent-trust-*.js` to thin events→metrics extractors + published CLI (see [agent-trust-metrics.md](./docs/agent-trust-metrics.md#komatik-fleet-integration)).
 
+### Added (personas)
+
+- **Policy presets** — `presets/solo.yml`, `team.yml`, `ops.yml`, `agent-guard.yml` (+ legacy alias `trailhead-strict-agents.yml`).
+- **Audience-aware `init` wizard** — progressive disclosure (solo / team / agent / ops / custom); `init --preset <name>`.
+- **Docs** — [getting-started.md](./docs/getting-started.md) (personas), [advanced-fleet.md](./docs/advanced-fleet.md) (trust/verdict/metering).
+- **Example** — `examples/solo-web-app/` for non-fleet adopters.
+
 ### Docs
 
 - [agent-trust-metrics.md](./docs/agent-trust-metrics.md), [agent-trust-feedback.md](./docs/agent-trust-feedback.md), [verdict.md](./docs/verdict.md), [submission-gate.md](./docs/submission-gate.md) (detector policy + CLI bundle notes).

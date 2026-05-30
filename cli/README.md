@@ -7,8 +7,9 @@ Interactive setup wizard and diagnostics for Trailhead. Generates `.trailhead.ym
 The published npm package ships a **prebuilt bundle** (`dist/index.js` + vendored `swc.*.node` bindings). You do not need to clone this repo or run `npm run build`.
 
 ```bash
+npx @komatikai/trailhead init              # interactive — pick solo / team / agent / ops
+npx @komatikai/trailhead init --preset solo
 npx @komatikai/trailhead doctor --offline
-npx @komatikai/trailhead init
 ```
 
 Pin a version for CI:
@@ -17,6 +18,8 @@ Pin a version for CI:
 npm install -D @komatikai/trailhead@4.4.4
 npx trailhead validate-submission --input bundle.json
 ```
+
+Persona guide: [docs/getting-started.md](../docs/getting-started.md) · Presets: [presets/README.md](../presets/README.md)
 
 ### Migrating from vendored `cli-dist`
 

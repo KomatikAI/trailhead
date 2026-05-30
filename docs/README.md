@@ -33,7 +33,7 @@ All three runtime interfaces plus Cloud share a single **risk engine** (`src/ris
 
 ### CLI
 
-`npx @komatikai/trailhead init` / `doctor` / `validate-submission` — **prebuilt npm bundle** (no consumer build; vendored `swc.*.node`). Repo devs: `npm run build:cli`. See [cli/README.md](../cli/README.md).
+`npx @komatikai/trailhead init` — audience-aware wizard (solo / team / agent / ops). Prebuilt bundle, no build step. See [docs/getting-started.md](./getting-started.md) and [cli/README.md](../cli/README.md).
 
 ## Risk Scoring
 
@@ -266,6 +266,17 @@ Example:
   "reasons": ["Gate decision is WARN", "Elevated trust profile strictness"]
 }
 ```
+
+## Documentation index
+
+| Doc                                                | Audience                                  |
+| -------------------------------------------------- | ----------------------------------------- |
+| [getting-started.md](./getting-started.md)         | **Everyone** — personas, presets, wizard  |
+| [advanced-fleet.md](./advanced-fleet.md)           | Fleet / AI ops — trust, verdict, metering |
+| [submission-gate.md](./submission-gate.md)         | AI PR shops — Gate 1 reference            |
+| [agent-trust-metrics.md](./agent-trust-metrics.md) | Trust loop implementers                   |
+| [verdict.md](./verdict.md)                         | Collector integrators                     |
+| [migration-v3-to-v4.md](./migration-v3-to-v4.md)   | Upgrading from `@v3`                      |
 
 ## Agent Autonomy (v4.3 → v4.4)
 

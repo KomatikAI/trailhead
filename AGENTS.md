@@ -243,7 +243,8 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 | `app/src/handler.ts` | GitHub App webhook handler                          |
 | `app/src/fixer.ts`   | Autofix planner (dry-run in v4.4.x)                 |
 | `app/src/server.ts`  | Hono HTTP server                                    |
-| `cli/src/index.ts`   | `trailhead init` wizard                             |
+| `cli/src/index.ts`   | `trailhead init` wizard (`--preset solo|team|agent|ops`) |
+| `presets/`           | Persona policy templates — see `docs/getting-started.md` |
 | `src/__tests__/`     | Vitest test suite (691 tests)                       |
 | `cloud/src/__tests__/` | Cloud API tests (21 tests)                        |
 | `docs/submission-gate.md` | Gate 1 + Phase 0 reference                   |

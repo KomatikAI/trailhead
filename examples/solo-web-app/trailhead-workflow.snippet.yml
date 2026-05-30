@@ -1,0 +1,24 @@
+name: Trailhead
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  security-events: read
+
+jobs:
+  trailhead:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: KomatikAI/trailhead@v4
+        with:
+          gate-mode: release-ready
+          wait-for-checks: "true"
+          wait-timeout-minutes: "30"
+          risk-threshold: "70"

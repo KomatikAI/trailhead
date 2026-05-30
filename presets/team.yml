@@ -1,0 +1,62 @@
+# Platform / eng lead — standard policy across repos (progressive promotion).
+# Adopt: cp presets/team.yml .trailhead.yml  (or: npx @komatikai/trailhead init → team)
+
+schema_version: 2
+
+gate:
+  mode: release-ready
+
+thresholds:
+  risk: 70
+  warn: 55
+
+contexts:
+  - name: feature
+    match:
+      base_branch:
+        - dev
+        - develop
+    environment: dev
+    thresholds:
+      risk: 75
+      warn: 60
+    ci:
+      required_checks:
+        - CI
+        - Build
+      missing_required: skip
+
+  - name: staging-promotion
+    match:
+      base_branch:
+        - staging
+    environment: staging
+    thresholds:
+      risk: 65
+      warn: 50
+    ci:
+      required_checks:
+        - CI
+        - Build
+        - Playwright
+      missing_required: fail
+
+  - name: production-promotion
+    match:
+      base_branch:
+        - main
+        - master
+    environment: production
+    thresholds:
+      risk: 60
+      warn: 45
+    ci:
+      required_checks:
+        - CI
+        - Build
+        - Playwright
+      missing_required: fail
+
+security:
+  severity_threshold: warning
+  block_on_critical: true

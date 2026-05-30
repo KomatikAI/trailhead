@@ -1,5 +1,6 @@
-# DEPRECATED: use presets/agent-guard.yml for new repos.
-# Kept for fleet rollout scripts (#229) and existing references.
+# AI-authored PRs — submission gate + remediation before merge (no fleet-only checks).
+# Adopt: cp presets/agent-guard.yml .trailhead.yml  (or: npx @komatikai/trailhead init → agent)
+# Enable workflow: submission-gate: "true" (init wizard adds this).
 
 schema_version: 2
 
@@ -11,12 +12,25 @@ thresholds:
   risk: 60
   warn: 40
 
+contexts:
+  - name: main
+    match:
+      base_branch:
+        - main
+        - master
+    environment: production
+    ci:
+      required_checks:
+        - CI
+        - Build
+      missing_required: fail
+
 policies:
   agent_prs:
     enabled: true
     risk_threshold: 40
     strict_on_unknown_provenance: true
-    require_code_owner_approval: true
+    require_code_owner_approval: false
   ci_integrity:
     mode: block
   workflow_security:
@@ -27,8 +41,6 @@ policies:
     mode: warn
     max_files: 30
     max_changes: 1500
-  duplicate_logic:
-    mode: warn
 
 remediation:
   enabled: true
@@ -37,6 +49,10 @@ remediation:
 submission:
   enabled: true
   mode: block
+
+security:
+  severity_threshold: warning
+  block_on_critical: true
 
 override:
   enabled: true

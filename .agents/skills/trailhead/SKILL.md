@@ -128,17 +128,16 @@ The standard Trailhead workflow for any PR:
 
 ## Configuration
 
-Trailhead reads `.trailhead.yml` (or a legacy v1 config filename alias) from the repo root for:
+Start from a persona preset — see [docs/getting-started.md](docs/getting-started.md):
 
-- Custom risk and warn thresholds per environment
-- Sensitivity file patterns (globs for auth, infra, payments, etc.)
-- Freeze window schedules
-- Health check endpoints
-- Webhook notification targets (Slack, Discord, custom)
-- Agent policy strictness (`policies.*`), escalation SLAs, service contracts/consumers
-- **Submission gate** (`submission.enabled`, `submission.mode`, `submission.detectors.*`) — Gate 1 checks + per-detector policy ([#256](https://github.com/KomatikAI/trailhead/issues/256))
+| Preset | Command |
+| ------ | ------- |
+| Solo / small team | `npx @komatikai/trailhead init --preset solo` |
+| Platform / eng lead | `init --preset team` |
+| AI-authored PRs | `init --preset agent` |
+| Ops / production | `init --preset ops` |
 
-Action input: `submission-gate: "true"` enables Gate 1 alongside the deploy gate.
+`.trailhead.yml` also supports custom thresholds, freeze windows, webhooks, submission gate (`submission.enabled`), and agent policies. Advanced fleet features: [docs/advanced-fleet.md](docs/advanced-fleet.md).
 
 If no config file exists, sensible defaults apply (block at 70, warn at 55).
 

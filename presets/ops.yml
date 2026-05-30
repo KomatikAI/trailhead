@@ -1,0 +1,50 @@
+# Ops-minded — freeze windows, health probes, DORA visibility, deploy tracking.
+# Adopt: cp presets/ops.yml .trailhead.yml  (or: npx @komatikai/trailhead init → ops)
+# Pair with workflow inputs: health-check-urls, dora-metrics: true (init wizard adds these).
+
+schema_version: 2
+
+gate:
+  mode: release-ready
+
+thresholds:
+  risk: 70
+  warn: 55
+
+contexts:
+  - name: main
+    match:
+      base_branch:
+        - main
+        - master
+    environment: production
+    thresholds:
+      risk: 65
+      warn: 50
+    ci:
+      required_checks:
+        - CI
+        - Build
+      missing_required: fail
+
+environments:
+  production:
+    risk: 65
+    warn: 50
+  staging:
+    risk: 75
+    warn: 55
+
+security:
+  severity_threshold: warning
+  block_on_critical: true
+
+freeze:
+  - days:
+      - friday
+      - saturday
+    afterHour: 15
+    message: "Release freeze window in effect"
+
+canary:
+  webhook_type: generic

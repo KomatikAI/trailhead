@@ -154,7 +154,7 @@ Profiles: `fast-track` (≥0.85), `standard`, `probation` (<0.6). Probation forc
 
 ## Komatik dogfood
 
-- Preset: `presets/trailhead-strict-agents.yml`
+- Preset: `presets/agent-guard.yml` (legacy alias: `presets/trailhead-strict-agents.yml`)
 - External fixture: `examples/agent-submission-fixture/`
 - Fleet CI flip: [komatik-agents PR #197](https://github.com/KomatikAI/agents/pull/197) (`submission-gate: true`, deprecate local `./trailhead` composite)
 - **B4 enforce** pending: FP rate <10% over 30 PRs before `mode: block` on agent provenance
