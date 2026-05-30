@@ -50,6 +50,8 @@ import { deriveSubmissionFixes } from "./submission-remediation.js";
 import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
 import { assessColdStartFromMetrics } from "./agent-trust-metrics.js";
 import { computeAgentTrustScore } from "./trust-score.js";
+import { buildGateVerdict } from "./verdict.js";
+import type { GateDecision, GateEvaluation } from "./types.js";
 
 registerAllAdapters();
 
@@ -1265,8 +1267,30 @@ server.tool(
       /* skip */
     }
 
+    const structuredVerdict = buildGateVerdict({
+      id: `mcp-${owner}-${repo}-${Date.now()}`,
+      repoId: `${owner}/${repo}`,
+      commitSha: commitSha ?? "unknown",
+      prNumber,
+      healthScore: 100,
+      riskScore,
+      gateDecision: decision,
+      healthChecks: [],
+      riskFactors: riskFactors.map((factor) => ({
+        type: factor.type,
+        score: factor.score,
+      })),
+      evaluationMs: 0,
+      releaseReady,
+      releaseReadyReasons: reasons,
+      ci: ciSummary ?? undefined,
+      gateMode: "release-ready",
+      policyFindings: reasons.length > 0 ? reasons : undefined,
+    } satisfies GateEvaluation);
+
     return jsonResult({
-      verdict: decision,
+      verdict: structuredVerdict,
+      gate_decision: decision,
       riskScore,
       releaseReady: releaseReady ?? null,
       releaseReadyReasons: releaseReadyReasons ?? [],
@@ -2056,10 +2080,33 @@ server.tool(
       ].includes(c.code),
     ).length;
 
+    const configWarnings = getSubmissionConfigWarnings(submission);
+    const gateDecision: GateDecision = submissionGateShouldBlock(checks, mode)
+      ? "block"
+      : checks.some((check) => check.severity === "warn")
+        ? "warn"
+        : "allow";
+    const verdict = buildGateVerdict({
+      id: `sub-${Date.now()}`,
+      repoId: "mcp/submission",
+      commitSha: "0000000",
+      healthScore: 100,
+      riskScore: 0,
+      gateDecision,
+      healthChecks: [],
+      riskFactors: [],
+      evaluationMs: 0,
+      submissionChecks: checks,
+      gateMode: "advisory",
+      policyFindings: configWarnings.length > 0 ? configWarnings : undefined,
+    } satisfies GateEvaluation);
+
     return jsonResult({
       checks,
       fixes,
-      config_warnings: getSubmissionConfigWarnings(submission),
+      config_warnings: configWarnings,
+      verdict,
+      gate_decision: gateDecision,
       blocking,
       summary: {
         total: checks.length,

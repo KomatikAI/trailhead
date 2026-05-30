@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trailhead.dev/schemas/verdict.v1.json",
+  "title": "Trailhead Gate Verdict v1",
+  "description": "Stable gate verdict for collectors and event stores.",
+  "type": "object",
+  "required": [
+    "schema",
+    "evaluation_id",
+    "repo_id",
+    "commit_sha",
+    "decision",
+    "penalty",
+    "risk",
+    "submission_checks",
+    "reasons",
+    "evaluated_at"
+  ],
+  "properties": {
+    "schema": { "const": "trailhead.verdict.v1" },
+    "evaluation_id": { "type": "string" },
+    "repo_id": { "type": "string" },
+    "commit_sha": { "type": "string", "minLength": 7 },
+    "pr_number": { "type": "integer", "minimum": 1 },
+    "head_ref": { "type": "string" },
+    "agent_id": { "type": "string" },
+    "decision": { "enum": ["allow", "warn", "block"] },
+    "gate_mode": { "enum": ["risk-only", "advisory", "release-ready"] },
+    "release_ready": { "type": "boolean" },
+    "penalty": {
+      "type": "object",
+      "required": ["total_score", "factor_scores", "semantics"],
+      "properties": {
+        "total_score": { "type": "number", "minimum": 0 },
+        "factor_scores": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0 }
+        },
+        "semantics": { "const": "lower_is_cleaner" }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "required": ["score", "semantics", "factors"],
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "semantics": { "const": "higher_is_worse" },
+        "factors": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 100 }
+        }
+      }
+    },
+    "evaluated_at": { "type": "string", "format": "date-time" }
+  }
+}

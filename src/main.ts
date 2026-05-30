@@ -31,6 +31,9 @@ import { fetchCodeScanningAlerts, formatSecuritySection } from "./security.js";
 import { resolveEvaluationStoreUrl } from "./cloud-config.js";
 import { resolveCiManifests } from "./ci-external.js";
 import { computeRolloutReadiness } from "./rollout-readiness.js";
+import { resolveAgentProvenanceId } from "./agent-provenance.js";
+import { readTrustRuntime } from "./trust-runtime.js";
+import { buildGateVerdict } from "./verdict.js";
 import type { TrailheadConfig, TestRepairResult, PolicyOverrideAudit } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -371,6 +374,11 @@ async function run(): Promise<void> {
       evaluation.releaseReady !== undefined ? String(evaluation.releaseReady) : "",
     );
     core.setOutput("evaluation-json", JSON.stringify(evaluation));
+    const verdict = buildGateVerdict(evaluation, {
+      trustRuntime: readTrustRuntime(),
+      agentId: resolveAgentProvenanceId(evaluation),
+    });
+    core.setOutput("verdict-json", JSON.stringify(verdict));
     core.setOutput(
       "rollout-readiness-json",
       JSON.stringify(computeRolloutReadiness(evaluation)),

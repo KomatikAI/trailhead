@@ -40,6 +40,7 @@ const sharedFiles = [
   "trust-score.ts",
   "agent-trust-metrics.ts",
   "agent-trust-feedback.ts",
+  "verdict.ts",
   "trust-runtime.ts",
   "remediation-lanes.ts",
   "trailhead-events.ts",
