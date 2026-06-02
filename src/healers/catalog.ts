@@ -7,8 +7,10 @@
 //
 // Cross-repo refs (consumesApis / dependsOn / providesApis to something another
 // repo owns) can't be fixed in this PR — the fix belongs in the owning repo. For
-// those we emit a human-actionable suggestion rather than an edit. (Opening the
-// cross-repo PR is a follow-up that needs a cross-repo PR opener the fixer lacks.)
+// those we emit a human-actionable suggestion rather than an edit here. When an
+// api_owners map resolves the owning repo, the cross-repo PR opener
+// (cross-repo-opener.ts) turns those suggestions into actual declaration PRs in
+// that repo; otherwise the suggestion stands.
 
 import yaml from "js-yaml";
 import {

@@ -491,6 +491,20 @@ export const SubmissionConfig = z.object({
       known_entities: z.array(z.string()).optional(),
       /** Path to a JSON catalog index ({ entities: string[] }), merged with known_entities. */
       catalog_index_path: z.string().optional(),
+      /** entity name → "owner/repo" that should publish it. Resolution registry
+       * for the cross-repo PR opener: a dangling consumesApis/dependsOn ref whose
+       * name is mapped here triggers a declaration PR in the owning repo. */
+      api_owners: z.record(z.string()).optional(),
+      /** Cross-repo PR opener (ADR-010). Off by default; opens declaration PRs in
+       * the OWNING repo for dangling cross-repo contract refs. Needs a token with
+       * write access to those repos (cross-repo-token input). */
+      cross_repo_opener: z
+        .object({
+          enabled: z.boolean().default(false),
+          /** Owners the opener may open PRs in. Defaults to the gated repo's owner. */
+          owner_allowlist: z.array(z.string()).optional(),
+        })
+        .optional(),
     })
     .optional(),
 });

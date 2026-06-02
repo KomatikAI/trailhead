@@ -199,6 +199,14 @@ inputs:
     description: "When true, commit auto-fixes for autofix-eligible findings (e.g. contract_integrity catalog stubs) to the PR's HEAD branch. Default false = dry-run (plan only, logged). Requires contents:write and a non-fork PR."
     required: false
     default: "false"
+  cross-repo-token:
+    description: "Token with write access to the repos that OWN dangling cross-repo contract APIs. Enables the contract_integrity cross-repo PR opener (ADR-010) to open declaration PRs in the owning repo. The default GITHUB_TOKEN is scoped to the current repo only, so a PAT or GitHub App token is required. Without it the opener stays in dry-run."
+    required: false
+    default: ""
+  cross-repo-opener:
+    description: "Set to 'false' to disable the cross-repo PR opener even when configured. Default enabled (the opener still requires submission.contract_integrity.cross_repo_opener.enabled, an api_owners map, and a cross-repo-token to actually open PRs)."
+    required: false
+    default: "true"
 
 outputs:
   health-score:
@@ -213,6 +221,8 @@ outputs:
     description: "URL to the full evaluation report (only set when using a remote API)."
   evaluation-json:
     description: "Full gate evaluation as JSON for downstream workflow steps."
+  cross-repo-opener-json:
+    description: "Cross-repo PR opener result as JSON (ADR-010): opened/dry-run/exists outcomes per owning repo, plus unresolved dangling contract refs."
   verdict-json:
     description: "Versioned trailhead.verdict.v1 payload (stable collector contract)."
   rollout-readiness-json:

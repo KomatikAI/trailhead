@@ -47,6 +47,7 @@ const sharedFiles = [
   "autofix-executor.ts",
   "autofix-builders.ts",
   "github-git-writer.ts",
+  "cross-repo-opener.ts",
 ];
 
 const adapterFiles = ["gitlab.ts", "circleci.ts"];
