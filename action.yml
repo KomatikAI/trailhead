@@ -195,6 +195,10 @@ inputs:
     description: "When true and credit meter returns allowed:false, emit a blocking warning. Does not block the gate unless paired with strict policy (fail-open default)."
     required: false
     default: "false"
+  autofix:
+    description: "When true, commit auto-fixes for autofix-eligible findings (e.g. contract_integrity catalog stubs) to the PR's HEAD branch. Default false = dry-run (plan only, logged). Requires contents:write and a non-fork PR."
+    required: false
+    default: "false"
 
 outputs:
   health-score:
