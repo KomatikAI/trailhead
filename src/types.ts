@@ -111,6 +111,9 @@ export const SubmissionCheckCode = z.enum([
   "sql_syntax_basic",
   "large_file",
   "soul_integrity",
+  // ADR-010 — architecture & lifecycle gates
+  "contract_integrity",
+  "safe_deprecation",
   // Phase 0 — agent suggestion quality (advisory / weight=0 in komatik-agents)
   "output_size_min",
   "action_extraction_present",
@@ -478,6 +481,15 @@ export const SubmissionConfig = z.object({
   slug_only_patterns: z.array(z.string()).optional(),
   /** Per-detector policy overrides (enable/severity/file scope). */
   detectors: z.record(SubmissionDetectorPolicyEntry).optional(),
+  /** contract_integrity (ADR-010): cross-repo catalog resolution. */
+  contract_integrity: z
+    .object({
+      /** Entity names published org-wide; lets cross-repo contract refs resolve. */
+      known_entities: z.array(z.string()).optional(),
+      /** Path to a JSON catalog index ({ entities: string[] }), merged with known_entities. */
+      catalog_index_path: z.string().optional(),
+    })
+    .optional(),
 });
 export type SubmissionConfig = z.infer<typeof SubmissionConfig>;
 
