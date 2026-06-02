@@ -34,6 +34,7 @@ import { computeRolloutReadiness } from "./rollout-readiness.js";
 import { resolveAgentProvenanceId } from "./agent-provenance.js";
 import { readTrustRuntime } from "./trust-runtime.js";
 import { buildGateVerdict } from "./verdict.js";
+import { runGateAutofix, type GateAutofixClient } from "./gate-autofix.js";
 import type { TrailheadConfig, TestRepairResult, PolicyOverrideAudit } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -363,6 +364,46 @@ async function run(): Promise<void> {
         }
       } catch (err) {
         core.warning(`Credit metering failed (non-blocking): ${err}`);
+      }
+    }
+
+    // Autofix self-heal (ADR-010) — opt-in; dry-run (plan only) unless enabled.
+    const autofixFixes = evaluation.remediation?.fixes ?? [];
+    if (config.githubToken && prNumber && autofixFixes.some((f) => f.autofix_eligible)) {
+      try {
+        const autofixEnabled =
+          core.getInput("autofix") === "true" || readEnv("TRAILHEAD_AUTOFIX") === "true";
+        const prPayload = context.payload.pull_request as
+          | {
+              head?: { ref?: string; repo?: { full_name?: string } };
+              base?: { repo?: { full_name?: string } };
+            }
+          | undefined;
+        const autofixResult = await runGateAutofix({
+          client: github.getOctokit(config.githubToken) as unknown as GateAutofixClient,
+          fixes: autofixFixes,
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          evaluationId: evaluation.id,
+          headBranch: prPayload?.head?.ref,
+          headRepoFullName: prPayload?.head?.repo?.full_name,
+          baseRepoFullName: prPayload?.base?.repo?.full_name,
+          enabled: autofixEnabled,
+        });
+        core.setOutput("autofix-json", JSON.stringify(autofixResult));
+        if (autofixResult.committed) {
+          core.info(
+            `Trailhead self-heal committed ${autofixResult.fixCode} → ${autofixResult.commitSha} on ${prPayload?.head?.ref}`,
+          );
+        } else if (autofixResult.edits?.length) {
+          core.info(
+            `Trailhead self-heal (dry-run): would fix ${autofixResult.fixCode} (${autofixResult.files?.join(", ")}). Set autofix: true to apply.`,
+          );
+        } else if (autofixResult.skippedReason) {
+          core.debug(`Autofix skipped: ${autofixResult.skippedReason}`);
+        }
+      } catch (err) {
+        core.warning(`Autofix failed (non-blocking): ${err}`);
       }
     }
 
