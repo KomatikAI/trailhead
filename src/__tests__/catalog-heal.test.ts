@@ -47,7 +47,7 @@ spec:
 
 describe("catalog self-heal lane (ADR-010)", () => {
   it("generates a System stub for a missing spec.system target", () => {
-    const plan = planCatalogHeal(ctx([catalog(MISSING_LOCAL)]));
+    const plan = planCatalogHeal([catalog(MISSING_LOCAL)]);
     expect(plan.edits).toHaveLength(1);
     const edit = plan.edits[0]!;
     expect(edit.file).toBe("catalog-info.yaml");
@@ -68,7 +68,7 @@ describe("catalog self-heal lane (ADR-010)", () => {
   });
 
   it("applying the stub makes contract_integrity pass (self-heal closes the loop)", () => {
-    const plan = planCatalogHeal(ctx([catalog(MISSING_LOCAL)]));
+    const plan = planCatalogHeal([catalog(MISSING_LOCAL)]);
     const healed = MISSING_LOCAL + plan.edits[0]!.append;
     // After appending the generated stubs, the local refs now resolve.
     expect(detectContractIntegrity(ctx([catalog(healed)]))).toBeNull();
@@ -93,7 +93,7 @@ spec:
   system: sundog
   consumesApis: [komatik-v3-prebuild]
 `;
-    const plan = planCatalogHeal(ctx([catalog(crossRepo)]));
+    const plan = planCatalogHeal([catalog(crossRepo)]);
     expect(plan.edits).toHaveLength(0);
     expect(plan.suggestions.join(" ")).toContain("komatik-v3-prebuild");
   });
