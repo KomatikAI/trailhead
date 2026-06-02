@@ -111,6 +111,8 @@ export const SubmissionCheckCode = z.enum([
   "sql_syntax_basic",
   "large_file",
   "soul_integrity",
+  // ADR-010 — architecture & lifecycle gates
+  "contract_integrity",
   // Phase 0 — agent suggestion quality (advisory / weight=0 in komatik-agents)
   "output_size_min",
   "action_extraction_present",

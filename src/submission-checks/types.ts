@@ -38,4 +38,13 @@ export interface SubmissionCheckContext {
    * rather than flag every path that simply isn't part of this PR.
    */
   repoPaths?: Set<string>;
+  /**
+   * Org catalog index — every Backstage entity `metadata.name` published across
+   * the org's `catalog-info.yaml` files. Lets `contract_integrity` (ADR-010)
+   * resolve CROSS-REPO contract references (e.g. a satellite `consumesApis: [x]`
+   * where `x` is published by another repo). When absent, cross-repo contract
+   * refs are reported as advisory ("unverified") rather than flagged, so a
+   * single-repo PR doesn't false-positive on a legitimately external contract.
+   */
+  catalogKnownEntities?: Set<string>;
 }
