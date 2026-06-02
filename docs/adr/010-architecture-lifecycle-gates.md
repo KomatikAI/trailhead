@@ -107,6 +107,28 @@ non-catalog surface coverage (route/redirect maps, listing rows — the literal
 `/apps/{legacy}` zombie) needs full repo file _contents_ in the gate context, not
 just `repoPaths`; tracked as the next increment.
 
+`destructive_change` is implemented
+(`src/submission-checks/destructive-change.ts`). It **complements** the existing
+`destructive_sql` (which already _blocks_ `DROP TABLE` / `TRUNCATE` / `DELETE`
+without `WHERE`) by covering the _targeted_ destructive ops `destructive_sql`
+lets through but which still warrant due diligence — a `DELETE ... WHERE`, an
+`ALTER ... DROP COLUMN`, a `DROP VIEW/TYPE/INDEX/...`, or a wide `UPDATE` with no
+`WHERE`. Such an op must carry an inline **evidence block**; missing/incomplete →
+`warn` (phase-0; target `blocking` w/o evidence). The convention:
+
+```sql
+-- @destructive-change
+-- fk-refs: 0            -- or: referencing tables + how each is handled
+-- affected-rows: 1      -- or an estimate
+-- reversible: re-seed; the row carries no referenced data   -- or: no — <why ok>
+-- ack: <who/when>
+```
+
+Required fields: `fk-refs`, `affected-rows`, `reversible`, `ack` — i.e. the exact
+FK / row-count / reversibility check done by hand for the `cognitive-debt` row
+delete, now machine-required. **Self-heal follow-up:** auto-run the FK/row probes
+against a DB branch and attach the evidence.
+
 ### Rollout
 
 1. Land `contract_integrity` in **`warn`** (it is allow-only today per the gate

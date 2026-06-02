@@ -29,6 +29,7 @@
     "soul_integrity",
     "contract_integrity",
     "safe_deprecation",
+    "destructive_change",
     "output_size_min",
     "action_extraction_present",
     "delta_section_present",

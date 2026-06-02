@@ -114,6 +114,7 @@ export const SubmissionCheckCode = z.enum([
   // ADR-010 — architecture & lifecycle gates
   "contract_integrity",
   "safe_deprecation",
+  "destructive_change",
   // Phase 0 — agent suggestion quality (advisory / weight=0 in komatik-agents)
   "output_size_min",
   "action_extraction_present",
