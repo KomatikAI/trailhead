@@ -54,9 +54,12 @@ describe("catalog self-heal lane (ADR-010)", () => {
     expect(edit.entities).toContain("trace");
     expect(edit.entities).toContain("trace-core");
     // The appended YAML is valid and declares the missing entities.
-    const docs = [...yaml.loadAll(edit.append)].filter(Boolean) as Array<
-      Record<string, any>
-    >;
+    type StubDoc = {
+      kind: string;
+      metadata: { name: string };
+      spec: { owner: string };
+    };
+    const docs = [...yaml.loadAll(edit.append)].filter(Boolean) as StubDoc[];
     const byName = new Map(docs.map((d) => [d.metadata.name, d]));
     expect(byName.get("trace")!.kind).toBe("System");
     expect(byName.get("trace-core")!.kind).toBe("Component");
