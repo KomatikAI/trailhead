@@ -57,6 +57,8 @@ export interface SubmissionEngineOptions {
    * inline `known_entities` config for the `contract_integrity` detector.
    */
   catalogKnownEntities?: string[];
+  /** Promotion branch topology (GITHUB_BASE_REF / GITHUB_HEAD_REF), set by the gate. */
+  promotion?: { baseBranch?: string; headBranch?: string };
 }
 
 function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext {
@@ -92,6 +94,7 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
     repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
     catalogKnownEntities:
       catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
+    promotion: options.promotion,
   };
 }
 

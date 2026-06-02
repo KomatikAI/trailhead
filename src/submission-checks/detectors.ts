@@ -19,6 +19,8 @@ import { runPhase0Detectors } from "./phase0-detectors.js";
 import { detectContractIntegrity } from "./contract-integrity.js";
 import { detectSafeDeprecation } from "./safe-deprecation.js";
 import { detectDestructiveChange } from "./destructive-change.js";
+import { detectClaimAnchoring } from "./claim-anchoring.js";
+import { detectPromotionCoherence } from "./promotion-coherence.js";
 import { validateFileSyntax } from "./syntax-validity.js";
 import { matchesGlobs } from "../risk-engine.js";
 import { applyDetectorPolicy, artifactFileGlobs } from "./detector-policy.js";
@@ -657,6 +659,8 @@ export function runAllDetectors(ctx: SubmissionCheckContext): SubmissionCheckRes
     finalize("contract_integrity", detectContractIntegrity(ctx)),
     finalize("safe_deprecation", detectSafeDeprecation(ctx)),
     finalize("destructive_change", detectDestructiveChange(ctx)),
+    finalize("claim_anchoring", detectClaimAnchoring(ctx)),
+    finalize("promotion_coherence", detectPromotionCoherence(ctx)),
   ].filter((check): check is SubmissionCheckResult => check !== null);
 
   const phase0 = runPhase0Detectors(ctx)

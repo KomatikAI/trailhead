@@ -57,9 +57,9 @@ against real PRs.
 This ADR is the umbrella. The first wave lands two catalog-native detectors —
 **`contract_integrity`** (the reference implementation; it prevents the most
 common and generalizable failure, with a live multi-repo catalog to validate
-against) and **`safe_deprecation`** (catalog-coherence v1). The remaining three
-(`claim_anchoring`, `destructive_change`, `promotion_coherence`) follow as
-separate PRs under this ADR.
+against) and **`safe_deprecation`** (catalog-coherence v1). `destructive_change`,
+`claim_anchoring`, and `promotion_coherence` followed in subsequent PRs under this
+ADR — **all five detectors are now implemented** (see Implementation status).
 
 ### `contract_integrity` design (the first detector)
 
@@ -128,6 +128,28 @@ Required fields: `fk-refs`, `affected-rows`, `reversible`, `ack` — i.e. the ex
 FK / row-count / reversibility check done by hand for the `cognitive-debt` row
 delete, now machine-required. **Self-heal follow-up:** auto-run the FK/row probes
 against a DB branch and attach the evidence.
+
+`claim_anchoring` is implemented (`src/submission-checks/claim-anchoring.ts`).
+It scans changed docs (`.md`/`.mdx`, outside code fences) for assertive
+_behavioral_ claims ("redirects exist", "is enforced", "always/never …", "fully
+covered", …) that carry **no anchor** — a backtick file/path, a link, a
+`verified-by:` pointer, or an explicit `<!-- claim-ok -->`. It doesn't judge
+truth; it asks the author to cite where the behavior lives so docs and code can be
+cross-checked. `advisory` (the doc-vs-reality drift that let "redirects exist"
+outlive the missing `/apps` redirect).
+
+`promotion_coherence` is implemented (`src/submission-checks/promotion-coherence.ts`).
+It reads the PR's branch topology (`GITHUB_BASE_REF` / `GITHUB_HEAD_REF`, threaded
+as `ctx.promotion`) and, on an env-branch→env-branch **promotion**, warns on two
+in-reach signals: (1) a **stage skip** into a production branch (`dev → master`,
+bypassing staging), and (2) **migrations riding a promotion into production**
+(confirm they belong in this release + carry `destructive_change` evidence — the
+`cognitive-debt`-delete-on-#2151 class). `warn`. **Follow-up:** the "source has
+commits not in this PR" (omitted-work) check needs an octokit branch-compare,
+beyond the file-diff model; tracked.
+
+**All five ADR-010 detectors are implemented.** Each ships `warn`/`advisory`
+(phase-0); promotion to `blocking` is the calibration step below.
 
 ### Rollout
 

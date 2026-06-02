@@ -47,4 +47,10 @@ export interface SubmissionCheckContext {
    * single-repo PR doesn't false-positive on a legitimately external contract.
    */
   catalogKnownEntities?: Set<string>;
+  /**
+   * Promotion topology for `promotion_coherence` (ADR-010) — the PR's target and
+   * source branches (from GITHUB_BASE_REF / GITHUB_HEAD_REF, set by the gate I/O
+   * layer). Absent for non-PR / local runs, leaving the detector dormant.
+   */
+  promotion?: { baseBranch?: string; headBranch?: string };
 }

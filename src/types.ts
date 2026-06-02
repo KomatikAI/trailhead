@@ -115,6 +115,8 @@ export const SubmissionCheckCode = z.enum([
   "contract_integrity",
   "safe_deprecation",
   "destructive_change",
+  "claim_anchoring",
+  "promotion_coherence",
   // Phase 0 — agent suggestion quality (advisory / weight=0 in komatik-agents)
   "output_size_min",
   "action_extraction_present",
