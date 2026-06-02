@@ -13,6 +13,8 @@ export interface CatalogIndex {
   version?: number;
   generated?: string;
   entities: string[];
+  /** entity name → "owner/repo" that declares it (for the cross-repo opener). */
+  owners?: Record<string, string>;
 }
 
 /** Parse a catalog-index JSON string into the list of entity names. */
@@ -24,7 +26,26 @@ export function parseCatalogIndex(raw: string): string[] {
   );
 }
 
+/** Parse the `owners` map (entity → "owner/repo") from a catalog-index JSON string. */
+export function parseCatalogOwners(raw: string): Record<string, string> {
+  const parsed = JSON.parse(raw) as Partial<CatalogIndex>;
+  const owners = parsed.owners;
+  if (!owners || typeof owners !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const [name, repo] of Object.entries(owners)) {
+    if (typeof name === "string" && name && typeof repo === "string" && repo) {
+      out[name] = repo;
+    }
+  }
+  return out;
+}
+
 /** Read + parse a catalog index file. Throws on read/parse failure (caller decides). */
 export function loadCatalogIndex(path: string): string[] {
   return parseCatalogIndex(readFileSync(path, "utf8"));
+}
+
+/** Read + parse the owners map from a catalog index file. Throws on read/parse failure. */
+export function loadCatalogOwners(path: string): Record<string, string> {
+  return parseCatalogOwners(readFileSync(path, "utf8"));
 }

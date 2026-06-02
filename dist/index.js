@@ -42239,6 +42239,9 @@ const SubmissionConfig = objectType({
          * for the cross-repo PR opener: a dangling consumesApis/dependsOn ref whose
          * name is mapped here triggers a declaration PR in the owning repo. */
         api_owners: recordType(stringType()).optional(),
+        /** Path to a catalog index JSON with an `owners` map; merged with api_owners
+         * (inline api_owners wins). Usually the same file as catalog_index_path. */
+        api_owners_path: stringType().optional(),
         /** Cross-repo PR opener (ADR-010). Off by default; opens declaration PRs in
          * the OWNING repo for dangling cross-repo contract refs. Needs a token with
          * write access to those repos (cross-repo-token input). */
@@ -50278,9 +50281,27 @@ function parseCatalogIndex(raw) {
         return [];
     return parsed.entities.filter((e) => typeof e === "string" && e.length > 0);
 }
+/** Parse the `owners` map (entity → "owner/repo") from a catalog-index JSON string. */
+function parseCatalogOwners(raw) {
+    const parsed = JSON.parse(raw);
+    const owners = parsed.owners;
+    if (!owners || typeof owners !== "object")
+        return {};
+    const out = {};
+    for (const [name, repo] of Object.entries(owners)) {
+        if (typeof name === "string" && name && typeof repo === "string" && repo) {
+            out[name] = repo;
+        }
+    }
+    return out;
+}
 /** Read + parse a catalog index file. Throws on read/parse failure (caller decides). */
 function loadCatalogIndex(path) {
     return parseCatalogIndex((0,external_node_fs_namespaceObject.readFileSync)(path, "utf8"));
+}
+/** Read + parse the owners map from a catalog index file. Throws on read/parse failure. */
+function loadCatalogOwners(path) {
+    return parseCatalogOwners((0,external_node_fs_namespaceObject.readFileSync)(path, "utf8"));
 }
 
 ;// CONCATENATED MODULE: ./src/agent-trust-metrics.ts
@@ -55998,7 +56019,17 @@ async function run() {
             try {
                 const repoConfig = await loadRepoConfig(config.githubToken);
                 const ci = repoConfig?.submission?.contract_integrity;
-                const apiOwners = ci?.api_owners ?? {};
+                // Owner registry: generated file (api_owners_path) ∪ inline (inline wins).
+                const apiOwners = {};
+                if (ci?.api_owners_path) {
+                    try {
+                        Object.assign(apiOwners, loadCatalogOwners(ci.api_owners_path));
+                    }
+                    catch (err) {
+                        core_debug(`Cross-repo opener: api_owners_path load failed: ${err}`);
+                    }
+                }
+                Object.assign(apiOwners, ci?.api_owners ?? {});
                 if (Object.keys(apiOwners).length > 0) {
                     const openerCfg = ci?.cross_repo_opener;
                     // Resolution universe — match what the gate used (known_entities ∪ index).
