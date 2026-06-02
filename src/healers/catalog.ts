@@ -15,7 +15,7 @@ import {
   analyzeCatalogRefs,
   type ContractRefFinding,
 } from "../submission-checks/contract-integrity.js";
-import type { SubmissionCheckContext } from "../submission-checks/types.js";
+import type { SubmissionFileInfo } from "../submission-checks/types.js";
 import { fileContent, normalizePath } from "../submission-checks/helpers.js";
 
 export interface CatalogHealEdit {
@@ -81,8 +81,11 @@ function componentStub(name: string, owner: string): string {
  * Plan the catalog self-heal for a PR: auto-declare missing LOCAL entities,
  * and surface cross-repo refs as suggestions.
  */
-export function planCatalogHeal(ctx: SubmissionCheckContext): CatalogHealPlan {
-  const analysis = analyzeCatalogRefs(ctx);
+export function planCatalogHeal(
+  files: SubmissionFileInfo[],
+  knownEntities?: Set<string>,
+): CatalogHealPlan {
+  const analysis = analyzeCatalogRefs(files, knownEntities);
   if (!analysis) return { edits: [], suggestions: [] };
 
   const local = analysis.findings.filter((f) => f.kind === "local");
@@ -102,7 +105,7 @@ export function planCatalogHeal(ctx: SubmissionCheckContext): CatalogHealPlan {
 
   const edits: CatalogHealEdit[] = [];
   for (const [file, entityMap] of byFile) {
-    const original = ctx.files.find((cf) => normalizePath(cf.filename) === file);
+    const original = files.find((cf) => normalizePath(cf.filename) === file);
     const owner = original ? ownerHint(fileContent(original)) : "unknown";
     const stubs: string[] = [];
     const entities: string[] = [];

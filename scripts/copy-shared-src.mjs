@@ -44,6 +44,9 @@ const sharedFiles = [
   "trust-runtime.ts",
   "remediation-lanes.ts",
   "trailhead-events.ts",
+  "autofix-executor.ts",
+  "autofix-builders.ts",
+  "github-git-writer.ts",
 ];
 
 const adapterFiles = ["gitlab.ts", "circleci.ts"];
@@ -95,6 +98,14 @@ if (targetName === "app" || targetName === "mcp" || targetName === "cli") {
 }
 
 if (targetName === "app" || targetName === "mcp") {
+  // The catalog healer backs the contract_integrity autofix builder.
+  const healersDest = path.join(targetDir, "healers");
+  fs.mkdirSync(healersDest, { recursive: true });
+  fs.copyFileSync(
+    path.join(root, "src/healers", "catalog.ts"),
+    path.join(healersDest, "catalog.ts"),
+  );
+
   const adaptersDir = path.join(targetDir, "ci-adapters");
   fs.mkdirSync(adaptersDir, { recursive: true });
   for (const file of adapterFiles) {

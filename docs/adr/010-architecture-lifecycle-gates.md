@@ -105,9 +105,19 @@ ADR — **all five detectors are now implemented** (see Implementation status).
   the fixer plans (catalog-info.yaml is not a red-lane path). Cross-repo refs
   (`consumesApis`/`dependsOn`/`providesApis`) become **suggestions** — the fix
   belongs in the owning repo; opening that cross-repo PR is the remaining
-  follow-up (the fixer commits to the gated PR, not other repos). Commit
-  execution rides the platform's shared autofix git-write path (dry-run in
-  v4.4.x, same as every other autofix class).
+  follow-up (the fixer commits to the gated PR, not other repos).
+
+The **shared autofix git-write executor** now exists (`src/autofix-executor.ts`):
+`executeAutofixRound` plans one fix (via `fixer-core`), asks a content builder
+(`src/autofix-builders.ts` — `contract_integrity` → catalog stub append) for the
+concrete `FileEdit[]`, and commits them through an injected `GitWriter`. The real
+writer (`src/github-git-writer.ts`, `GithubGitWriter`) makes one atomic commit
+via the git-data API (blobs → tree → commit → update ref) behind a structural
+octokit interface, so the same executor runs in the Action, the App
+(`app/src/fixer.ts` now delegates to it), or a unit-test mock. Trust-flag /
+red-lane / one-commit-per-round gating is inherited from `fixer-core`. **This
+lights up commits for every autofix class, not just `contract_integrity`** — the
+catalog healer is simply the first registered builder.
 
 `safe_deprecation` **v1 (catalog coherence)** is implemented
 (`src/submission-checks/safe-deprecation.ts`): when an entity is retired

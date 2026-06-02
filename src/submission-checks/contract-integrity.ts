@@ -76,9 +76,10 @@ function entityName(doc: Record<string, unknown>): string | null {
  * doesn't resolve. Returns null when there are no catalog files to analyze.
  */
 export function analyzeCatalogRefs(
-  ctx: SubmissionCheckContext,
+  files: SubmissionFileInfo[],
+  knownEntities?: Set<string>,
 ): { findings: ContractRefFinding[]; hasOrgIndex: boolean } | null {
-  const catalogFiles = ctx.files.filter(isCatalogFile);
+  const catalogFiles = files.filter(isCatalogFile);
   if (catalogFiles.length === 0) return null;
 
   // Parse once; remember which file each doc came from.
@@ -96,8 +97,8 @@ export function analyzeCatalogRefs(
     }
   }
   const known = new Set<string>(declared);
-  for (const name of ctx.catalogKnownEntities ?? []) known.add(name);
-  const hasOrgIndex = (ctx.catalogKnownEntities?.size ?? 0) > 0;
+  for (const name of knownEntities ?? []) known.add(name);
+  const hasOrgIndex = (knownEntities?.size ?? 0) > 0;
 
   // 2. Walk references and collect anything that doesn't resolve.
   const findings: ContractRefFinding[] = [];
@@ -133,7 +134,7 @@ export function analyzeCatalogRefs(
 export function detectContractIntegrity(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
-  const analysis = analyzeCatalogRefs(ctx);
+  const analysis = analyzeCatalogRefs(ctx.files, ctx.catalogKnownEntities);
   if (!analysis) return null;
   const { findings, hasOrgIndex } = analysis;
 
