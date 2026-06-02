@@ -80,12 +80,26 @@ follow as separate PRs under this ADR.
 - **Output:** one `SubmissionCheckResult` aggregating the unresolved references,
   severity = the max across findings; `null` when everything resolves.
 
+### Implementation status
+
+`contract_integrity` is **implemented and cross-repo-capable**:
+- detector: `src/submission-checks/contract-integrity.ts`
+- org index config: `.trailhead.yml` `submission.contract_integrity.known_entities`
+  (inline) and/or `catalog_index_path` (a generated JSON file); merged into
+  `ctx.catalogKnownEntities` (`submission-engine.ts`), file loaded at the gate
+  I/O boundary (`catalog-index.ts` → `gate.ts`).
+- index generator: `scripts/build-catalog-index.mjs` (`--org <name>` via `gh`, or
+  `--root <dir>` local scan).
+- dogfood index: `examples/komatik-catalog-index.json` — 53 entities across the
+  live org; with it configured, `consumesApis: [komatik-v3-prebuild]` resolves
+  instead of flagging.
+
 ### Rollout
 
 1. Land `contract_integrity` in **`warn`** (it is allow-only today per the gate
    calibration; this is signal-gathering, not blocking).
 2. Generate/commit an org **catalog index** so contract refs resolve cross-repo;
-   dogfood against the ecosystem catalog.
+   dogfood against the ecosystem catalog. **(done — generator + example shipped)**
 3. Once precision is proven, promote to `blocking` for the *local structural* and
    *owned* categories (lowest FP), keeping cross-repo contract refs at `warn`
    until the index is authoritative — coordinated with the

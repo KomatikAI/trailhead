@@ -51,6 +51,12 @@ export interface SubmissionEngineOptions {
   declaredPackages?: string[];
   /** Paths that exist in the target repo (e.g. `git ls-files`), optional. */
   repoPaths?: string[];
+  /**
+   * Org catalog entity names resolved by the caller (I/O layer) — e.g. loaded
+   * from `submission.contract_integrity.catalog_index_path`. Merged with the
+   * inline `known_entities` config for the `contract_integrity` detector.
+   */
+  catalogKnownEntities?: string[];
 }
 
 function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext {
@@ -59,6 +65,13 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
 
   const declared = new Set(options.declaredPackages ?? []);
   const { policy } = resolveDetectorPolicy(repoConfig?.submission);
+
+  // contract_integrity (ADR-010): org catalog index = inline config ∪ caller-loaded.
+  const inlineKnown = repoConfig?.submission?.contract_integrity?.known_entities ?? [];
+  const catalogKnownEntities = new Set<string>([
+    ...inlineKnown,
+    ...(options.catalogKnownEntities ?? []),
+  ]);
 
   return {
     files,
@@ -77,6 +90,7 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
     slugOnlyPatterns: buildSlugOnlyPatterns(repoConfig?.submission),
     detectorPolicy: policy,
     repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
+    catalogKnownEntities: catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
   };
 }
 

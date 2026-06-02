@@ -70,6 +70,7 @@ import {
   getSubmissionConfigWarnings,
   submissionGateShouldBlock,
 } from "./submission-engine.js";
+import { loadCatalogIndex } from "./catalog-index.js";
 import type { SubmissionCheckResult } from "./types.js";
 import { computeAgentTrustScore, strictnessFromTrust } from "./trust-score.js";
 import { parseAgentTrustMetrics } from "./agent-trust-metrics.js";
@@ -1749,6 +1750,21 @@ export async function evaluateGate(
     for (const warning of getSubmissionConfigWarnings(repoConfig?.submission)) {
       core.warning(warning);
     }
+    // contract_integrity (ADR-010): load the org catalog index, if configured,
+    // so cross-repo contract references can resolve (else they stay advisory).
+    let catalogKnownEntities: string[] | undefined;
+    const catalogIndexPath = repoConfig?.submission?.contract_integrity?.catalog_index_path;
+    if (catalogIndexPath) {
+      try {
+        catalogKnownEntities = loadCatalogIndex(catalogIndexPath);
+      } catch (err) {
+        core.warning(
+          `contract_integrity: could not load catalog index "${catalogIndexPath}": ${
+            (err as Error).message
+          }`,
+        );
+      }
+    }
     submissionChecks = runSubmissionGate({
       files: files.map((f) => ({
         filename: f.filename,
@@ -1759,6 +1775,7 @@ export async function evaluateGate(
       komatikInstance: process.env.KOMATIK_INSTANCE === "true",
       mode: submissionMode,
       declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
+      catalogKnownEntities,
     });
     if (submissionChecks.length > 0) {
       policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);
