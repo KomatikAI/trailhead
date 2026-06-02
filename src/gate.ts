@@ -1777,6 +1777,14 @@ export async function evaluateGate(
       mode: submissionMode,
       declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
       catalogKnownEntities,
+      // promotion_coherence (ADR-010): branch topology from the Actions env.
+      promotion:
+        process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
+          ? {
+              baseBranch: process.env.GITHUB_BASE_REF,
+              headBranch: process.env.GITHUB_HEAD_REF,
+            }
+          : undefined,
     });
     if (submissionChecks.length > 0) {
       policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);
