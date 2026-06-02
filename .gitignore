@@ -9,6 +9,7 @@ dist/**/!(index|sourcemap-register).js
 !dist/index.js
 !dist/sourcemap-register.js
 !dist/licenses.txt
+dist/*.node
 out/
 *.log
 .env
@@ -46,6 +47,20 @@ mcp/src/config-core.ts
 mcp/src/deployment-gate.ts
 mcp/src/feedback-core.ts
 cloud/src/feedback-core.ts
+
+# Shared autofix / ADR-010 self-heal modules copied at build time
+app/src/autofix-executor.ts
+app/src/autofix-builders.ts
+app/src/github-git-writer.ts
+app/src/cross-repo-opener.ts
+app/src/healers/
+app/src/submission-checks/
+mcp/src/autofix-executor.ts
+mcp/src/autofix-builders.ts
+mcp/src/github-git-writer.ts
+mcp/src/cross-repo-opener.ts
+mcp/src/healers/
+mcp/src/submission-checks/
 
 # Internal — Komatik agent context (local-only, not for public repo)
 AGENTS.md

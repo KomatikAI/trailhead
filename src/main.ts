@@ -35,6 +35,9 @@ import { resolveAgentProvenanceId } from "./agent-provenance.js";
 import { readTrustRuntime } from "./trust-runtime.js";
 import { buildGateVerdict } from "./verdict.js";
 import { runGateAutofix, type GateAutofixClient } from "./gate-autofix.js";
+import { runCrossRepoOpener, type CrossRepoOpenerClient } from "./cross-repo-opener.js";
+import { loadRepoConfig } from "./config.js";
+import { loadCatalogIndex } from "./catalog-index.js";
 import type { TrailheadConfig, TestRepairResult, PolicyOverrideAudit } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -404,6 +407,83 @@ async function run(): Promise<void> {
         }
       } catch (err) {
         core.warning(`Autofix failed (non-blocking): ${err}`);
+      }
+    }
+
+    // Cross-repo PR opener (ADR-010) — the contract_integrity case a commit on
+    // THIS PR can't fix: a dangling consumesApis/dependsOn ref whose declaration
+    // belongs in another repo. Opens a declaration PR in the owning repo. Opt-in,
+    // dry-run unless enabled, and needs a token with write access to those repos.
+    const contractFix = autofixFixes.find(
+      (f) => f.code === "submission.contract_integrity",
+    );
+    if (config.githubToken && prNumber && contractFix && contractFix.files.length > 0) {
+      try {
+        const repoConfig = await loadRepoConfig(config.githubToken);
+        const ci = repoConfig?.submission?.contract_integrity;
+        const apiOwners = ci?.api_owners ?? {};
+        if (Object.keys(apiOwners).length > 0) {
+          const openerCfg = ci?.cross_repo_opener;
+          // Resolution universe — match what the gate used (known_entities ∪ index).
+          const known = new Set<string>(ci?.known_entities ?? []);
+          if (ci?.catalog_index_path) {
+            try {
+              for (const e of loadCatalogIndex(ci.catalog_index_path)) known.add(e);
+            } catch (err) {
+              core.debug(`Cross-repo opener: catalog index load failed: ${err}`);
+            }
+          }
+          const crossRepoToken =
+            core.getInput("cross-repo-token") || readEnv("TRAILHEAD_CROSS_REPO_TOKEN");
+          const openerEnabled =
+            (openerCfg?.enabled ?? false) &&
+            core.getInput("cross-repo-opener") !== "false" &&
+            Boolean(crossRepoToken);
+          const prPayload = context.payload.pull_request as
+            | { head?: { ref?: string }; html_url?: string }
+            | undefined;
+          const openerResult = await runCrossRepoOpener({
+            client: github.getOctokit(
+              crossRepoToken || config.githubToken,
+            ) as unknown as CrossRepoOpenerClient,
+            gatedOwner: context.repo.owner,
+            gatedRepo: context.repo.repo,
+            headBranch: prPayload?.head?.ref,
+            catalogPaths: contractFix.files,
+            evaluationId: evaluation.id,
+            knownEntities: known,
+            apiOwners,
+            ownerAllowlist: openerCfg?.owner_allowlist,
+            prContext: { number: prNumber, url: prPayload?.html_url },
+            enabled: openerEnabled,
+          });
+          core.setOutput("cross-repo-opener-json", JSON.stringify(openerResult));
+          for (const o of openerResult.outcomes) {
+            if (o.status === "opened") {
+              core.info(
+                `Cross-repo opener: declared ${o.entities.join(", ")} → ${o.prUrl} on ${o.owner}/${o.repo}`,
+              );
+            } else if (o.status === "dry-run") {
+              core.info(
+                `Cross-repo opener (dry-run): would declare ${o.entities.join(", ")} in ${o.owner}/${o.repo}. Enable cross_repo_opener + supply cross-repo-token to apply.`,
+              );
+            } else if (o.status === "exists") {
+              core.info(
+                `Cross-repo opener: declaration PR already open for ${o.owner}/${o.repo} (${o.prUrl})`,
+              );
+            } else if (o.status === "error") {
+              core.warning(`Cross-repo opener error (${o.owner}/${o.repo}): ${o.reason}`);
+            }
+          }
+          for (const u of openerResult.unresolved) {
+            core.debug(`Cross-repo opener unresolved: ${u.name} — ${u.reason}`);
+          }
+          if (openerResult.skippedReason) {
+            core.debug(`Cross-repo opener: ${openerResult.skippedReason}`);
+          }
+        }
+      } catch (err) {
+        core.warning(`Cross-repo opener failed (non-blocking): ${err}`);
       }
     }
 
