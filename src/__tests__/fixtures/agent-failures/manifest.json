@@ -28,6 +28,7 @@
     "large_file",
     "soul_integrity",
     "contract_integrity",
+    "safe_deprecation",
     "output_size_min",
     "action_extraction_present",
     "delta_section_present",

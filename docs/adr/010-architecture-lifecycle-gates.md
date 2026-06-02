@@ -54,10 +54,12 @@ against real PRs.
 | **`destructive_change`** | unsafe data change (#4) | migration ops ↔ evidence bundle (extends `destructive_sql`) | `blocking` w/o evidence | run FK/row probes, attach evidence |
 | **`promotion_coherence`** | release incoherence (#5) | source-branch work vs. target branch | `warn` | open / sequence the next-hop promotion PR |
 
-This ADR is the umbrella; **`contract_integrity` lands first** as the reference
-implementation (it directly prevents the most common and most generalizable
-failure, and there is a live multi-repo catalog to validate against). The others
-follow as separate PRs under this ADR.
+This ADR is the umbrella. The first wave lands two catalog-native detectors —
+**`contract_integrity`** (the reference implementation; it prevents the most
+common and generalizable failure, with a live multi-repo catalog to validate
+against) and **`safe_deprecation`** (catalog-coherence v1). The remaining three
+(`claim_anchoring`, `destructive_change`, `promotion_coherence`) follow as
+separate PRs under this ADR.
 
 ### `contract_integrity` design (the first detector)
 
@@ -93,6 +95,16 @@ follow as separate PRs under this ADR.
 - dogfood index: `examples/komatik-catalog-index.json` — 53 entities across the
   live org; with it configured, `consumesApis: [komatik-v3-prebuild]` resolves
   instead of flagging.
+
+`safe_deprecation` **v1 (catalog coherence)** is implemented
+(`src/submission-checks/safe-deprecation.ts`): when an entity is retired
+(`spec.lifecycle: deprecated`), a still-*live* entity that keeps depending on it
+(`consumesApis` / `dependsOn` / `subcomponentOf` / `system`) is flagged `warn` —
+the catalog-level "zombie wire". It correctly ignores a deprecated entity that
+points *up* at its live survivor (the Trace absorption shape). **Follow-up:** the
+non-catalog surface coverage (route/redirect maps, listing rows — the literal
+`/apps/{legacy}` zombie) needs full repo file *contents* in the gate context, not
+just `repoPaths`; tracked as the next increment.
 
 ### Rollout
 
