@@ -1,10 +1,17 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 8066:
+/***/ 6390:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
+module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-gnu.node")
+
+/***/ }),
+
+/***/ 7064:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-musl.node")
 
 /***/ }),
 
@@ -951,7 +958,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8066)
+        return __nccwpck_require__(9763)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1085,7 +1092,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(5254)
+        return __nccwpck_require__(7064)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1097,7 +1104,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6571)
+        return __nccwpck_require__(6390)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -29769,22 +29776,6 @@ module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
 
 /***/ }),
 
-/***/ 6571:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-linux-arm64-gnu");
-
-
-/***/ }),
-
-/***/ 5254:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-linux-arm64-musl");
-
-
-/***/ }),
-
 /***/ 3586:
 /***/ ((module) => {
 
@@ -29853,6 +29844,14 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
+
+
+/***/ }),
+
+/***/ 9763:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-win32-x64-msvc");
 
 
 /***/ }),
@@ -33213,7 +33212,7 @@ function error(message, properties = {}) {
  * @param message warning issue message. Errors will be converted to string via toString()
  * @param properties optional properties to add to the annotation.
  */
-function warning(message, properties = {}) {
+function core_warning(message, properties = {}) {
     command_issueCommand('warning', utils_toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 /**
@@ -41928,6 +41927,12 @@ const SubmissionCheckCode = enumType([
     "sql_syntax_basic",
     "large_file",
     "soul_integrity",
+    // ADR-010 — architecture & lifecycle gates
+    "contract_integrity",
+    "safe_deprecation",
+    "destructive_change",
+    "claim_anchoring",
+    "promotion_coherence",
     // Phase 0 — agent suggestion quality (advisory / weight=0 in komatik-agents)
     "output_size_min",
     "action_extraction_present",
@@ -42191,6 +42196,17 @@ const TuningConfig = objectType({
     digest_webhook_url: stringType().url().optional(),
     fp_threshold: numberType().min(0).max(1).default(0.15),
 });
+const SubmissionDetectorPolicyEntry = objectType({
+    enabled: booleanType().optional(),
+    severity: enumType(["block", "warn", "advisory", "blocking"]).optional(),
+    file_globs: arrayType(stringType()).optional(),
+    path_ignore: arrayType(stringType()).optional(),
+    weight: numberType().optional(),
+});
+const SubmissionRenamePattern = objectType({
+    old: stringType().min(1),
+    new: stringType().min(1),
+});
 const SubmissionConfig = objectType({
     enabled: booleanType().default(false),
     mode: enumType(["warn", "block"]).default("block"),
@@ -42205,6 +42221,33 @@ const SubmissionConfig = objectType({
         skip_path_patterns: arrayType(stringType()).optional(),
         skip_comment_markers: arrayType(stringType()).optional(),
         skip_in_imports: booleanType().optional(),
+    })
+        .optional(),
+    /** Project rename vocabulary — extends Komatik defaults when KOMATIK_INSTANCE=true. */
+    rename_patterns: arrayType(SubmissionRenamePattern).optional(),
+    /** Extra slug-only regex sources (merged with product defaults). */
+    slug_only_patterns: arrayType(stringType()).optional(),
+    /** Per-detector policy overrides (enable/severity/file scope). */
+    detectors: recordType(SubmissionDetectorPolicyEntry).optional(),
+    /** contract_integrity (ADR-010): cross-repo catalog resolution. */
+    contract_integrity: objectType({
+        /** Entity names published org-wide; lets cross-repo contract refs resolve. */
+        known_entities: arrayType(stringType()).optional(),
+        /** Path to a JSON catalog index ({ entities: string[] }), merged with known_entities. */
+        catalog_index_path: stringType().optional(),
+        /** entity name → "owner/repo" that should publish it. Resolution registry
+         * for the cross-repo PR opener: a dangling consumesApis/dependsOn ref whose
+         * name is mapped here triggers a declaration PR in the owning repo. */
+        api_owners: recordType(stringType()).optional(),
+        /** Cross-repo PR opener (ADR-010). Off by default; opens declaration PRs in
+         * the OWNING repo for dangling cross-repo contract refs. Needs a token with
+         * write access to those repos (cross-repo-token input). */
+        cross_repo_opener: objectType({
+            enabled: booleanType().default(false),
+            /** Owners the opener may open PRs in. Defaults to the gated repo's owner. */
+            owner_allowlist: arrayType(stringType()).optional(),
+        })
+            .optional(),
     })
         .optional(),
 });
@@ -42878,20 +42921,20 @@ function warnUnknownTopLevelKeys(raw, configPath) {
         return;
     for (const key of Object.keys(raw)) {
         if (!KNOWN_TOP_LEVEL_KEYS.has(key)) {
-            warning(`${configPath}: unknown top-level key "${key}" will be ignored. ` +
+            core_warning(`${configPath}: unknown top-level key "${key}" will be ignored. ` +
                 `See migration guide: ${CONFIG_MIGRATION_GUIDE_URL}`);
         }
     }
 }
 function validateSchemaVersion(parsedConfig, configPath) {
     if (!SUPPORTED_CONFIG_SCHEMA_VERSIONS.has(parsedConfig.schema_version)) {
-        warning(`${configPath}: unsupported schema_version=${parsedConfig.schema_version}. ` +
+        core_warning(`${configPath}: unsupported schema_version=${parsedConfig.schema_version}. ` +
             `Supported: ${[...SUPPORTED_CONFIG_SCHEMA_VERSIONS].join(", ")}. ` +
             `Migration guide: ${CONFIG_MIGRATION_GUIDE_URL}`);
         return null;
     }
     if (parsedConfig.schema_version > CURRENT_CONFIG_SCHEMA_VERSION) {
-        warning(`${configPath}: schema_version=${parsedConfig.schema_version} is newer than ` +
+        core_warning(`${configPath}: schema_version=${parsedConfig.schema_version} is newer than ` +
             `supported ${CURRENT_CONFIG_SCHEMA_VERSION}. Some features may be ignored.`);
     }
     return parsedConfig;
@@ -42921,7 +42964,7 @@ async function loadRepoConfig(token) {
         warnUnknownTopLevelKeys(raw, configPath);
         const parsedConfig = parseRepoConfigContent(content);
         if (!parsedConfig) {
-            warning(`${configPath} parse error — using defaults`);
+            core_warning(`${configPath} parse error — using defaults`);
             return null;
         }
         const validated = validateSchemaVersion(parsedConfig, configPath);
@@ -42949,7 +42992,7 @@ async function loadLocalRepoConfig() {
             warnUnknownTopLevelKeys(raw, configPath);
             const parsedConfig = parseRepoConfigContent(content);
             if (!parsedConfig) {
-                warning(`${configPath} parse error — using defaults`);
+                core_warning(`${configPath} parse error — using defaults`);
                 return null;
             }
             const validated = validateSchemaVersion(parsedConfig, configPath);
@@ -43495,7 +43538,7 @@ async function waitForChecks(options) {
         const summary = evaluateRequiredChecks(allChecks, ciConfig, manifest);
         if (summary.pendingCount === 0 || Date.now() >= deadline) {
             if (summary.pendingCount > 0) {
-                warning(`CI wait timed out after ${timeoutMinutes}m with ${summary.pendingCount} check(s) still pending`);
+                core_warning(`CI wait timed out after ${timeoutMinutes}m with ${summary.pendingCount} check(s) still pending`);
             }
             return summary;
         }
@@ -44282,8 +44325,6 @@ function runPhase0Detectors(ctx) {
         .filter((check) => check !== null);
 }
 
-// EXTERNAL MODULE: ./node_modules/@swc/core/index.js
-var core = __nccwpck_require__(5971);
 ;// CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
 
 /*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
@@ -45027,7 +45068,7 @@ var json = failsafe.extend({
   ]
 });
 
-var js_yaml_core = json;
+var core = json;
 
 var YAML_DATE_REGEXP = new RegExp(
   '^([0-9][0-9][0-9][0-9])'          + // [1] year
@@ -45364,7 +45405,7 @@ var set = new type('tag:yaml.org,2002:set', {
   construct: constructYamlSet
 });
 
-var _default = js_yaml_core.extend({
+var _default = core.extend({
   implicit: [
     timestamp,
     js_yaml_merge
@@ -48094,7 +48135,7 @@ var Type                = type;
 var Schema              = schema;
 var FAILSAFE_SCHEMA     = failsafe;
 var JSON_SCHEMA         = json;
-var CORE_SCHEMA         = js_yaml_core;
+var CORE_SCHEMA         = core;
 var DEFAULT_SCHEMA      = _default;
 var load                = loader.load;
 var loadAll             = loader.loadAll;
@@ -48142,6 +48183,517 @@ var jsYaml = {
 
 
 
+;// CONCATENATED MODULE: ./src/submission-checks/contract-integrity.ts
+// Contract Integrity detector (ADR-010) — validates that Backstage
+// catalog-info.yaml references resolve to declared entities.
+//
+// Catches the "dangling contract reference" failure class: a repo declares it
+// CONSUMES an API (spec.consumesApis) that no repo PUBLISHES, or points at a
+// System / parent Component that doesn't exist. Each such PR is internally valid
+// and green; the break only exists across the system's contracts — which is
+// exactly what ordinary CI can't see.
+//
+// Resolution universe = entities declared across the catalog files in this PR,
+// unioned with an optional org catalog index (ctx.catalogKnownEntities). Local
+// structural refs (system / subcomponentOf) and owned refs (providesApis) must
+// resolve and warn when they don't; cross-repo contract refs (consumesApis /
+// dependsOn) warn only when an index is configured, otherwise advise.
+
+
+const CATALOG_FILE = /(?:^|\/)catalog-info\.ya?ml$/i;
+function isCatalogFile(file) {
+    return CATALOG_FILE.test(normalizePath(file.filename));
+}
+/** Backstage entity ref → bare name. "component:default/foo" → "foo". */
+function refName(ref) {
+    let s = String(ref).trim();
+    const colon = s.indexOf(":");
+    if (colon >= 0)
+        s = s.slice(colon + 1); // strip "kind:"
+    const slash = s.lastIndexOf("/");
+    if (slash >= 0)
+        s = s.slice(slash + 1); // strip "namespace/"
+    return s;
+}
+function asArray(value) {
+    if (Array.isArray(value))
+        return value.filter((v) => typeof v === "string");
+    if (typeof value === "string")
+        return [value];
+    return [];
+}
+/** Parse every YAML doc in a catalog file; tolerate malformed docs (that's syntax_validity's job). */
+function parseDocs(content) {
+    const docs = [];
+    try {
+        jsYaml.loadAll(content, (doc) => {
+            if (doc && typeof doc === "object")
+                docs.push(doc);
+        });
+    }
+    catch {
+        // unparseable catalog — leave to syntax_validity; we simply can't analyze it
+    }
+    return docs;
+}
+function entityName(doc) {
+    const meta = doc.metadata;
+    const name = meta?.name;
+    return typeof name === "string" ? name : null;
+}
+/**
+ * Core analysis shared by the detector and the self-heal lane: parse the PR's
+ * catalog files, build the resolution universe, and return every reference that
+ * doesn't resolve. Returns null when there are no catalog files to analyze.
+ */
+function analyzeCatalogRefs(files, knownEntities) {
+    const catalogFiles = files.filter(isCatalogFile);
+    if (catalogFiles.length === 0)
+        return null;
+    // Parse once; remember which file each doc came from.
+    const parsed = catalogFiles.map((file) => ({
+        file,
+        docs: parseDocs(fileContent(file)),
+    }));
+    // 1. Build the resolution universe: in-PR declarations ∪ configured org index.
+    const declared = new Set();
+    for (const { docs } of parsed) {
+        for (const doc of docs) {
+            const name = entityName(doc);
+            if (name)
+                declared.add(name);
+        }
+    }
+    const known = new Set(declared);
+    for (const name of knownEntities ?? [])
+        known.add(name);
+    const hasOrgIndex = (knownEntities?.size ?? 0) > 0;
+    // 2. Walk references and collect anything that doesn't resolve.
+    const findings = [];
+    const checkRef = (file, field, ref, kind) => {
+        const name = refName(ref);
+        if (!name || known.has(name))
+            return;
+        findings.push({ file: normalizePath(file.filename), field, ref, name, kind });
+    };
+    for (const { file, docs } of parsed) {
+        for (const doc of docs) {
+            const spec = (doc.spec ?? {});
+            if (typeof spec.system === "string")
+                checkRef(file, "system", spec.system, "local");
+            if (typeof spec.subcomponentOf === "string")
+                checkRef(file, "subcomponentOf", spec.subcomponentOf, "local");
+            for (const ref of asArray(spec.providesApis))
+                checkRef(file, "providesApis", ref, "owned");
+            for (const ref of asArray(spec.consumesApis))
+                checkRef(file, "consumesApis", ref, "contract");
+            for (const ref of asArray(spec.dependsOn))
+                checkRef(file, "dependsOn", ref, "contract");
+        }
+    }
+    return { findings, hasOrgIndex };
+}
+function detectContractIntegrity(ctx) {
+    const analysis = analyzeCatalogRefs(ctx.files, ctx.catalogKnownEntities);
+    if (!analysis)
+        return null;
+    const { findings, hasOrgIndex } = analysis;
+    if (findings.length === 0)
+        return null;
+    // 3. Severity: local/owned refs are structural (always warn). Cross-repo
+    //    contract refs warn only when an org index makes "dangling" decidable;
+    //    without one they're advisory ("unverified") to avoid single-repo FPs.
+    const structural = findings.filter((f) => f.kind !== "contract");
+    const contract = findings.filter((f) => f.kind === "contract");
+    const severity = structural.length > 0 || hasOrgIndex ? "warn" : "advisory";
+    // Self-heal lane (ADR-010): a missing LOCAL entity (system / subcomponentOf
+    // target) can be auto-declared in the same catalog file. See healers/catalog.ts.
+    const localHealable = findings.some((f) => f.kind === "local");
+    const lines = findings.map((f) => `${f.file}: spec.${f.field} → "${f.ref}" (no declared entity "${f.name}")`);
+    const detailParts = [lines.join("; ")];
+    if (contract.length > 0 && !hasOrgIndex) {
+        detailParts.push("Cross-repo contract refs are UNVERIFIED — supply submission.contract_integrity.known_entities (an org catalog index) to enforce.");
+    }
+    return {
+        code: "contract_integrity",
+        severity,
+        title: severity === "warn"
+            ? "Dangling catalog contract reference"
+            : "Unverified catalog contract reference",
+        detail: detailParts.join(" "),
+        files: [...new Set(findings.map((f) => f.file))],
+        suggested_action: "Declare the referenced entity in the owning repo's catalog-info.yaml (or fix the reference). " +
+            "For cross-repo contracts, ensure the publishing repo declares the API and that it is in the org catalog index." +
+            (localHealable
+                ? " A missing local entity (system / subcomponentOf target) can be auto-declared — Trailhead self-heal."
+                : ""),
+        autofix_eligible: localHealable,
+    };
+}
+
+;// CONCATENATED MODULE: ./src/submission-checks/safe-deprecation.ts
+// Safe Deprecation detector (ADR-010) — catalog coherence on retirement.
+//
+// When an entity is retired (a Backstage `catalog-info.yaml` doc with
+// `spec.lifecycle: deprecated`), nothing still ALIVE should keep depending on it.
+// A live component that still `consumesApis` / `dependsOn` / is `subcomponentOf`
+// / has `system` pointing at a deprecated entity is a zombie reference — the
+// retirement looks done but a live surface still wires to the corpse. This is the
+// catalog-level shape of the "incomplete deprecation" incident class.
+//
+// v1 is catalog-native (fully in-diff, high-confidence). Route/data-surface
+// coverage (redirect maps, route globs) needs full repo file contents and is a
+// tracked follow-up under ADR-010.
+
+
+const safe_deprecation_CATALOG_FILE = /(?:^|\/)catalog-info\.ya?ml$/i;
+function safe_deprecation_isCatalogFile(file) {
+    return safe_deprecation_CATALOG_FILE.test(normalizePath(file.filename));
+}
+function safe_deprecation_refName(ref) {
+    let s = String(ref).trim();
+    const colon = s.indexOf(":");
+    if (colon >= 0)
+        s = s.slice(colon + 1);
+    const slash = s.lastIndexOf("/");
+    if (slash >= 0)
+        s = s.slice(slash + 1);
+    return s;
+}
+function safe_deprecation_asArray(value) {
+    if (Array.isArray(value))
+        return value.filter((v) => typeof v === "string");
+    if (typeof value === "string")
+        return [value];
+    return [];
+}
+function safe_deprecation_parseDocs(content) {
+    const docs = [];
+    try {
+        jsYaml.loadAll(content, (doc) => {
+            if (doc && typeof doc === "object")
+                docs.push(doc);
+        });
+    }
+    catch {
+        // malformed — leave to syntax_validity
+    }
+    return docs;
+}
+function safe_deprecation_entityName(doc) {
+    const meta = doc.metadata;
+    return typeof meta?.name === "string" ? meta.name : null;
+}
+function isRetired(doc) {
+    const spec = (doc.spec ?? {});
+    return spec.lifecycle === "deprecated";
+}
+function detectSafeDeprecation(ctx) {
+    const catalogFiles = ctx.files.filter(safe_deprecation_isCatalogFile);
+    if (catalogFiles.length === 0)
+        return null;
+    const parsed = catalogFiles.map((file) => ({
+        file,
+        docs: safe_deprecation_parseDocs(fileContent(file)),
+    }));
+    // 1. Which entities are being retired?
+    const retired = new Set();
+    for (const { docs } of parsed) {
+        for (const doc of docs) {
+            const name = safe_deprecation_entityName(doc);
+            if (name && isRetired(doc))
+                retired.add(name);
+        }
+    }
+    if (retired.size === 0)
+        return null;
+    // 2. A LIVE entity that still references a retired one is a zombie wire.
+    const zombies = [];
+    for (const { file, docs } of parsed) {
+        for (const doc of docs) {
+            if (isRetired(doc))
+                continue; // a dying thing may reference another; ignore
+            const from = safe_deprecation_entityName(doc) ?? "(unnamed)";
+            const spec = (doc.spec ?? {});
+            const check = (field, ref) => {
+                const to = safe_deprecation_refName(ref);
+                if (retired.has(to)) {
+                    zombies.push({ file: normalizePath(file.filename), from, field, to });
+                }
+            };
+            if (typeof spec.system === "string")
+                check("system", spec.system);
+            if (typeof spec.subcomponentOf === "string")
+                check("subcomponentOf", spec.subcomponentOf);
+            for (const ref of safe_deprecation_asArray(spec.consumesApis))
+                check("consumesApis", ref);
+            for (const ref of safe_deprecation_asArray(spec.dependsOn))
+                check("dependsOn", ref);
+        }
+    }
+    if (zombies.length === 0)
+        return null;
+    const lines = zombies.map((z) => `${z.file}: "${z.from}" still ${z.field} → "${z.to}" (deprecated)`);
+    return {
+        code: "safe_deprecation",
+        severity: "warn",
+        title: "Live entity depends on a retired one",
+        detail: `Deprecation left a live wire to a retired entity: ${lines.join("; ")}.`,
+        files: [...new Set(zombies.map((z) => z.file))],
+        suggested_action: "Repoint the live reference to the surviving/canonical entity, or deprecate the dependent too. " +
+            "Also confirm non-catalog surfaces (routes, redirects, listings) for the retired entity are covered.",
+        autofix_eligible: false,
+    };
+}
+
+;// CONCATENATED MODULE: ./src/submission-checks/destructive-change.ts
+// Destructive Change detector (ADR-010) — evidence-gated destructive migrations.
+//
+// `destructive_sql` already BLOCKS the always-bad shapes (DROP TABLE / TRUNCATE /
+// DELETE without WHERE). But it deliberately lets through *targeted* destructive
+// ops that are legitimate WITH due diligence: a `DELETE ... WHERE`, an
+// `ALTER ... DROP COLUMN`, a `DROP VIEW/TYPE/INDEX/...`, or a wide `UPDATE` with
+// no WHERE. Those are exactly the changes that should ship only with recorded
+// evidence — the FK / row-count / reversibility check a human does by hand today.
+//
+// This detector requires that evidence, inline in the migration, as a block:
+//
+//   -- @destructive-change
+//   -- fk-refs: 0            (or: names of referencing tables + how handled)
+//   -- affected-rows: 1      (or an estimate)
+//   -- reversible: re-seed; row carries no referenced data   (or: no — <why ok>)
+//   -- ack: dschirmer 2026-06-01
+//
+// Found a targeted destructive op but no complete evidence block → finding.
+// Ships `warn` (phase-0, per ADR-008); target state is `blocking` w/o evidence.
+// Self-heal follow-up: auto-run the FK/row probes and attach the evidence.
+
+const SQL_FILE = /\.sql$/i;
+/** Targeted destructive ops that `destructive_sql` allows but that warrant evidence. */
+const DESTRUCTIVE_OPS = [
+    // DELETE with a WHERE (destructive_sql only blocks DELETE *without* WHERE).
+    { label: "DELETE ... WHERE", pattern: /\bDELETE\s+FROM\s+[^\n;]*?\bWHERE\b/i },
+    // ALTER TABLE ... DROP COLUMN (data loss; not a bare DROP TABLE).
+    {
+        label: "DROP COLUMN",
+        pattern: /\bALTER\s+TABLE\b(?:(?!;)[\s\S])*?\bDROP\s+COLUMN\b/i,
+    },
+    // DROP of other objects (view/type/index/function/sequence/schema/mat-view).
+    {
+        label: "DROP <object>",
+        pattern: /\bDROP\s+(?:MATERIALIZED\s+VIEW|VIEW|TYPE|INDEX|FUNCTION|SEQUENCE|SCHEMA)\b/i,
+    },
+    // Wide UPDATE — a SET with no WHERE before the statement terminator.
+    {
+        label: "UPDATE without WHERE",
+        pattern: /\bUPDATE\s+[^\n;]+?\bSET\b(?:(?!\bWHERE\b)[^;])*;/i,
+    },
+];
+const EVIDENCE_FIELDS = [
+    { key: "fk-refs", pattern: /\bfk-refs\s*:/i },
+    { key: "affected-rows", pattern: /\baffected-rows\s*:/i },
+    { key: "reversible", pattern: /\breversible\s*:/i },
+    { key: "ack", pattern: /\back\s*:/i },
+];
+function isSqlFile(file) {
+    return SQL_FILE.test(normalizePath(file.filename));
+}
+function detectDestructiveChange(ctx) {
+    const sqlFiles = ctx.files.filter(isSqlFile);
+    if (sqlFiles.length === 0)
+        return null;
+    const findings = [];
+    for (const file of sqlFiles) {
+        const content = fileContent(file);
+        if (!content)
+            continue;
+        const ops = DESTRUCTIVE_OPS.filter((op) => op.pattern.test(content)).map((op) => op.label);
+        if (ops.length === 0)
+            continue;
+        const missing = EVIDENCE_FIELDS.filter((f) => !f.pattern.test(content)).map((f) => f.key);
+        if (missing.length === 0)
+            continue; // op present, evidence complete → ok
+        findings.push({ file: normalizePath(file.filename), ops, missing });
+    }
+    if (findings.length === 0)
+        return null;
+    const lines = findings.map((f) => `${f.file}: ${f.ops.join(", ")} — missing evidence: ${f.missing.join(", ")}`);
+    return {
+        code: "destructive_change",
+        severity: "warn",
+        title: "Destructive migration without an evidence bundle",
+        detail: `Targeted destructive op(s) lack a complete evidence block: ${lines.join("; ")}.`,
+        files: findings.map((f) => f.file),
+        suggested_action: "Add an evidence block to the migration:\n" +
+            "  -- @destructive-change\n" +
+            "  -- fk-refs: <0 or referencing tables + how handled>\n" +
+            "  -- affected-rows: <count or estimate>\n" +
+            "  -- reversible: <how to undo, or 'no — <why acceptable>'>\n" +
+            "  -- ack: <who/when>",
+        autofix_eligible: false,
+    };
+}
+
+;// CONCATENATED MODULE: ./src/submission-checks/claim-anchoring.ts
+// Claim Anchoring detector (ADR-010) — doc assertions should cite where they're true.
+//
+// Incident #3: a doc asserted "redirects exist" while the live canonical path had
+// none — the claim outlived the code. This detector flags assertive, *behavioral*
+// claims added to docs that carry no anchor (a file/path reference, a link, or a
+// `verified-by:` / `see:` pointer). It does NOT judge whether the claim is true —
+// it asks the author to point at where it's enforced/tested, so the claim and the
+// code can be cross-checked later. Advisory only (per ADR-008): informational, no
+// block. Self-heal follow-up: comment + open a test stub for the claim.
+
+const DOC_FILE = /\.mdx?$/i;
+// High-signal, behavioral, testable assertions. Kept tight to limit noise.
+const CLAIM_PATTERNS = [
+    /\bredirects?\s+(?:exist|are\s+in\s+place|are\s+configured|are\s+handled)\b/i,
+    /\bis\s+(?:enforced|guaranteed|wired\s+up|fully\s+covered)\b/i,
+    /\b(?:always|never)\s+(?:redirects?|returns?|blocks?|allows?|runs?|fires?|resolves?)\b/i,
+    /\bfully\s+(?:covered|tested|implemented|wired)\b/i,
+    /\b(?:every|all)\s+\w+\s+(?:are\s+)?(?:redirected|covered|validated|enforced)\b/i,
+    /\bguaranteed\s+to\b/i,
+];
+// An anchor lets a reviewer cross-check the claim against reality.
+const ANCHOR_PATTERNS = [
+    /`[^`]*[\w.-]+\.(?:ts|tsx|js|jsx|mjs|cjs|sql|ya?ml|json|py|go|rs)`/i, // code/path in backticks
+    /`[^`]*\/[^`]*`/, // any path-ish backtick span
+    /\]\([^)]+\)/, // markdown link
+    /\b(?:verified[ -]by|tested in|see|ref|test)\s*[:=]/i, // explicit pointer
+    /<!--\s*claim-ok/i, // author override
+];
+function isDocFile(file) {
+    return DOC_FILE.test(normalizePath(file.filename));
+}
+function hasAnchor(window) {
+    return ANCHOR_PATTERNS.some((re) => re.test(window));
+}
+function detectClaimAnchoring(ctx) {
+    const docs = ctx.files.filter(isDocFile);
+    if (docs.length === 0)
+        return null;
+    const unanchored = [];
+    for (const file of docs) {
+        const content = fileContent(file);
+        if (!content)
+            continue;
+        const lines = content.split("\n");
+        let inFence = false;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i] ?? "";
+            if (/^\s*```/.test(line)) {
+                inFence = !inFence;
+                continue;
+            }
+            if (inFence)
+                continue; // claims inside code examples aren't doc assertions
+            if (!CLAIM_PATTERNS.some((re) => re.test(line)))
+                continue;
+            // Anchor may sit on the claim line or an adjacent line.
+            const windowText = [lines[i - 1] ?? "", line, lines[i + 1] ?? ""].join("\n");
+            if (hasAnchor(windowText))
+                continue;
+            unanchored.push({
+                file: normalizePath(file.filename),
+                line: i + 1,
+                text: line.trim().slice(0, 120),
+            });
+        }
+    }
+    if (unanchored.length === 0)
+        return null;
+    const shown = unanchored.slice(0, 8);
+    const lines = shown.map((u) => `${u.file}:${u.line} — "${u.text}"`);
+    const more = unanchored.length > shown.length
+        ? ` (+${unanchored.length - shown.length} more)`
+        : "";
+    return {
+        code: "claim_anchoring",
+        severity: "advisory",
+        title: "Behavioral claim in docs has no anchor",
+        detail: `Assertive claims with no reference to where they're enforced/tested: ${lines.join("; ")}${more}. ` +
+            "Cite the code/test (a backtick path, a link, or `verified-by:`), or add `<!-- claim-ok -->` if intentional.",
+        files: [...new Set(unanchored.map((u) => u.file))],
+        suggested_action: "Anchor each claim to where it lives (e.g. `proxy.ts`, a test path, or a link), " +
+            "so docs and reality can be cross-checked. This is the doc-vs-reality drift that let " +
+            '"redirects exist" outlive the missing /apps redirect.',
+        autofix_eligible: false,
+    };
+}
+
+;// CONCATENATED MODULE: ./src/submission-checks/promotion-coherence.ts
+// Promotion Coherence detector (ADR-010) — guard env-branch promotions.
+//
+// Incident #5: work landed on `dev` behind an in-flight promotion, so the open
+// production release silently shipped without it — and a destructive migration
+// rode a staging→prod release to production. Ordinary detectors look at the diff;
+// this one looks at the *branch topology* of a promotion PR (base/head from
+// GITHUB_BASE_REF / GITHUB_HEAD_REF, threaded via ctx.promotion).
+//
+// v1 catches two in-reach signals on a promotion PR (env branch → env branch):
+//   1. Stage skip — a promotion straight into a production branch from `dev`
+//      (bypassing staging). The ladder is dev → staging → master/main.
+//   2. Risky payload to prod — a promotion into production that carries SQL
+//      migrations: confirm they belong in THIS release and carry destructive
+//      evidence (see `destructive_change`).
+// Ships `warn` (phase-0). Follow-up: "source has commits not in this PR" (omitted
+// work) needs an octokit branch-compare, beyond the file-diff model — tracked.
+
+const DEV_BRANCHES = new Set(["dev", "develop", "development"]);
+const PREPROD_BRANCHES = new Set(["staging", "stage", "preprod", "pre-prod", "release"]);
+const PROD_BRANCHES = new Set(["master", "main", "production", "prod"]);
+const ENV_BRANCHES = new Set([...DEV_BRANCHES, ...PREPROD_BRANCHES, ...PROD_BRANCHES]);
+/** Strip refs/heads/ and any owner prefix; lower-case the bare branch name. */
+function bareBranch(ref) {
+    if (!ref)
+        return "";
+    let b = ref.trim();
+    b = b.replace(/^refs\/heads\//, "");
+    const slash = b.lastIndexOf(":");
+    if (slash >= 0)
+        b = b.slice(slash + 1);
+    return b.toLowerCase();
+}
+function isMigration(path) {
+    return /\.sql$/i.test(path);
+}
+function detectPromotionCoherence(ctx) {
+    const base = bareBranch(ctx.promotion?.baseBranch);
+    const head = bareBranch(ctx.promotion?.headBranch);
+    // Dormant unless we actually have a promotion (env branch → env branch).
+    if (!base || !head)
+        return null;
+    if (!ENV_BRANCHES.has(base) || !ENV_BRANCHES.has(head))
+        return null;
+    const findings = [];
+    // 1. Stage skip into production.
+    if (PROD_BRANCHES.has(base) && DEV_BRANCHES.has(head)) {
+        findings.push(`promotes ${head} → ${base}, skipping the pre-prod stage (ladder: dev → staging → ${base})`);
+    }
+    // 2. Migrations entering production via a promotion.
+    const migrations = ctx.files.map((f) => normalizePath(f.filename)).filter(isMigration);
+    if (PROD_BRANCHES.has(base) && migrations.length > 0) {
+        findings.push(`carries ${migrations.length} migration(s) into production (${migrations
+            .slice(0, 5)
+            .join(", ")}) — confirm they belong in this release and carry destructive_change evidence`);
+    }
+    if (findings.length === 0)
+        return null;
+    return {
+        code: "promotion_coherence",
+        severity: "warn",
+        title: "Promotion coherence",
+        detail: `This promotion ${findings.join("; ")}.`,
+        files: migrations,
+        suggested_action: "Promote through the full ladder (dev → staging → master/main), and double-check " +
+            "the release contents (especially destructive migrations) match what you intend to ship.",
+        autofix_eligible: false,
+    };
+}
+
+// EXTERNAL MODULE: ./node_modules/@swc/core/index.js
+var _swc_core = __nccwpck_require__(5971);
 ;// CONCATENATED MODULE: ./src/submission-checks/syntax-validity.ts
 // Real parse-based syntax validation for Gate 1 (no bracket-count fallback).
 // Parses full file content only — never a partial diff hunk (see submission-gate.md).
@@ -48166,7 +48718,7 @@ function validateFileSyntax(filename, content) {
     const ext = extensionOf(filename);
     try {
         if (PARSEABLE.includes(ext)) {
-            (0,core.parseSync)(content, parserOptionsFor(ext));
+            (0,_swc_core.parseSync)(content, parserOptionsFor(ext));
         }
         else if (ext === ".json") {
             JSON.parse(content);
@@ -48187,12 +48739,9 @@ function validateFileSyntax(filename, content) {
     return null;
 }
 
-;// CONCATENATED MODULE: ./src/submission-checks/detectors.ts
-// Gate 1 detectors — ported from komatik-agents agent-gate-checks (patch/content based).
-
-
-
-const OLD_NAME_PATTERNS = [
+;// CONCATENATED MODULE: ./src/submission-checks/policy-defaults.ts
+// Default submission detector policy data (Komatik fleet rename vocabulary).
+const DEFAULT_RENAME_PATTERNS = [
     { oldName: "DeployGuard", newName: "Trailhead", pattern: /\bDeployGuard\b/g },
     { oldName: "Daydream Studio", newName: "Sundog", pattern: /\bDaydream Studio\b/g },
     {
@@ -48202,13 +48751,107 @@ const OLD_NAME_PATTERNS = [
     },
     { oldName: "Cognitive Debt", newName: "Drift", pattern: /\bCognitive Debt\b/g },
     { oldName: "cognitive-debt", newName: "Drift", pattern: /\bcognitive-debt\b/g },
+    { oldName: "Undercurrent", newName: "Slipstream", pattern: /\bUndercurrent\b/g },
+    { oldName: "Yggdrasil", newName: "Cairn", pattern: /\bYggdrasil\b/g },
+    { oldName: "Bored", newName: "Lodge", pattern: /\bBored\b/g },
+    { oldName: "Forge", newName: "Pack", pattern: /\bForge\b/g },
 ];
-const SLUG_ONLY_PATTERNS = [
-    /\bcognitive-debt\b/,
-    /\bstoryboard-studio\b/,
-    /\bdaydream-studio\b/,
-    /\bshadow-ai-governance\b/,
+/** @deprecated use DEFAULT_RENAME_PATTERNS */
+const OLD_NAME_PATTERNS = (/* unused pure expression or super */ null && (DEFAULT_RENAME_PATTERNS));
+const DEFAULT_SLUG_ONLY_PATTERN_SOURCES = [
+    "\\bcognitive-debt\\b",
+    "\\bstoryboard-studio\\b",
+    "\\bdaydream-studio\\b",
+    "\\bshadow-ai-governance\\b",
 ];
+const DEFAULT_ARTIFACT_FILE_GLOBS = ["**/*.{ts,tsx,js,jsx,mjs,cjs}"];
+function escapeRegexLiteral(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function compileRenamePattern(oldName, newName) {
+    return {
+        oldName,
+        newName,
+        pattern: new RegExp(`\\b${escapeRegexLiteral(oldName)}\\b`, "g"),
+    };
+}
+function compileSlugOnlyPatterns(sources) {
+    return sources.map((source) => new RegExp(source, "i"));
+}
+
+;// CONCATENATED MODULE: ./src/submission-checks/detector-policy.ts
+// Resolve submission detector policy from `.trailhead.yml` (issue #256).
+
+
+function detector_policy_normalizeSeverity(severity) {
+    if (severity === "block")
+        return "blocking";
+    return severity;
+}
+function resolveDetectorPolicy(submission) {
+    const raw = submission?.detectors ?? {};
+    const warnings = [];
+    const policy = {};
+    for (const [key, value] of Object.entries(raw)) {
+        const parsed = SubmissionCheckCode.safeParse(key);
+        if (!parsed.success) {
+            warnings.push(`Unknown submission.detectors key "${key}" will be ignored.`);
+            continue;
+        }
+        if (!value || typeof value !== "object")
+            continue;
+        policy[parsed.data] = {
+            enabled: value.enabled,
+            severity: value.severity ? detector_policy_normalizeSeverity(value.severity) : undefined,
+            fileGlobs: value.file_globs,
+            pathIgnore: value.path_ignore,
+        };
+    }
+    return { policy, warnings };
+}
+function buildRenamePatterns(submission, options) {
+    const custom = (submission?.rename_patterns ?? []).map(({ old, new: newName }) => compileRenamePattern(old, newName));
+    const defaults = options?.includeKomatikDefaults ? DEFAULT_RENAME_PATTERNS : [];
+    return [...defaults, ...custom];
+}
+function buildSlugOnlyPatterns(submission) {
+    const sources = [
+        ...DEFAULT_SLUG_ONLY_PATTERN_SOURCES,
+        ...(submission?.slug_only_patterns ?? []),
+    ];
+    return compileSlugOnlyPatterns(sources);
+}
+function artifactFileGlobs(policy) {
+    return policy.artifact_integrity?.fileGlobs ?? DEFAULT_ARTIFACT_FILE_GLOBS;
+}
+function applyDetectorPolicy(code, check, policy) {
+    const entry = policy[code];
+    if (entry?.enabled === false)
+        return null;
+    if (!check)
+        return null;
+    if (entry?.severity) {
+        return { ...check, severity: entry.severity };
+    }
+    return check;
+}
+function getSubmissionConfigWarnings(submission) {
+    return resolveDetectorPolicy(submission).warnings;
+}
+
+;// CONCATENATED MODULE: ./src/submission-checks/detectors.ts
+// Gate 1 detectors — ported from komatik-agents agent-gate-checks (patch/content based).
+
+
+
+
+
+
+
+
+
+
+
 const MOCK_PATTERNS = [
     /\bTODO\s*\(\s*mock\s*\)/i,
     /\bFIXME\s*\(\s*mock\s*\)/i,
@@ -48322,18 +48965,40 @@ function detectDestructiveSql(ctx) {
         suggested_action: "Use additive migrations; avoid DROP/TRUNCATE without human approval.",
     });
 }
+// Only code files can carry hard file references; prose (.md/.mdx/.txt) merely
+// *mentions* paths and was the dominant artifact_integrity false-positive source.
+const ARTIFACT_BARE_IGNORE = new Set([
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "readme.md",
+]);
 function detectArtifactIntegrity(ctx) {
     const referenced = new Set();
-    const pathRefPattern = /(?:^|\s|['"`])([\w@./-]+\.(?:ts|tsx|js|jsx|md|sql|yml|yaml|json))(?:['"`]|\s|:)/g;
+    const fileGlobs = artifactFileGlobs(ctx.detectorPolicy);
+    const pathIgnore = ctx.detectorPolicy.artifact_integrity?.pathIgnore ?? [];
+    // Only treat a path *literal* inside an import/require/export-from statement
+    // as a hard reference — natural-language "see X" / "fix Y" / "update Z" in
+    // prose is not a code dependency (the old prose trigger over-flagged docs).
+    const importRefPattern = /(?:\bimport\b|\bfrom\b|\brequire\s*\(|\bexport\b[^'"`]*\bfrom\b)\s*['"`]([\w@./-]+\.(?:ts|tsx|js|jsx|sql|yml|yaml|json))['"`]/g;
     for (const file of ctx.files) {
+        if (!matchesGlobs(file.filename, fileGlobs))
+            continue;
+        if (pathIgnore.length > 0 && matchesGlobs(file.filename, pathIgnore))
+            continue;
         for (const line of addedLines(file.patch)) {
-            if (!/(?:import|from|require|see|fix|update)\s/i.test(line))
-                continue;
-            for (const match of line.matchAll(pathRefPattern)) {
+            importRefPattern.lastIndex = 0;
+            for (const match of line.matchAll(importRefPattern)) {
                 const candidate = match[1]?.replace(/^\.\//, "");
                 if (!candidate || candidate.includes("*"))
                     continue;
-                if (!ctx.prPaths.has(candidate) && !candidate.startsWith("node:")) {
+                if (candidate.startsWith("node:"))
+                    continue;
+                // Skip bare, repo-ubiquitous manifest names (package.json, etc.).
+                const base = candidate.split("/").pop()?.toLowerCase() ?? "";
+                if (!candidate.includes("/") && ARTIFACT_BARE_IGNORE.has(base))
+                    continue;
+                if (!ctx.prPaths.has(candidate)) {
                     referenced.add(candidate);
                 }
             }
@@ -48351,7 +49016,7 @@ function detectArtifactIntegrity(ctx) {
         suggested_action: "Include referenced files or fix hallucinated paths.",
     });
 }
-function isNamingAllowlisted(filename, line, allowlist = {}) {
+function isNamingAllowlisted(filename, line, allowlist = {}, slugOnlyPatterns = []) {
     const trimmed = line.trim();
     const path = normalizePath(filename);
     const ext = extensionOf(filename);
@@ -48379,7 +49044,7 @@ function isNamingAllowlisted(filename, line, allowlist = {}) {
         return true;
     if (/^\[.*\]\(.*\)/.test(trimmed) || /\]\(http/.test(trimmed))
         return true;
-    if (SLUG_ONLY_PATTERNS.some((p) => p.test(trimmed)) &&
+    if (slugOnlyPatterns.some((p) => p.test(trimmed)) &&
         !/[A-Z]/.test(trimmed.match(/(?:cognitive-debt|storyboard-studio|daydream-studio|shadow-ai-governance)/)?.[0] ?? "")) {
         return true;
     }
@@ -48391,25 +49056,25 @@ function isNamingAllowlisted(filename, line, allowlist = {}) {
     return false;
 }
 function detectContextFreshness(ctx) {
-    if (!ctx.komatikInstance && ctx.staleTerms.length === 0)
+    if (ctx.staleTerms.length === 0 && ctx.renamePatterns.length === 0) {
         return null;
+    }
     const hits = [];
     for (const file of ctx.files) {
         if (isStaleArchivedPath(file.filename, ctx.pathIgnorePatterns))
             continue;
         for (const line of linesForFreshnessScan(file)) {
-            if (isNamingAllowlisted(file.filename, line, ctx.namingAllowlist))
+            if (isNamingAllowlisted(file.filename, line, ctx.namingAllowlist, ctx.slugOnlyPatterns)) {
                 continue;
+            }
             for (const term of ctx.staleTerms) {
                 if (line.toLowerCase().includes(term.toLowerCase()))
                     hits.push(file.filename);
             }
-            if (ctx.komatikInstance) {
-                for (const entry of OLD_NAME_PATTERNS) {
-                    entry.pattern.lastIndex = 0;
-                    if (entry.pattern.test(line))
-                        hits.push(file.filename);
-                }
+            for (const entry of ctx.renamePatterns) {
+                entry.pattern.lastIndex = 0;
+                if (entry.pattern.test(line))
+                    hits.push(file.filename);
             }
         }
     }
@@ -48715,29 +49380,41 @@ function detectSoulIntegrity(ctx) {
     });
 }
 function runAllDetectors(ctx) {
+    const policy = ctx.detectorPolicy;
+    const finalize = (code, check) => applyDetectorPolicy(code, check, policy);
     const gate1 = [
-        detectMockPlaceholder(ctx),
-        detectSecrets(ctx),
-        detectDestructiveSql(ctx),
-        detectSyntaxValidity(ctx),
-        detectImportResolution(ctx),
-        detectRlsNewTables(ctx),
-        detectAuthRouteAuth(ctx),
-        detectHardcodedEnv(ctx),
-        detectExternalPackageDeps(ctx),
-        detectSqlSyntaxBasic(ctx),
-        detectLargeFile(ctx),
-        detectArtifactIntegrity(ctx),
-        detectContextFreshness(ctx),
-        detectSoulIntegrity(ctx),
-        detectPathFormat(ctx),
+        finalize("mock_placeholder", detectMockPlaceholder(ctx)),
+        finalize("secrets", detectSecrets(ctx)),
+        finalize("destructive_sql", detectDestructiveSql(ctx)),
+        finalize("syntax_validity", detectSyntaxValidity(ctx)),
+        finalize("import_resolution", detectImportResolution(ctx)),
+        finalize("rls_new_tables", detectRlsNewTables(ctx)),
+        finalize("auth_route_auth", detectAuthRouteAuth(ctx)),
+        finalize("hardcoded_env", detectHardcodedEnv(ctx)),
+        finalize("external_package_deps", detectExternalPackageDeps(ctx)),
+        finalize("sql_syntax_basic", detectSqlSyntaxBasic(ctx)),
+        finalize("large_file", detectLargeFile(ctx)),
+        finalize("artifact_integrity", detectArtifactIntegrity(ctx)),
+        finalize("context_freshness", detectContextFreshness(ctx)),
+        finalize("soul_integrity", detectSoulIntegrity(ctx)),
+        finalize("path_format", detectPathFormat(ctx)),
+        finalize("contract_integrity", detectContractIntegrity(ctx)),
+        finalize("safe_deprecation", detectSafeDeprecation(ctx)),
+        finalize("destructive_change", detectDestructiveChange(ctx)),
+        finalize("claim_anchoring", detectClaimAnchoring(ctx)),
+        finalize("promotion_coherence", detectPromotionCoherence(ctx)),
     ].filter((check) => check !== null);
-    return [...gate1, ...runPhase0Detectors(ctx)];
+    const phase0 = runPhase0Detectors(ctx)
+        .map((check) => finalize(check.code, check))
+        .filter((check) => check !== null);
+    return [...gate1, ...phase0];
 }
 
 ;// CONCATENATED MODULE: ./src/submission-engine.ts
 // Gate 1 — agent submission quality (Phase B1).
 // Pure module: no @actions/*, octokit, or Node I/O.
+
+
 
 
 
@@ -48763,6 +49440,13 @@ function buildContext(options) {
     const { files, repoConfig, komatikInstance = false } = options;
     const staleTerms = repoConfig?.submission?.stale_terms ?? [];
     const declared = new Set(options.declaredPackages ?? []);
+    const { policy } = resolveDetectorPolicy(repoConfig?.submission);
+    // contract_integrity (ADR-010): org catalog index = inline config ∪ caller-loaded.
+    const inlineKnown = repoConfig?.submission?.contract_integrity?.known_entities ?? [];
+    const catalogKnownEntities = new Set([
+        ...inlineKnown,
+        ...(options.catalogKnownEntities ?? []),
+    ]);
     return {
         files,
         prPaths: prPathSet(files),
@@ -48773,7 +49457,14 @@ function buildContext(options) {
         maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
         declaredPackages: declared,
         pathIgnorePatterns: repoConfig?.submission?.path_ignore ?? [],
+        renamePatterns: buildRenamePatterns(repoConfig?.submission, {
+            includeKomatikDefaults: komatikInstance,
+        }),
+        slugOnlyPatterns: buildSlugOnlyPatterns(repoConfig?.submission),
+        detectorPolicy: policy,
         repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
+        catalogKnownEntities: catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
+        promotion: options.promotion,
     };
 }
 function runSubmissionGate(options) {
@@ -48803,7 +49494,8 @@ function deriveSubmissionFixes(checks) {
         files: check.files ?? [],
         suggested_action: check.suggested_action,
         autofix_eligible: check.autofix_eligible ?? false,
-        autofix_class: check.autofix_eligible && check.code === "context_freshness"
+        autofix_class: check.autofix_eligible &&
+            (check.code === "context_freshness" || check.code === "contract_integrity")
             ? "doc-update"
             : undefined,
     }));
@@ -49569,8 +50261,197 @@ function applyLabelOverrideToEvaluation(evaluation, audit) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/catalog-index.ts
+// Org catalog index loader for the contract_integrity detector (ADR-010).
+//
+// The index is a JSON file — `{ "version": 1, "entities": ["identity", ...] }` —
+// listing every Backstage entity name published across the org's
+// catalog-info.yaml files. It lets contract_integrity resolve CROSS-REPO
+// references (a satellite consuming an API another repo publishes). Generate it
+// with `scripts/build-catalog-index.mjs` and point `.trailhead.yml` at it via
+// `submission.contract_integrity.catalog_index_path`.
+
+/** Parse a catalog-index JSON string into the list of entity names. */
+function parseCatalogIndex(raw) {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed.entities))
+        return [];
+    return parsed.entities.filter((e) => typeof e === "string" && e.length > 0);
+}
+/** Read + parse a catalog index file. Throws on read/parse failure (caller decides). */
+function loadCatalogIndex(path) {
+    return parseCatalogIndex((0,external_node_fs_namespaceObject.readFileSync)(path, "utf8"));
+}
+
+;// CONCATENATED MODULE: ./src/agent-trust-metrics.ts
+// Versioned ingestion contract for dynamic agent trust (Phase B3 / epic #252).
+
+const AGENT_TRUST_METRICS_SCHEMA = "trailhead.agent_trust_metrics.v1";
+const agent_trust_metrics_DEFAULT_TRUST_COLLECTOR_CONFIG = {
+    windowDays: 30,
+    minEvidenceEvaluations: 5,
+    /** Minimum std-dev on gate penalty total_score to treat distribution as informative. */
+    minScoreStdDev: 1,
+    /** Gate penalty total_score at or below this is "clean" (lower = cleaner). */
+    cleanPenaltyThreshold: 1,
+    /** Gate penalty total_score at or above this is "noisy". */
+    noisyPenaltyThreshold: 3,
+};
+const PenaltyQualitySignalSchema = objectType({
+    mean: numberType().describe("Mean gate penalty total_score (lower = cleaner)"),
+    stdDev: numberType().min(0),
+    cleanRate: numberType().min(0).max(1),
+    sampleCount: numberType().int().min(0),
+});
+const TrustFeedbackCountsSchema = objectType({
+    ciFailures: numberType().int().min(0).optional(),
+    reverts: numberType().int().min(0).optional(),
+    humanReview: numberType().int().min(0).optional(),
+});
+const AgentTrustMetricsSchema = objectType({
+    evaluations: numberType().int().min(0),
+    releaseReadyCount: numberType().int().min(0).default(0),
+    revertCount: numberType().int().min(0).default(0),
+    humanReviewRequiredCount: numberType().int().min(0).default(0),
+    policyViolationCount: numberType().int().min(0).default(0),
+    sensitivePathViolationCount: numberType().int().min(0).default(0),
+    remediationRoundsToReady: arrayType(numberType().int().min(0)).default([]),
+    penaltyQuality: PenaltyQualitySignalSchema.optional(),
+    feedback: TrustFeedbackCountsSchema.optional(),
+});
+const ScoreDistributionSchema = objectType({
+    count: numberType().int().min(0),
+    mean: numberType(),
+    stdDev: numberType().min(0),
+    min: numberType(),
+    max: numberType(),
+    hasVariance: booleanType(),
+});
+const AgentTrustColdStartSchema = objectType({
+    emitTrust: booleanType(),
+    reason: stringType().nullable(),
+});
+const AgentTrustEnvelopeSchema = objectType({
+    schema: literalType(AGENT_TRUST_METRICS_SCHEMA),
+    agent_id: stringType(),
+    collected_at: stringType(),
+    window_days: numberType().int().min(1),
+    trust: AgentTrustMetricsSchema.nullable(),
+    cold_start: AgentTrustColdStartSchema,
+    distribution: ScoreDistributionSchema.nullable().optional(),
+    feedback: TrustFeedbackCountsSchema.optional(),
+});
+function computeScoreDistribution(scores, options = {}) {
+    const minScoreStdDev = options.minScoreStdDev ?? agent_trust_metrics_DEFAULT_TRUST_COLLECTOR_CONFIG.minScoreStdDev;
+    const values = scores.filter((s) => typeof s === "number" && !Number.isNaN(s));
+    if (values.length === 0)
+        return null;
+    const count = values.length;
+    const mean = values.reduce((sum, value) => sum + value, 0) / count;
+    const variance = count === 1 ? 0 : values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / count;
+    const stdDev = Math.sqrt(variance);
+    return {
+        count,
+        mean: Math.round(mean * 10) / 10,
+        stdDev: Math.round(stdDev * 10) / 10,
+        min: Math.min(...values),
+        max: Math.max(...values),
+        hasVariance: stdDev >= minScoreStdDev,
+    };
+}
+function assessColdStart(params) {
+    const config = { ...agent_trust_metrics_DEFAULT_TRUST_COLLECTOR_CONFIG, ...params.config };
+    const feedback = params.feedback ?? null;
+    const feedbackEvaluations = (feedback?.ciFailures ?? 0) + (feedback?.reverts ?? 0) + (feedback?.humanReview ?? 0);
+    const totalEvidence = params.evaluations + feedbackEvaluations;
+    if (totalEvidence < config.minEvidenceEvaluations) {
+        return {
+            emitTrust: false,
+            reason: `insufficient_evaluations (${totalEvidence} < ${config.minEvidenceEvaluations})`,
+        };
+    }
+    const hasOutcomeVariance = (params.blockedCount ?? 0) > 0 ||
+        (params.warnedCount ?? 0) > 0 ||
+        (feedback?.reverts ?? 0) > 0 ||
+        (feedback?.ciFailures ?? 0) > 0 ||
+        (feedback?.humanReview ?? 0) > 0 ||
+        params.distribution?.hasVariance === true ||
+        (params.distribution?.stdDev ?? 0) >= config.minScoreStdDev;
+    if (!hasOutcomeVariance) {
+        return {
+            emitTrust: false,
+            reason: "flat_signals (no outcome variance and no penalty distribution variance)",
+        };
+    }
+    return { emitTrust: true, reason: null };
+}
+function assessColdStartFromMetrics(metrics, config) {
+    const mergedConfig = { ...agent_trust_metrics_DEFAULT_TRUST_COLLECTOR_CONFIG, ...config };
+    const feedbackEvidence = (metrics.feedback?.ciFailures ?? 0) +
+        (metrics.feedback?.reverts ?? 0) +
+        (metrics.feedback?.humanReview ?? 0);
+    const totalEvidence = metrics.evaluations + feedbackEvidence;
+    if (totalEvidence < mergedConfig.minEvidenceEvaluations) {
+        return {
+            emitTrust: false,
+            reason: `insufficient_evaluations (${totalEvidence} < ${mergedConfig.minEvidenceEvaluations})`,
+        };
+    }
+    const penaltyVariance = (metrics.penaltyQuality?.stdDev ?? 0) >= mergedConfig.minScoreStdDev;
+    const hasOutcomeVariance = metrics.revertCount > 0 ||
+        metrics.humanReviewRequiredCount > 0 ||
+        metrics.policyViolationCount > 0 ||
+        metrics.sensitivePathViolationCount > 0 ||
+        penaltyVariance ||
+        feedbackEvidence > 0 ||
+        (metrics.releaseReadyCount > 0 && metrics.releaseReadyCount < metrics.evaluations);
+    if (!hasOutcomeVariance) {
+        return {
+            emitTrust: false,
+            reason: "flat_signals (no outcome variance and no penalty distribution variance)",
+        };
+    }
+    return { emitTrust: true, reason: null };
+}
+function parseAgentTrustMetricsObject(raw) {
+    const parsed = AgentTrustMetricsSchema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
+}
+function parseAgentTrustMetrics(raw) {
+    if (!raw?.trim())
+        return null;
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed &&
+            typeof parsed === "object" &&
+            "schema" in parsed &&
+            parsed.schema === AGENT_TRUST_METRICS_SCHEMA) {
+            const envelope = AgentTrustEnvelopeSchema.safeParse(parsed);
+            if (!envelope.success || !envelope.data.trust)
+                return null;
+            return envelope.data.trust;
+        }
+        return parseAgentTrustMetricsObject(parsed);
+    }
+    catch {
+        return null;
+    }
+}
+function createEmptyAgentTrustMetrics() {
+    return {
+        evaluations: 0,
+        releaseReadyCount: 0,
+        revertCount: 0,
+        humanReviewRequiredCount: 0,
+        policyViolationCount: 0,
+        sensitivePathViolationCount: 0,
+        remediationRoundsToReady: [],
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/trust-score.ts
 // Phase B3 — dynamic agent trust scoring (pure module).
+
 const WEIGHTS = {
     release_ready_rate: 0.3,
     revert_resistance: 0.2,
@@ -49578,6 +50459,7 @@ const WEIGHTS = {
     remediation_efficiency: 0.15,
     policy_violation_penalty: 0.075,
     sensitive_path_penalty: 0.075,
+    penalty_mean_quality: 0.05,
 };
 function rate(numerator, denominator) {
     if (denominator <= 0)
@@ -49590,28 +50472,49 @@ function remediationEfficiency(rounds) {
     const avg = rounds.reduce((a, b) => a + b, 0) / rounds.length;
     return Math.max(0, Math.min(1, 1 - (avg - 1) / 4));
 }
-function computeAgentTrustScore(metrics) {
+function penaltyMeanQuality(penaltyQuality, noisyThreshold) {
+    if (!penaltyQuality || penaltyQuality.sampleCount <= 0)
+        return undefined;
+    return Math.max(0, Math.min(1, 1 - penaltyQuality.mean / noisyThreshold));
+}
+function computeAgentTrustScore(metrics, options) {
+    const config = { ...agent_trust_metrics_DEFAULT_TRUST_COLLECTOR_CONFIG, ...options?.config };
+    const coldStart = assessColdStartFromMetrics(metrics, config);
+    if (!coldStart.emitTrust) {
+        return null;
+    }
     const n = Math.max(metrics.evaluations, 0);
     const releaseReadyRate = rate(metrics.releaseReadyCount, n);
+    const penaltyCleanRate = metrics.penaltyQuality?.cleanRate;
+    const releaseSignal = penaltyCleanRate !== undefined
+        ? Math.max(releaseReadyRate, penaltyCleanRate)
+        : releaseReadyRate;
     const revertRate = rate(metrics.revertCount, n);
     const humanReviewRate = rate(metrics.humanReviewRequiredCount, n);
     const policyViolationRate = rate(metrics.policyViolationCount, n);
     const sensitiveRate = rate(metrics.sensitivePathViolationCount, n);
     const remEff = remediationEfficiency(metrics.remediationRoundsToReady);
+    const meanQuality = penaltyMeanQuality(metrics.penaltyQuality, config.noisyPenaltyThreshold);
     const factors = {
-        release_ready_rate: releaseReadyRate,
+        release_ready_rate: releaseSignal,
         revert_rate: revertRate,
         human_review_required_rate: humanReviewRate,
         remediation_efficiency: remEff,
         policy_violation_rate: policyViolationRate,
         sensitive_path_violation_rate: sensitiveRate,
+        ...(penaltyCleanRate !== undefined ? { penalty_clean_rate: penaltyCleanRate } : {}),
+        ...(meanQuality !== undefined ? { penalty_mean_quality: meanQuality } : {}),
     };
-    const score = Math.max(0, Math.min(1, WEIGHTS.release_ready_rate * releaseReadyRate +
+    let score = WEIGHTS.release_ready_rate * releaseSignal +
         WEIGHTS.revert_resistance * (1 - revertRate) +
         WEIGHTS.human_free_rate * (1 - humanReviewRate) +
         WEIGHTS.remediation_efficiency * remEff -
         WEIGHTS.policy_violation_penalty * policyViolationRate -
-        WEIGHTS.sensitive_path_penalty * sensitiveRate));
+        WEIGHTS.sensitive_path_penalty * sensitiveRate;
+    if (meanQuality !== undefined) {
+        score += WEIGHTS.penalty_mean_quality * meanQuality;
+    }
+    score = Math.max(0, Math.min(1, score));
     let profile = "standard";
     if (score >= 0.85)
         profile = "fast-track";
@@ -49665,7 +50568,24 @@ function strictnessFromTrust(trust, riskScore) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/trust-runtime.ts
+// Shadow / enforce runtime for agent trust injection (issue #259).
+function readTrustRuntime(env = process.env) {
+    const enabled = env.TRAILHEAD_TRUST_ENABLED !== "false";
+    const shadow = enabled && env.TRAILHEAD_TRUST_SHADOW === "true";
+    const enforce = enabled && !shadow;
+    return {
+        enabled,
+        shadow,
+        enforce,
+        injectTrustJson: enabled && env.TRAILHEAD_TRUST_ENFORCE === "true",
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/gate.ts
+
+
+
 
 
 
@@ -49703,29 +50623,6 @@ function parseDeclaredPackages(raw) {
     }
     return undefined;
 }
-function parseAgentTrustMetrics(raw) {
-    if (!raw?.trim())
-        return null;
-    try {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed.evaluations !== "number")
-            return null;
-        return {
-            evaluations: parsed.evaluations,
-            releaseReadyCount: parsed.releaseReadyCount ?? 0,
-            revertCount: parsed.revertCount ?? 0,
-            humanReviewRequiredCount: parsed.humanReviewRequiredCount ?? 0,
-            policyViolationCount: parsed.policyViolationCount ?? 0,
-            sensitivePathViolationCount: parsed.sensitivePathViolationCount ?? 0,
-            remediationRoundsToReady: Array.isArray(parsed.remediationRoundsToReady)
-                ? parsed.remediationRoundsToReady.filter((n) => typeof n === "number")
-                : [],
-        };
-    }
-    catch {
-        return null;
-    }
-}
 // ---------------------------------------------------------------------------
 // PR diff fetching via @actions/github
 // ---------------------------------------------------------------------------
@@ -49737,7 +50634,7 @@ async function fetchPrFilesFromApi(octokit, owner, repo, prNumber) {
         per_page: 300,
     });
     if (files.length >= 300) {
-        warning("PR has 300+ files — risk analysis may be incomplete (GitHub API pagination limit)");
+        core_warning("PR has 300+ files — risk analysis may be incomplete (GitHub API pagination limit)");
     }
     return files.map((f) => ({
         filename: f.filename,
@@ -49812,7 +50709,7 @@ async function fetchPrFiles(prNumber, token) {
         }
         if (commitFiles.length > 0 &&
             apiFiles.length > commitFiles.length * MERGE_BASE_DRIFT_RATIO) {
-            warning(`Merge-base drift: API reported ${apiFiles.length} files, ` +
+            core_warning(`Merge-base drift: API reported ${apiFiles.length} files, ` +
                 `but PR commits only touch ${commitFiles.length}. ` +
                 `Using commit-derived file list to avoid inflated risk scores.`);
             return commitFiles;
@@ -50739,7 +51636,7 @@ async function applyLabelOverrideIfNeeded(input) {
         apiKey: input.config.trailheadApiKey,
     });
     if (recentOverrideCount === null) {
-        warning("Could not verify weekly override cap — proceeding without cap enforcement.");
+        core_warning("Could not verify weekly override cap — proceeding without cap enforcement.");
     }
     const outcome = resolveLabelOverride({
         labels: input.prMatchCtx.labels,
@@ -50754,7 +51651,7 @@ async function applyLabelOverrideIfNeeded(input) {
         prNumber: input.prNumber,
     });
     if (outcome.kind === "applied") {
-        warning(`Label override applied by ${outcome.audit.owner}: ${outcome.audit.reason}`);
+        core_warning(`Label override applied by ${outcome.audit.owner}: ${outcome.audit.reason}`);
         return {
             ...applyLabelOverrideToEvaluation(input.evaluation, outcome.audit),
             labelOverrideFeedback: {
@@ -50764,7 +51661,7 @@ async function applyLabelOverrideIfNeeded(input) {
         };
     }
     if (outcome.kind === "rejected") {
-        warning(`Label override rejected: ${outcome.message}`);
+        core_warning(`Label override rejected: ${outcome.message}`);
         await postOverrideRejectionComment(input.prNumber, outcome.message, input.githubToken);
         return {
             ...input.evaluation,
@@ -50834,7 +51731,7 @@ async function evaluateGate(config, commitSha, prNumber) {
     const policyFindings = [];
     const freezeCheck = isInFreezeWindow(repoConfig?.freeze ?? []);
     if (freezeCheck.frozen) {
-        warning(`Release freeze active: ${freezeCheck.message}`);
+        core_warning(`Release freeze active: ${freezeCheck.message}`);
     }
     const { score: localRiskScore, factors: riskFactors } = gate_computeRiskScore(files, repoConfig);
     if (authorFactor)
@@ -50949,6 +51846,21 @@ async function evaluateGate(config, commitSha, prNumber) {
     const submissionMode = repoConfig?.submission?.mode ?? "block";
     const submissionEnabled = config.submissionGate === true || repoConfig?.submission?.enabled === true;
     if (submissionEnabled && files.length > 0) {
+        for (const warning of getSubmissionConfigWarnings(repoConfig?.submission)) {
+            core_warning(warning);
+        }
+        // contract_integrity (ADR-010): load the org catalog index, if configured,
+        // so cross-repo contract references can resolve (else they stay advisory).
+        let catalogKnownEntities;
+        const catalogIndexPath = repoConfig?.submission?.contract_integrity?.catalog_index_path;
+        if (catalogIndexPath) {
+            try {
+                catalogKnownEntities = loadCatalogIndex(catalogIndexPath);
+            }
+            catch (err) {
+                core_warning(`contract_integrity: could not load catalog index "${catalogIndexPath}": ${err.message}`);
+            }
+        }
         submissionChecks = runSubmissionGate({
             files: files.map((f) => ({
                 filename: f.filename,
@@ -50959,6 +51871,14 @@ async function evaluateGate(config, commitSha, prNumber) {
             komatikInstance: process.env.KOMATIK_INSTANCE === "true",
             mode: submissionMode,
             declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
+            catalogKnownEntities,
+            // promotion_coherence (ADR-010): branch topology from the Actions env.
+            promotion: process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
+                ? {
+                    baseBranch: process.env.GITHUB_BASE_REF,
+                    headBranch: process.env.GITHUB_HEAD_REF,
+                }
+                : undefined,
         });
         if (submissionChecks.length > 0) {
             policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);
@@ -51060,10 +51980,22 @@ async function evaluateGate(config, commitSha, prNumber) {
     }
     const trustProfile = provenance?.type && provenance.type !== "human"
         ? (() => {
-            const metrics = parseAgentTrustMetrics(process.env.TRAILHEAD_AGENT_TRUST_JSON);
+            const trustRuntime = readTrustRuntime();
+            const metrics = trustRuntime.enabled
+                ? parseAgentTrustMetrics(process.env.TRAILHEAD_AGENT_TRUST_JSON)
+                : null;
             const trust = metrics ? computeAgentTrustScore(metrics) : null;
-            if (trust && trust.thresholdDelta !== 0) {
-                adjustedRiskThreshold = Math.max(0, Math.min(100, adjustedRiskThreshold + trust.thresholdDelta));
+            if (trustRuntime.enabled && metrics) {
+                if (trust) {
+                    info(`[agent-trust] profile=${trust.profile} score=${trust.score}` +
+                        (trustRuntime.shadow ? " (shadow — threshold delta not applied)" : ""));
+                    if (trustRuntime.enforce && trust.thresholdDelta !== 0) {
+                        adjustedRiskThreshold = Math.max(0, Math.min(100, adjustedRiskThreshold + trust.thresholdDelta));
+                    }
+                }
+                else {
+                    info("[agent-trust] metrics present but trust=null (cold start — insufficient evidence or flat signals)");
+                }
             }
             return strictnessFromTrust(trust, riskScore);
         })()
@@ -51162,7 +52094,7 @@ async function evaluateGate(config, commitSha, prNumber) {
             localEvaluation.ci = ciSummary;
         }
         catch (error) {
-            warning(`CI orchestration failed (non-blocking): ${error}`);
+            core_warning(`CI orchestration failed (non-blocking): ${error}`);
         }
     }
     const securityBlocked = securityAlerts !== null &&
@@ -51824,6 +52756,213 @@ function resolveAgentProvenanceId(evaluation) {
     return null;
 }
 
+;// CONCATENATED MODULE: ./src/verdict.ts
+// Stable versioned gate verdict contract (epic #252 / issue #260).
+
+
+
+const TRAILHEAD_VERDICT_SCHEMA = "trailhead.verdict.v1";
+const PENALTY_SEMANTICS = "lower_is_cleaner";
+const RISK_SEMANTICS = "higher_is_worse";
+const SEVERITY_PENALTY = {
+    blocking: 3,
+    warn: 2,
+    advisory: 1,
+};
+const VerdictPenaltySchema = objectType({
+    total_score: numberType().min(0),
+    factor_scores: recordType(numberType().min(0)),
+    semantics: literalType(PENALTY_SEMANTICS),
+});
+const VerdictRiskSchema = objectType({
+    score: numberType().min(0).max(100),
+    semantics: literalType(RISK_SEMANTICS),
+    factors: recordType(numberType().min(0).max(100)),
+});
+const VerdictTrustProfileSchema = objectType({
+    shadow: booleanType().optional(),
+    enforce: booleanType().optional(),
+    score: numberType().min(0).max(1).optional(),
+    profile: enumType(["fast-track", "standard", "probation"]).optional(),
+    strictness: enumType(["baseline", "elevated", "strict"]),
+    reason: stringType(),
+    factors: recordType(numberType()).optional(),
+});
+const VerdictRemediationSchema = objectType({
+    loop_round: numberType().int().min(0).optional(),
+    max_loop_rounds: numberType().int().min(0).optional(),
+    next_action: stringType().optional(),
+    fix_count: numberType().int().min(0).optional(),
+});
+const TrailheadVerdictSchema = objectType({
+    schema: literalType(TRAILHEAD_VERDICT_SCHEMA),
+    evaluation_id: stringType(),
+    repo_id: stringType(),
+    commit_sha: stringType(),
+    pr_number: numberType().int().positive().optional(),
+    head_ref: stringType().optional(),
+    agent_id: stringType().optional(),
+    decision: GateDecision,
+    gate_mode: enumType(["risk-only", "advisory", "release-ready"]).optional(),
+    release_ready: booleanType().optional(),
+    penalty: VerdictPenaltySchema,
+    risk: VerdictRiskSchema,
+    trust_profile: VerdictTrustProfileSchema.optional(),
+    submission_checks: arrayType(objectType({
+        code: SubmissionCheckCode,
+        severity: enumType(["blocking", "warn", "advisory"]),
+        title: stringType(),
+        detail: stringType(),
+        files: arrayType(stringType()).default([]),
+    })),
+    remediation: VerdictRemediationSchema.optional(),
+    reasons: arrayType(stringType()),
+    evaluated_at: stringType(),
+    /** Deprecated flat fields — remove after one release (#260). */
+    _legacy: objectType({
+        riskScore: numberType(),
+        healthScore: numberType(),
+        releaseReadyReasons: arrayType(stringType()).optional(),
+        policyFindings: arrayType(stringType()).optional(),
+    })
+        .optional(),
+});
+function computeSubmissionPenalty(checks = []) {
+    const factor_scores = {};
+    for (const check of checks) {
+        const penalty = SEVERITY_PENALTY[check.severity] ?? 0;
+        factor_scores[check.code] = Math.max(factor_scores[check.code] ?? 0, penalty);
+    }
+    const values = Object.values(factor_scores);
+    const total_score = values.length === 0
+        ? 0
+        : Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) /
+            10;
+    return {
+        total_score,
+        factor_scores,
+        semantics: PENALTY_SEMANTICS,
+    };
+}
+function collectVerdictReasons(evaluation) {
+    const reasons = new Set();
+    for (const finding of evaluation.policyFindings ?? []) {
+        reasons.add(finding);
+    }
+    for (const reason of evaluation.releaseReadyReasons ?? []) {
+        reasons.add(reason);
+    }
+    if (evaluation.remediation?.next_action) {
+        reasons.add(`Remediation next action: ${evaluation.remediation.next_action}`);
+    }
+    if (evaluation.trust_profile?.reason) {
+        reasons.add(evaluation.trust_profile.reason);
+    }
+    if (evaluation.gateDecision === "block") {
+        reasons.add("Gate decision is BLOCK");
+    }
+    else if (evaluation.gateDecision === "warn") {
+        reasons.add("Gate decision is WARN");
+    }
+    return [...reasons];
+}
+function buildGateVerdict(evaluation, options = {}) {
+    const checks = evaluation.submissionChecks ?? [];
+    const penalty = computeSubmissionPenalty(checks);
+    const trustRuntime = options.trustRuntime;
+    const verdict = {
+        schema: TRAILHEAD_VERDICT_SCHEMA,
+        evaluation_id: evaluation.id,
+        repo_id: evaluation.repoId,
+        commit_sha: evaluation.commitSha,
+        pr_number: evaluation.prNumber,
+        head_ref: evaluation.pr?.headRef,
+        agent_id: options.agentId ?? undefined,
+        decision: evaluation.gateDecision,
+        gate_mode: evaluation.gateMode,
+        release_ready: evaluation.releaseReady,
+        penalty,
+        risk: {
+            score: evaluation.riskScore,
+            semantics: RISK_SEMANTICS,
+            factors: Object.fromEntries(evaluation.riskFactors.map((factor) => [factor.type, factor.score])),
+        },
+        trust_profile: evaluation.trust_profile
+            ? {
+                shadow: trustRuntime?.shadow,
+                enforce: trustRuntime?.enforce,
+                score: evaluation.trust_profile.score,
+                profile: evaluation.trust_profile.profile,
+                strictness: evaluation.trust_profile.strictness,
+                reason: evaluation.trust_profile.reason,
+                factors: evaluation.trust_profile.factors,
+            }
+            : undefined,
+        submission_checks: checks.map((check) => ({
+            code: check.code,
+            severity: check.severity,
+            title: check.title,
+            detail: check.detail,
+            files: check.files ?? [],
+        })),
+        remediation: evaluation.remediation
+            ? {
+                loop_round: evaluation.remediation.loop_round,
+                max_loop_rounds: evaluation.remediation.max_loop_rounds,
+                next_action: evaluation.remediation.next_action,
+                fix_count: evaluation.remediation.fixes?.length,
+            }
+            : undefined,
+        reasons: collectVerdictReasons(evaluation),
+        evaluated_at: options.evaluatedAt ?? new Date().toISOString(),
+        _legacy: {
+            riskScore: evaluation.riskScore,
+            healthScore: evaluation.healthScore,
+            releaseReadyReasons: evaluation.releaseReadyReasons,
+            policyFindings: evaluation.policyFindings,
+        },
+    };
+    return TrailheadVerdictSchema.parse(verdict);
+}
+function parseGateVerdict(raw) {
+    try {
+        const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+        const parsed = TrailheadVerdictSchema.safeParse(value);
+        return parsed.success ? parsed.data : null;
+    }
+    catch {
+        return null;
+    }
+}
+/** Collector helper: map penalty verdicts to trust penaltyQuality stats. */
+function aggregateVerdictPenaltyQuality(verdicts) {
+    const scores = verdicts.map((verdict) => verdict.penalty.total_score);
+    if (scores.length === 0)
+        return null;
+    const count = scores.length;
+    const mean = scores.reduce((sum, value) => sum + value, 0) / count;
+    const variance = count === 1 ? 0 : scores.reduce((sum, value) => sum + (value - mean) ** 2, 0) / count;
+    const stdDev = Math.sqrt(variance);
+    const cleanThreshold = DEFAULT_TRUST_COLLECTOR_CONFIG.cleanPenaltyThreshold;
+    const cleanCount = scores.filter((score) => score <= cleanThreshold).length;
+    return {
+        mean: Math.round(mean * 10) / 10,
+        stdDev: Math.round(stdDev * 10) / 10,
+        cleanRate: Math.round((cleanCount / count) * 1000) / 1000,
+        sampleCount: count,
+    };
+}
+/** Example collector projection: one verdict → trust correlation fields. */
+function projectVerdictToTrustCorrelation(verdict) {
+    return {
+        evaluation_id: verdict.evaluation_id,
+        agent_id: verdict.agent_id,
+        head_ref: verdict.head_ref,
+        penalty: verdict.penalty,
+        release_ready_clean: verdict.penalty.total_score <= DEFAULT_TRUST_COLLECTOR_CONFIG.cleanPenaltyThreshold,
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/trailhead-events.ts
 // Pure Trailhead semantic event resolution — no framework dependencies.
 // Maps gate evaluations to coordinator-friendly webhook event types.
@@ -51885,6 +53024,8 @@ function evaluationMatchesTrailheadEvent(evaluation, event, options = {}) {
 }
 
 ;// CONCATENATED MODULE: ./src/notify.ts
+
+
 
 
 
@@ -51967,6 +53108,10 @@ function buildTrailheadEventPayload(evaluation, event, prUrl) {
         loopRound: evaluation.remediation?.loop_round,
         maxLoopRounds: evaluation.remediation?.max_loop_rounds,
         policyOverride: evaluation.policyOverride,
+        verdict: buildGateVerdict(evaluation, {
+            trustRuntime: readTrustRuntime(),
+            agentId: resolveAgentProvenanceId(evaluation),
+        }),
         timestamp: new Date().toISOString(),
     };
 }
@@ -52031,15 +53176,15 @@ async function storeViaApiOnce(url, evaluation) {
     }
     const nonRetryableClientErrors = new Set([400, 401, 403]);
     if (nonRetryableClientErrors.has(response.status)) {
-        warning(`Evaluation store returned HTTP ${response.status} — not retrying`);
+        core_warning(`Evaluation store returned HTTP ${response.status} — not retrying`);
         return { ok: false, retryable: false };
     }
     if (!contentType.includes("application/json")) {
-        warning(`Evaluation store at ${url} returned HTML instead of JSON (HTTP ${response.status}). ` +
+        core_warning(`Evaluation store at ${url} returned HTML instead of JSON (HTTP ${response.status}). ` +
             `Vercel bot protection is likely blocking the request.`);
     }
     else {
-        warning(`Evaluation store returned HTTP ${response.status} — data may not be persisted`);
+        core_warning(`Evaluation store returned HTTP ${response.status} — data may not be persisted`);
     }
     return {
         ok: false,
@@ -52056,7 +53201,7 @@ async function storeViaApi(url, evaluation, maxRetries = 3) {
             if (!result.retryable || attempt >= maxAttempts - 1)
                 return false;
             const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
-            warning(`Evaluation store attempt ${attempt + 1}/${maxAttempts} failed — retrying in ${delayMs}ms`);
+            core_warning(`Evaluation store attempt ${attempt + 1}/${maxAttempts} failed — retrying in ${delayMs}ms`);
             await sleep(delayMs);
         }
         catch (error) {
@@ -52064,7 +53209,7 @@ async function storeViaApi(url, evaluation, maxRetries = 3) {
                 throw error;
             }
             const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
-            warning(`Evaluation store network error on attempt ${attempt + 1}/${maxAttempts} — retrying in ${delayMs}ms`);
+            core_warning(`Evaluation store network error on attempt ${attempt + 1}/${maxAttempts} — retrying in ${delayMs}ms`);
             await sleep(delayMs);
         }
     }
@@ -52094,7 +53239,7 @@ async function storeViaSupabase(evaluation) {
         return true;
     }
     const body = await response.text().catch(() => "");
-    warning(`Supabase direct insert failed (HTTP ${response.status}): ${body}`);
+    core_warning(`Supabase direct insert failed (HTTP ${response.status}): ${body}`);
     return false;
 }
 function buildEvaluationStoreRow(evaluation) {
@@ -52131,7 +53276,7 @@ async function storeEvaluation(url, evaluation, options = {}) {
             return true;
     }
     catch (error) {
-        warning(`Evaluation store API failed: ${error}`);
+        core_warning(`Evaluation store API failed: ${error}`);
     }
     try {
         const fallback = await storeViaSupabase(evaluation);
@@ -52139,9 +53284,9 @@ async function storeEvaluation(url, evaluation, options = {}) {
             return true;
     }
     catch (error) {
-        warning(`Supabase direct fallback also failed: ${error}`);
+        core_warning(`Supabase direct fallback also failed: ${error}`);
     }
-    warning("Evaluation could not be stored. To fix: either set VERCEL_AUTOMATION_BYPASS_SECRET " +
+    core_warning("Evaluation could not be stored. To fix: either set VERCEL_AUTOMATION_BYPASS_SECRET " +
         "or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in your workflow env.");
     return false;
 }
@@ -52493,7 +53638,7 @@ async function computeDeploymentFrequency(token, windowDays, environment) {
         return { deploysPerWeek: 0, rating: "low", window: windowDays };
     }
     catch (error) {
-        warning(`DORA deployment frequency: GitHub Actions API failed (${error}). ` +
+        core_warning(`DORA deployment frequency: GitHub Actions API failed (${error}). ` +
             `Grant actions:read to GITHUB_TOKEN, or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY for evaluation-store fallback.`);
         const storeEvents = await fetchDeployEventsFromStore(windowDays);
         if (storeEvents && storeEvents.length > 0) {
@@ -52693,7 +53838,7 @@ async function computeFailedDeployRecoveryTime(token, windowDays, environment) {
         return emptyResult;
     }
     catch (error) {
-        warning(`DORA FDRT: GitHub Deployments API failed (${error}). ` +
+        core_warning(`DORA FDRT: GitHub Deployments API failed (${error}). ` +
             `Grant deployments:read to GITHUB_TOKEN, or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY for evaluation-store fallback.`);
         const storeEvents = await fetchDeployEventsFromStore(windowDays);
         if (storeEvents && storeEvents.length > 0) {
@@ -53762,7 +54907,768 @@ function computeRolloutReadiness(evaluation) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/github-git-writer.ts
+// GitHub implementation of GitWriter (ADR-010). Commits a set of file edits as
+// ONE atomic commit via the git-data API (blobs → tree → commit → update ref).
+//
+// The client is typed structurally (the subset of octokit.rest.git this needs),
+// so an @actions/github `getOctokit(...)` instance satisfies it without this
+// module taking a hard dependency — and a unit test can pass a mock.
+class GithubGitWriter {
+    client;
+    owner;
+    repo;
+    constructor(client, owner, repo) {
+        this.client = client;
+        this.owner = owner;
+        this.repo = repo;
+    }
+    async commitFiles(args) {
+        const { owner, repo } = this;
+        const git = this.client.rest.git;
+        const ref = `heads/${args.branch}`;
+        // 1. Resolve the branch head + its base tree.
+        const head = await git.getRef({ owner, repo, ref });
+        const baseSha = head.data.object.sha;
+        const baseCommit = await git.getCommit({ owner, repo, commit_sha: baseSha });
+        const baseTree = baseCommit.data.tree.sha;
+        // 2. Blob each edited file, assemble a new tree on top of the base.
+        const tree = [];
+        for (const edit of args.edits) {
+            const blob = await git.createBlob({
+                owner,
+                repo,
+                content: edit.content,
+                encoding: "utf-8",
+            });
+            tree.push({ path: edit.path, mode: "100644", type: "blob", sha: blob.data.sha });
+        }
+        const newTree = await git.createTree({ owner, repo, base_tree: baseTree, tree });
+        // 3. One commit on top of the head, then fast-forward the branch.
+        const commit = await git.createCommit({
+            owner,
+            repo,
+            message: args.message,
+            tree: newTree.data.sha,
+            parents: [baseSha],
+        });
+        await git.updateRef({ owner, repo, ref, sha: commit.data.sha });
+        return { commitSha: commit.data.sha };
+    }
+}
+
+;// CONCATENATED MODULE: ./src/fixer-core.ts
+// Phase B2 — autofix allowlist (pure module; execution lives in app/fixer.ts).
+const RED_LANE_GLOBS = [
+    "**/migrations/**",
+    "**/*.sql",
+    "**/rls/**",
+    "src/auth/**",
+    "app/**/auth/**",
+    ".github/workflows/**",
+    "agents/*/SOUL.md",
+    "src/risk-engine.ts",
+    "**/secrets/**",
+    "**/payments/**",
+];
+const ALLOWED_AUTOFIX_CLASSES = new Set([
+    "format",
+    "lint",
+    "import-fix",
+    "test-scaffold",
+    "doc-update",
+    "dependency-bump",
+]);
+function escapeRegexChar(ch) {
+    return /[\\^$+?.()|{}[\]]/.test(ch) ? `\\${ch}` : ch;
+}
+function fixer_core_globToRegex(glob) {
+    let src = "^";
+    for (let i = 0; i < glob.length; i++) {
+        const c = glob.charAt(i);
+        if (c === "*") {
+            if (glob[i + 1] === "*") {
+                src += ".*";
+                i++;
+            }
+            else {
+                src += "[^/]*";
+            }
+        }
+        else if (c === ".") {
+            src += "\\.";
+        }
+        else {
+            src += escapeRegexChar(c);
+        }
+    }
+    src += "$";
+    return new RegExp(src);
+}
+function matchesGlob(path, glob) {
+    const normalized = path.replace(/\\/g, "/");
+    if (glob.endsWith("/**")) {
+        const prefix = glob.slice(0, -3).replace(/\*\*/g, "");
+        return normalized.includes(prefix);
+    }
+    if (glob.includes("*")) {
+        return fixer_core_globToRegex(glob).test(normalized);
+    }
+    return normalized.includes(glob);
+}
+function isRedLanePath(filePath) {
+    const normalized = filePath.replace(/\\/g, "/");
+    return RED_LANE_GLOBS.some((glob) => matchesGlob(normalized, glob));
+}
+function isAutofixClassAllowed(autofixClass) {
+    return ALLOWED_AUTOFIX_CLASSES.has(autofixClass);
+}
+function buildAutofixPlan(fixes) {
+    const items = [];
+    const blocked = [];
+    for (const fix of fixes) {
+        if (!fix.autofix_eligible || !fix.autofix_class)
+            continue;
+        if (!isAutofixClassAllowed(fix.autofix_class)) {
+            blocked.push({
+                fix,
+                reason: `Autofix class not allowlisted: ${fix.autofix_class}`,
+            });
+            continue;
+        }
+        const touchFiles = fix.files.length > 0 ? fix.files : ["."];
+        const redLane = touchFiles.filter(isRedLanePath);
+        if (redLane.length > 0) {
+            blocked.push({
+                fix,
+                reason: `Red-lane paths forbid autofix: ${redLane.join(", ")}`,
+            });
+            continue;
+        }
+        items.push({
+            fix,
+            files: touchFiles,
+            autofix_class: fix.autofix_class,
+        });
+    }
+    return { items, blocked };
+}
+/** Max one fix commit per gate round (Phase B2). */
+function selectAutofixCommit(plan) {
+    return plan.items[0] ?? null;
+}
+
+;// CONCATENATED MODULE: ./src/autofix-executor.ts
+// Shared autofix git-write executor (ADR-010 / Phase B2 completion).
+//
+// fixer-core plans WHICH fix to apply (one per round, red-lane + class gated).
+// This module turns that plan into an actual commit: it asks a content builder
+// for the concrete file edits, then hands them to an injected GitWriter. The
+// GitWriter is an interface so the same executor runs in the Action, the App, or
+// a unit test (mock writer) — no package bound to a specific GitHub client.
+
+const COMMIT_PREFIX = "[trailhead-fixer]";
+/**
+ * Apply at most one autofix commit for this evaluation round. Returns a
+ * structured result describing what was (or would be) committed, or why it was
+ * skipped. Never throws on "nothing to do" — only the writer may reject.
+ */
+async function executeAutofixRound(opts) {
+    const base = { committed: false, evaluationId: opts.evaluationId };
+    if (opts.trustAutofixEnabled === false) {
+        return { ...base, skippedReason: "Trust autofix disabled" };
+    }
+    const plan = buildAutofixPlan(opts.fixes);
+    const selected = selectAutofixCommit(plan);
+    if (!selected) {
+        return {
+            ...base,
+            skippedReason: plan.blocked.length > 0
+                ? "All autofix candidates blocked (red lane or disallowed class)"
+                : "No autofix-eligible fixes in remediation payload",
+        };
+    }
+    const meta = {
+        autofixClass: selected.autofix_class,
+        fixCode: selected.fix.code,
+    };
+    const builder = opts.builders[selected.fix.code];
+    if (!builder) {
+        return {
+            ...base,
+            ...meta,
+            skippedReason: `No content builder for ${selected.fix.code}`,
+        };
+    }
+    const edits = builder(selected, opts.files, opts.buildContext ?? {});
+    if (edits.length === 0) {
+        return { ...base, ...meta, skippedReason: "Builder produced no edits" };
+    }
+    const message = opts.message ??
+        `${COMMIT_PREFIX} ${selected.autofix_class}: ${selected.fix.code} (eval ${opts.evaluationId})`;
+    if (opts.dryRun) {
+        return {
+            ...base,
+            ...meta,
+            files: edits.map((e) => e.path),
+            edits,
+            message: `dry-run: would commit ${edits.length} file(s)`,
+        };
+    }
+    const { commitSha } = await opts.writer.commitFiles({
+        branch: opts.branch,
+        message,
+        edits,
+    });
+    return {
+        committed: true,
+        evaluationId: opts.evaluationId,
+        ...meta,
+        files: edits.map((e) => e.path),
+        edits,
+        commitSha,
+        message,
+    };
+}
+
+;// CONCATENATED MODULE: ./src/healers/catalog.ts
+// Catalog self-heal lane (ADR-010) for the contract_integrity detector.
+//
+// When a catalog-info.yaml reference doesn't resolve, the in-repo-fixable case is
+// a LOCAL structural ref — `spec.system` / `spec.subcomponentOf` pointing at an
+// entity that simply isn't declared in the same repo's catalog. The fix is to add
+// a minimal stub for that entity, which this healer generates as YAML to append.
+//
+// Cross-repo refs (consumesApis / dependsOn / providesApis to something another
+// repo owns) can't be fixed in this PR — the fix belongs in the owning repo. For
+// those we emit a human-actionable suggestion rather than an edit here. When an
+// api_owners map resolves the owning repo, the cross-repo PR opener
+// (cross-repo-opener.ts) turns those suggestions into actual declaration PRs in
+// that repo; otherwise the suggestion stands.
+
+
+
+/** Best-effort owner for stubs: reuse a sibling entity's owner, else "unknown". */
+function ownerHint(content) {
+    try {
+        let owner;
+        jsYaml.loadAll(content, (doc) => {
+            if (owner)
+                return;
+            const spec = doc?.spec;
+            if (typeof spec?.owner === "string")
+                owner = spec.owner;
+        });
+        return owner ?? "unknown";
+    }
+    catch {
+        return "unknown";
+    }
+}
+function systemStub(name, owner) {
+    return [
+        "apiVersion: backstage.io/v1alpha1",
+        "kind: System",
+        "metadata:",
+        `  name: ${name}`,
+        `  description: "TODO: auto-declared by Trailhead self-heal (contract_integrity)"`,
+        "spec:",
+        `  owner: ${owner}`,
+    ].join("\n");
+}
+function componentStub(name, owner) {
+    return [
+        "apiVersion: backstage.io/v1alpha1",
+        "kind: Component",
+        "metadata:",
+        `  name: ${name}`,
+        `  description: "TODO: auto-declared by Trailhead self-heal (contract_integrity)"`,
+        "spec:",
+        "  type: service",
+        "  lifecycle: experimental",
+        `  owner: ${owner}`,
+    ].join("\n");
+}
+/**
+ * Plan the catalog self-heal for a PR: auto-declare missing LOCAL entities,
+ * and surface cross-repo refs as suggestions.
+ */
+function planCatalogHeal(files, knownEntities) {
+    const analysis = analyzeCatalogRefs(files, knownEntities);
+    if (!analysis)
+        return { edits: [], suggestions: [] };
+    const local = analysis.findings.filter((f) => f.kind === "local");
+    const crossRepo = analysis.findings.filter((f) => f.kind !== "local");
+    // Group local findings by file, dedupe by entity name (a System ref wins over
+    // a Component ref for the same name — a System is the broader container).
+    const byFile = new Map();
+    for (const f of local) {
+        const fileMap = byFile.get(f.file) ?? new Map();
+        const existing = fileMap.get(f.name);
+        if (!existing || (existing.field !== "system" && f.field === "system")) {
+            fileMap.set(f.name, f);
+        }
+        byFile.set(f.file, fileMap);
+    }
+    const edits = [];
+    for (const [file, entityMap] of byFile) {
+        const original = files.find((cf) => normalizePath(cf.filename) === file);
+        const owner = original ? ownerHint(fileContent(original)) : "unknown";
+        const stubs = [];
+        const entities = [];
+        for (const finding of entityMap.values()) {
+            const stub = finding.field === "system"
+                ? systemStub(finding.name, owner)
+                : componentStub(finding.name, owner);
+            stubs.push(stub);
+            entities.push(finding.name);
+        }
+        if (stubs.length === 0)
+            continue;
+        const append = "\n---\n" + stubs.join("\n---\n") + "\n";
+        edits.push({ file, append, entities });
+    }
+    const suggestions = crossRepo.map((f) => `Declare ${f.kind === "owned" ? "API" : "the referenced entity"} "${f.name}" in its owning repo's catalog-info.yaml (referenced via spec.${f.field} in ${f.file}).`);
+    return { edits, suggestions };
+}
+
+;// CONCATENATED MODULE: ./src/autofix-builders.ts
+// Default autofix content builders (ADR-010). Maps a planned fix code to the
+// concrete file edits that resolve it. Builders are pure: (item, files, ctx) →
+// FileEdit[]. The executor commits the result via an injected GitWriter.
+
+
+/**
+ * contract_integrity → append the generated stub entities to each affected
+ * catalog-info.yaml (full-content edit = current file + heal append). Only LOCAL
+ * missing entities produce edits; cross-repo refs stay suggestions (no edit).
+ */
+const contractIntegrityBuilder = (_item, files, ctx) => {
+    const plan = planCatalogHeal(files, ctx.catalogKnownEntities);
+    const edits = [];
+    for (const healEdit of plan.edits) {
+        const original = files.find((f) => normalizePath(f.filename) === healEdit.file);
+        if (!original)
+            continue;
+        edits.push({
+            path: healEdit.file,
+            content: fileContent(original) + healEdit.append,
+        });
+    }
+    return edits;
+};
+const DEFAULT_AUTOFIX_BUILDERS = {
+    "submission.contract_integrity": contractIntegrityBuilder,
+};
+
+;// CONCATENATED MODULE: ./src/gate-autofix.ts
+// Gate-side autofix invocation (ADR-010). Bridges the Action's evaluation to the
+// shared git-write executor: from the remediation fixes, fetch the current
+// content of the files an eligible fix touches, then run the executor against a
+// GithubGitWriter on the PR's HEAD branch.
+//
+// Safety: opt-in (`enabled` defaults the executor to dry-run when false), fork-
+// guarded (can't write to a fork's branch), and the caller wraps it fail-soft so
+// autofix never blocks the gate.
+
+
+
+function skip(evaluationId, reason) {
+    return { committed: false, evaluationId, skippedReason: reason };
+}
+async function readContent(client, owner, repo, path, ref) {
+    try {
+        const res = await client.rest.repos.getContent({ owner, repo, path, ref });
+        const data = res.data;
+        if (data && typeof data.content === "string") {
+            const encoding = data.encoding || "base64";
+            return Buffer.from(data.content, encoding).toString("utf8");
+        }
+        return null;
+    }
+    catch {
+        return null;
+    }
+}
+async function runGateAutofix(opts) {
+    if (!opts.headBranch)
+        return skip(opts.evaluationId, "No PR head branch");
+    if (opts.headRepoFullName &&
+        opts.baseRepoFullName &&
+        opts.headRepoFullName !== opts.baseRepoFullName) {
+        return skip(opts.evaluationId, "Fork PR — cannot write to head branch");
+    }
+    // Nothing to do unless something is autofix-eligible.
+    const eligible = opts.fixes.filter((f) => f.autofix_eligible);
+    if (eligible.length === 0) {
+        return skip(opts.evaluationId, "No autofix-eligible fixes in remediation payload");
+    }
+    // Fetch current content for the files those fixes touch (HEAD branch).
+    const paths = [...new Set(eligible.flatMap((f) => f.files))].filter(Boolean);
+    const files = [];
+    for (const path of paths) {
+        const content = await readContent(opts.client, opts.owner, opts.repo, path, opts.headBranch);
+        files.push({ filename: path, content: content ?? "" });
+    }
+    const writer = new GithubGitWriter(opts.client, opts.owner, opts.repo);
+    return executeAutofixRound({
+        fixes: opts.fixes,
+        files,
+        builders: DEFAULT_AUTOFIX_BUILDERS,
+        writer,
+        branch: opts.headBranch,
+        evaluationId: opts.evaluationId,
+        trustAutofixEnabled: opts.trustAutofixEnabled,
+        dryRun: opts.enabled !== true,
+        buildContext: { catalogKnownEntities: opts.catalogKnownEntities },
+    });
+}
+
+;// CONCATENATED MODULE: ./src/cross-repo-opener.ts
+// Cross-repo PR opener (ADR-010) — the contract_integrity self-heal case that
+// can't land as a commit on the gated PR.
+//
+// The in-repo healer (healers/catalog.ts) fixes a LOCAL dangling ref by
+// committing a stub to the SAME PR. But a CROSS-REPO contract ref — a satellite
+// declaring `consumesApis: [komatik-v3-prebuild]` for an API that NO repo
+// publishes — can only be fixed in the OWNING repo. The gate runs on one repo's
+// PR; a commit there can't declare an entity in another repo. This module closes
+// that gap: it resolves which repo owns each dangling contract from a configured
+// owner map, then opens a PR IN that owning repo declaring the missing API.
+//
+// Safety mirrors the in-repo autofix: opt-in (`enabled` → dry-run otherwise),
+// org-allowlisted (never opens PRs outside the configured owners), deduped by a
+// deterministic branch name (same missing API set → same branch → at most one
+// open PR), and fail-soft (the caller wraps it so it never blocks the gate). It
+// needs a token with write access to the OWNING repos — the Action's default
+// GITHUB_TOKEN is scoped to the current repo only, so without a cross-repo token
+// the caller passes a client that can't write and this stays in dry-run.
+
+
+const cross_repo_opener_COMMIT_PREFIX = "[trailhead-fixer]";
+const BRANCH_PREFIX = "trailhead/declare-contracts-";
+const STUB_TODO = "TODO: auto-declared by Trailhead cross-repo opener (contract_integrity)";
+/** Deterministic non-crypto hash (djb2) — stable across runs, no Date/random. */
+function stableHash(input) {
+    let h = 5381;
+    for (let i = 0; i < input.length; i++) {
+        h = ((h << 5) + h + input.charCodeAt(i)) >>> 0;
+    }
+    return h.toString(16);
+}
+/** Branch is keyed by owning repo + the missing API set, so identical missing
+ * sets converge on one branch (dedup) regardless of which consumer surfaced them. */
+function branchFor(target) {
+    const key = [target.repo, ...[...target.entities].sort()].join("|");
+    return `${BRANCH_PREFIX}${stableHash(key)}`;
+}
+function apiStub(name, owner) {
+    return [
+        "apiVersion: backstage.io/v1alpha1",
+        "kind: API",
+        "metadata:",
+        `  name: ${name}`,
+        `  description: "${STUB_TODO}"`,
+        "spec:",
+        "  type: openapi",
+        "  lifecycle: experimental",
+        `  owner: ${owner}`,
+        `  definition: "TODO: publish the contract definition for ${name}"`,
+    ].join("\n");
+}
+/**
+ * Group dangling CROSS-REPO contract refs (consumesApis / dependsOn) by the
+ * owning repo from the api_owners map. Refs with no mapped owner, or whose owner
+ * is outside the allowlist, are returned as unresolved (suggestion-only).
+ */
+function resolveCrossRepoTargets(findings, apiOwners, ownerAllowlist) {
+    const unresolved = [];
+    // owner/repo → Set<entity>
+    const byRepo = new Map();
+    for (const f of findings) {
+        if (f.kind !== "contract")
+            continue; // only consumesApis / dependsOn cross a repo
+        const mapped = apiOwners[f.name];
+        if (!mapped) {
+            unresolved.push({
+                name: f.name,
+                field: f.field,
+                file: f.file,
+                reason: `No api_owners mapping for "${f.name}" — declare it in the owning repo manually.`,
+            });
+            continue;
+        }
+        const slash = mapped.indexOf("/");
+        const owner = slash >= 0 ? mapped.slice(0, slash) : "";
+        const repo = slash >= 0 ? mapped.slice(slash + 1) : mapped;
+        if (!owner || !repo) {
+            unresolved.push({
+                name: f.name,
+                field: f.field,
+                file: f.file,
+                reason: `Malformed api_owners entry "${mapped}" (expected "owner/repo").`,
+            });
+            continue;
+        }
+        if (!ownerAllowlist.includes(owner)) {
+            unresolved.push({
+                name: f.name,
+                field: f.field,
+                file: f.file,
+                reason: `Owner "${owner}" not in cross-repo opener allowlist — skipped for safety.`,
+            });
+            continue;
+        }
+        const key = `${owner}/${repo}`;
+        const set = byRepo.get(key) ?? new Set();
+        set.add(f.name);
+        byRepo.set(key, set);
+    }
+    const targets = [...byRepo.entries()].map(([key, set]) => {
+        const slash = key.indexOf("/");
+        return {
+            owner: key.slice(0, slash),
+            repo: key.slice(slash + 1),
+            entities: [...set].sort(),
+        };
+    });
+    return { targets, unresolved };
+}
+async function cross_repo_opener_readContent(client, owner, repo, path, ref) {
+    try {
+        const res = await client.rest.repos.getContent({ owner, repo, path, ref });
+        const data = res.data;
+        if (data && typeof data.content === "string") {
+            const encoding = data.encoding || "base64";
+            return Buffer.from(data.content, encoding).toString("utf8");
+        }
+        return null;
+    }
+    catch {
+        return null;
+    }
+}
+async function branchExists(client, owner, repo, branch) {
+    try {
+        await client.rest.git.getRef({ owner, repo, ref: `heads/${branch}` });
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+/** Build the owning repo's new catalog-info.yaml content (append, or create). */
+function buildCatalogContent(existing, target) {
+    const owner = `${target.owner}`;
+    const stubs = target.entities.map((name) => apiStub(name, owner)).join("\n---\n");
+    if (existing && existing.trim().length > 0) {
+        const sep = existing.endsWith("\n") ? "" : "\n";
+        return `${existing}${sep}---\n${stubs}\n`;
+    }
+    return `${stubs}\n`;
+}
+function prBody(target, prContext) {
+    const trigger = prContext?.url
+        ? `[${prContext.url}](${prContext.url})`
+        : prContext?.number
+            ? `#${prContext.number}`
+            : "a consuming repo's pull request";
+    return [
+        "## Trailhead cross-repo contract declaration",
+        "",
+        `${trigger} declares a contract on the following API(s) that **this** repo owns but does not yet publish:`,
+        "",
+        ...target.entities.map((e) => `- \`${e}\``),
+        "",
+        "Each was auto-declared as a minimal Backstage `API` stub so the cross-repo " +
+            "contract resolves. **Replace the `TODO` fields** with the real owner, " +
+            "lifecycle, and contract definition before merging.",
+        "",
+        `> Opened automatically by the Trailhead cross-repo opener (ADR-010, contract_integrity). Eval-driven; safe to close if the declaration belongs elsewhere.`,
+    ].join("\n");
+}
+async function openDeclarationPR(client, target, opts) {
+    const { owner, repo, entities } = target;
+    const branch = branchFor(target);
+    const base = { owner, repo, entities, branch };
+    // Resolve the owning repo's default branch (PR base + branch-from point).
+    let defaultBranch;
+    try {
+        const meta = await client.rest.repos.get({ owner, repo });
+        defaultBranch = meta.data.default_branch;
+    }
+    catch (err) {
+        return { ...base, status: "error", reason: `repos.get failed: ${String(err)}` };
+    }
+    // Dedup: an open PR from our deterministic branch already proposes this set.
+    try {
+        const open = await client.rest.pulls.list({
+            owner,
+            repo,
+            state: "open",
+            head: `${owner}:${branch}`,
+        });
+        const existing = open.data.find((p) => p.head?.ref === branch) ?? open.data[0];
+        if (existing) {
+            return {
+                ...base,
+                status: "exists",
+                prNumber: existing.number,
+                prUrl: existing.html_url,
+                reason: "An open declaration PR for this API set already exists.",
+            };
+        }
+    }
+    catch {
+        // listing failed — fall through and attempt to create (create will reject dups)
+    }
+    const existingCatalog = await cross_repo_opener_readContent(client, owner, repo, "catalog-info.yaml", defaultBranch);
+    const newContent = buildCatalogContent(existingCatalog, target);
+    if (opts.enabled !== true) {
+        return {
+            ...base,
+            status: "dry-run",
+            reason: `Would open a PR on ${owner}/${repo} declaring ${entities.length} API(s). Set the cross-repo opener to enabled to apply.`,
+        };
+    }
+    // Create the branch off default HEAD (unless a prior run already made it).
+    try {
+        if (!(await branchExists(client, owner, repo, branch))) {
+            const head = await client.rest.git.getRef({
+                owner,
+                repo,
+                ref: `heads/${defaultBranch}`,
+            });
+            await client.rest.git.createRef({
+                owner,
+                repo,
+                ref: `refs/heads/${branch}`,
+                sha: head.data.object.sha,
+            });
+        }
+    }
+    catch (err) {
+        return { ...base, status: "error", reason: `branch create failed: ${String(err)}` };
+    }
+    // One commit declaring the API(s) on the new branch.
+    try {
+        const writer = new GithubGitWriter(client, owner, repo);
+        await writer.commitFiles({
+            branch,
+            message: `${cross_repo_opener_COMMIT_PREFIX} cross-repo: declare API contract(s) ${entities.join(", ")} (eval ${opts.evaluationId})`,
+            edits: [{ path: "catalog-info.yaml", content: newContent }],
+        });
+    }
+    catch (err) {
+        return { ...base, status: "error", reason: `commit failed: ${String(err)}` };
+    }
+    // Open the PR.
+    try {
+        const pr = await client.rest.pulls.create({
+            owner,
+            repo,
+            title: `chore(catalog): declare contract API(s) ${entities.join(", ")} (Trailhead)`,
+            head: branch,
+            base: defaultBranch,
+            body: prBody(target, opts.prContext),
+        });
+        return {
+            ...base,
+            status: "opened",
+            prNumber: pr.data.number,
+            prUrl: pr.data.html_url,
+        };
+    }
+    catch (err) {
+        return { ...base, status: "error", reason: `pulls.create failed: ${String(err)}` };
+    }
+}
+/**
+ * Resolve dangling cross-repo contract refs from the gated PR's catalog files
+ * and open a declaration PR in each owning repo. Dry-run unless `enabled`.
+ * Never throws — returns a structured result (or a skip reason).
+ */
+async function runCrossRepoOpener(opts) {
+    const base = { evaluationId: opts.evaluationId, enabled: opts.enabled === true };
+    if (Object.keys(opts.apiOwners).length === 0) {
+        return {
+            ...base,
+            outcomes: [],
+            unresolved: [],
+            skippedReason: "No api_owners configured — nothing to resolve.",
+        };
+    }
+    if (!opts.headBranch) {
+        return {
+            ...base,
+            outcomes: [],
+            unresolved: [],
+            skippedReason: "No PR head branch — cannot read consuming catalog.",
+        };
+    }
+    const paths = [...new Set(opts.catalogPaths)].filter(Boolean);
+    if (paths.length === 0) {
+        return {
+            ...base,
+            outcomes: [],
+            unresolved: [],
+            skippedReason: "No catalog files in the PR to analyze.",
+        };
+    }
+    // Read the consuming catalog files from the gated PR's head branch.
+    const files = [];
+    for (const path of paths) {
+        const content = await cross_repo_opener_readContent(opts.client, opts.gatedOwner, opts.gatedRepo, path, opts.headBranch);
+        if (content !== null)
+            files.push({ filename: path, content });
+    }
+    const analysis = analyzeCatalogRefs(files, opts.knownEntities);
+    if (!analysis) {
+        return {
+            ...base,
+            outcomes: [],
+            unresolved: [],
+            skippedReason: "No analyzable catalog content fetched from the PR head.",
+        };
+    }
+    const allowlist = opts.ownerAllowlist ?? [opts.gatedOwner];
+    const { targets, unresolved } = resolveCrossRepoTargets(analysis.findings, opts.apiOwners, allowlist);
+    if (targets.length === 0) {
+        return {
+            ...base,
+            outcomes: [],
+            unresolved,
+            skippedReason: unresolved.length > 0
+                ? "Dangling contract refs found but none resolved to an allowlisted owner."
+                : "No cross-repo contract refs to open PRs for.",
+        };
+    }
+    const outcomes = [];
+    for (const target of targets) {
+        try {
+            outcomes.push(await openDeclarationPR(opts.client, target, opts));
+        }
+        catch (err) {
+            outcomes.push({
+                owner: target.owner,
+                repo: target.repo,
+                entities: target.entities,
+                status: "error",
+                reason: String(err),
+            });
+        }
+    }
+    return { ...base, outcomes, unresolved };
+}
+
 ;// CONCATENATED MODULE: ./src/main.ts
+
+
+
+
+
+
+
 
 
 
@@ -53789,7 +55695,7 @@ function parseEvaluationStoreRetries(raw) {
         return 3;
     const parsed = parseInt(raw, 10);
     if (Number.isNaN(parsed) || parsed < 0 || parsed > 10) {
-        warning("evaluation-store-retries must be 0–10; using default 3");
+        core_warning("evaluation-store-retries must be 0–10; using default 3");
         return 3;
     }
     return parsed;
@@ -53957,7 +55863,7 @@ async function run() {
             ciExternalStatusUrl ||
             (gitlabToken && gitlabProjectId) ||
             (circleciToken && circleciProjectSlug)) {
-            warning("External CI inputs were set but no CI manifest could be resolved");
+            core_warning("External CI inputs were set but no CI manifest could be resolved");
         }
         const config = {
             apiKey: getInput("api-key") || "",
@@ -54011,7 +55917,7 @@ async function run() {
             config.failMode = policyOverride.changes.failMode;
         }
         if (policyOverride) {
-            warning(`Governed override active (${policyOverride.linkedTicket}) by ${policyOverride.owner}; expires ${policyOverride.expiresAt}.`);
+            core_warning(`Governed override active (${policyOverride.linkedTicket}) by ${policyOverride.owner}; expires ${policyOverride.expiresAt}.`);
         }
         const commitSha = context.sha;
         const prNumber = context.payload.pull_request?.number;
@@ -54044,11 +55950,111 @@ async function run() {
                 else if (creditMeterConfig.enforce &&
                     creditResult.metered &&
                     creditResult.allowed === false) {
-                    warning(`Credit meter blocked deliverable (${creditResult.reason ?? "not allowed"}) — balance ${creditResult.balance ?? "?"}`);
+                    core_warning(`Credit meter blocked deliverable (${creditResult.reason ?? "not allowed"}) — balance ${creditResult.balance ?? "?"}`);
                 }
             }
             catch (err) {
-                warning(`Credit metering failed (non-blocking): ${err}`);
+                core_warning(`Credit metering failed (non-blocking): ${err}`);
+            }
+        }
+        // Autofix self-heal (ADR-010) — opt-in; dry-run (plan only) unless enabled.
+        const autofixFixes = evaluation.remediation?.fixes ?? [];
+        if (config.githubToken && prNumber && autofixFixes.some((f) => f.autofix_eligible)) {
+            try {
+                const autofixEnabled = getInput("autofix") === "true" || readEnv("TRAILHEAD_AUTOFIX") === "true";
+                const prPayload = context.payload.pull_request;
+                const autofixResult = await runGateAutofix({
+                    client: getOctokit(config.githubToken),
+                    fixes: autofixFixes,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    evaluationId: evaluation.id,
+                    headBranch: prPayload?.head?.ref,
+                    headRepoFullName: prPayload?.head?.repo?.full_name,
+                    baseRepoFullName: prPayload?.base?.repo?.full_name,
+                    enabled: autofixEnabled,
+                });
+                setOutput("autofix-json", JSON.stringify(autofixResult));
+                if (autofixResult.committed) {
+                    info(`Trailhead self-heal committed ${autofixResult.fixCode} → ${autofixResult.commitSha} on ${prPayload?.head?.ref}`);
+                }
+                else if (autofixResult.edits?.length) {
+                    info(`Trailhead self-heal (dry-run): would fix ${autofixResult.fixCode} (${autofixResult.files?.join(", ")}). Set autofix: true to apply.`);
+                }
+                else if (autofixResult.skippedReason) {
+                    core_debug(`Autofix skipped: ${autofixResult.skippedReason}`);
+                }
+            }
+            catch (err) {
+                core_warning(`Autofix failed (non-blocking): ${err}`);
+            }
+        }
+        // Cross-repo PR opener (ADR-010) — the contract_integrity case a commit on
+        // THIS PR can't fix: a dangling consumesApis/dependsOn ref whose declaration
+        // belongs in another repo. Opens a declaration PR in the owning repo. Opt-in,
+        // dry-run unless enabled, and needs a token with write access to those repos.
+        const contractFix = autofixFixes.find((f) => f.code === "submission.contract_integrity");
+        if (config.githubToken && prNumber && contractFix && contractFix.files.length > 0) {
+            try {
+                const repoConfig = await loadRepoConfig(config.githubToken);
+                const ci = repoConfig?.submission?.contract_integrity;
+                const apiOwners = ci?.api_owners ?? {};
+                if (Object.keys(apiOwners).length > 0) {
+                    const openerCfg = ci?.cross_repo_opener;
+                    // Resolution universe — match what the gate used (known_entities ∪ index).
+                    const known = new Set(ci?.known_entities ?? []);
+                    if (ci?.catalog_index_path) {
+                        try {
+                            for (const e of loadCatalogIndex(ci.catalog_index_path))
+                                known.add(e);
+                        }
+                        catch (err) {
+                            core_debug(`Cross-repo opener: catalog index load failed: ${err}`);
+                        }
+                    }
+                    const crossRepoToken = getInput("cross-repo-token") || readEnv("TRAILHEAD_CROSS_REPO_TOKEN");
+                    const openerEnabled = (openerCfg?.enabled ?? false) &&
+                        getInput("cross-repo-opener") !== "false" &&
+                        Boolean(crossRepoToken);
+                    const prPayload = context.payload.pull_request;
+                    const openerResult = await runCrossRepoOpener({
+                        client: getOctokit(crossRepoToken || config.githubToken),
+                        gatedOwner: context.repo.owner,
+                        gatedRepo: context.repo.repo,
+                        headBranch: prPayload?.head?.ref,
+                        catalogPaths: contractFix.files,
+                        evaluationId: evaluation.id,
+                        knownEntities: known,
+                        apiOwners,
+                        ownerAllowlist: openerCfg?.owner_allowlist,
+                        prContext: { number: prNumber, url: prPayload?.html_url },
+                        enabled: openerEnabled,
+                    });
+                    setOutput("cross-repo-opener-json", JSON.stringify(openerResult));
+                    for (const o of openerResult.outcomes) {
+                        if (o.status === "opened") {
+                            info(`Cross-repo opener: declared ${o.entities.join(", ")} → ${o.prUrl} on ${o.owner}/${o.repo}`);
+                        }
+                        else if (o.status === "dry-run") {
+                            info(`Cross-repo opener (dry-run): would declare ${o.entities.join(", ")} in ${o.owner}/${o.repo}. Enable cross_repo_opener + supply cross-repo-token to apply.`);
+                        }
+                        else if (o.status === "exists") {
+                            info(`Cross-repo opener: declaration PR already open for ${o.owner}/${o.repo} (${o.prUrl})`);
+                        }
+                        else if (o.status === "error") {
+                            core_warning(`Cross-repo opener error (${o.owner}/${o.repo}): ${o.reason}`);
+                        }
+                    }
+                    for (const u of openerResult.unresolved) {
+                        core_debug(`Cross-repo opener unresolved: ${u.name} — ${u.reason}`);
+                    }
+                    if (openerResult.skippedReason) {
+                        core_debug(`Cross-repo opener: ${openerResult.skippedReason}`);
+                    }
+                }
+            }
+            catch (err) {
+                core_warning(`Cross-repo opener failed (non-blocking): ${err}`);
             }
         }
         setOutput("health-score", evaluation.healthScore.toString());
@@ -54056,6 +56062,11 @@ async function run() {
         setOutput("gate-decision", evaluation.gateDecision);
         setOutput("release-ready", evaluation.releaseReady !== undefined ? String(evaluation.releaseReady) : "");
         setOutput("evaluation-json", JSON.stringify(evaluation));
+        const verdict = buildGateVerdict(evaluation, {
+            trustRuntime: readTrustRuntime(),
+            agentId: resolveAgentProvenanceId(evaluation),
+        });
+        setOutput("verdict-json", JSON.stringify(verdict));
         setOutput("rollout-readiness-json", JSON.stringify(computeRolloutReadiness(evaluation)));
         if (evaluation.reportUrl) {
             setOutput("report-url", evaluation.reportUrl);
@@ -54161,7 +56172,7 @@ async function run() {
         const blockMerge = shouldBlockMerge(evaluation);
         if (!blockMerge) {
             if (evaluation.gateDecision === "warn") {
-                warning(fullReport);
+                core_warning(fullReport);
                 if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
                     await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
                 }
@@ -54203,7 +56214,7 @@ async function run() {
         const environment = getInput("environment") || undefined;
         const failMode = resolveFailMode(getInput("fail-mode"), environment);
         if (failMode === "open") {
-            warning(`Trailhead evaluation failed — proceeding with deployment (fail-open). Error: ${error}`);
+            core_warning(`Trailhead evaluation failed — proceeding with deployment (fail-open). Error: ${error}`);
         }
         else {
             setFailed(`Trailhead evaluation failed — blocking deployment (fail-closed). Error: ${error}`);

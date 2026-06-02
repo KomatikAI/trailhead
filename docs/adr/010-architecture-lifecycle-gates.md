@@ -103,9 +103,9 @@ ADR — **all five detectors are now implemented** (see Implementation status).
   make `contract_integrity` pass after applying. The detector marks such findings
   `autofix_eligible`; `deriveSubmissionFixes` classifies them `doc-update`, which
   the fixer plans (catalog-info.yaml is not a red-lane path). Cross-repo refs
-  (`consumesApis`/`dependsOn`/`providesApis`) become **suggestions** — the fix
-  belongs in the owning repo; opening that cross-repo PR is the remaining
-  follow-up (the fixer commits to the gated PR, not other repos).
+  (`consumesApis`/`dependsOn`) — whose fix belongs in the owning repo, not the
+  gated PR — are now handled by the **cross-repo PR opener** (below); when no
+  owner is configured they fall back to **suggestions**.
 
 The **shared autofix git-write executor** now exists (`src/autofix-executor.ts`):
 `executeAutofixRound` plans one fix (via `fixer-core`), asks a content builder
@@ -129,6 +129,28 @@ true to apply"), **fork-guarded** (won't write to a fork's branch), and wrapped
 **fail-soft** in `main.ts` so autofix never blocks the gate. Requires
 `contents: write`. The App (`app/src/fixer.ts`) shares the same executor for when
 it gains a PR webhook path.
+
+The **cross-repo PR opener** (`src/cross-repo-opener.ts` → `runCrossRepoOpener`,
+called in `main.ts` after `runGateAutofix`) closes the one `contract_integrity`
+case a commit on the gated PR cannot: a dangling `consumesApis`/`dependsOn` ref
+whose declaration must live in **another** repo. It re-reads the consuming
+catalog from the PR head, runs `analyzeCatalogRefs` with the same org index the
+gate used, and for each `contract`-kind finding resolves the owning repo from
+`submission.contract_integrity.api_owners` (`entity → "owner/repo"`). For each
+owning repo it opens a PR declaring the missing API as a minimal Backstage `API`
+stub. Safety mirrors the in-repo autofix: **opt-in**
+(`submission.contract_integrity.cross_repo_opener.enabled` _and_ a
+`cross-repo-token` input — the default `GITHUB_TOKEN` can't write to other repos,
+so without the token it stays dry-run), **org-allowlisted**
+(`cross_repo_opener.owner_allowlist`, default = the gated repo's owner),
+**deduped** by a deterministic branch name (`trailhead/declare-contracts-<hash>`
+of the owning repo + the missing API set → identical sets converge on one open
+PR), and wrapped **fail-soft** so it never blocks the gate. Refs with no
+`api_owners` mapping, a malformed mapping, or an owner outside the allowlist are
+returned as `unresolved` (suggestion-only — logged, never silently dropped).
+Result is emitted as the `cross-repo-opener-json` output. This is the last
+ADR-010 self-heal follow-up — the program (5 detectors + in-repo autofix +
+cross-repo opener) is now complete.
 
 `safe_deprecation` **v1 (catalog coherence)** is implemented
 (`src/submission-checks/safe-deprecation.ts`): when an entity is retired
