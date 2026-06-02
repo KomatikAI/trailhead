@@ -96,6 +96,39 @@ ADR — **all five detectors are now implemented** (see Implementation status).
 - dogfood index: `examples/komatik-catalog-index.json` — 53 entities across the
   live org; with it configured, `consumesApis: [komatik-v3-prebuild]` resolves
   instead of flagging.
+- **self-heal lane** (`src/healers/catalog.ts`, `planCatalogHeal`): for an
+  in-repo LOCAL ref (`spec.system` / `spec.subcomponentOf` whose target isn't
+  declared), it auto-generates a minimal stub entity (System/Component, owner
+  reused from a sibling) to append to the same `catalog-info.yaml` — verified to
+  make `contract_integrity` pass after applying. The detector marks such findings
+  `autofix_eligible`; `deriveSubmissionFixes` classifies them `doc-update`, which
+  the fixer plans (catalog-info.yaml is not a red-lane path). Cross-repo refs
+  (`consumesApis`/`dependsOn`/`providesApis`) become **suggestions** — the fix
+  belongs in the owning repo; opening that cross-repo PR is the remaining
+  follow-up (the fixer commits to the gated PR, not other repos).
+
+The **shared autofix git-write executor** now exists (`src/autofix-executor.ts`):
+`executeAutofixRound` plans one fix (via `fixer-core`), asks a content builder
+(`src/autofix-builders.ts` — `contract_integrity` → catalog stub append) for the
+concrete `FileEdit[]`, and commits them through an injected `GitWriter`. The real
+writer (`src/github-git-writer.ts`, `GithubGitWriter`) makes one atomic commit
+via the git-data API (blobs → tree → commit → update ref) behind a structural
+octokit interface, so the same executor runs in the Action, the App
+(`app/src/fixer.ts` now delegates to it), or a unit-test mock. Trust-flag /
+red-lane / one-commit-per-round gating is inherited from `fixer-core`. **This
+lights up commits for every autofix class, not just `contract_integrity`** — the
+catalog healer is simply the first registered builder.
+
+The executor is now **invoked from the gate** (`src/gate-autofix.ts` →
+`runGateAutofix`, called in `main.ts` after `evaluateGate`). It derives the
+autofix-eligible fixes from the evaluation's remediation, fetches the current
+content of the files they touch (octokit `getContent` on the PR HEAD), builds a
+`GithubGitWriter`, and runs the executor. Safety: **opt-in** via the `autofix`
+action input (default `false` → dry-run/plan-only, logged with "set autofix:
+true to apply"), **fork-guarded** (won't write to a fork's branch), and wrapped
+**fail-soft** in `main.ts` so autofix never blocks the gate. Requires
+`contents: write`. The App (`app/src/fixer.ts`) shares the same executor for when
+it gains a PR webhook path.
 
 `safe_deprecation` **v1 (catalog coherence)** is implemented
 (`src/submission-checks/safe-deprecation.ts`): when an entity is retired

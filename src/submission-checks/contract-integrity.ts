@@ -20,9 +20,9 @@ import { fileContent, normalizePath } from "./helpers.js";
 
 const CATALOG_FILE = /(?:^|\/)catalog-info\.ya?ml$/i;
 
-type RefKind = "local" | "owned" | "contract";
+export type RefKind = "local" | "owned" | "contract";
 
-interface Finding {
+export interface ContractRefFinding {
   file: string;
   field: string;
   ref: string;
@@ -30,7 +30,7 @@ interface Finding {
   kind: RefKind;
 }
 
-function isCatalogFile(file: SubmissionFileInfo): boolean {
+export function isCatalogFile(file: SubmissionFileInfo): boolean {
   return CATALOG_FILE.test(normalizePath(file.filename));
 }
 
@@ -70,10 +70,16 @@ function entityName(doc: Record<string, unknown>): string | null {
   return typeof name === "string" ? name : null;
 }
 
-export function detectContractIntegrity(
-  ctx: SubmissionCheckContext,
-): SubmissionCheckResult | null {
-  const catalogFiles = ctx.files.filter(isCatalogFile);
+/**
+ * Core analysis shared by the detector and the self-heal lane: parse the PR's
+ * catalog files, build the resolution universe, and return every reference that
+ * doesn't resolve. Returns null when there are no catalog files to analyze.
+ */
+export function analyzeCatalogRefs(
+  files: SubmissionFileInfo[],
+  knownEntities?: Set<string>,
+): { findings: ContractRefFinding[]; hasOrgIndex: boolean } | null {
+  const catalogFiles = files.filter(isCatalogFile);
   if (catalogFiles.length === 0) return null;
 
   // Parse once; remember which file each doc came from.
@@ -91,11 +97,11 @@ export function detectContractIntegrity(
     }
   }
   const known = new Set<string>(declared);
-  for (const name of ctx.catalogKnownEntities ?? []) known.add(name);
-  const hasOrgIndex = (ctx.catalogKnownEntities?.size ?? 0) > 0;
+  for (const name of knownEntities ?? []) known.add(name);
+  const hasOrgIndex = (knownEntities?.size ?? 0) > 0;
 
   // 2. Walk references and collect anything that doesn't resolve.
-  const findings: Finding[] = [];
+  const findings: ContractRefFinding[] = [];
   const checkRef = (
     file: SubmissionFileInfo,
     field: string,
@@ -122,6 +128,16 @@ export function detectContractIntegrity(
     }
   }
 
+  return { findings, hasOrgIndex };
+}
+
+export function detectContractIntegrity(
+  ctx: SubmissionCheckContext,
+): SubmissionCheckResult | null {
+  const analysis = analyzeCatalogRefs(ctx.files, ctx.catalogKnownEntities);
+  if (!analysis) return null;
+  const { findings, hasOrgIndex } = analysis;
+
   if (findings.length === 0) return null;
 
   // 3. Severity: local/owned refs are structural (always warn). Cross-repo
@@ -131,6 +147,10 @@ export function detectContractIntegrity(
   const contract = findings.filter((f) => f.kind === "contract");
   const severity: SubmissionCheckResult["severity"] =
     structural.length > 0 || hasOrgIndex ? "warn" : "advisory";
+
+  // Self-heal lane (ADR-010): a missing LOCAL entity (system / subcomponentOf
+  // target) can be auto-declared in the same catalog file. See healers/catalog.ts.
+  const localHealable = findings.some((f) => f.kind === "local");
 
   const lines = findings.map(
     (f) => `${f.file}: spec.${f.field} → "${f.ref}" (no declared entity "${f.name}")`,
@@ -153,7 +173,10 @@ export function detectContractIntegrity(
     files: [...new Set(findings.map((f) => f.file))],
     suggested_action:
       "Declare the referenced entity in the owning repo's catalog-info.yaml (or fix the reference). " +
-      "For cross-repo contracts, ensure the publishing repo declares the API and that it is in the org catalog index.",
-    autofix_eligible: false,
+      "For cross-repo contracts, ensure the publishing repo declares the API and that it is in the org catalog index." +
+      (localHealable
+        ? " A missing local entity (system / subcomponentOf target) can be auto-declared — Trailhead self-heal."
+        : ""),
+    autofix_eligible: localHealable,
   };
 }
