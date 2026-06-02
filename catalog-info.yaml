@@ -1,0 +1,56 @@
+# Backstage catalog-info.yaml — Trailhead (supporting-subdomain).
+# Org pattern: separate by bounded context, unify by platform contract (v3 engine).
+# Structural source of truth: KomatikAI/komatik docs/org-context-map.md §4.
+# Generated from docs/catalog/satellite-template.yaml.
+
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: trailhead
+  title: "Trailhead"
+  description: >-
+    Self-healing CI/CD ship gate. Also a consumer product surface. Owns the GitHub Action interface + risk-eval store.
+  tags: [supporting-subdomain]
+spec:
+  owner: komatik
+  domain: komatik-platform
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: trailhead
+  title: "Trailhead"
+  description: >-
+    Self-healing CI/CD ship gate. Also a consumer product surface. Owns the GitHub Action interface + risk-eval store.
+  tags:
+    - supporting-subdomain
+  annotations:
+    komatik.xyz/bounded-context: ship-gate
+    komatik.xyz/integration: supporting-subdomain
+  links:
+    - url: https://github.com/KomatikAI/trailhead
+      title: Repo
+spec:
+  type: service
+  lifecycle: production
+  owner: komatik
+  system: trailhead
+  providesApis: [trailhead-action]
+  consumesApis: [identity]
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: trailhead-action
+  title: "Ship-gate Action + risk-eval store"
+  description: >-
+    The GitHub Action interface projects gate on, plus the risk-eval store. Canonical gate = npx trailhead.
+spec:
+  type: openapi
+  lifecycle: production
+  owner: komatik
+  system: trailhead
+  definition: |
+    See KomatikAI/trailhead GitHub Action + risk-eval store.
