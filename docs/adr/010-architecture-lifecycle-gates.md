@@ -96,6 +96,18 @@ ADR — **all five detectors are now implemented** (see Implementation status).
 - dogfood index: `examples/komatik-catalog-index.json` — 53 entities across the
   live org; with it configured, `consumesApis: [komatik-v3-prebuild]` resolves
   instead of flagging.
+- **self-heal lane** (`src/healers/catalog.ts`, `planCatalogHeal`): for an
+  in-repo LOCAL ref (`spec.system` / `spec.subcomponentOf` whose target isn't
+  declared), it auto-generates a minimal stub entity (System/Component, owner
+  reused from a sibling) to append to the same `catalog-info.yaml` — verified to
+  make `contract_integrity` pass after applying. The detector marks such findings
+  `autofix_eligible`; `deriveSubmissionFixes` classifies them `doc-update`, which
+  the fixer plans (catalog-info.yaml is not a red-lane path). Cross-repo refs
+  (`consumesApis`/`dependsOn`/`providesApis`) become **suggestions** — the fix
+  belongs in the owning repo; opening that cross-repo PR is the remaining
+  follow-up (the fixer commits to the gated PR, not other repos). Commit
+  execution rides the platform's shared autofix git-write path (dry-run in
+  v4.4.x, same as every other autofix class).
 
 `safe_deprecation` **v1 (catalog coherence)** is implemented
 (`src/submission-checks/safe-deprecation.ts`): when an entity is retired
