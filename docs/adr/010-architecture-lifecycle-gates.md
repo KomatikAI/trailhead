@@ -119,6 +119,17 @@ red-lane / one-commit-per-round gating is inherited from `fixer-core`. **This
 lights up commits for every autofix class, not just `contract_integrity`** — the
 catalog healer is simply the first registered builder.
 
+The executor is now **invoked from the gate** (`src/gate-autofix.ts` →
+`runGateAutofix`, called in `main.ts` after `evaluateGate`). It derives the
+autofix-eligible fixes from the evaluation's remediation, fetches the current
+content of the files they touch (octokit `getContent` on the PR HEAD), builds a
+`GithubGitWriter`, and runs the executor. Safety: **opt-in** via the `autofix`
+action input (default `false` → dry-run/plan-only, logged with "set autofix:
+true to apply"), **fork-guarded** (won't write to a fork's branch), and wrapped
+**fail-soft** in `main.ts` so autofix never blocks the gate. Requires
+`contents: write`. The App (`app/src/fixer.ts`) shares the same executor for when
+it gains a PR webhook path.
+
 `safe_deprecation` **v1 (catalog coherence)** is implemented
 (`src/submission-checks/safe-deprecation.ts`): when an entity is retired
 (`spec.lifecycle: deprecated`), a still-_live_ entity that keeps depending on it
