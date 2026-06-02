@@ -495,6 +495,9 @@ export const SubmissionConfig = z.object({
        * for the cross-repo PR opener: a dangling consumesApis/dependsOn ref whose
        * name is mapped here triggers a declaration PR in the owning repo. */
       api_owners: z.record(z.string()).optional(),
+      /** Path to a catalog index JSON with an `owners` map; merged with api_owners
+       * (inline api_owners wins). Usually the same file as catalog_index_path. */
+      api_owners_path: z.string().optional(),
       /** Cross-repo PR opener (ADR-010). Off by default; opens declaration PRs in
        * the OWNING repo for dangling cross-repo contract refs. Needs a token with
        * write access to those repos (cross-repo-token input). */
