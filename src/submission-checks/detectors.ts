@@ -18,6 +18,7 @@ import type { NamingAllowlistConfig } from "./types.js";
 import { runPhase0Detectors } from "./phase0-detectors.js";
 import { detectContractIntegrity } from "./contract-integrity.js";
 import { detectSafeDeprecation } from "./safe-deprecation.js";
+import { detectDestructiveChange } from "./destructive-change.js";
 import { validateFileSyntax } from "./syntax-validity.js";
 import { matchesGlobs } from "../risk-engine.js";
 import { applyDetectorPolicy, artifactFileGlobs } from "./detector-policy.js";
@@ -655,6 +656,7 @@ export function runAllDetectors(ctx: SubmissionCheckContext): SubmissionCheckRes
     finalize("path_format", detectPathFormat(ctx)),
     finalize("contract_integrity", detectContractIntegrity(ctx)),
     finalize("safe_deprecation", detectSafeDeprecation(ctx)),
+    finalize("destructive_change", detectDestructiveChange(ctx)),
   ].filter((check): check is SubmissionCheckResult => check !== null);
 
   const phase0 = runPhase0Detectors(ctx)
