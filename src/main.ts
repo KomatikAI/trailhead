@@ -37,7 +37,7 @@ import { buildGateVerdict } from "./verdict.js";
 import { runGateAutofix, type GateAutofixClient } from "./gate-autofix.js";
 import { runCrossRepoOpener, type CrossRepoOpenerClient } from "./cross-repo-opener.js";
 import { loadRepoConfig } from "./config.js";
-import { loadCatalogIndex } from "./catalog-index.js";
+import { loadCatalogIndex, loadCatalogOwners } from "./catalog-index.js";
 import type { TrailheadConfig, TestRepairResult, PolicyOverrideAudit } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -421,7 +421,16 @@ async function run(): Promise<void> {
       try {
         const repoConfig = await loadRepoConfig(config.githubToken);
         const ci = repoConfig?.submission?.contract_integrity;
-        const apiOwners = ci?.api_owners ?? {};
+        // Owner registry: generated file (api_owners_path) ∪ inline (inline wins).
+        const apiOwners: Record<string, string> = {};
+        if (ci?.api_owners_path) {
+          try {
+            Object.assign(apiOwners, loadCatalogOwners(ci.api_owners_path));
+          } catch (err) {
+            core.debug(`Cross-repo opener: api_owners_path load failed: ${err}`);
+          }
+        }
+        Object.assign(apiOwners, ci?.api_owners ?? {});
         if (Object.keys(apiOwners).length > 0) {
           const openerCfg = ci?.cross_repo_opener;
           // Resolution universe — match what the gate used (known_entities ∪ index).
