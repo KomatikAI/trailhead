@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCatalogIndex } from "../catalog-index.js";
+import { parseCatalogIndex, parseCatalogOwners } from "../catalog-index.js";
 import { runSubmissionGate } from "../submission-engine.js";
 import type { RepoConfig } from "../types.js";
 
@@ -14,6 +14,23 @@ describe("parseCatalogIndex", () => {
   it("drops non-string / empty entries and tolerates a missing array", () => {
     expect(parseCatalogIndex('{"entities":["a", 2, "", null, "b"]}')).toEqual(["a", "b"]);
     expect(parseCatalogIndex('{"version":1}')).toEqual([]);
+  });
+});
+
+describe("parseCatalogOwners", () => {
+  it("extracts the owners map", () => {
+    expect(
+      parseCatalogOwners(
+        '{"entities":["a"],"owners":{"komatik-v3-prebuild":"KomatikAI/komatik"}}',
+      ),
+    ).toEqual({ "komatik-v3-prebuild": "KomatikAI/komatik" });
+  });
+
+  it("drops malformed entries and tolerates a missing map", () => {
+    expect(parseCatalogOwners('{"owners":{"a":"o/r","b":2,"":"o/r","c":""}}')).toEqual({
+      a: "o/r",
+    });
+    expect(parseCatalogOwners('{"version":1,"entities":["x"]}')).toEqual({});
   });
 });
 
