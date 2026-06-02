@@ -39,7 +39,9 @@ spec:
 
 function gateWith(config: Partial<RepoConfig["submission"]>) {
   return runSubmissionGate({
-    files: [{ filename: "catalog-info.yaml", content: SATELLITE_CATALOG, status: "added" }],
+    files: [
+      { filename: "catalog-info.yaml", content: SATELLITE_CATALOG, status: "added" },
+    ],
     repoConfig: { submission: { enabled: true, ...config } } as RepoConfig,
   });
 }

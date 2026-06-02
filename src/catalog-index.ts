@@ -19,7 +19,9 @@ export interface CatalogIndex {
 export function parseCatalogIndex(raw: string): string[] {
   const parsed = JSON.parse(raw) as Partial<CatalogIndex>;
   if (!Array.isArray(parsed.entities)) return [];
-  return parsed.entities.filter((e): e is string => typeof e === "string" && e.length > 0);
+  return parsed.entities.filter(
+    (e): e is string => typeof e === "string" && e.length > 0,
+  );
 }
 
 /** Read + parse a catalog index file. Throws on read/parse failure (caller decides). */

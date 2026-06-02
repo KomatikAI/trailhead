@@ -90,7 +90,8 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
     slugOnlyPatterns: buildSlugOnlyPatterns(repoConfig?.submission),
     detectorPolicy: policy,
     repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
-    catalogKnownEntities: catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
+    catalogKnownEntities:
+      catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
   };
 }
 

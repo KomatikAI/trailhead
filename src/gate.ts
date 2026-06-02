@@ -1753,7 +1753,8 @@ export async function evaluateGate(
     // contract_integrity (ADR-010): load the org catalog index, if configured,
     // so cross-repo contract references can resolve (else they stay advisory).
     let catalogKnownEntities: string[] | undefined;
-    const catalogIndexPath = repoConfig?.submission?.contract_integrity?.catalog_index_path;
+    const catalogIndexPath =
+      repoConfig?.submission?.contract_integrity?.catalog_index_path;
     if (catalogIndexPath) {
       try {
         catalogKnownEntities = loadCatalogIndex(catalogIndexPath);

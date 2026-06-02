@@ -111,6 +111,8 @@ spec:
   });
 
   it("returns null when there are no catalog files", () => {
-    expect(detectSafeDeprecation(ctx([{ filename: "src/x.ts", content: "export {}" }]))).toBeNull();
+    expect(
+      detectSafeDeprecation(ctx([{ filename: "src/x.ts", content: "export {}" }])),
+    ).toBeNull();
   });
 });

@@ -32,7 +32,8 @@ function refName(ref: string): string {
 }
 
 function asArray(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
+  if (Array.isArray(value))
+    return value.filter((v): v is string => typeof v === "string");
   if (typeof value === "string") return [value];
   return [];
 }
@@ -72,7 +73,10 @@ export function detectSafeDeprecation(
   const catalogFiles = ctx.files.filter(isCatalogFile);
   if (catalogFiles.length === 0) return null;
 
-  const parsed = catalogFiles.map((file) => ({ file, docs: parseDocs(fileContent(file)) }));
+  const parsed = catalogFiles.map((file) => ({
+    file,
+    docs: parseDocs(fileContent(file)),
+  }));
 
   // 1. Which entities are being retired?
   const retired = new Set<string>();
@@ -98,7 +102,8 @@ export function detectSafeDeprecation(
         }
       };
       if (typeof spec.system === "string") check("system", spec.system);
-      if (typeof spec.subcomponentOf === "string") check("subcomponentOf", spec.subcomponentOf);
+      if (typeof spec.subcomponentOf === "string")
+        check("subcomponentOf", spec.subcomponentOf);
       for (const ref of asArray(spec.consumesApis)) check("consumesApis", ref);
       for (const ref of asArray(spec.dependsOn)) check("dependsOn", ref);
     }

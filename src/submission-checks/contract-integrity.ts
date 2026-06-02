@@ -45,7 +45,8 @@ function refName(ref: string): string {
 }
 
 function asArray(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
+  if (Array.isArray(value))
+    return value.filter((v): v is string => typeof v === "string");
   if (typeof value === "string") return [value];
   return [];
 }
@@ -112,9 +113,12 @@ export function detectContractIntegrity(
       if (typeof spec.system === "string") checkRef(file, "system", spec.system, "local");
       if (typeof spec.subcomponentOf === "string")
         checkRef(file, "subcomponentOf", spec.subcomponentOf, "local");
-      for (const ref of asArray(spec.providesApis)) checkRef(file, "providesApis", ref, "owned");
-      for (const ref of asArray(spec.consumesApis)) checkRef(file, "consumesApis", ref, "contract");
-      for (const ref of asArray(spec.dependsOn)) checkRef(file, "dependsOn", ref, "contract");
+      for (const ref of asArray(spec.providesApis))
+        checkRef(file, "providesApis", ref, "owned");
+      for (const ref of asArray(spec.consumesApis))
+        checkRef(file, "consumesApis", ref, "contract");
+      for (const ref of asArray(spec.dependsOn))
+        checkRef(file, "dependsOn", ref, "contract");
     }
   }
 

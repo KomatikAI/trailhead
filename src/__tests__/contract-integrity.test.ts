@@ -53,13 +53,17 @@ spec:
 
 describe("contract_integrity (ADR-010)", () => {
   it("returns null when there are no catalog files", () => {
-    expect(detectContractIntegrity(ctx([catalog("src/index.ts", "export {}")]))).toBeNull();
+    expect(
+      detectContractIntegrity(ctx([catalog("src/index.ts", "export {}")])),
+    ).toBeNull();
   });
 
   it("flags a cross-repo contract ref as DANGLING when an org index lacks it (pre-Wave-1)", () => {
     // Org index exists but does NOT publish komatik-v3-prebuild yet.
     const index = new Set(["identity", "pipeline-engine-v3"]);
-    const res = detectContractIntegrity(ctx([catalog("catalog-info.yaml", SATELLITE)], index));
+    const res = detectContractIntegrity(
+      ctx([catalog("catalog-info.yaml", SATELLITE)], index),
+    );
     expect(res).not.toBeNull();
     expect(res!.code).toBe("contract_integrity");
     expect(res!.severity).toBe("warn");

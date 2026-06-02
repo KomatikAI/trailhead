@@ -67,7 +67,12 @@ function fromOrg(org) {
   for (const repo of repos) {
     for (const file of ["catalog-info.yaml", "catalog-info.yml"]) {
       try {
-        const b64 = gh(["api", `repos/${org}/${repo}/contents/${file}`, "-q", ".content"]);
+        const b64 = gh([
+          "api",
+          `repos/${org}/${repo}/contents/${file}`,
+          "-q",
+          ".content",
+        ]);
         const content = Buffer.from(b64, "base64").toString("utf8");
         for (const n of entityNames(content)) names.add(n);
         break; // found the catalog file for this repo

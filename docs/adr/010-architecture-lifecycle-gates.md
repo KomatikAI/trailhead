@@ -16,8 +16,8 @@ diff — it's in how the diff relates to the **rest of the system**. A recent
 multi-repo ecosystem rollout produced a representative sample:
 
 1. **Dangling contract references.** Repos declared, in their Backstage
-   `catalog-info.yaml`, that they *consume* APIs (`komatik-v3-prebuild`,
-   `identity`, …) that no repo *published* yet. Each PR was internally valid and
+   `catalog-info.yaml`, that they _consume_ APIs (`komatik-v3-prebuild`,
+   `identity`, …) that no repo _published_ yet. Each PR was internally valid and
    green; the break only existed across repos. CI cannot see it.
 2. **Incomplete deprecation / zombie surfaces.** A product was "retired" (row
    unlisted, `canonical_slug` set, repo archived) but kept rendering through an
@@ -28,13 +28,13 @@ multi-repo ecosystem rollout produced a representative sample:
 4. **Destructive data change without standardized evidence.** A row `DELETE`
    shipped only because a human hand-checked FK count, event/purchase references,
    and reversibility. Nothing required or recorded that evidence.
-5. **Release-train incoherence.** Work landed on `dev` *behind* an in-flight
+5. **Release-train incoherence.** Work landed on `dev` _behind_ an in-flight
    promotion, so the open production release silently omitted it until it was
    manually folded in.
 
 These are **architecture & lifecycle** failures. They are exactly what a ship gate
 that understands the system's contracts — not just the diff — should catch, and,
-true to Trailhead's self-healing identity, *repair*.
+true to Trailhead's self-healing identity, _repair_.
 
 ## Decision
 
@@ -46,13 +46,13 @@ Each new detector is a `SubmissionCheckCode`, ships **`warn` / phase-0 first** p
 ADR-008 gate modes, and graduates to `blocking` only after it proves precision
 against real PRs.
 
-| Detector (`code`) | Catches (incident #) | Resolves against | Default severity | Self-heal lane |
-|---|---|---|---|---|
-| **`contract_integrity`** | dangling catalog refs (#1) | declared entities in-PR + an org catalog index (config) | `warn` (`advisory` when no index) | open a PR declaring the missing API in the owning repo |
-| **`safe_deprecation`** | zombie surfaces (#2) | route shapes + listing surfaces vs. a "retired" signal | `warn` | open a PR adding the missing redirect / removing the listing |
-| **`claim_anchoring`** | doc-vs-reality drift (#3) | doc assertions ↔ backing tests | `advisory` | comment + open a test stub |
-| **`destructive_change`** | unsafe data change (#4) | migration ops ↔ evidence bundle (extends `destructive_sql`) | `blocking` w/o evidence | run FK/row probes, attach evidence |
-| **`promotion_coherence`** | release incoherence (#5) | source-branch work vs. target branch | `warn` | open / sequence the next-hop promotion PR |
+| Detector (`code`)         | Catches (incident #)       | Resolves against                                            | Default severity                  | Self-heal lane                                               |
+| ------------------------- | -------------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| **`contract_integrity`**  | dangling catalog refs (#1) | declared entities in-PR + an org catalog index (config)     | `warn` (`advisory` when no index) | open a PR declaring the missing API in the owning repo       |
+| **`safe_deprecation`**    | zombie surfaces (#2)       | route shapes + listing surfaces vs. a "retired" signal      | `warn`                            | open a PR adding the missing redirect / removing the listing |
+| **`claim_anchoring`**     | doc-vs-reality drift (#3)  | doc assertions ↔ backing tests                              | `advisory`                        | comment + open a test stub                                   |
+| **`destructive_change`**  | unsafe data change (#4)    | migration ops ↔ evidence bundle (extends `destructive_sql`) | `blocking` w/o evidence           | run FK/row probes, attach evidence                           |
+| **`promotion_coherence`** | release incoherence (#5)   | source-branch work vs. target branch                        | `warn`                            | open / sequence the next-hop promotion PR                    |
 
 This ADR is the umbrella. The first wave lands two catalog-native detectors —
 **`contract_integrity`** (the reference implementation; it prevents the most
@@ -69,12 +69,12 @@ separate PRs under this ADR.
   (`ctx.catalogKnownEntities`, fed from `.trailhead.yml`
   `submission.contract_integrity.known_entities` or a generated index file).
 - **Resolve references:**
-  - *Local structural* — `spec.system`, `spec.subcomponentOf`: must resolve in
+  - _Local structural_ — `spec.system`, `spec.subcomponentOf`: must resolve in
     the repo's own catalog. Unresolved → `warn` (low false-positive; a component's
     system/parent is always local).
-  - *Owned* — `spec.providesApis`: the API entity you publish must be declared
+  - _Owned_ — `spec.providesApis`: the API entity you publish must be declared
     where you publish it. Unresolved → `warn`.
-  - *Contract* — `spec.consumesApis`, `spec.dependsOn`: may be cross-repo.
+  - _Contract_ — `spec.consumesApis`, `spec.dependsOn`: may be cross-repo.
     Unresolved **and** an org index is configured → `warn` ("dangling contract
     reference"). Unresolved with **no** index → `advisory` ("unverified external
     contract — supply a catalog index to enforce"). This is what makes incident #1
@@ -85,6 +85,7 @@ separate PRs under this ADR.
 ### Implementation status
 
 `contract_integrity` is **implemented and cross-repo-capable**:
+
 - detector: `src/submission-checks/contract-integrity.ts`
 - org index config: `.trailhead.yml` `submission.contract_integrity.known_entities`
   (inline) and/or `catalog_index_path` (a generated JSON file); merged into
@@ -98,12 +99,12 @@ separate PRs under this ADR.
 
 `safe_deprecation` **v1 (catalog coherence)** is implemented
 (`src/submission-checks/safe-deprecation.ts`): when an entity is retired
-(`spec.lifecycle: deprecated`), a still-*live* entity that keeps depending on it
+(`spec.lifecycle: deprecated`), a still-_live_ entity that keeps depending on it
 (`consumesApis` / `dependsOn` / `subcomponentOf` / `system`) is flagged `warn` —
 the catalog-level "zombie wire". It correctly ignores a deprecated entity that
-points *up* at its live survivor (the Trace absorption shape). **Follow-up:** the
+points _up_ at its live survivor (the Trace absorption shape). **Follow-up:** the
 non-catalog surface coverage (route/redirect maps, listing rows — the literal
-`/apps/{legacy}` zombie) needs full repo file *contents* in the gate context, not
+`/apps/{legacy}` zombie) needs full repo file _contents_ in the gate context, not
 just `repoPaths`; tracked as the next increment.
 
 ### Rollout
@@ -112,8 +113,8 @@ just `repoPaths`; tracked as the next increment.
    calibration; this is signal-gathering, not blocking).
 2. Generate/commit an org **catalog index** so contract refs resolve cross-repo;
    dogfood against the ecosystem catalog. **(done — generator + example shipped)**
-3. Once precision is proven, promote to `blocking` for the *local structural* and
-   *owned* categories (lowest FP), keeping cross-repo contract refs at `warn`
+3. Once precision is proven, promote to `blocking` for the _local structural_ and
+   _owned_ categories (lowest FP), keeping cross-repo contract refs at `warn`
    until the index is authoritative — coordinated with the
    critical-factor-hard-block calibration work.
 
