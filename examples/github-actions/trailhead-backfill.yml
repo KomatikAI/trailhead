@@ -1,0 +1,36 @@
+# Backfill / re-evaluate a specific PR with the current Trailhead engine.
+#
+# Use this to populate the evaluation store for historical PRs (e.g. after a
+# version upgrade) or to re-score a single PR on demand. The gate fetches the
+# PR diff by number from the API — it works for open, closed, and merged PRs,
+# and requires no checkout of the PR. Only the evaluation is scored and
+# persisted; PR comments, labels, reviewers, self-heal, and autofix are skipped.
+#
+# Drive it across many PRs with:
+#   for pr in 2100 2101 2102; do
+#     gh workflow run trailhead-backfill.yml -f pr="$pr"
+#   done
+name: Trailhead Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to evaluate"
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: KomatikAI/trailhead@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          evaluate-pr: ${{ inputs.pr }}
+          evaluation-store-url: "https://komatik.ai/api/trailhead/store"
+          evaluation-store-secret: ${{ secrets.INTERNAL_API_SECRET }}
+          dora-metrics: "true"
