@@ -41,7 +41,10 @@ const ACTION_REGEX =
   /uses:\s*(KomatikAI\/(?:trailhead|deployguard)|dschirmer-shiftkey\/deployguard)@([^\s#]+)/g;
 
 function gh(args) {
-  return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  return execFileSync("gh", args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
 }
 
 function tryGh(args) {
@@ -116,7 +119,9 @@ const results = REPOS.map(scanRepo);
 const failing = results.filter((r) => r.issues.length > 0);
 
 if (jsonOut) {
-  console.log(JSON.stringify({ expected: EXPECTED_REF, results, failing: failing.length }, null, 2));
+  console.log(
+    JSON.stringify({ expected: EXPECTED_REF, results, failing: failing.length }, null, 2),
+  );
 } else {
   console.log(`Expected pin: KomatikAI/trailhead${EXPECTED_REF}\n`);
   for (const row of results) {

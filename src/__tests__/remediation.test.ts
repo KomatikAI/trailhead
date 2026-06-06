@@ -214,9 +214,7 @@ describe("buildRemediation", () => {
         evaluation: evaluationFixture({
           releaseReady: true,
           gateDecision: "allow",
-          riskFactors: [
-            factor("test_coverage", 80, { missing_tests: ["src/foo.ts"] }),
-          ],
+          riskFactors: [factor("test_coverage", 80, { missing_tests: ["src/foo.ts"] })],
         }),
       });
       expect(remediation.blocking_count).toBe(1);

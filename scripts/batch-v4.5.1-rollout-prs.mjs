@@ -36,11 +36,20 @@ const args = new Set(process.argv.slice(2));
 const apply = args.has("--apply");
 const onlyArg = process.argv.find((a) => a.startsWith("--only="));
 const onlyList = onlyArg
-  ? new Set(onlyArg.replace("--only=", "").split(",").map((s) => s.trim()).filter(Boolean))
+  ? new Set(
+      onlyArg
+        .replace("--only=", "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    )
   : null;
 
 function gh(ghArgs) {
-  return execFileSync("gh", ghArgs, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  return execFileSync("gh", ghArgs, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
 }
 
 function tryGh(ghArgs) {
@@ -52,7 +61,9 @@ function tryGh(ghArgs) {
 }
 
 function getRepoMeta(name) {
-  return JSON.parse(gh(["api", `repos/${ORG}/${name}`, "--jq", "{default_branch, archived}"]));
+  return JSON.parse(
+    gh(["api", `repos/${ORG}/${name}`, "--jq", "{default_branch, archived}"]),
+  );
 }
 
 function getFile(name, ref, path) {
@@ -68,7 +79,9 @@ function getFile(name, ref, path) {
 }
 
 function findWorkflow(name, base, preferredPath) {
-  const paths = preferredPath ? [preferredPath, ...WORKFLOW_CANDIDATES] : WORKFLOW_CANDIDATES;
+  const paths = preferredPath
+    ? [preferredPath, ...WORKFLOW_CANDIDATES]
+    : WORKFLOW_CANDIDATES;
   for (const path of [...new Set(paths)]) {
     const file = getFile(name, base, path);
     if (file) return file;
