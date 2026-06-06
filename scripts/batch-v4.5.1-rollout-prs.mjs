@@ -12,14 +12,14 @@ import { execFileSync } from "node:child_process";
 
 const ORG = "KomatikAI";
 const ACTION_REPO = "KomatikAI/trailhead";
+const TARGET_VERSION = process.env.TRAILHEAD_ROLLOUT_VERSION || "4.5.2";
+const TARGET_REF = `@v${TARGET_VERSION}`;
 const BRANCH =
   process.env.TRAILHEAD_ROLLOUT_BRANCH || `cursor/trailhead-v${TARGET_VERSION}-rollout`;
 const WORKFLOW_CANDIDATES = [
   ".github/workflows/trailhead.yml",
   ".github/workflows/deployguard.yml",
 ];
-const TARGET_VERSION = process.env.TRAILHEAD_ROLLOUT_VERSION || "4.5.1";
-const TARGET_REF = `@v${TARGET_VERSION}`;
 
 const REPOS = [
   { name: "komatik" },
