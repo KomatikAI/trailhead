@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 
 import {
+  buildEvaluationStoreRow,
   deliverWebhooks,
   deliverWebhookEvent,
   sendWebhook,
@@ -168,6 +169,56 @@ describe("deliverWebhooks", () => {
     const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string);
     expect(body.event).toBe("trailhead.ready");
     expect(body.releaseReady).toBe(true);
+  });
+});
+
+describe("buildEvaluationStoreRow", () => {
+  it("persists analytics fields for warehouse queries", () => {
+    const row = buildEvaluationStoreRow(
+      makeEvaluation({
+        gateMode: "release-ready",
+        releaseReady: false,
+        releaseReadyReasons: ["Risk score 85 exceeds threshold 70"],
+        policyFindings: ["CI integrity blocking patterns detected (1)."],
+        submissionChecks: [
+          {
+            code: "syntax_validity",
+            severity: "blocking",
+            title: "Syntax error",
+            detail: "bad ts",
+            files: ["src/x.ts"],
+            autofix_eligible: false,
+          },
+        ],
+        trust_profile: {
+          strictness: "baseline",
+          reason: "Human provenance",
+        },
+        ci: {
+          checks: [],
+          allRequiredPassed: true,
+          pendingCount: 0,
+          failedCount: 0,
+          missingCount: 0,
+        },
+        pr: {
+          headRef: "agent/pixel/fix-nav",
+          provenance: { type: "claude", confidence: 0.9 },
+        },
+      }),
+    );
+
+    expect(row.gate_mode).toBe("release-ready");
+    expect(row.release_ready_reasons).toEqual(["Risk score 85 exceeds threshold 70"]);
+    expect(row.policy_findings).toContain("CI integrity blocking patterns detected (1).");
+    expect(row.submission_checks).toHaveLength(1);
+    expect(row.trust_profile).toMatchObject({ strictness: "baseline" });
+    expect(row.ci).toMatchObject({ allRequiredPassed: true });
+    expect(row.agent_provenance_id).toBe("pixel");
+    expect(row.verdict).toMatchObject({
+      schema: "trailhead.verdict.v1",
+      agent_id: "pixel",
+    });
   });
 });
 

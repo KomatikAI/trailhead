@@ -62,6 +62,61 @@ function normalizeSeverity(alert: CodeScanningAlert): SeverityLevel {
   return "medium";
 }
 
+function normalizeRepoPath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+/** True when the alert's reported path intersects a PR changed file. */
+export function alertTouchesChangedFile(
+  alert: CodeScanningAlert,
+  changedFiles: Set<string>,
+): boolean {
+  const alertPath = alert.most_recent_instance?.location?.path;
+  if (!alertPath) return false;
+
+  const normalized = normalizeRepoPath(alertPath);
+  if (changedFiles.has(normalized)) return true;
+
+  for (const file of changedFiles) {
+    const changed = normalizeRepoPath(file);
+    if (
+      normalized === changed ||
+      normalized.endsWith(`/${changed}`) ||
+      changed.endsWith(`/${normalized}`)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function countAlerts(alerts: CodeScanningAlert[]): SecurityAlertCounts {
+  const counts: SecurityAlertCounts = {
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    total: alerts.length,
+    topRules: [],
+  };
+
+  const ruleCount = new Map<string, number>();
+
+  for (const alert of alerts) {
+    const sev = normalizeSeverity(alert);
+    const bucket = severityToBucket(sev);
+    counts[bucket]++;
+    ruleCount.set(alert.rule.id, (ruleCount.get(alert.rule.id) ?? 0) + 1);
+  }
+
+  counts.topRules = [...ruleCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([ruleId, count]) => `${ruleId} (${count})`);
+
+  return counts;
+}
+
 function severityToBucket(
   severity: SeverityLevel,
 ): keyof Omit<SecurityAlertCounts, "total" | "topRules"> {
@@ -86,9 +141,15 @@ function severityToBucket(
 // Fetch alerts from GitHub Code Scanning API
 // ---------------------------------------------------------------------------
 
+export interface FetchCodeScanningAlertsOptions {
+  /** When set, only alerts touching these PR paths are counted. Empty array → no alerts. */
+  changedFiles?: string[];
+}
+
 export async function fetchCodeScanningAlerts(
   token: string,
   config?: SecurityConfig | null,
+  options?: FetchCodeScanningAlertsOptions,
 ): Promise<SecurityAlertCounts> {
   const empty: SecurityAlertCounts = {
     critical: 0,
@@ -98,6 +159,10 @@ export async function fetchCodeScanningAlerts(
     total: 0,
     topRules: [],
   };
+
+  if (options?.changedFiles !== undefined && options.changedFiles.length === 0) {
+    return empty;
+  }
 
   try {
     const octokit = github.getOctokit(token);
@@ -119,37 +184,19 @@ export async function fetchCodeScanningAlerts(
     const thresholdOrder = SEVERITY_ORDER[threshold] ?? 2;
     const ignoreRules = new Set(config?.ignore_rules ?? []);
 
-    const filtered = alerts.filter((a) => {
+    let filtered = alerts.filter((a) => {
       if (ignoreRules.has(a.rule.id)) return false;
       const sev = normalizeSeverity(a);
       return (SEVERITY_ORDER[sev] ?? 3) <= thresholdOrder;
     });
 
-    const counts: SecurityAlertCounts = {
-      critical: 0,
-      high: 0,
-      medium: 0,
-      low: 0,
-      total: filtered.length,
-      topRules: [],
-    };
-
-    const ruleCount = new Map<string, number>();
-
-    for (const alert of filtered) {
-      const sev = normalizeSeverity(alert);
-      const bucket = severityToBucket(sev);
-      counts[bucket]++;
-
-      ruleCount.set(alert.rule.id, (ruleCount.get(alert.rule.id) ?? 0) + 1);
+    if (options?.changedFiles !== undefined) {
+      const changedSet = new Set(options.changedFiles.map(normalizeRepoPath));
+      filtered = filtered.filter((alert) => alertTouchesChangedFile(alert, changedSet));
+      if (filtered.length === 0) return empty;
     }
 
-    counts.topRules = [...ruleCount.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([ruleId, count]) => `${ruleId} (${count})`);
-
-    return counts;
+    return countAlerts(filtered);
   } catch (error) {
     const msg = String(error);
     if (msg.includes("403") || msg.includes("Advanced Security")) {

@@ -307,6 +307,11 @@ export function buildEvaluationStoreRow(
   evaluation: GateEvaluation,
 ): Record<string, unknown> {
   const remediation = evaluation.remediation;
+  const agentId = resolveAgentProvenanceId(evaluation);
+  const verdict = buildGateVerdict(evaluation, {
+    trustRuntime: readTrustRuntime(),
+    agentId: agentId ?? undefined,
+  });
   return {
     id: evaluation.id,
     repo_id: evaluation.repoId,
@@ -321,6 +326,7 @@ export function buildEvaluationStoreRow(
     evaluation_ms: evaluation.evaluationMs,
     report_url: evaluation.reportUrl ?? null,
     release_ready: evaluation.releaseReady ?? null,
+    release_ready_reasons: evaluation.releaseReadyReasons ?? null,
     remediation: remediation ?? null,
     loop_round: remediation?.loop_round ?? 0,
     previous_evaluation_id: remediation?.previous_evaluation_id ?? null,
@@ -328,7 +334,14 @@ export function buildEvaluationStoreRow(
     fixes_introduced: remediation?.fixes_introduced ?? [],
     pr: evaluation.pr ?? null,
     policy_override: evaluation.policyOverride ?? null,
-    agent_provenance_id: resolveAgentProvenanceId(evaluation),
+    gate_mode: evaluation.gateMode ?? null,
+    submission_checks: evaluation.submissionChecks ?? null,
+    policy_findings: evaluation.policyFindings ?? null,
+    trust_profile: evaluation.trust_profile ?? null,
+    verdict,
+    ci: evaluation.ci ?? null,
+    context: evaluation.context ?? null,
+    agent_provenance_id: agentId,
   };
 }
 

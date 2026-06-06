@@ -12,13 +12,18 @@ CREATE INDEX IF NOT EXISTS idx_trailhead_evals_agent_provenance
   WHERE agent_provenance_id IS NOT NULL;
 
 COMMENT ON COLUMN public.trailhead_evaluations.agent_provenance_id IS
-  'Denormalised pr.provenance.source for agent group-by (Trailhead A5).';
+  'Denormalised agent id for group-by (headRef agent/*, then provenance.type, then identity source).';
 
--- Best-effort backfill from pr JSONB
+-- Best-effort backfill from pr JSONB (matches resolveAgentProvenanceId in Trailhead)
 UPDATE public.trailhead_evaluations
 SET agent_provenance_id = COALESCE(
-  pr->'provenance'->>'source',
-  substring(pr->>'headRef' from '^agent/([^/]+)/')
+  substring(pr->>'headRef' from '^agent/([^/]+)/'),
+  NULLIF(pr->'provenance'->>'type', 'human'),
+  NULLIF(pr->'provenance'->>'type', 'unknown'),
+  CASE
+    WHEN pr->'provenance'->>'source' IN ('author/branch/commit-signals') THEN NULL
+    ELSE pr->'provenance'->>'source'
+  END
 )
 WHERE agent_provenance_id IS NULL
   AND pr IS NOT NULL;
