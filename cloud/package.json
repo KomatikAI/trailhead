@@ -1,6 +1,6 @@
 {
   "name": "trailhead-cloud",
-  "version": "4.5.1",
+  "version": "4.5.2",
   "private": true,
   "type": "module",
   "description": "Trailhead Cloud API — evaluation store, org/repo registry, deploy events",

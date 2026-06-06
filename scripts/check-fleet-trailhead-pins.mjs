@@ -14,7 +14,7 @@
 import { execFileSync } from "node:child_process";
 
 const ORG = "KomatikAI";
-const EXPECTED_VERSION = process.env.EXPECTED_VERSION || "4.5.1";
+const EXPECTED_VERSION = process.env.EXPECTED_VERSION || "4.5.2";
 const EXPECTED_REF = `@v${EXPECTED_VERSION}`;
 const FLOATING_REF = "@v4";
 const jsonOut = process.argv.includes("--json");
