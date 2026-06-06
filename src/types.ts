@@ -522,7 +522,7 @@ export type SubmissionConfig = z.infer<typeof SubmissionConfig>;
 export const RepoConfig = z.object({
   schema_version: z.number().int().positive().default(1),
   gate: GateConfig.default({}),
-  risk: RiskPathProfileConfig.default({}),
+  risk: RiskPathProfileConfig.optional(),
   remediation: RemediationConfig.optional(),
   override: OverrideConfig.optional(),
   tuning: TuningConfig.optional(),
