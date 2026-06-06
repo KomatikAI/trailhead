@@ -522,7 +522,9 @@ async function run(): Promise<void> {
     let securityReport = "";
     if (config.securityGate !== false && config.githubToken) {
       try {
-        const alerts = await fetchCodeScanningAlerts(config.githubToken);
+        const alerts = await fetchCodeScanningAlerts(config.githubToken, undefined, {
+          changedFiles: evaluation.files,
+        });
         if (alerts.total > 0) {
           core.setOutput("security-alerts-json", JSON.stringify(alerts));
           securityReport = formatSecuritySection(alerts);

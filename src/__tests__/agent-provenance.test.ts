@@ -7,7 +7,7 @@ function evaluation(pr: GateEvaluation["pr"]): Pick<GateEvaluation, "pr"> {
 }
 
 describe("resolveAgentProvenanceId", () => {
-  it("prefers provenance.source", () => {
+  it("prefers agent branch headRef over provenance source", () => {
     expect(
       resolveAgentProvenanceId(
         evaluation({
@@ -16,6 +16,21 @@ describe("resolveAgentProvenanceId", () => {
         }),
       ),
     ).toBe("frontend-dev");
+  });
+
+  it("ignores detection-method provenance.source values", () => {
+    expect(
+      resolveAgentProvenanceId(
+        evaluation({
+          headRef: "feat/some-branch",
+          provenance: {
+            type: "claude",
+            confidence: 0.55,
+            source: "author/branch/commit-signals",
+          },
+        }),
+      ),
+    ).toBe("claude");
   });
 
   it("parses agent branch headRef", () => {
