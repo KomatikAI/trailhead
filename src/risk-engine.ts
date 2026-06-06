@@ -226,6 +226,7 @@ export function isTestableSourceFile(
   config?: RiskConfig | null,
 ): boolean {
   if (isTestFile(filename)) return false;
+  if (/(?:^|\/)migrations\//i.test(filename)) return false;
   return !isContentNonSource(filename, config);
 }
 
