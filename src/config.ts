@@ -33,6 +33,7 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
   "override",
   "tuning",
   "submission",
+  "risk",
 ]);
 
 function warnUnknownTopLevelKeys(raw: unknown, configPath: string): void {
