@@ -1528,8 +1528,13 @@ export async function evaluateGate(
     core.info("Merge queue detected — adjusting evaluation (skipping author_history)");
   }
 
+  const [files, repoConfig] = await Promise.all([
+    prNumber ? fetchPrFiles(prNumber, config.githubToken) : Promise.resolve([]),
+    loadRepoConfig(config.githubToken),
+  ]);
+  const changedFiles = files.map((f) => f.filename);
+
   const [
-    files,
     authorFactor,
     prAgeFactor,
     provenance,
@@ -1537,10 +1542,8 @@ export async function evaluateGate(
     vercelCheck,
     supabaseCheck,
     mcpCheck,
-    repoConfig,
     securityAlerts,
   ] = await Promise.all([
-    prNumber ? fetchPrFiles(prNumber, config.githubToken) : Promise.resolve([]),
     prNumber && config.githubToken && !isMergeQueue
       ? computeAuthorHistory(prNumber, config.githubToken)
       : Promise.resolve(null),
@@ -1556,9 +1559,10 @@ export async function evaluateGate(
     checkVercelHealth(),
     checkSupabaseHealth(),
     checkMcpHealth(),
-    loadRepoConfig(config.githubToken),
     config.securityGate !== false && config.githubToken
-      ? fetchCodeScanningAlerts(config.githubToken)
+      ? fetchCodeScanningAlerts(config.githubToken, repoConfig?.security, {
+          changedFiles: prNumber ? changedFiles : undefined,
+        })
       : Promise.resolve(null),
   ]);
 
