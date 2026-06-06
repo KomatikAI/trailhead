@@ -328,8 +328,8 @@ export function buildRemediation(input: BuildRemediationInput): Remediation {
   const loopRound = input.loopRound ?? resolveLoopRound(input.previousEvaluation);
   const maxLoopRounds = input.maxLoopRounds ?? 3;
   const releaseReady =
-    input.evaluation.releaseReady ??
-    (input.evaluation.gateDecision !== "block" && blocking_count === 0);
+    blocking_count === 0 &&
+    (input.evaluation.releaseReady ?? input.evaluation.gateDecision !== "block");
 
   const { resolved, introduced } = diffFixCodes(
     dedupedFixes,

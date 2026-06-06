@@ -208,6 +208,22 @@ describe("buildRemediation", () => {
     });
   });
 
+  describe("release_ready semantics", () => {
+    it("does not trust evaluation.releaseReady when blocking fixes remain", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          releaseReady: true,
+          gateDecision: "allow",
+          riskFactors: [
+            factor("test_coverage", 80, { missing_tests: ["src/foo.ts"] }),
+          ],
+        }),
+      });
+      expect(remediation.blocking_count).toBe(1);
+      expect(remediation.release_ready).toBe(false);
+    });
+  });
+
   describe("loop bookkeeping", () => {
     it("computes resolved and introduced codes vs. previous evaluation", () => {
       const previous = {
