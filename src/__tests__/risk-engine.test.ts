@@ -6,6 +6,8 @@ import {
   isTestFile,
   isNonSourceFile,
   isSensitiveFile,
+  isContentNonSource,
+  isTestableSourceFile,
   sensitivityWeight,
   matchesGlobs,
   matchRiskProfile,
@@ -47,6 +49,24 @@ describe("risk-engine", () => {
       expect(isSensitiveFile("migrations/001.sql")).toBe(true);
       expect(isSensitiveFile("src/payment/stripe.ts")).toBe(true);
       expect(isSensitiveFile("src/utils/helper.ts")).toBe(false);
+    });
+
+    it("does not flag markdown docs on security/auth paths", () => {
+      expect(
+        isSensitiveFile("agents/security-qa/suggestions/auth-bypass-checklist.md"),
+      ).toBe(false);
+      expect(isSensitiveFile("docs/security/mcp-bridge-hardening.md")).toBe(false);
+    });
+
+    it("still flags workflow files under .github/workflows", () => {
+      expect(isSensitiveFile(".github/workflows/ci.yml")).toBe(true);
+    });
+
+    it("honors risk.non_source_globs for testable source classification", () => {
+      const config = { non_source_globs: ["agents/**/suggestions/**"] };
+      expect(isContentNonSource("agents/pixel/suggestions/foo.ts", config)).toBe(true);
+      expect(isTestableSourceFile("agents/pixel/suggestions/foo.ts", config)).toBe(false);
+      expect(isTestableSourceFile("scripts/validate-suggestions.js", config)).toBe(true);
     });
   });
 
@@ -101,6 +121,33 @@ describe("risk-engine", () => {
       ];
       const result = computeRiskScore(files);
       expect(result.factors.some((f) => f.type === "sensitive_files")).toBe(true);
+    });
+
+    it("skips sensitive_files and test_coverage for suggestion-only markdown PRs", () => {
+      const files = [
+        {
+          filename:
+            "agents/security-qa/suggestions/_stale/2026-06-04/komatik/cve-2026-31431-impact-assessment.md",
+          changes: 0,
+        },
+        {
+          filename:
+            "agents/security-qa/suggestions/_stale/2026-06-04/frontier/auth-bypass-acceptance-checklist.md",
+          changes: 0,
+        },
+      ];
+      const result = computeRiskScore(files);
+      expect(result.factors.some((f) => f.type === "sensitive_files")).toBe(false);
+      expect(result.factors.some((f) => f.type === "test_coverage")).toBe(false);
+    });
+
+    it("does not score test_coverage when only config files change", () => {
+      const files = [
+        { filename: ".trailhead.yml", changes: 12 },
+        { filename: "docs/CHANGELOG.md", changes: 4 },
+      ];
+      const result = computeRiskScore(files);
+      expect(result.factors.some((f) => f.type === "test_coverage")).toBe(false);
     });
 
     it("respects ignore patterns", () => {

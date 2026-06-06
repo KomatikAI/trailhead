@@ -44,6 +44,7 @@ import {
   isSensitiveFile,
   matchesGlobs,
   matchRiskProfile,
+  riskConfigFromRepo,
   sensitivityWeight as sensitivityWeightShared,
   isInFreezeWindow,
   type FileInfo,
@@ -268,7 +269,7 @@ export function computeRiskScore(
     changes: f.changes,
   }));
 
-  const result = computeRiskScoreShared(fileInfos, repoConfig ?? null);
+  const result = computeRiskScoreShared(fileInfos, riskConfigFromRepo(repoConfig));
 
   return {
     score: result.score,
@@ -1048,12 +1049,13 @@ async function enforceAgentPrPolicies(params: {
     policy.sensitive_paths.length > 0
       ? policy.sensitive_paths
       : (params.repoConfig?.sensitivity.high ?? []);
+  const riskConfig = riskConfigFromRepo(params.repoConfig);
   const touchesSensitivePaths =
     params.files.some((f) =>
       sensitivePatterns.length > 0
         ? matchesGlobs(f.filename, sensitivePatterns)
-        : isSensitiveFile(f.filename),
-    ) || params.files.some((f) => isSensitiveFile(f.filename));
+        : isSensitiveFile(f.filename, riskConfig),
+    ) || params.files.some((f) => isSensitiveFile(f.filename, riskConfig));
 
   if (!touchesSensitivePaths) {
     return { adjustedRiskThreshold, forceBlock, findings };
