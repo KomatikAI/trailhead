@@ -88,10 +88,10 @@ function scanRepo(name) {
       "api",
       `repos/${ORG}/${name}/contents/${path}?ref=${meta.default_branch}`,
       "--jq",
-      ".content",
+      "{content: .content}",
     ]);
     if (!res.ok) continue;
-    const content = Buffer.from(JSON.parse(res.out), "base64").toString("utf8");
+    const content = Buffer.from(JSON.parse(res.out).content, "base64").toString("utf8");
     for (const match of content.matchAll(ACTION_REGEX)) {
       pins.push({ workflow: path, ref: match[2] });
     }
