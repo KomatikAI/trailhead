@@ -43,6 +43,8 @@ export interface RiskConfig {
   weights?: Record<string, number>;
   ignore?: string[];
   profiles?: RiskProfileDef[];
+  /** Extra globs treated as non-source for sensitive_files + test_coverage (not file_count). */
+  non_source_globs?: string[];
 }
 
 export interface SecurityAlertCounts {
@@ -204,8 +206,52 @@ export function isNonSourceFile(filename: string): boolean {
   return NON_SOURCE_PATTERN.test(filename);
 }
 
-export function isSensitiveFile(filename: string): boolean {
+export function isWorkflowFile(filename: string): boolean {
+  return /(?:^|\/)\.github\/workflows\//i.test(filename);
+}
+
+/** Non-source for risk-factor purposes (markdown, config, consumer-declared globs). */
+export function isContentNonSource(
+  filename: string,
+  config?: RiskConfig | null,
+): boolean {
+  if (/(?:^|\/)migrations\//i.test(filename)) return false;
+  if (isNonSourceFile(filename) && !isWorkflowFile(filename)) return true;
+  const extra = config?.non_source_globs ?? [];
+  return extra.length > 0 && matchesGlobs(filename, extra);
+}
+
+export function isTestableSourceFile(
+  filename: string,
+  config?: RiskConfig | null,
+): boolean {
+  if (isTestFile(filename)) return false;
+  if (/(?:^|\/)migrations\//i.test(filename)) return false;
+  return !isContentNonSource(filename, config);
+}
+
+export function isSensitiveFile(filename: string, config?: RiskConfig | null): boolean {
+  if (isContentNonSource(filename, config) && !isWorkflowFile(filename)) return false;
   return SENSITIVE_PATTERNS.some((p) => p.test(filename));
+}
+
+export function riskConfigFromRepo(
+  repo?: {
+    sensitivity?: SensitivityConfig;
+    weights?: Record<string, number>;
+    ignore?: string[];
+    profiles?: RiskProfileDef[];
+    risk?: { non_source_globs?: string[] };
+  } | null,
+): RiskConfig | null {
+  if (!repo) return null;
+  return {
+    sensitivity: repo.sensitivity,
+    weights: repo.weights,
+    ignore: repo.ignore,
+    profiles: repo.profiles,
+    non_source_globs: repo.risk?.non_source_globs,
+  };
 }
 
 export function sensitivityWeight(filename: string, config?: RiskConfig | null): number {
@@ -305,12 +351,14 @@ export function computeRiskScore(
   });
 
   const testFileCount = effectiveFiles.filter((f) => isTestFile(f.filename)).length;
+  const testableSourceFiles = effectiveFiles.filter((f) =>
+    isTestableSourceFile(f.filename, config),
+  );
   const nonSourceCount = effectiveFiles.filter(
-    (f) => !isTestFile(f.filename) && isNonSourceFile(f.filename),
+    (f) => !isTestFile(f.filename) && isContentNonSource(f.filename, config),
   ).length;
-  const sourceFileCount = effectiveFiles.length - testFileCount - nonSourceCount;
-  if (sourceFileCount > 0) {
-    const testRatio = testFileCount / sourceFileCount;
+  if (testableSourceFiles.length > 0) {
+    const testRatio = testFileCount / testableSourceFiles.length;
     const testCoverageScore =
       testFileCount === 0
         ? 100
@@ -322,9 +370,10 @@ export function computeRiskScore(
       score: testCoverageScore,
       detail: {
         testFiles: testFileCount,
-        sourceFiles: sourceFileCount,
+        sourceFiles: testableSourceFiles.length,
         nonSourceFiles: nonSourceCount,
         testRatio: Math.round(testRatio * 100) / 100,
+        skipped: false,
       },
     });
   }
@@ -334,7 +383,9 @@ export function computeRiskScore(
     highSensPatterns.length > 0
       ? effectiveFiles.filter((f) => matchesGlobs(f.filename, highSensPatterns))
       : [];
-  const sensitiveByDefault = effectiveFiles.filter((f) => isSensitiveFile(f.filename));
+  const sensitiveByDefault = effectiveFiles.filter((f) =>
+    isSensitiveFile(f.filename, config),
+  );
   const sensitiveFilenames = new Set([
     ...sensitiveByConfig.map((f) => f.filename),
     ...sensitiveByDefault.map((f) => f.filename),

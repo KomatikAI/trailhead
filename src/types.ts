@@ -433,6 +433,12 @@ export const RemediationConfig = z.object({
 });
 export type RemediationConfig = z.infer<typeof RemediationConfig>;
 
+export const RiskPathProfileConfig = z.object({
+  /** Extra globs excluded from sensitive_files + test_coverage (not file_count/churn). */
+  non_source_globs: z.array(z.string()).default([]),
+});
+export type RiskPathProfileConfig = z.infer<typeof RiskPathProfileConfig>;
+
 export const OverrideConfig = z.object({
   enabled: z.boolean().default(true),
   max_per_week: z.number().int().min(1).default(5),
@@ -516,6 +522,7 @@ export type SubmissionConfig = z.infer<typeof SubmissionConfig>;
 export const RepoConfig = z.object({
   schema_version: z.number().int().positive().default(1),
   gate: GateConfig.default({}),
+  risk: RiskPathProfileConfig.optional(),
   remediation: RemediationConfig.optional(),
   override: OverrideConfig.optional(),
   tuning: TuningConfig.optional(),

@@ -23,7 +23,8 @@ export function deriveSubmissionFixes(
       suggested_action: check.suggested_action,
       autofix_eligible: check.autofix_eligible ?? false,
       autofix_class:
-        check.autofix_eligible && check.code === "context_freshness"
+        check.autofix_eligible &&
+        (check.code === "context_freshness" || check.code === "contract_integrity")
           ? "doc-update"
           : undefined,
     }),
