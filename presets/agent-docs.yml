@@ -1,0 +1,23 @@
+# Agent/docs-heavy repos (e.g. KomatikAI/agents) — suggestion + markdown PRs.
+# Pair with submission-gate in CI; do NOT flip submission.mode to block until
+# the per-PR soak query shows FP < 10% on submission_checks (not risk_factors).
+schema_version: 2
+
+gate:
+  mode: advisory
+  agent_brief: collapsed
+
+risk:
+  non_source_globs:
+    - "*.md"
+    - "docs/**"
+    - "agents/**/suggestions/**"
+    - ".trailhead/**"
+
+submission:
+  enabled: true
+  mode: warn
+
+remediation:
+  enabled: true
+  max_loop_rounds: 5
