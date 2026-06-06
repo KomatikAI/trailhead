@@ -12,7 +12,8 @@ import { execFileSync } from "node:child_process";
 
 const ORG = "KomatikAI";
 const ACTION_REPO = "KomatikAI/trailhead";
-const BRANCH = "cursor/trailhead-v4.5.1-rollout";
+const BRANCH =
+  process.env.TRAILHEAD_ROLLOUT_BRANCH || `cursor/trailhead-v${TARGET_VERSION}-rollout`;
 const WORKFLOW_CANDIDATES = [
   ".github/workflows/trailhead.yml",
   ".github/workflows/deployguard.yml",
