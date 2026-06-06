@@ -15,6 +15,7 @@ vi.mock("@actions/github", () => ({
 
 import * as github from "@actions/github";
 import {
+  alertTouchesChangedFile,
   fetchCodeScanningAlerts,
   computeSecurityRiskFactor,
   formatSecuritySection,
@@ -22,6 +23,24 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe("alertTouchesChangedFile", () => {
+  it("matches exact and suffix paths", () => {
+    const alert = {
+      number: 1,
+      state: "open",
+      rule: { id: "r", severity: "error", description: "d" },
+      tool: { name: "CodeQL" },
+      most_recent_instance: {
+        ref: "main",
+        state: "open",
+        location: { path: "src/auth/login.ts", start_line: 1 },
+      },
+    };
+    expect(alertTouchesChangedFile(alert, new Set(["src/auth/login.ts"]))).toBe(true);
+    expect(alertTouchesChangedFile(alert, new Set(["docs/readme.md"]))).toBe(false);
+  });
 });
 
 describe("fetchCodeScanningAlerts", () => {
@@ -132,6 +151,86 @@ describe("fetchCodeScanningAlerts", () => {
     });
     expect(result.total).toBe(1);
     expect(result.high).toBe(1);
+  });
+
+  it("scopes alerts to PR changed files when changedFiles is set", async () => {
+    const alerts = [
+      {
+        number: 1,
+        state: "open",
+        rule: {
+          id: "js/xss",
+          severity: "error",
+          security_severity_level: "high",
+          description: "XSS in src",
+        },
+        tool: { name: "CodeQL" },
+        most_recent_instance: {
+          ref: "main",
+          state: "open",
+          location: { path: "src/auth/login.ts", start_line: 10 },
+        },
+      },
+      {
+        number: 2,
+        state: "open",
+        rule: {
+          id: "js/other",
+          severity: "error",
+          security_severity_level: "high",
+          description: "Elsewhere",
+        },
+        tool: { name: "CodeQL" },
+        most_recent_instance: {
+          ref: "main",
+          state: "open",
+          location: { path: "lib/legacy/util.ts", start_line: 3 },
+        },
+      },
+    ];
+
+    const octokit = {
+      request: vi.fn().mockResolvedValue({ data: alerts }),
+    };
+    vi.mocked(github.getOctokit).mockReturnValue(
+      octokit as unknown as ReturnType<typeof github.getOctokit>,
+    );
+
+    const result = await fetchCodeScanningAlerts("ghp_test", undefined, {
+      changedFiles: ["src/auth/login.ts"],
+    });
+    expect(result.total).toBe(1);
+    expect(result.high).toBe(1);
+    expect(result.topRules).toEqual(["js/xss (1)"]);
+  });
+
+  it("returns empty counts when changedFiles is an empty array", async () => {
+    const octokit = {
+      request: vi.fn().mockResolvedValue({
+        data: [
+          {
+            number: 1,
+            state: "open",
+            rule: { id: "js/xss", severity: "error", description: "XSS" },
+            tool: { name: "CodeQL" },
+            most_recent_instance: {
+              ref: "main",
+              state: "open",
+              location: { path: "src/x.ts", start_line: 1 },
+            },
+          },
+        ],
+      }),
+    };
+    vi.mocked(github.getOctokit).mockReturnValue(
+      octokit as unknown as ReturnType<typeof github.getOctokit>,
+    );
+
+    const result = await fetchCodeScanningAlerts("ghp_test", undefined, {
+      changedFiles: [],
+    });
+    expect(result.total).toBe(0);
+    expect(octokit.request).not.toHaveBeenCalled();
   });
 
   it("handles 403/404 gracefully", async () => {

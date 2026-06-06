@@ -40,10 +40,10 @@ jobs:
           REST="${SUPABASE_URL%/}/rest/v1/trailhead_evaluations"
           DEPLOYED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-          fetch_eval_id() {
+          fetch_eval_row() {
             local query="$1"
             curl -sS -G "${REST}" \
-              --data-urlencode "select=id" \
+              --data-urlencode "select=id,gate_decision,release_ready" \
               --data-urlencode "repo_id=eq.${REPO_ID}" \
               ${query} \
               --data-urlencode "order=created_at.desc" \
@@ -52,18 +52,27 @@ jobs:
               -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}"
           }
 
-          MATCH="$(fetch_eval_id "commit_sha=eq.${COMMIT_SHA}")"
+          MATCH="$(fetch_eval_row "commit_sha=eq.${COMMIT_SHA}")"
           EVAL_ID="$(echo "${MATCH}" | jq -r '.[0].id // empty')"
+          GATE_DECISION="$(echo "${MATCH}" | jq -r '.[0].gate_decision // empty')"
+          RELEASE_READY="$(echo "${MATCH}" | jq -r '.[0].release_ready // empty')"
 
           if [ -z "${EVAL_ID}" ] && [ -n "${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS:-}" ]; then
             CUTOFF="$(date -u -d "-${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS} hours" '+%Y-%m-%dT%H:%M:%SZ')"
             echo "No exact SHA match — trying fallback window (${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS}h since ${CUTOFF})"
-            MATCH="$(fetch_eval_id "created_at=gte.${CUTOFF}")"
+            MATCH="$(fetch_eval_row "created_at=gte.${CUTOFF}")"
             EVAL_ID="$(echo "${MATCH}" | jq -r '.[0].id // empty')"
+            GATE_DECISION="$(echo "${MATCH}" | jq -r '.[0].gate_decision // empty')"
+            RELEASE_READY="$(echo "${MATCH}" | jq -r '.[0].release_ready // empty')"
           fi
 
           if [ -z "${EVAL_ID}" ]; then
             echo "No trailhead_evaluations row for commit ${COMMIT_SHA} — nothing to update."
+            exit 0
+          fi
+
+          if [ "${GATE_DECISION}" = "block" ] || [ "${RELEASE_READY}" = "false" ]; then
+            echo "Skipping deploy correlation for ${EVAL_ID} — gate was ${GATE_DECISION} (release_ready=${RELEASE_READY})."
             exit 0
           fi
 
