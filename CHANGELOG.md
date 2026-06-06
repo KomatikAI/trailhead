@@ -2,6 +2,46 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [4.5.2] - 2026-06-06
+
+### Fixed
+
+- **Content-type risk calibration** ([#284](https://github.com/KomatikAI/trailhead/pull/284)) — markdown and consumer `risk.non_source_globs` excluded from `sensitive_files` path matching; `test_coverage` skips changesets with no testable source; migrations remain sensitive but not testability targets.
+- **`RepoConfig.risk`** — optional `risk.non_source_globs` in `.trailhead.yml` (see `presets/agent-docs.yml`).
+- **Remediation `release_ready`** — blocking fixes always veto `evaluation.releaseReady` (v4.5.1).
+
+### Added
+
+- **`presets/agent-docs.yml`** — docs/suggestion-heavy repos (KomatikAI/agents dogfood).
+- **`scripts/query-agents-submission-soak.mjs`** — per-PR deduped submission-gate FP rate for B4 flip criterion.
+- **`scripts/check-fleet-trailhead-pins.mjs`** — fleet pin drift audit.
+- **`scripts/batch-v4.5.1-rollout-prs.mjs`** — batch pin PR opener (`TRAILHEAD_ROLLOUT_VERSION` env).
+
+### Docs
+
+- [agents-submission-soak.md](./docs/agents-submission-soak.md) — B4 soak measurement, invalid baseline, flip sequencing.
+
+## [4.5.1] - 2026-06-06
+
+Warehouse audit release ([#280](https://github.com/KomatikAI/trailhead/pull/280)).
+
+### Fixed
+
+- **PR-scoped security alerts** — Code Scanning factor uses changed files only (kills repo-wide FP on doc-only PRs).
+- **`agent_provenance_id`** — resolution order: `agent/<id>/` headRef → provenance type → identity source (excludes `author/branch/commit-signals`).
+- **Deploy correlation** — deploy tracker skips blocked / `release_ready=false` evals.
+
+### Added
+
+- **Store row completeness** — `gate_mode`, `submission_checks`, `verdict`, `trust_profile`, `ci`, `context`, etc. in `buildEvaluationStoreRow()`.
+- Komatik migration reference `docs/komatik-migrations/20260606120000_trailhead_analytics_columns.sql` (applied in Komatik [#2248](https://github.com/KomatikAI/komatik/pull/2248)).
+
+## [4.5.0] - 2026-06-02
+
+### Added
+
+- **ADR-010 lifecycle gates** — contract integrity, catalog index, cross-repo PR opener, autofix executor (see `docs/adr/010-architecture-lifecycle-gates.md`).
+
 ## [4.4.6] - 2026-05-30
 
 ### Fixed

@@ -269,14 +269,16 @@ Example:
 
 ## Documentation index
 
-| Doc                                                | Audience                                  |
-| -------------------------------------------------- | ----------------------------------------- |
-| [getting-started.md](./getting-started.md)         | **Everyone** — personas, presets, wizard  |
-| [advanced-fleet.md](./advanced-fleet.md)           | Fleet / AI ops — trust, verdict, metering |
-| [submission-gate.md](./submission-gate.md)         | AI PR shops — Gate 1 reference            |
-| [agent-trust-metrics.md](./agent-trust-metrics.md) | Trust loop implementers                   |
-| [verdict.md](./verdict.md)                         | Collector integrators                     |
-| [migration-v3-to-v4.md](./migration-v3-to-v4.md)   | Upgrading from `@v3`                      |
+| Doc                                                      | Audience                                         |
+| -------------------------------------------------------- | ------------------------------------------------ |
+| [getting-started.md](./getting-started.md)               | **Everyone** — personas, presets, wizard         |
+| [advanced-fleet.md](./advanced-fleet.md)                 | Fleet / AI ops — trust, verdict, metering        |
+| [submission-gate.md](./submission-gate.md)               | AI PR shops — Gate 1 reference                   |
+| [agents-submission-soak.md](./agents-submission-soak.md) | B4 agents dogfood — flip criterion + measurement |
+| [komatik-hosted-store.md](./komatik-hosted-store.md)     | Fleet warehouse at komatik.ai                    |
+| [agent-trust-metrics.md](./agent-trust-metrics.md)       | Trust loop implementers                          |
+| [verdict.md](./verdict.md)                               | Collector integrators                            |
+| [migration-v3-to-v4.md](./migration-v3-to-v4.md)         | Upgrading from `@v3`                             |
 
 ## Agent Autonomy (v4.3 → v4.4)
 
@@ -317,7 +319,7 @@ Human PRs (`claude/*`, `cursor/*`, explicit `human` provenance) are unchanged �
 
 This repository uses the **progressive branch model**: **`dev`** (integration/default) → **`staging`** (pre-production) → **`main`** (production). Open feature PRs against **`dev`**. CI runs on PRs to `dev` and on pushes to `dev`, `staging`, and `main`. Promote with fast-forward merges only; tag releases on `main`.
 
-**Current state (May 30, 2026):** **`dev`** is **ahead of `main`** with epic [#252](https://github.com/KomatikAI/trailhead/issues/252) shipped ([#261](https://github.com/KomatikAI/trailhead/pull/261), `33613aa`): agent trust metrics/feedback contracts, verdict v1, detector policy, prebuilt CLI bundle. **`main`** remains **v4.4.4** until `dev` → `staging` → `main` promotion. Phase A shipped (v4.3.0–v4.3.3). Phase B on `dev`: Gate 1 with real-parser shadow parity, Phase 0, fixer plan, full trust loop, MCP parity, credit metering. **B4:** agents #197 dogfoods `submission-gate: true` @ `v4.4.3`; bump to `v4.4.4` + slim trust collector after trailhead promote/npm publish. **Komatik agents:** [PR #206](https://github.com/KomatikAI/agents/pull/206) banks shadow trust corpus; follow-up deletes duplicated scorer/schema mirrors. **A6 fleet rollout:** re-pin satellites to `@v4.4.4` / `@v4` after promote.
+**Current state (Jun 6, 2026):** **`main`** is **v4.5.2** (`@v4` advanced on tag push). Fleet pinned `@v4.5.2` explicitly (komatik, agents, 7 satellites). **v4.5.1** warehouse audit ([#280](https://github.com/KomatikAI/trailhead/pull/280)): PR-scoped security, store analytics fields, provenance fix. Komatik store migration [#2248](https://github.com/KomatikAI/komatik/pull/2248) on prod. **v4.5.2** risk calibration ([#284](https://github.com/KomatikAI/trailhead/pull/284)): `risk.non_source_globs`, `presets/agent-docs.yml`. **B4 agents soak:** pre–Jun 6 evals invalid; measure with `scripts/query-agents-submission-soak.mjs` — see [agents-submission-soak.md](./agents-submission-soak.md). Do not flip `submission.mode` to `block` until submission_checks FP < 10% over 30 distinct PRs.
 
 ## Key Decisions
 

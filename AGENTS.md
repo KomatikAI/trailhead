@@ -119,22 +119,21 @@ Retired slugs redirect: `deployguard`→`trailhead`, `komatik-base-camp`→`fron
 
 ### What this project is
 
-Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (released **v4.4.5** on `main`; floating tag **`@v4`** tracks latest major) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server`**) with **26 tools** for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
+Trailhead is the canonical name for the deployment gate formerly known as DeployGuard. It is a GitHub Action (released **v4.5.2** on `main`; floating tag **`@v4`** tracks latest major) that scores pull request risk, waits for required CI, publishes a composite **Release Ready** check, checks production health, integrates **security signals** (Code Scanning / SARIF), computes **DORA-5** metrics, tracks deployment outcomes via **canary hooks**, exports **OpenTelemetry** spans, and blocks dangerous releases. It also ships a **`trailhead init`** / **`trailhead doctor`** CLI, an optional **GitHub App** (`app/`) for deployment protection rules, a standalone **MCP server** (`mcp/`, package **`@trailhead/mcp-server`**) with **26 tools** for AI agents, and **Trailhead Cloud** (`cloud/`) for hosted evaluation storage, analytics, feedback, and org billing tiers.
 
-Phase B (v4.4.x) adds **Gate 1 submission checks** (`submission-gate: true`), **Phase 0 advisory suggestion heuristics**, **autofix planning** (`fixer-core`), **dynamic trust scoring**, and optional **Komatik credit metering** for `deploy_check`.
+Phase B (v4.4.x) adds **Gate 1 submission checks** (`submission-gate: true`), **Phase 0 advisory suggestion heuristics**, **autofix planning** (`fixer-core`), **dynamic trust scoring**, and optional **Komatik credit metering** for `deploy_check`. Phase C (v4.5.x) adds **warehouse analytics**, **content-type risk calibration**, and **fleet pin audit** tooling.
 
-### Current repo state (May 30, 2026)
+### Current repo state (Jun 6, 2026)
 
-- **Branch model**: **`dev`** is the default integration branch — open all feature PRs against `dev`. Promote with fast-forward only: `dev` → `staging` → `main` (production). Do **not** merge features directly to `main`.
-- **Released tag**: **v4.4.6** (pending promote) after npm slim-bundle fix. **`@v4`** updated on tag push. npm `@komatikai/trailhead@4.4.6` — external `@swc/core` at install (~185 KB tarball).
-- **Phase A (v4.3.0–v4.3.3):** Remediation schema, agent brief, semantic webhooks, loop bookkeeping, tuning digest, override label, self-test fixtures — merged.
-- **Phase B (v4.4.0–v4.4.5 on `main`):** Gate 1 engine (15 checks), Phase 0 suggestion heuristics (14 advisory), fixer allowlist (dry-run), **full agent-trust loop** (metrics v1, feedback v1, verdict v1, shadow/enforce runtime), config-driven submission detectors, prebuilt CLI bundle, persona presets + audience-aware `trailhead init`, MCP `validate-submission` / `apply-autofix` / `get-trust-score`, credit metering ingest (v4.4.1). See `docs/submission-gate.md`, `docs/agent-trust-metrics.md`, `docs/verdict.md`, `docs/getting-started.md`.
-- **Submission gate cutover (May 30):** Real-parser `syntax_validity`, shadow parity **66/66 bundles, 0 divergent** ([#249](https://github.com/KomatikAI/trailhead/issues/249) / [#250](https://github.com/KomatikAI/trailhead/pull/250)).
-- **B4 dogfood:** [agents #197](https://github.com/KomatikAI/agents/pull/197) **merged** — PR-mode `submission-gate: true`; pin **`@v4.4.5`** / `@v4` after trailhead promote (agents follow-up PR).
-- **Agent trust dogfood:** Product contracts graduated ([#261](https://github.com/KomatikAI/trailhead/pull/261)). [agents #206](https://github.com/KomatikAI/agents/pull/206) **merged** — shadow collector on `main`; **follow-up** slims duplicated `scripts/lib/agent-trust-*.js` to events→metrics + Spark cron only; wire `log-gate-decision.js` to `verdict.penalty`.
-- **A6 fleet rollout:** Re-pin satellites from `@v4.3.0` / `@v4.4.3` to **`@v4.4.5`** / `@v4` after promote.
-- **Komatik hosted store:** [Komatik #2014](https://github.com/KomatikAI/komatik/pull/2014); read path [Trailhead #236](https://github.com/KomatikAI/trailhead/pull/236). See `docs/komatik-hosted-store.md`.
-- **Tests:** 722 root + 21 cloud on `dev`.
+- **Branch model**: **`dev`** is the default integration branch — open all feature PRs against `dev`. Promote: `dev` → `staging` → `main` via promote PRs (use `--merge --admin` when branch policies block FF-only). Do **not** merge features directly to `main`.
+- **Released tag**: **v4.5.2** on `main`. **`@v4`** advanced on tag push. npm `@komatikai/trailhead@4.5.2`.
+- **Fleet pins**: komatik + agents + 7 satellites pinned **`@v4.5.2`** explicitly. Audit: `node scripts/check-fleet-trailhead-pins.mjs`. Rollout: `TRAILHEAD_ROLLOUT_VERSION=4.5.x node scripts/batch-v4.5.1-rollout-prs.mjs --apply`.
+- **Warehouse audit (v4.5.1, [#280](https://github.com/KomatikAI/trailhead/pull/280)):** PR-scoped security alerts, provenance fix, store-row analytics fields, deploy-correlation guard. Komatik store migration [#2248](https://github.com/KomatikAI/komatik/pull/2248) on prod.
+- **Risk calibration (v4.5.2, [#284](https://github.com/KomatikAI/trailhead/pull/284)):** `risk.non_source_globs` in `.trailhead.yml`; `presets/agent-docs.yml` for docs/suggestion repos.
+- **B4 agents soak:** Pre–Jun 6 evals invalid for flip decision. See `docs/agents-submission-soak.md`. Measure with `scripts/query-agents-submission-soak.mjs`. **Do not** flip `submission.mode` to `block` until submission_checks FP < 10% over 30 distinct PRs on post-v4.5.2 data.
+- **Agent trust dogfood:** Collectors read **penalty** from `agent_gate_decision` **events** — not warehouse `release_ready`. See `docs/agent-trust-metrics.md`.
+- **Komatik hosted store:** Analytics columns live (`gate_mode`, `submission_checks`, `verdict`, …). See `docs/komatik-hosted-store.md`.
+- **Tests:** 722+ root + 21 cloud on `dev`.
 - **Legacy compatibility**: `.deployguard.yml` configs and `DEPLOYGUARD_*` env vars still accepted where already shipped.
 - **Coordinator:** Spark port 3199 — `agents/docs/runbooks/TRAILHEAD-COORDINATOR.md` ([#175](https://github.com/KomatikAI/agents/pull/175) merged).
 
@@ -204,9 +203,9 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 | -------------------- | ------ | ----------------- |
 | `security_alerts`    | 4      | Code Scanning API |
 | `code_churn`         | 3      | PR file diff      |
-| `sensitive_files`    | 3      | PR file patterns  |
+| `sensitive_files`    | 3      | PR file patterns (excludes markdown/config; see `risk.non_source_globs`) |
 | `file_count`         | 2      | PR file count     |
-| `test_coverage`      | 2      | PR file analysis  |
+| `test_coverage`      | 2      | Testable source files only (skipped for docs-only changesets) |
 | `dependency_changes` | 2      | PR file names     |
 | `deployment_history` | 2      | Supabase/API      |
 | `canary_status`      | 2      | Deploy webhooks   |
@@ -248,4 +247,8 @@ Tag releases on `main` after promotion (`git tag v4.x.y && git push origin v4.x.
 | `src/__tests__/`     | Vitest test suite (691 tests)                       |
 | `cloud/src/__tests__/` | Cloud API tests (21 tests)                        |
 | `docs/submission-gate.md` | Gate 1 + Phase 0 reference                   |
+| `docs/agents-submission-soak.md` | B4 soak + flip sequencing              |
 | `docs/komatik-hosted-store.md` | Fleet evaluation store at komatik.ai        |
+| `presets/agent-docs.yml` | Docs/suggestion repo `risk.non_source_globs`   |
+| `scripts/check-fleet-trailhead-pins.mjs` | Fleet pin drift audit              |
+| `scripts/query-agents-submission-soak.mjs` | Submission FP rate (per-PR)      |
