@@ -29,6 +29,27 @@ describe("computeReleaseReady", () => {
     expect(result.reasons).toHaveLength(0);
   });
 
+  it("does NOT block on low health_score (GATE-3: warn-only)", () => {
+    const result = computeReleaseReady({
+      gateMode: "release-ready",
+      gateDecision: "allow",
+      riskScore: 40,
+      riskThreshold: 70,
+      healthScore: 20,
+      healthChecksConfigured: true,
+      ciSummary: {
+        checks: [],
+        allRequiredPassed: true,
+        pendingCount: 0,
+        failedCount: 0,
+        missingCount: 0,
+      },
+      freezeActive: false,
+    });
+    expect(result.releaseReady).toBe(true);
+    expect(result.reasons.some((r) => /health/i.test(r))).toBe(false);
+  });
+
   it("fails when required CI check failed", () => {
     const result = computeReleaseReady({
       gateMode: "release-ready",

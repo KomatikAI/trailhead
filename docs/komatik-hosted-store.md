@@ -24,7 +24,12 @@ The store accepts **both**:
 
 Persisted loop columns (v4.3+): `remediation`, `loop_round`, `previous_evaluation_id`, `fixes_resolved`, `fixes_introduced`, `release_ready`, `pr`.
 
-Analytics columns (v4.5+ warehouse audit): `gate_mode`, `submission_checks`, `policy_findings`, `release_ready_reasons`, `trust_profile`, `verdict`, `ci`, `context` — migration `docs/komatik-migrations/20260606120000_trailhead_analytics_columns.sql`.
+Analytics columns (v4.5.1+ producer, Komatik migration applied Jun 2026): `gate_mode`, `submission_checks`, `policy_findings`, `release_ready_reasons`, `trust_profile`, `verdict`, `ci`, `context`.
+
+- Reference SQL: `docs/komatik-migrations/20260606120000_trailhead_analytics_columns.sql`
+- Applied in Komatik: `supabase/migrations/20260606140000_trailhead_analytics_columns.sql` ([#2248](https://github.com/KomatikAI/komatik/pull/2248))
+
+Columns stay null if the producing Action is older than v4.5.1 — release Trailhead **before** interpreting empty analytics as a store bug.
 
 ## Credit metering (Komatik wallet)
 
@@ -64,19 +69,18 @@ Loop columns: `…/20260527073857_trailhead_loop_bookkeeping.sql`
 
 Reference copy for Trailhead Cloud hosted tier: `cloud/migrations/002_loop_bookkeeping.sql` (different deployment — do not conflate).
 
-## Fleet rollout status (May 2026)
+## Fleet rollout status (Jun 2026)
 
-**A6 complete** for active DORA satellites — pinned `@v4.3.3`, store URL on `/api/trailhead/store`:
+**Active fleet** — explicit pin **`@v4.5.2`**, store URL `/api/trailhead/store`:
 
-| Repo                                                       | Status                                                                     |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------- |
-| cairn, frontier, kindling, pack, slipstream, sundog, trace | Merged                                                                     |
-| drift, floe, traverse, watchtower                          | **Retired** (archived; absorbed into trace) — do not unarchive for rollout |
+| Repo                                                                        | Pin audit                                                        |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| komatik, agents, cairn, frontier, kindling, pack, slipstream, sundog, trace | `@v4.5.2` (0 drift via `scripts/check-fleet-trailhead-pins.mjs`) |
+| drift, floe, traverse, watchtower                                           | **Retired** (archived; absorbed into trace)                      |
 
-**Pending:**
+**Pin policy:** Use explicit version tags (`@v4.5.2`), not assumed `@v4` freshness. Rollout: `TRAILHEAD_ROLLOUT_VERSION=4.5.x node scripts/batch-v4.5.1-rollout-prs.mjs --apply`.
 
-- [Komatik migration](../runbooks/KOMATIK-A5-STORE-MIGRATION.md) — `agent_provenance_id` column + store mapper update
-- Strict-agent preset on remaining fleet repos — `scripts/batch-strict-preset-prs.mjs` (#229)
+**Agents B4 soak:** Measure submission FP on `submission_checks` only — see [agents-submission-soak.md](./agents-submission-soak.md). Pre–Jun 6 evals are invalid baseline.
 
 ## Deployment rules (mandatory)
 
@@ -90,5 +94,7 @@ If prod was changed out-of-band, reconcile by renaming the local migration file 
 
 - [Evaluation storage](./evaluation-storage.md)
 - [Roadmap v4.3 Phase A](./roadmap-v4.3-agent-autonomy.md)
-- `scripts/batch-v4.3-rollout-prs.mjs` — fleet pin + store URL batch PRs
-- `scripts/batch-strict-preset-prs.mjs` — strict-agent `.trailhead.yml` preset (#229)
+- `scripts/batch-v4.5.1-rollout-prs.mjs` — fleet version pin batch PRs
+- `scripts/check-fleet-trailhead-pins.mjs` — pin drift audit
+- `scripts/query-agents-submission-soak.mjs` — B4 submission FP measurement
+- [agents-submission-soak.md](./agents-submission-soak.md) — flip criterion + sequencing

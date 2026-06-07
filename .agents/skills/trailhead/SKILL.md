@@ -3,7 +3,7 @@ name: trailhead
 description: "Use before merging PRs, deploying code, or when asked about deployment risk, DORA metrics, deploy safety, health checks, or release timing. Triggers: deploy, merge, PR review, risk score, deployment gate, DORA, change failure rate, deploy timing, freeze window, health check, rollback, canary, release, submission gate, agent trust, autofix."
 metadata:
   author: komatik
-  version: "4.4.4-dev"
+  version: "4.5.2"
 ---
 
 # Trailhead
@@ -31,25 +31,25 @@ For agent-authored PRs with suggestion markdown or high-risk diffs, run `validat
 
 Trailhead scores PRs on a 0–100 scale using policy-weighted factors (core + governance + security):
 
-| Factor                  | Weight | What triggers high scores                                               |
-| ----------------------- | ------ | ----------------------------------------------------------------------- |
-| `security_alerts`       | 4      | Critical/high code scanning alerts                                      |
-| `code_churn`            | 3      | Large diffs, especially in sensitive files (auth 3x, infra 2x weight)   |
-| `sensitive_files`       | 3      | Changes to auth, migrations, payments, CI, secrets, env files           |
-| `file_count`            | 2      | Many files changed (log scale)                                          |
-| `test_coverage`         | 2      | Low ratio of test files to source files in the PR                       |
-| `dependency_changes`    | 2      | Lock file or manifest changes                                           |
-| `deployment_history`    | 2      | Recent deployment failures in target env                                |
-| `canary_status`         | 2      | Canary/progressive rollout signals                                      |
-| `author_history`        | 1      | Author unfamiliar with the repo (< 90-day commit history)               |
-| `pr_age`                | 1      | Stale PRs penalized                                                     |
-| `ci_integrity`          | 3      | CI confidence downgrades (bypass patterns, test deletion signals)       |
-| `workflow_security`     | 4      | Workflow hardening issues (unpinned actions, risky shell interpolation) |
-| `prompt_injection_risk` | 4      | Untrusted input flowing into prompt/command paths                       |
-| `supply_chain`          | 3      | New deps, major jumps, critical vuln markers                            |
-| `pr_scope`              | 2      | Oversized mixed-scope PRs and missing decomposition plan                |
-| `duplicate_logic`       | 1      | Potential helper/utility duplication drift                              |
-| `cross_repo_impact`     | 2      | Contract-surface changes affecting declared consumers                   |
+| Factor                  | Weight | What triggers high scores                                                                       |
+| ----------------------- | ------ | ----------------------------------------------------------------------------------------------- |
+| `security_alerts`       | 4      | Critical/high code scanning alerts                                                              |
+| `code_churn`            | 3      | Large diffs, especially in sensitive files (auth 3x, infra 2x weight)                           |
+| `sensitive_files`       | 3      | Auth, migrations, payments, CI, secrets (markdown/config excluded; see `risk.non_source_globs`) |
+| `file_count`            | 2      | Many files changed (log scale)                                                                  |
+| `test_coverage`         | 2      | Testable source files only — skipped for docs-only changesets                                   |
+| `dependency_changes`    | 2      | Lock file or manifest changes                                                                   |
+| `deployment_history`    | 2      | Recent deployment failures in target env                                                        |
+| `canary_status`         | 2      | Canary/progressive rollout signals                                                              |
+| `author_history`        | 1      | Author unfamiliar with the repo (< 90-day commit history)                                       |
+| `pr_age`                | 1      | Stale PRs penalized                                                                             |
+| `ci_integrity`          | 3      | CI confidence downgrades (bypass patterns, test deletion signals)                               |
+| `workflow_security`     | 4      | Workflow hardening issues (unpinned actions, risky shell interpolation)                         |
+| `prompt_injection_risk` | 4      | Untrusted input flowing into prompt/command paths                                               |
+| `supply_chain`          | 3      | New deps, major jumps, critical vuln markers                                                    |
+| `pr_scope`              | 2      | Oversized mixed-scope PRs and missing decomposition plan                                        |
+| `duplicate_logic`       | 1      | Potential helper/utility duplication drift                                                      |
+| `cross_repo_impact`     | 2      | Contract-surface changes affecting declared consumers                                           |
 
 Decisions: **allow** (< 55), **warn** (55–70), **block** (> 70).
 
@@ -130,14 +130,17 @@ The standard Trailhead workflow for any PR:
 
 Start from a persona preset — see [docs/getting-started.md](docs/getting-started.md):
 
-| Preset              | Command                                       |
-| ------------------- | --------------------------------------------- |
-| Solo / small team   | `npx @komatikai/trailhead init --preset solo` |
-| Platform / eng lead | `init --preset team`                          |
-| AI-authored PRs     | `init --preset agent`                         |
-| Ops / production    | `init --preset ops`                           |
+| Preset               | Command                                       |
+| -------------------- | --------------------------------------------- |
+| Solo / small team    | `npx @komatikai/trailhead init --preset solo` |
+| Platform / eng lead  | `init --preset team`                          |
+| AI-authored PRs      | `init --preset agent`                         |
+| Docs/suggestion repo | `cp presets/agent-docs.yml .trailhead.yml`    |
+| Ops / production     | `init --preset ops`                           |
 
-`.trailhead.yml` also supports custom thresholds, freeze windows, webhooks, submission gate (`submission.enabled`), and agent policies. Advanced fleet features: [docs/advanced-fleet.md](docs/advanced-fleet.md).
+`.trailhead.yml` also supports `risk.non_source_globs`, custom thresholds, freeze windows, webhooks, submission gate (`submission.enabled`), and agent policies. Advanced fleet features: [docs/advanced-fleet.md](docs/advanced-fleet.md).
+
+**Agents B4 soak:** Flip `submission.mode` to `block` only when `scripts/query-agents-submission-soak.mjs` reports ready — see [docs/agents-submission-soak.md](docs/agents-submission-soak.md). Trust collectors use **event** penalty semantics, not warehouse `release_ready`.
 
 If no config file exists, sensible defaults apply (block at 70, warn at 55).
 
@@ -147,9 +150,9 @@ Trailhead runs as a GitHub Action (`KomatikAI/trailhead@v4`). The MCP tools and 
 
 ## Repository Maintenance Notes
 
-- **`dev`** is the default integration branch. Feature PRs target `dev`. **`dev` is ahead of `main`** with epic #252 / PR #261 (agent trust loop, verdict v1, CLI bundle).
-- **`staging`** and **`main`** are promotion targets only (`dev` → `staging` → `main`, fast-forward).
-- **Released on `main`:** v4.4.4; **`@v4`** tracks latest v4.x after promote. CLI: `npx @komatikai/trailhead@4.4.4` (prebuilt bundle after next tag publish).
-- **Komatik agents dogfood:** [PR #206](https://github.com/KomatikAI/agents/pull/206) shadow collector; slim duplicated trust mirrors after merge. See `docs/agent-trust-metrics.md#komatik-fleet-integration`.
+- **`dev`** is the default integration branch. Promote via PRs: `dev` → `staging` → `main`.
+- **Released on `main`:** v4.5.2; **`@v4`** advanced on tag push. Fleet uses explicit `@v4.5.2` pins — audit with `scripts/check-fleet-trailhead-pins.mjs`.
+- **Warehouse analytics:** v4.5.1+ producer + Komatik #2248 migration. Empty `submission_checks` on old rows = invalid soak baseline.
+- **Komatik agents dogfood:** `presets/agent-docs.yml` + soak query script. See `docs/agents-submission-soak.md`.
 - MCP prebuild copies shared modules from `src/` into `mcp/src/` and `app/src/`; `submission-checks/` is copied as a directory.
 - If `src/risk-engine.ts` or `src/submission-engine.ts` imports a new local module, update prebuild scripts and committed dist artifacts in the same change.

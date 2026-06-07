@@ -19,10 +19,29 @@ import {
   fetchCodeScanningAlerts,
   computeSecurityRiskFactor,
   formatSecuritySection,
+  decideSecurityBlock,
 } from "../security.js";
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe("decideSecurityBlock (GATE-3 2a)", () => {
+  const counts = (critical: number, total: number) =>
+    ({ critical, high: 0, medium: 0, low: 0, total, topRules: [] }) as never;
+
+  it("block_on_critical blocks ONLY on critical alerts, not low/medium total", () => {
+    // 3 non-critical alerts, block_on_critical on → must NOT block (the old total>0 bug)
+    expect(decideSecurityBlock(counts(0, 3), { blockOnCritical: true })).toBe(false);
+    expect(decideSecurityBlock(counts(1, 3), { blockOnCritical: true })).toBe(true);
+  });
+  it("require_security_clear blocks on ANY alert (clear-all semantics)", () => {
+    expect(decideSecurityBlock(counts(0, 2), { requireSecurityClear: true })).toBe(true);
+  });
+  it("no policy / no alerts → no block", () => {
+    expect(decideSecurityBlock(counts(5, 9), {})).toBe(false);
+    expect(decideSecurityBlock(null, { blockOnCritical: true })).toBe(false);
+  });
 });
 
 describe("alertTouchesChangedFile", () => {

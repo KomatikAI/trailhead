@@ -12,6 +12,10 @@ name: security-guard
 
 on:
   pull_request:
+    # `labeled`/`unlabeled` so a maintainer's `security-reviewed` label re-runs the
+    # guard immediately (it reads labels from the event payload). Without these, the
+    # label only takes effect on the next synchronize, forcing an empty-commit dance.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: [dev, staging, main]
   # Reusable across repos: a consumer adds a 3-line caller (see docs/SECURITY-GUARD.md).
   workflow_call: {}
