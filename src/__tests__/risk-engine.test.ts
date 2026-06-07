@@ -36,13 +36,20 @@ describe("decideSensitiveFilesEscalation (GATE-3 2b)", () => {
     expect(r.warn).toBe(false);
   });
   it("does not escalate below threshold", () => {
-    expect(decideSensitiveFilesEscalation(mild)).toMatchObject({ block: false, warn: false, reason: null });
+    expect(decideSensitiveFilesEscalation(mild)).toMatchObject({
+      block: false,
+      warn: false,
+      reason: null,
+    });
   });
   it("honors a custom threshold", () => {
     expect(decideSensitiveFilesEscalation(mild, { threshold: 50 }).warn).toBe(true);
   });
   it("never escalates on non-sensitive factors (noise excluded by design)", () => {
-    expect(decideSensitiveFilesEscalation(other)).toMatchObject({ block: false, warn: false });
+    expect(decideSensitiveFilesEscalation(other)).toMatchObject({
+      block: false,
+      warn: false,
+    });
   });
   it("respects enabled:false", () => {
     expect(decideSensitiveFilesEscalation(crit, { enabled: false }).warn).toBe(false);
