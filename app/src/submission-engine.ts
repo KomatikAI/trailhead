@@ -46,6 +46,8 @@ export interface SubmissionEngineOptions {
   files: import("./submission-checks/types.js").SubmissionFileInfo[];
   repoConfig?: RepoConfig | null;
   komatikInstance?: boolean;
+  /** Home repo slug for the agent-suggestions convention (cross-repo detection). */
+  agentRepo?: string;
   mode?: "warn" | "block";
   /** Declared npm package names from root package.json (optional). */
   declaredPackages?: string[];
@@ -62,7 +64,7 @@ export interface SubmissionEngineOptions {
 }
 
 function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext {
-  const { files, repoConfig, komatikInstance = false } = options;
+  const { files, repoConfig, komatikInstance = false, agentRepo } = options;
   const staleTerms = repoConfig?.submission?.stale_terms ?? [];
 
   const declared = new Set(options.declaredPackages ?? []);
@@ -79,6 +81,7 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
     files,
     prPaths: prPathSet(files),
     komatikInstance,
+    agentRepo,
     staleTerms,
     namingAllowlist: repoConfig?.submission?.naming_allowlist ?? {},
     authRouteAllowlist:

@@ -1785,6 +1785,7 @@ export async function evaluateGate(
       })),
       repoConfig,
       komatikInstance: process.env.KOMATIK_INSTANCE === "true",
+      agentRepo: process.env.AGENT_SUGGESTIONS_REPO || undefined,
       mode: submissionMode,
       declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
       catalogKnownEntities,

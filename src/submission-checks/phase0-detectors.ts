@@ -1,5 +1,5 @@
 // Phase 0 agent suggestion checks (weight=0 / advisory in Trailhead).
-// Ported from komatik-agents agent-gate-checks Phase 0 stubs with real heuristics.
+// Heuristic detectors for agent-authored suggestion quality.
 
 import type { SubmissionCheckResult } from "../types.js";
 import type { SubmissionCheckContext, SubmissionFileInfo } from "./types.js";
@@ -375,7 +375,14 @@ export function detectExternalInterfaceValidation(
   const hits: string[] = [];
   for (const file of suggestionMarkdownFiles(ctx)) {
     const path = normalizePath(file.filename);
-    const crossRepo = /suggestions\/(?!komatik-agents)[^/]+\//.test(path);
+    // "Cross-repo" = a suggestion targeting a repo other than the configured home
+    // repo. With no home repo set (the public default), there's no cross-repo
+    // concept, so the check is inert.
+    const crossRepo = ctx.agentRepo
+      ? new RegExp(
+          `suggestions/(?!${ctx.agentRepo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[^/]+/`,
+        ).test(path)
+      : false;
     if (!crossRepo) continue;
     const text = fileContent(file);
     if (!PROPOSAL_ONLY.test(text) && !SCHEMA_LINK.test(text)) {

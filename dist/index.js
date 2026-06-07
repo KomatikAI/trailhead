@@ -41933,7 +41933,7 @@ const SubmissionCheckCode = enumType([
     "destructive_change",
     "claim_anchoring",
     "promotion_coherence",
-    // Phase 0 — agent suggestion quality (advisory / weight=0 in komatik-agents)
+    // Phase 0 — agent suggestion quality (advisory / weight=0)
     "output_size_min",
     "action_extraction_present",
     "delta_section_present",
@@ -44082,7 +44082,7 @@ function linesForFreshnessScan(file) {
 
 ;// CONCATENATED MODULE: ./src/submission-checks/phase0-detectors.ts
 // Phase 0 agent suggestion checks (weight=0 / advisory in Trailhead).
-// Ported from komatik-agents agent-gate-checks Phase 0 stubs with real heuristics.
+// Heuristic detectors for agent-authored suggestion quality.
 
 const SEVERITY = "advisory";
 const OUTPUT_SIZE_MIN_CHARS = 400;
@@ -44413,7 +44413,12 @@ function detectExternalInterfaceValidation(ctx) {
     const hits = [];
     for (const file of suggestionMarkdownFiles(ctx)) {
         const path = normalizePath(file.filename);
-        const crossRepo = /suggestions\/(?!komatik-agents)[^/]+\//.test(path);
+        // "Cross-repo" = a suggestion targeting a repo other than the configured home
+        // repo. With no home repo set (the public default), there's no cross-repo
+        // concept, so the check is inert.
+        const crossRepo = ctx.agentRepo
+            ? new RegExp(`suggestions/(?!${ctx.agentRepo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[^/]+/`).test(path)
+            : false;
         if (!crossRepo)
             continue;
         const text = fileContent(file);
@@ -48970,7 +48975,7 @@ function getSubmissionConfigWarnings(submission) {
 }
 
 ;// CONCATENATED MODULE: ./src/submission-checks/detectors.ts
-// Gate 1 detectors — ported from komatik-agents agent-gate-checks (patch/content based).
+// Gate 1 detectors (patch/content based).
 
 
 
@@ -49224,9 +49229,16 @@ function detectContextFreshness(ctx) {
 function detectPathFormat(ctx) {
     if (!ctx.komatikInstance)
         return null;
+    // A path that leaks a repo-name prefix before the canonical
+    // agents/<id>/suggestions/… convention is malformed. Use the configured home
+    // repo if set, otherwise match any repo-name segment generically — no
+    // hardcoded org repo.
+    const repoPrefixed = ctx.agentRepo
+        ? new RegExp(`^${ctx.agentRepo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/agents/`)
+        : /^[a-z][a-z0-9-]*\/agents\/[a-z][a-z0-9-]*\/suggestions\//;
     const hits = ctx.files
         .map((f) => normalizePath(f.filename))
-        .filter((name) => /^komatik-agents\/agents\//.test(name) ||
+        .filter((name) => repoPrefixed.test(name) ||
         /\/agents\/agents\//.test(name) ||
         (!/^agents\/[a-z][a-z0-9-]*\/suggestions\//.test(name) &&
             /\/suggestions\//.test(name) &&
@@ -49567,7 +49579,7 @@ function declaredPackageNamesFromPackageJson(pkg) {
     return sections.flatMap((key) => Object.keys(pkg[key] ?? {}));
 }
 function buildContext(options) {
-    const { files, repoConfig, komatikInstance = false } = options;
+    const { files, repoConfig, komatikInstance = false, agentRepo } = options;
     const staleTerms = repoConfig?.submission?.stale_terms ?? [];
     const declared = new Set(options.declaredPackages ?? []);
     const { policy } = resolveDetectorPolicy(repoConfig?.submission);
@@ -49581,6 +49593,7 @@ function buildContext(options) {
         files,
         prPaths: prPathSet(files),
         komatikInstance,
+        agentRepo,
         staleTerms,
         namingAllowlist: repoConfig?.submission?.naming_allowlist ?? {},
         authRouteAllowlist: repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
@@ -52023,6 +52036,7 @@ async function evaluateGate(config, commitSha, prNumber) {
             })),
             repoConfig,
             komatikInstance: process.env.KOMATIK_INSTANCE === "true",
+            agentRepo: process.env.AGENT_SUGGESTIONS_REPO || undefined,
             mode: submissionMode,
             declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
             catalogKnownEntities,
