@@ -42187,6 +42187,10 @@ const RemediationConfig = objectType({
     enabled: booleanType().default(true),
     max_loop_rounds: numberType().int().min(0).default(3),
 });
+const RiskPathProfileConfig = objectType({
+    /** Extra globs excluded from sensitive_files + test_coverage (not file_count/churn). */
+    non_source_globs: arrayType(stringType()).default([]),
+});
 const OverrideConfig = objectType({
     enabled: booleanType().default(true),
     max_per_week: numberType().int().min(1).default(5),
@@ -42257,6 +42261,7 @@ const SubmissionConfig = objectType({
 const RepoConfig = objectType({
     schema_version: numberType().int().positive().default(1),
     gate: GateConfig.default({}),
+    risk: RiskPathProfileConfig.optional(),
     remediation: RemediationConfig.optional(),
     override: OverrideConfig.optional(),
     tuning: TuningConfig.optional(),
@@ -42345,6 +42350,14 @@ const RepoConfig = objectType({
             enabled: booleanType().default(true),
             mode: enumType(["warn", "block"]).default("warn"),
             consumer_registry_path: stringType().optional(),
+        })
+            .default({}),
+        // GATE-3 (2b): escalate a critical sensitive_files change OUT of the risk
+        // average. Default mode "warn" (soak) — flip to "block" per repo when ready.
+        sensitive_files: objectType({
+            enabled: booleanType().default(true),
+            mode: enumType(["warn", "block"]).default("warn"),
+            threshold: numberType().min(0).max(100).default(100),
         })
             .default({}),
     })
@@ -42597,8 +42610,40 @@ function isTestFile(filename) {
 function isNonSourceFile(filename) {
     return NON_SOURCE_PATTERN.test(filename);
 }
-function isSensitiveFile(filename) {
+function isWorkflowFile(filename) {
+    return /(?:^|\/)\.github\/workflows\//i.test(filename);
+}
+/** Non-source for risk-factor purposes (markdown, config, consumer-declared globs). */
+function isContentNonSource(filename, config) {
+    if (/(?:^|\/)migrations\//i.test(filename))
+        return false;
+    if (isNonSourceFile(filename) && !isWorkflowFile(filename))
+        return true;
+    const extra = config?.non_source_globs ?? [];
+    return extra.length > 0 && matchesGlobs(filename, extra);
+}
+function isTestableSourceFile(filename, config) {
+    if (isTestFile(filename))
+        return false;
+    if (/(?:^|\/)migrations\//i.test(filename))
+        return false;
+    return !isContentNonSource(filename, config);
+}
+function isSensitiveFile(filename, config) {
+    if (isContentNonSource(filename, config) && !isWorkflowFile(filename))
+        return false;
     return SENSITIVE_PATTERNS.some((p) => p.test(filename));
+}
+function riskConfigFromRepo(repo) {
+    if (!repo)
+        return null;
+    return {
+        sensitivity: repo.sensitivity,
+        weights: repo.weights,
+        ignore: repo.ignore,
+        profiles: repo.profiles,
+        non_source_globs: repo.risk?.non_source_globs,
+    };
 }
 function sensitivityWeight(filename, config) {
     if (config) {
@@ -42675,10 +42720,10 @@ function computeRiskScore(files, config) {
         },
     });
     const testFileCount = effectiveFiles.filter((f) => isTestFile(f.filename)).length;
-    const nonSourceCount = effectiveFiles.filter((f) => !isTestFile(f.filename) && isNonSourceFile(f.filename)).length;
-    const sourceFileCount = effectiveFiles.length - testFileCount - nonSourceCount;
-    if (sourceFileCount > 0) {
-        const testRatio = testFileCount / sourceFileCount;
+    const testableSourceFiles = effectiveFiles.filter((f) => isTestableSourceFile(f.filename, config));
+    const nonSourceCount = effectiveFiles.filter((f) => !isTestFile(f.filename) && isContentNonSource(f.filename, config)).length;
+    if (testableSourceFiles.length > 0) {
+        const testRatio = testFileCount / testableSourceFiles.length;
         const testCoverageScore = testFileCount === 0
             ? 100
             : Math.round(Math.max(0, 100 - testRatio * 100 - Math.min(testFileCount, 5) * 10));
@@ -42687,9 +42732,10 @@ function computeRiskScore(files, config) {
             score: testCoverageScore,
             detail: {
                 testFiles: testFileCount,
-                sourceFiles: sourceFileCount,
+                sourceFiles: testableSourceFiles.length,
                 nonSourceFiles: nonSourceCount,
                 testRatio: Math.round(testRatio * 100) / 100,
+                skipped: false,
             },
         });
     }
@@ -42697,7 +42743,7 @@ function computeRiskScore(files, config) {
     const sensitiveByConfig = highSensPatterns.length > 0
         ? effectiveFiles.filter((f) => matchesGlobs(f.filename, highSensPatterns))
         : [];
-    const sensitiveByDefault = effectiveFiles.filter((f) => isSensitiveFile(f.filename));
+    const sensitiveByDefault = effectiveFiles.filter((f) => isSensitiveFile(f.filename, config));
     const sensitiveFilenames = new Set([
         ...sensitiveByConfig.map((f) => f.filename),
         ...sensitiveByDefault.map((f) => f.filename),
@@ -42883,6 +42929,32 @@ function decideGate(riskScore, healthScore, blockThreshold, warnThreshold) {
         return "warn";
     return "allow";
 }
+/**
+ * GATE-3 (2b): critical-factor hard-escalation for sensitive_files.
+ *
+ * The final risk score is a weighted AVERAGE, so a single critical factor can be
+ * diluted by clean ones. Most genuinely-critical conditions (destructive SQL,
+ * supply-chain critical vulns, prompt injection, CI/workflow integrity) already
+ * bypass the average via forceBlock. `sensitive_files` did NOT — a change touching
+ * auth/payment/infra-critical files (score up to 100) only fed the average.
+ *
+ * This escalates it OUT of the average: at/above the threshold it forces at least
+ * a warn (mode: "warn", the soak default) or a block (mode: "block"). Scoped to
+ * the sensitive_files factor by design — the noisy factors (file_count, code_churn,
+ * test_coverage, external deps, mock/placeholder) must never escalate.
+ */
+function decideSensitiveFilesEscalation(factors, cfg) {
+    const none = { block: false, warn: false, reason: null };
+    if (cfg?.enabled === false)
+        return none;
+    const factor = factors.find((f) => f.type === "sensitive_files");
+    const threshold = cfg?.threshold ?? 100;
+    if (!factor || factor.score < threshold)
+        return none;
+    const mode = cfg?.mode ?? "warn";
+    const reason = `Sensitive-file change at critical level (sensitive_files score ${factor.score} ≥ ${threshold}) — escalated out of the risk average (${mode}).`;
+    return { block: mode === "block", warn: mode === "warn", reason };
+}
 // ---------------------------------------------------------------------------
 // Rollback detection
 // ---------------------------------------------------------------------------
@@ -42918,6 +42990,7 @@ const KNOWN_TOP_LEVEL_KEYS = new Set([
     "override",
     "tuning",
     "submission",
+    "risk",
 ]);
 function warnUnknownTopLevelKeys(raw, configPath) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw))
@@ -43589,9 +43662,12 @@ function computeReleaseReady(input) {
     if (input.freezeActive) {
         reasons.push(`Release freeze active${input.freezeMessage ? `: ${input.freezeMessage}` : ""}`);
     }
-    if (input.healthChecksConfigured && input.healthScore < 50) {
-        reasons.push(`Health score ${input.healthScore} below minimum (50)`);
-    }
+    // health_score is WARN-ONLY (GATE-3): it no longer blocks release-readiness.
+    // Rationale: across 1,500+ stored evaluations health_score barely discriminates
+    // (release_ready true=88.1 vs false=81.8 → ~6pt = noise) while risk_score carries
+    // the signal (44.2 vs 78.9 → ~35pt). A low health_score still surfaces as a `warn`
+    // gate decision (see decideGate in risk-engine.ts: `healthScore < 50` → "warn"),
+    // so the genuine-outage signal stays visible — it just doesn't flip releaseReady.
     if (input.requireSecurityClear && input.securityBlocked) {
         reasons.push("Security gate requires clearance — blocking alerts present");
     }
@@ -43670,6 +43746,49 @@ function normalizeSeverity(alert) {
         return ruleSev;
     return "medium";
 }
+function normalizeRepoPath(path) {
+    return path.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+/** True when the alert's reported path intersects a PR changed file. */
+function alertTouchesChangedFile(alert, changedFiles) {
+    const alertPath = alert.most_recent_instance?.location?.path;
+    if (!alertPath)
+        return false;
+    const normalized = normalizeRepoPath(alertPath);
+    if (changedFiles.has(normalized))
+        return true;
+    for (const file of changedFiles) {
+        const changed = normalizeRepoPath(file);
+        if (normalized === changed ||
+            normalized.endsWith(`/${changed}`) ||
+            changed.endsWith(`/${normalized}`)) {
+            return true;
+        }
+    }
+    return false;
+}
+function countAlerts(alerts) {
+    const counts = {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        total: alerts.length,
+        topRules: [],
+    };
+    const ruleCount = new Map();
+    for (const alert of alerts) {
+        const sev = normalizeSeverity(alert);
+        const bucket = severityToBucket(sev);
+        counts[bucket]++;
+        ruleCount.set(alert.rule.id, (ruleCount.get(alert.rule.id) ?? 0) + 1);
+    }
+    counts.topRules = [...ruleCount.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([ruleId, count]) => `${ruleId} (${count})`);
+    return counts;
+}
 function severityToBucket(severity) {
     switch (severity) {
         case "critical":
@@ -43687,10 +43806,7 @@ function severityToBucket(severity) {
             return "medium";
     }
 }
-// ---------------------------------------------------------------------------
-// Fetch alerts from GitHub Code Scanning API
-// ---------------------------------------------------------------------------
-async function fetchCodeScanningAlerts(token, config) {
+async function fetchCodeScanningAlerts(token, config, options) {
     const empty = {
         critical: 0,
         high: 0,
@@ -43699,6 +43815,9 @@ async function fetchCodeScanningAlerts(token, config) {
         total: 0,
         topRules: [],
     };
+    if (options?.changedFiles !== undefined && options.changedFiles.length === 0) {
+        return empty;
+    }
     try {
         const octokit = getOctokit(token);
         const { owner, repo } = github_context.repo;
@@ -43713,32 +43832,19 @@ async function fetchCodeScanningAlerts(token, config) {
         const threshold = config?.severity_threshold ?? "warning";
         const thresholdOrder = SEVERITY_ORDER[threshold] ?? 2;
         const ignoreRules = new Set(config?.ignore_rules ?? []);
-        const filtered = alerts.filter((a) => {
+        let filtered = alerts.filter((a) => {
             if (ignoreRules.has(a.rule.id))
                 return false;
             const sev = normalizeSeverity(a);
             return (SEVERITY_ORDER[sev] ?? 3) <= thresholdOrder;
         });
-        const counts = {
-            critical: 0,
-            high: 0,
-            medium: 0,
-            low: 0,
-            total: filtered.length,
-            topRules: [],
-        };
-        const ruleCount = new Map();
-        for (const alert of filtered) {
-            const sev = normalizeSeverity(alert);
-            const bucket = severityToBucket(sev);
-            counts[bucket]++;
-            ruleCount.set(alert.rule.id, (ruleCount.get(alert.rule.id) ?? 0) + 1);
+        if (options?.changedFiles !== undefined) {
+            const changedSet = new Set(options.changedFiles.map(normalizeRepoPath));
+            filtered = filtered.filter((alert) => alertTouchesChangedFile(alert, changedSet));
+            if (filtered.length === 0)
+                return empty;
         }
-        counts.topRules = [...ruleCount.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([ruleId, count]) => `${ruleId} (${count})`);
-        return counts;
+        return countAlerts(filtered);
     }
     catch (error) {
         const msg = String(error);
@@ -43766,6 +43872,27 @@ function computeSecurityRiskFactor(alerts, config) {
         };
     }
     return factor;
+}
+/**
+ * GATE-3 (2a): decide whether security alerts should block release.
+ *
+ * Two distinct policies — keyed on the RIGHT severity, not raw total:
+ *  - `requireSecurityClear`: gate until ALL alerts are cleared (any severity) — total > 0.
+ *  - `blockOnCritical`: block ONLY on critical-severity alerts — critical > 0.
+ *
+ * Previously the gate keyed `block_on_critical` off `total > 0`, so (since
+ * block_on_critical defaults to true) any low/medium alert blocked release —
+ * an over-flag. This matches computeSecurityRiskFactor, which already keys on
+ * `alerts.critical > 0`.
+ */
+function decideSecurityBlock(alerts, opts) {
+    if (!alerts)
+        return false;
+    if (opts.requireSecurityClear && alerts.total > 0)
+        return true;
+    if (opts.blockOnCritical && alerts.critical > 0)
+        return true;
+    return false;
 }
 // ---------------------------------------------------------------------------
 // Markdown section for report
@@ -49820,8 +49947,8 @@ function buildRemediation(input) {
     const autofix_eligible_count = dedupedFixes.filter((f) => f.autofix_eligible).length;
     const loopRound = input.loopRound ?? resolveLoopRound(input.previousEvaluation);
     const maxLoopRounds = input.maxLoopRounds ?? 3;
-    const releaseReady = input.evaluation.releaseReady ??
-        (input.evaluation.gateDecision !== "block" && blocking_count === 0);
+    const releaseReady = blocking_count === 0 &&
+        (input.evaluation.releaseReady ?? input.evaluation.gateDecision !== "block");
     const { resolved, introduced } = diffFixCodes(dedupedFixes, input.previousEvaluation?.remediation?.fixes);
     const next_action = computeNextAction({
         releaseReady,
@@ -50752,7 +50879,7 @@ function gate_computeRiskScore(files, repoConfig) {
         deletions: f.deletions,
         changes: f.changes,
     }));
-    const result = computeRiskScore(fileInfos, repoConfig ?? null);
+    const result = computeRiskScore(fileInfos, riskConfigFromRepo(repoConfig));
     return {
         score: result.score,
         factors: result.factors,
@@ -51318,9 +51445,10 @@ async function enforceAgentPrPolicies(params) {
     const sensitivePatterns = policy.sensitive_paths.length > 0
         ? policy.sensitive_paths
         : (params.repoConfig?.sensitivity.high ?? []);
+    const riskConfig = riskConfigFromRepo(params.repoConfig);
     const touchesSensitivePaths = params.files.some((f) => sensitivePatterns.length > 0
         ? matchesGlobs(f.filename, sensitivePatterns)
-        : isSensitiveFile(f.filename)) || params.files.some((f) => isSensitiveFile(f.filename));
+        : isSensitiveFile(f.filename, riskConfig)) || params.files.some((f) => isSensitiveFile(f.filename, riskConfig));
     if (!touchesSensitivePaths) {
         return { adjustedRiskThreshold, forceBlock, findings };
     }
@@ -51705,8 +51833,12 @@ async function evaluateGate(config, commitSha, prNumber) {
     if (isMergeQueue) {
         info("Merge queue detected — adjusting evaluation (skipping author_history)");
     }
-    const [files, authorFactor, prAgeFactor, provenance, httpHealthChecks, vercelCheck, supabaseCheck, mcpCheck, repoConfig, securityAlerts,] = await Promise.all([
+    const [files, repoConfig] = await Promise.all([
         prNumber ? fetchPrFiles(prNumber, config.githubToken) : Promise.resolve([]),
+        loadRepoConfig(config.githubToken),
+    ]);
+    const changedFiles = files.map((f) => f.filename);
+    const [authorFactor, prAgeFactor, provenance, httpHealthChecks, vercelCheck, supabaseCheck, mcpCheck, securityAlerts,] = await Promise.all([
         prNumber && config.githubToken && !isMergeQueue
             ? computeAuthorHistory(prNumber, config.githubToken)
             : Promise.resolve(null),
@@ -51722,9 +51854,10 @@ async function evaluateGate(config, commitSha, prNumber) {
         checkVercelHealth(),
         checkSupabaseHealth(),
         checkMcpHealth(),
-        loadRepoConfig(config.githubToken),
         config.securityGate !== false && config.githubToken
-            ? fetchCodeScanningAlerts(config.githubToken)
+            ? fetchCodeScanningAlerts(config.githubToken, repoConfig?.security, {
+                changedFiles: prNumber ? changedFiles : undefined,
+            })
             : Promise.resolve(null),
     ]);
     const gateMode = resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, config.gateMode);
@@ -51932,7 +52065,12 @@ async function evaluateGate(config, commitSha, prNumber) {
     const baselineDecision = freezeCheck.frozen
         ? "block"
         : decideGate(riskScore, healthScore, adjustedRiskThreshold, effectiveWarnThreshold);
+    // GATE-3 (2b): critical sensitive_files change escalates out of the risk average.
+    const sensitiveEscalation = decideSensitiveFilesEscalation(riskFactors, repoConfig?.policies?.sensitive_files);
+    if (sensitiveEscalation.reason)
+        policyFindings.push(sensitiveEscalation.reason);
     const gateDecision = agentPolicy?.forceBlock === true ||
+        sensitiveEscalation.block ||
         (ciIntegrity.blockingPatterns.length > 0 &&
             (ciIntegrityConfig?.mode ?? "block") === "block") ||
         (workflowSecurity.blockingPatterns.length > 0 &&
@@ -51953,7 +52091,9 @@ async function evaluateGate(config, commitSha, prNumber) {
         (submissionChecks.length > 0 &&
             submissionGateShouldBlock(submissionChecks, submissionMode))
         ? "block"
-        : baselineDecision;
+        : sensitiveEscalation.warn && baselineDecision === "allow"
+            ? "warn"
+            : baselineDecision;
     if (ciIntegrity.blockingPatterns.length > 0) {
         policyFindings.push(`CI integrity blocking patterns detected (${ciIntegrity.blockingPatterns.length}).`);
     }
@@ -52118,10 +52258,11 @@ async function evaluateGate(config, commitSha, prNumber) {
             core_warning(`CI orchestration failed (non-blocking): ${error}`);
         }
     }
-    const securityBlocked = securityAlerts !== null &&
-        securityAlerts.total > 0 &&
-        (envConfig?.require_security_clear === true ||
-            repoConfig?.security?.block_on_critical === true);
+    // GATE-3 (2a): block_on_critical keys on CRITICAL severity (not raw total).
+    const securityBlocked = decideSecurityBlock(securityAlerts, {
+        requireSecurityClear: envConfig?.require_security_clear === true,
+        blockOnCritical: repoConfig?.security?.block_on_critical === true,
+    });
     const releaseResult = computeReleaseReady({
         gateMode,
         gateDecision,
@@ -52757,14 +52898,16 @@ function formatGateReport(evaluation, riskThreshold) {
 }
 
 ;// CONCATENATED MODULE: ./src/agent-provenance.ts
+/** Provenance `source` values that describe detection heuristics, not agent identity. */
+const DETECTION_METHOD_SOURCES = new Set(["author/branch/commit-signals"]);
+function isAgentIdentitySource(source) {
+    return !DETECTION_METHOD_SOURCES.has(source);
+}
 /** Denormalised agent id for evaluation store group-by (A5). */
 function resolveAgentProvenanceId(evaluation) {
     const pr = evaluation.pr;
     if (!pr)
         return null;
-    const source = pr.provenance?.source?.trim();
-    if (source)
-        return source;
     const headRef = pr.headRef;
     if (headRef) {
         const match = headRef.match(/^agent\/([a-z0-9-]+)\//i);
@@ -52772,8 +52915,11 @@ function resolveAgentProvenanceId(evaluation) {
             return match[1];
     }
     const type = pr.provenance?.type;
-    if (type && type !== "human")
+    if (type && type !== "human" && type !== "unknown")
         return type;
+    const source = pr.provenance?.source?.trim();
+    if (source && isAgentIdentitySource(source))
+        return source;
     return null;
 }
 
@@ -53265,6 +53411,11 @@ async function storeViaSupabase(evaluation) {
 }
 function buildEvaluationStoreRow(evaluation) {
     const remediation = evaluation.remediation;
+    const agentId = resolveAgentProvenanceId(evaluation);
+    const verdict = buildGateVerdict(evaluation, {
+        trustRuntime: readTrustRuntime(),
+        agentId: agentId ?? undefined,
+    });
     return {
         id: evaluation.id,
         repo_id: evaluation.repoId,
@@ -53279,6 +53430,7 @@ function buildEvaluationStoreRow(evaluation) {
         evaluation_ms: evaluation.evaluationMs,
         report_url: evaluation.reportUrl ?? null,
         release_ready: evaluation.releaseReady ?? null,
+        release_ready_reasons: evaluation.releaseReadyReasons ?? null,
         remediation: remediation ?? null,
         loop_round: remediation?.loop_round ?? 0,
         previous_evaluation_id: remediation?.previous_evaluation_id ?? null,
@@ -53286,7 +53438,14 @@ function buildEvaluationStoreRow(evaluation) {
         fixes_introduced: remediation?.fixes_introduced ?? [],
         pr: evaluation.pr ?? null,
         policy_override: evaluation.policyOverride ?? null,
-        agent_provenance_id: resolveAgentProvenanceId(evaluation),
+        gate_mode: evaluation.gateMode ?? null,
+        submission_checks: evaluation.submissionChecks ?? null,
+        policy_findings: evaluation.policyFindings ?? null,
+        trust_profile: evaluation.trust_profile ?? null,
+        verdict,
+        ci: evaluation.ci ?? null,
+        context: evaluation.context ?? null,
+        agent_provenance_id: agentId,
     };
 }
 async function storeEvaluation(url, evaluation, options = {}) {
@@ -56106,7 +56265,9 @@ async function run() {
         let securityReport = "";
         if (config.securityGate !== false && config.githubToken) {
             try {
-                const alerts = await fetchCodeScanningAlerts(config.githubToken);
+                const alerts = await fetchCodeScanningAlerts(config.githubToken, undefined, {
+                    changedFiles: evaluation.files,
+                });
                 if (alerts.total > 0) {
                     setOutput("security-alerts-json", JSON.stringify(alerts));
                     securityReport = formatSecuritySection(alerts);
