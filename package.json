@@ -1,6 +1,6 @@
 {
   "name": "trailhead",
-  "version": "4.5.3",
+  "version": "4.5.4",
   "private": true,
   "description": "Release readiness gate for GitHub PRs — waits for CI, scores code risk, checks production health, and blocks merges that are not release-ready.",
   "license": "MIT",
@@ -16,6 +16,7 @@
   "scripts": {
     "build": "ncc build src/main.ts -o dist --source-map --license licenses.txt && node scripts/copy-swc-bindings.mjs",
     "build:cli": "node scripts/build-cli-bundle.mjs",
+    "version": "npm --prefix cli version \"$npm_package_version\" --no-git-tag-version --allow-same-version && git add cli/package.json cli/package-lock.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && tsc --noEmit",
     "format": "prettier --write .",
