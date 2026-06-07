@@ -1,4 +1,4 @@
-// Gate 1 detectors — ported from komatik-agents agent-gate-checks (patch/content based).
+// Gate 1 detectors (patch/content based).
 
 import type { SubmissionCheckResult, SubmissionCheckCode } from "../types.js";
 import type { SubmissionCheckContext } from "./types.js";
@@ -316,11 +316,18 @@ export function detectPathFormat(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
   if (!ctx.komatikInstance) return null;
+  // A path that leaks a repo-name prefix before the canonical
+  // agents/<id>/suggestions/… convention is malformed. Use the configured home
+  // repo if set, otherwise match any repo-name segment generically — no
+  // hardcoded org repo.
+  const repoPrefixed = ctx.agentRepo
+    ? new RegExp(`^${ctx.agentRepo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/agents/`)
+    : /^[a-z][a-z0-9-]*\/agents\/[a-z][a-z0-9-]*\/suggestions\//;
   const hits = ctx.files
     .map((f) => normalizePath(f.filename))
     .filter(
       (name) =>
-        /^komatik-agents\/agents\//.test(name) ||
+        repoPrefixed.test(name) ||
         /\/agents\/agents\//.test(name) ||
         (!/^agents\/[a-z][a-z0-9-]*\/suggestions\//.test(name) &&
           /\/suggestions\//.test(name) &&
