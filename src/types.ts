@@ -626,6 +626,15 @@ export const RepoConfig = z.object({
           consumer_registry_path: z.string().optional(),
         })
         .default({}),
+      // GATE-3 (2b): escalate a critical sensitive_files change OUT of the risk
+      // average. Default mode "warn" (soak) — flip to "block" per repo when ready.
+      sensitive_files: z
+        .object({
+          enabled: z.boolean().default(true),
+          mode: z.enum(["warn", "block"]).default("warn"),
+          threshold: z.number().min(0).max(100).default(100),
+        })
+        .default({}),
     })
     .default({}),
 });

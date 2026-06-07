@@ -24,6 +24,7 @@ export {
   detectDependencyChanges,
   computeSecurityFactor,
   computeDeploymentHistoryFactor,
+  decideSensitiveFilesEscalation,
 } from "./risk-engine.js";
 export type {
   FileInfo,
@@ -36,6 +37,7 @@ export type {
 export {
   fetchCodeScanningAlerts,
   computeSecurityRiskFactor,
+  decideSecurityBlock,
   formatSecuritySection,
 } from "./security.js";
 export {

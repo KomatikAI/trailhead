@@ -41,6 +41,7 @@ import {
   weightedAverageScores,
   detectDependencyChanges,
   decideGate,
+  decideSensitiveFilesEscalation,
   isSensitiveFile,
   matchesGlobs,
   matchRiskProfile,
@@ -50,7 +51,11 @@ import {
   type FileInfo,
   type RiskFactorResult,
 } from "./risk-engine.js";
-import { fetchCodeScanningAlerts, computeSecurityRiskFactor } from "./security.js";
+import {
+  fetchCodeScanningAlerts,
+  computeSecurityRiskFactor,
+  decideSecurityBlock,
+} from "./security.js";
 import {
   buildRemediation,
   formatAgentBrief,
@@ -1830,8 +1835,16 @@ export async function evaluateGate(
         adjustedRiskThreshold,
         effectiveWarnThreshold,
       ) as GateDecision);
+  // GATE-3 (2b): critical sensitive_files change escalates out of the risk average.
+  const sensitiveEscalation = decideSensitiveFilesEscalation(
+    riskFactors,
+    repoConfig?.policies?.sensitive_files,
+  );
+  if (sensitiveEscalation.reason) policyFindings.push(sensitiveEscalation.reason);
+
   const gateDecision =
     agentPolicy?.forceBlock === true ||
+    sensitiveEscalation.block ||
     (ciIntegrity.blockingPatterns.length > 0 &&
       (ciIntegrityConfig?.mode ?? "block") === "block") ||
     (workflowSecurity.blockingPatterns.length > 0 &&
@@ -1852,7 +1865,9 @@ export async function evaluateGate(
     (submissionChecks.length > 0 &&
       submissionGateShouldBlock(submissionChecks, submissionMode))
       ? ("block" as GateDecision)
-      : baselineDecision;
+      : sensitiveEscalation.warn && baselineDecision === "allow"
+        ? ("warn" as GateDecision)
+        : baselineDecision;
 
   if (ciIntegrity.blockingPatterns.length > 0) {
     policyFindings.push(
@@ -2054,11 +2069,11 @@ export async function evaluateGate(
     }
   }
 
-  const securityBlocked =
-    securityAlerts !== null &&
-    securityAlerts.total > 0 &&
-    (envConfig?.require_security_clear === true ||
-      repoConfig?.security?.block_on_critical === true);
+  // GATE-3 (2a): block_on_critical keys on CRITICAL severity (not raw total).
+  const securityBlocked = decideSecurityBlock(securityAlerts, {
+    requireSecurityClear: envConfig?.require_security_clear === true,
+    blockOnCritical: repoConfig?.security?.block_on_critical === true,
+  });
 
   const releaseResult = computeReleaseReady({
     gateMode,
