@@ -66,7 +66,7 @@ Exit code `0` when there are no errors; `1` when config is missing/invalid or st
 
 ### `trailhead validate-submission`
 
-Runs the canonical Gate 1 engine on a JSON payload of files (used by komatik-agents and MCP). See `cli/src/index.ts` for input shape.
+Runs the canonical Gate 1 engine on a JSON payload of files (used by CI integrations and MCP). See `cli/src/index.ts` for input shape.
 
 ## Development (this repo)
 

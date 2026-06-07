@@ -21,6 +21,12 @@ export interface SubmissionCheckContext {
   files: SubmissionFileInfo[];
   prPaths: Set<string>;
   komatikInstance: boolean;
+  /**
+   * Optional "home" repo slug for the agent-suggestions convention. When set,
+   * cross-repo suggestion detection treats this repo as home. Unset (the public
+   * default) disables home-repo-specific checks. Wired from AGENT_SUGGESTIONS_REPO.
+   */
+  agentRepo?: string;
   staleTerms: string[];
   namingAllowlist: NamingAllowlistConfig;
   authRouteAllowlist: string[];

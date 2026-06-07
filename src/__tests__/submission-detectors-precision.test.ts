@@ -168,7 +168,7 @@ describe("context_freshness", () => {
         files: [
           {
             filename: "src/route.ts",
-            content: `const repo = "komatik-agents/deployguard/workflow";\n`,
+            content: `const repo = "example-org/deployguard/workflow";\n`,
           },
         ],
       }),
