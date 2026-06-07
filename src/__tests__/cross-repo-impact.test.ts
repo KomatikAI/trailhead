@@ -77,6 +77,7 @@ const baseConfig = {
     },
     duplicate_logic: { enabled: true, mode: "warn" },
     cross_repo_impact: { enabled: true, mode: "warn" as const },
+    sensitive_files: { enabled: true, mode: "warn" as const, threshold: 100 },
   },
 } satisfies RepoConfig;
 

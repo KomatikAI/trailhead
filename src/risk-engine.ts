@@ -635,6 +635,34 @@ export function decideGate(
   return "allow";
 }
 
+/**
+ * GATE-3 (2b): critical-factor hard-escalation for sensitive_files.
+ *
+ * The final risk score is a weighted AVERAGE, so a single critical factor can be
+ * diluted by clean ones. Most genuinely-critical conditions (destructive SQL,
+ * supply-chain critical vulns, prompt injection, CI/workflow integrity) already
+ * bypass the average via forceBlock. `sensitive_files` did NOT — a change touching
+ * auth/payment/infra-critical files (score up to 100) only fed the average.
+ *
+ * This escalates it OUT of the average: at/above the threshold it forces at least
+ * a warn (mode: "warn", the soak default) or a block (mode: "block"). Scoped to
+ * the sensitive_files factor by design — the noisy factors (file_count, code_churn,
+ * test_coverage, external deps, mock/placeholder) must never escalate.
+ */
+export function decideSensitiveFilesEscalation(
+  factors: Pick<RiskFactorResult, "type" | "score">[],
+  cfg?: { enabled?: boolean; mode?: "warn" | "block"; threshold?: number } | null,
+): { block: boolean; warn: boolean; reason: string | null } {
+  const none = { block: false, warn: false, reason: null };
+  if (cfg?.enabled === false) return none;
+  const factor = factors.find((f) => f.type === "sensitive_files");
+  const threshold = cfg?.threshold ?? 100;
+  if (!factor || factor.score < threshold) return none;
+  const mode = cfg?.mode ?? "warn";
+  const reason = `Sensitive-file change at critical level (sensitive_files score ${factor.score} ≥ ${threshold}) — escalated out of the risk average (${mode}).`;
+  return { block: mode === "block", warn: mode === "warn", reason };
+}
+
 // ---------------------------------------------------------------------------
 // Rollback detection
 // ---------------------------------------------------------------------------

@@ -230,6 +230,28 @@ export function computeSecurityRiskFactor(
   return factor;
 }
 
+/**
+ * GATE-3 (2a): decide whether security alerts should block release.
+ *
+ * Two distinct policies — keyed on the RIGHT severity, not raw total:
+ *  - `requireSecurityClear`: gate until ALL alerts are cleared (any severity) — total > 0.
+ *  - `blockOnCritical`: block ONLY on critical-severity alerts — critical > 0.
+ *
+ * Previously the gate keyed `block_on_critical` off `total > 0`, so (since
+ * block_on_critical defaults to true) any low/medium alert blocked release —
+ * an over-flag. This matches computeSecurityRiskFactor, which already keys on
+ * `alerts.critical > 0`.
+ */
+export function decideSecurityBlock(
+  alerts: SecurityAlertCounts | null,
+  opts: { requireSecurityClear?: boolean; blockOnCritical?: boolean },
+): boolean {
+  if (!alerts) return false;
+  if (opts.requireSecurityClear && alerts.total > 0) return true;
+  if (opts.blockOnCritical && alerts.critical > 0) return true;
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Markdown section for report
 // ---------------------------------------------------------------------------
