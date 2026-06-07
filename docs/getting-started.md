@@ -4,12 +4,13 @@ Trailhead adds one GitHub check — **Release Ready** — that means more than �
 
 Pick the path that matches you:
 
-| I am…                 | Start here                           | Preset                    |
-| --------------------- | ------------------------------------ | ------------------------- |
-| Solo dev / small team | [Solo setup](#solo--small-team)      | `presets/solo.yml`        |
-| Platform / eng lead   | [Team setup](#platform--eng-lead)    | `presets/team.yml`        |
-| Shop using AI on PRs  | [Agent guard](#ai-authored-prs)      | `presets/agent-guard.yml` |
-| Ops-minded team       | [Ops setup](#ops--production-safety) | `presets/ops.yml`         |
+| I am…                 | Start here                                  | Preset                    |
+| --------------------- | ------------------------------------------- | ------------------------- |
+| Solo dev / small team | [Solo setup](#solo--small-team)             | `presets/solo.yml`        |
+| Platform / eng lead   | [Team setup](#platform--eng-lead)           | `presets/team.yml`        |
+| Shop using AI on PRs  | [Agent guard](#ai-authored-prs)             | `presets/agent-guard.yml` |
+| Docs/suggestion repo  | [Agent docs](#docs-heavy--suggestion-repos) | `presets/agent-docs.yml`  |
+| Ops-minded team       | [Ops setup](#ops--production-safety)        | `presets/ops.yml`         |
 
 ## Fastest path (any persona)
 
@@ -117,6 +118,28 @@ External example (no Komatik internals): [`examples/agent-submission-fixture/`](
 MCP: `validate-submission` runs the same engine locally.
 
 **Not included by default:** fleet-only checks (`soul_integrity`, stale naming) — those need `KOMATIK_INSTANCE=true`. See [advanced-fleet.md](./advanced-fleet.md).
+
+Pin an explicit Action version in CI (e.g. `KomatikAI/trailhead@v4.5.2`), not only `@v4`. Audit fleet pins: `node scripts/check-fleet-trailhead-pins.mjs`.
+
+---
+
+## Docs-heavy / suggestion repos
+
+**Goal:** Agent or human PRs that are mostly markdown, suggestions, and config — without risk false positives from `security` in doc paths or `test_coverage` on non-testable files.
+
+### What you get
+
+- **`risk.non_source_globs`** — excludes docs/suggestions from `sensitive_files` and `test_coverage` (file_count/churn unchanged)
+- Same submission gate + remediation as agent-guard when enabled
+
+### Setup
+
+```bash
+cp presets/agent-docs.yml .trailhead.yml
+# or merge the risk: block into your existing config
+```
+
+**KomatikAI/agents dogfood:** Do not flip `submission.mode` to `block` until the B4 soak passes — see [agents-submission-soak.md](./agents-submission-soak.md).
 
 ---
 

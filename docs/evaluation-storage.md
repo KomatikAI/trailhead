@@ -81,6 +81,10 @@ Legacy alias `/api/deployguard/store` remains until all active consumers migrate
 
 Loop fields (`loop_round`, `fixes_resolved`, `fixes_introduced`, …) require the Komatik store route **and** schema migration — not Trailhead Cloud's `cloud/migrations/002`.
 
+Analytics fields (v4.5.1+ Action, Komatik migration Jun 2026): `gate_mode`, `submission_checks`, `verdict`, `trust_profile`, `ci`, `context`. Empty columns usually mean the consumer Action predates the producer release — see [komatik-hosted-store.md](./komatik-hosted-store.md).
+
+**B4 agents soak:** Measure flip-readiness on `submission_checks` with per-PR dedupe — [agents-submission-soak.md](./agents-submission-soak.md).
+
 ### Supabase fallback
 
 If the primary store URL fails (e.g. Vercel bot protection returns HTML), Trailhead falls back to direct Supabase REST when configured:
