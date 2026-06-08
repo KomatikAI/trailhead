@@ -256,6 +256,46 @@ async function fetchPrFiles(prNumber: number, token?: string): Promise<PrFileInf
   }
 }
 
+/**
+ * Full file list of the PR head tree (git ls-files equivalent, via the API) so
+ * import_resolution can resolve relative imports to existing, UNCHANGED siblings
+ * — not just files in the PR diff. Returns undefined on any failure or a truncated
+ * tree, which leaves import_resolution dormant rather than risking false positives.
+ */
+async function fetchRepoPaths(
+  prNumber: number,
+  token?: string,
+): Promise<string[] | undefined> {
+  if (!token) return undefined;
+  try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+    const headSha =
+      (github.context.payload?.pull_request as { head?: { sha?: string } } | undefined)
+        ?.head?.sha ??
+      (await octokit.rest.pulls.get({ owner, repo, pull_number: prNumber })).data.head
+        .sha;
+    const { data } = await octokit.rest.git.getTree({
+      owner,
+      repo,
+      tree_sha: headSha,
+      recursive: "true",
+    });
+    if (data.truncated) {
+      core.debug(
+        "Repo tree truncated; skipping repoPaths (import_resolution stays dormant).",
+      );
+      return undefined;
+    }
+    return data.tree
+      .filter((e) => e.type === "blob" && typeof e.path === "string")
+      .map((e) => e.path as string);
+  } catch (error) {
+    core.debug(`Failed to fetch repo tree for repoPaths: ${error}`);
+    return undefined;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Risk scoring — delegates to shared engine
 // ---------------------------------------------------------------------------
@@ -1777,6 +1817,12 @@ export async function evaluateGate(
         );
       }
     }
+    // import_resolution ground truth: the full repo file list lets relative
+    // imports resolve to existing, unchanged siblings (not just changed files),
+    // killing the false-positive block. Undefined → that detector stays dormant.
+    const repoPaths = prNumber
+      ? await fetchRepoPaths(prNumber, config.githubToken)
+      : undefined;
     submissionChecks = runSubmissionGate({
       files: files.map((f) => ({
         filename: f.filename,
@@ -1789,6 +1835,7 @@ export async function evaluateGate(
       mode: submissionMode,
       declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
       catalogKnownEntities,
+      repoPaths,
       // promotion_coherence (ADR-010): branch topology from the Actions env.
       promotion:
         process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
