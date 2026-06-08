@@ -405,7 +405,8 @@ export function detectExternalInterfaceValidation(
 // This nudges the producer side so the Spark-side reconcilers have something to act
 // on. Advisory only — never blocks.
 const TASK_PROVENANCE = /\bTask:\s*([0-9a-f]{8}[0-9a-f-]*)/i;
-const CLOSES_TASK = /\b(?:close[sd]?|resolve[sd]?|fix(?:e[sd])?)\s+task\s*[:#]?\s*([0-9a-f]{8}[0-9a-f-]*)/gi;
+const CLOSES_TASK =
+  /\b(?:close[sd]?|resolve[sd]?|fix(?:e[sd])?)\s+task\s*[:#]?\s*([0-9a-f]{8}[0-9a-f-]*)/gi;
 export function detectCloseOnShipLink(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
@@ -426,17 +427,23 @@ export function detectCloseOnShipLink(
     let bm: RegExpExecArray | null;
     while ((bm = re.exec(ctx.prBody)) !== null) linked.add(bm[1].toLowerCase());
     for (const id of taskIds) {
-      const isLinked = [...linked].some((l) => l === id || id.startsWith(l) || l.startsWith(id));
+      const isLinked = [...linked].some(
+        (l) => l === id || id.startsWith(l) || l.startsWith(id),
+      );
       if (!isLinked) unlinked.push(id);
     }
   }
 
   const problems: string[] = [];
   if (missingProvenance.length > 0) {
-    problems.push(`${missingProvenance.length} suggestion(s) missing a 'Task: <id>' provenance line`);
+    problems.push(
+      `${missingProvenance.length} suggestion(s) missing a 'Task: <id>' provenance line`,
+    );
   }
   if (unlinked.length > 0) {
-    problems.push(`PR body has no 'Closes task: <id>' for: ${unlinked.map((i) => i.slice(0, 8)).join(", ")}`);
+    problems.push(
+      `PR body has no 'Closes task: <id>' for: ${unlinked.map((i) => i.slice(0, 8)).join(", ")}`,
+    );
   }
   if (problems.length === 0) return null;
   return advisory({
@@ -444,7 +451,8 @@ export function detectCloseOnShipLink(
     title: "Close-on-ship link missing",
     detail: `${problems.join("; ")}. Add 'Task: <id>' in the suggestion and 'Closes task: <id>' in the PR body so the task auto-closes on merge (docs/plans/close-on-ship-v0.1.md).`,
     files: missingProvenance,
-    suggested_action: "Record the task link so the shipped work closes its task automatically.",
+    suggested_action:
+      "Record the task link so the shipped work closes its task automatically.",
   });
 }
 

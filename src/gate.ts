@@ -1799,8 +1799,8 @@ export async function evaluateGate(
           : undefined,
       // close_on_ship_link: the PR body carries the `Closes task: <id>` convention.
       prBody:
-        (github.context.payload?.pull_request as { body?: string } | undefined)
-          ?.body ?? undefined,
+        (github.context.payload?.pull_request as { body?: string } | undefined)?.body ??
+        undefined,
     });
     if (submissionChecks.length > 0) {
       policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);

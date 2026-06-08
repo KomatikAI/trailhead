@@ -34,18 +34,24 @@ const SUG = "agents/backend-dev/suggestions/komatik/fix/idea.md";
 
 describe("detectCloseOnShipLink", () => {
   it("returns null when the PR has no suggestion files", () => {
-    expect(detectCloseOnShipLink(ctx([{ filename: "src/app.ts", content: "x" }]))).toBeNull();
+    expect(
+      detectCloseOnShipLink(ctx([{ filename: "src/app.ts", content: "x" }])),
+    ).toBeNull();
   });
 
   it("flags a suggestion missing a 'Task: <id>' provenance line", () => {
-    const r = detectCloseOnShipLink(ctx([{ filename: SUG, content: "# Proposal\nno task line here" }]));
+    const r = detectCloseOnShipLink(
+      ctx([{ filename: SUG, content: "# Proposal\nno task line here" }]),
+    );
     expect(r?.code).toBe("close_on_ship_link");
     expect(r?.severity).toBe("advisory");
     expect(r?.files).toContain(SUG);
   });
 
   it("is dormant on the body half when prBody is absent (provenance present)", () => {
-    const r = detectCloseOnShipLink(ctx([{ filename: SUG, content: `# Proposal\nTask: ${TASK}\n` }]));
+    const r = detectCloseOnShipLink(
+      ctx([{ filename: SUG, content: `# Proposal\nTask: ${TASK}\n` }]),
+    );
     expect(r).toBeNull();
   });
 
@@ -59,11 +65,16 @@ describe("detectCloseOnShipLink", () => {
 
   it("passes when the PR body carries 'Closes task: <id>' (full or short id)", () => {
     expect(
-      detectCloseOnShipLink(ctx([{ filename: SUG, content: `Task: ${TASK}` }], `Closes task: ${TASK}`)),
+      detectCloseOnShipLink(
+        ctx([{ filename: SUG, content: `Task: ${TASK}` }], `Closes task: ${TASK}`),
+      ),
     ).toBeNull();
     expect(
       detectCloseOnShipLink(
-        ctx([{ filename: SUG, content: `Task: ${TASK}` }], `Resolves task: ${TASK.slice(0, 8)}`),
+        ctx(
+          [{ filename: SUG, content: `Task: ${TASK}` }],
+          `Resolves task: ${TASK.slice(0, 8)}`,
+        ),
       ),
     ).toBeNull();
   });
