@@ -399,9 +399,59 @@ export function detectExternalInterfaceValidation(
   });
 }
 
+// close-on-ship producer link (docs/plans/close-on-ship-v0.1.md): a suggestion
+// should carry a `Task: <id>` provenance line, and when shipped its PR body should
+// carry `Closes task: <id>` — that link is what lets the task auto-close on merge.
+// This nudges the producer side so the Spark-side reconcilers have something to act
+// on. Advisory only — never blocks.
+const TASK_PROVENANCE = /\bTask:\s*([0-9a-f]{8}[0-9a-f-]*)/i;
+const CLOSES_TASK = /\b(?:close[sd]?|resolve[sd]?|fix(?:e[sd])?)\s+task\s*[:#]?\s*([0-9a-f]{8}[0-9a-f-]*)/gi;
+export function detectCloseOnShipLink(
+  ctx: SubmissionCheckContext,
+): SubmissionCheckResult | null {
+  const files = suggestionMarkdownFiles(ctx);
+  const missingProvenance: string[] = [];
+  const taskIds = new Set<string>();
+  for (const file of files) {
+    const m = fileContent(file).match(TASK_PROVENANCE);
+    if (m) taskIds.add(m[1].toLowerCase());
+    else missingProvenance.push(file.filename);
+  }
+
+  // PR-body half: only when the gate supplied the body (dormant on local runs).
+  const unlinked: string[] = [];
+  if (ctx.prBody !== undefined && taskIds.size > 0) {
+    const linked = new Set<string>();
+    const re = new RegExp(CLOSES_TASK.source, CLOSES_TASK.flags);
+    let bm: RegExpExecArray | null;
+    while ((bm = re.exec(ctx.prBody)) !== null) linked.add(bm[1].toLowerCase());
+    for (const id of taskIds) {
+      const isLinked = [...linked].some((l) => l === id || id.startsWith(l) || l.startsWith(id));
+      if (!isLinked) unlinked.push(id);
+    }
+  }
+
+  const problems: string[] = [];
+  if (missingProvenance.length > 0) {
+    problems.push(`${missingProvenance.length} suggestion(s) missing a 'Task: <id>' provenance line`);
+  }
+  if (unlinked.length > 0) {
+    problems.push(`PR body has no 'Closes task: <id>' for: ${unlinked.map((i) => i.slice(0, 8)).join(", ")}`);
+  }
+  if (problems.length === 0) return null;
+  return advisory({
+    code: "close_on_ship_link",
+    title: "Close-on-ship link missing",
+    detail: `${problems.join("; ")}. Add 'Task: <id>' in the suggestion and 'Closes task: <id>' in the PR body so the task auto-closes on merge (docs/plans/close-on-ship-v0.1.md).`,
+    files: missingProvenance,
+    suggested_action: "Record the task link so the shipped work closes its task automatically.",
+  });
+}
+
 export function runPhase0Detectors(ctx: SubmissionCheckContext): SubmissionCheckResult[] {
   if (suggestionMarkdownFiles(ctx).length === 0) return [];
   const checks = [
+    detectCloseOnShipLink,
     detectOutputSizeMin,
     detectActionExtractionPresent,
     detectDeltaSectionPresent,
