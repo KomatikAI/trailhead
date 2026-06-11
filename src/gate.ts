@@ -1778,6 +1778,26 @@ export async function evaluateGate(
       ? weightedAverageScores(riskFactors as RiskFactorResult[], customWeights)
       : localRiskScore;
 
+  // GATE-3: Apply severity-based penalties to risk factors
+  const severityPenaltiesCfg = repoConfig?.policies?.risk_factor_severity;
+  const severityPenalties = severityPenaltiesCfg
+    ? {
+        critical: severityPenaltiesCfg.critical ?? 10,
+        high: severityPenaltiesCfg.high ?? 5,
+        medium: severityPenaltiesCfg.medium ?? 2,
+        low: severityPenaltiesCfg.low ?? 1,
+      }
+    : { critical: 10, high: 5, medium: 2, low: 1 }; // Default penalties
+  
+  const { adjustedScore: riskScoreWithPenalties, appliedPenalties } =
+    applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties);
+  
+  if (appliedPenalties > 0) {
+    core.info(
+      `GATE-3: Applied ${appliedPenalties} points of severity penalties to risk score (${riskScore} -> ${riskScoreWithPenalties})`,
+    );
+  }
+
   const agentPolicy = await enforceAgentPrPolicies({
     prNumber,
     token: config.githubToken,
@@ -1875,10 +1895,11 @@ export async function evaluateGate(
   if (mcpCheck) healthChecks.push(mcpCheck);
 
   const healthScore = aggregateHealthScore(healthChecks);
+  // GATE-3: Use riskScoreWithPenalties for gate decision
   const baselineDecision = freezeCheck.frozen
     ? ("block" as GateDecision)
     : (decideGate(
-        riskScore,
+        riskScoreWithPenalties,
         healthScore,
         adjustedRiskThreshold,
         effectiveWarnThreshold,
@@ -2012,7 +2033,7 @@ export async function evaluateGate(
             }
           }
 
-          return strictnessFromTrust(trust, riskScore);
+          return strictnessFromTrust(trust, riskScoreWithPenalties);
         })()
       : {
           strictness: "baseline" as const,
@@ -2025,7 +2046,7 @@ export async function evaluateGate(
     commitSha,
     prNumber,
     healthScore,
-    riskScore,
+    riskScore: riskScoreWithPenalties,  // GATE-3: Use adjusted score with severity penalties
     gateDecision,
     healthChecks,
     riskFactors,
@@ -2126,7 +2147,7 @@ export async function evaluateGate(
   const releaseResult = computeReleaseReady({
     gateMode,
     gateDecision,
-    riskScore,
+    riskScore: riskScoreWithPenalties,  // GATE-3: Use adjusted score
     riskThreshold: adjustedRiskThreshold,
     healthScore,
     healthChecksConfigured: healthChecks.length > 0,
@@ -2354,6 +2375,53 @@ export async function createCheckRun(
   } catch (error) {
     core.debug(`Failed to create check run: ${error}`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Risk factor severity penalty application (GATE-3)
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply severity-based penalties to risk factors.
+ * Adds penalty points for high/critical severity factors to increase overall risk score.
+ */
+export function applyRiskFactorSeverityPenalties(
+  baseRiskScore: number,
+  riskFactors: RiskFactor[],
+  severityPenalties?: {
+    critical?: number;
+    high?: number;
+    medium?: number;
+    low?: number;
+  },
+): { adjustedScore: number; appliedPenalties: number } {
+  const penalties = severityPenalties ?? { critical: 10, high: 5, medium: 2, low: 1 };
+  let totalPenalty = 0;
+
+  for (const factor of riskFactors) {
+    const detail = factor.detail as Record<string, unknown> | undefined;
+    const severity = detail?.["severity"] as string | undefined;
+
+    if (severity) {
+      const penaltyValue =
+        severity === "critical"
+          ? penalties.critical ?? 10
+          : severity === "high"
+            ? penalties.high ?? 5
+            : severity === "medium"
+              ? penalties.medium ?? 2
+              : severity === "low"
+                ? penalties.low ?? 1
+                : 0;
+
+      if (penaltyValue > 0) {
+        totalPenalty += penaltyValue;
+      }
+    }
+  }
+
+  const adjustedScore = Math.min(100, baseRiskScore + totalPenalty);
+  return { adjustedScore, appliedPenalties: totalPenalty };
 }
 
 export { shouldBlockMerge, resolveCheckName, checkConclusionForEvaluation };
