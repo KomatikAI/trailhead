@@ -635,6 +635,16 @@ export const RepoConfig = z.object({
           threshold: z.number().min(0).max(100).default(100),
         })
         .default({}),
+      // GATE-3: per-severity penalty points added to the weighted risk score
+      // for each risk factor at that severity (applyRiskFactorSeverityPenalties).
+      risk_factor_severity: z
+        .object({
+          critical: z.number().min(0).optional(),
+          high: z.number().min(0).optional(),
+          medium: z.number().min(0).optional(),
+          low: z.number().min(0).optional(),
+        })
+        .optional(),
     })
     .default({}),
 });
