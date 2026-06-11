@@ -1788,10 +1788,10 @@ export async function evaluateGate(
         low: severityPenaltiesCfg.low ?? 1,
       }
     : { critical: 10, high: 5, medium: 2, low: 1 }; // Default penalties
-  
+
   const { adjustedScore: riskScoreWithPenalties, appliedPenalties } =
     applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties);
-  
+
   if (appliedPenalties > 0) {
     core.info(
       `GATE-3: Applied ${appliedPenalties} points of severity penalties to risk score (${riskScore} -> ${riskScoreWithPenalties})`,
@@ -2046,7 +2046,7 @@ export async function evaluateGate(
     commitSha,
     prNumber,
     healthScore,
-    riskScore: riskScoreWithPenalties,  // GATE-3: Use adjusted score with severity penalties
+    riskScore: riskScoreWithPenalties, // GATE-3: Use adjusted score with severity penalties
     gateDecision,
     healthChecks,
     riskFactors,
@@ -2147,7 +2147,7 @@ export async function evaluateGate(
   const releaseResult = computeReleaseReady({
     gateMode,
     gateDecision,
-    riskScore: riskScoreWithPenalties,  // GATE-3: Use adjusted score
+    riskScore: riskScoreWithPenalties, // GATE-3: Use adjusted score
     riskThreshold: adjustedRiskThreshold,
     healthScore,
     healthChecksConfigured: healthChecks.length > 0,
@@ -2405,13 +2405,13 @@ export function applyRiskFactorSeverityPenalties(
     if (severity) {
       const penaltyValue =
         severity === "critical"
-          ? penalties.critical ?? 10
+          ? (penalties.critical ?? 10)
           : severity === "high"
-            ? penalties.high ?? 5
+            ? (penalties.high ?? 5)
             : severity === "medium"
-              ? penalties.medium ?? 2
+              ? (penalties.medium ?? 2)
               : severity === "low"
-                ? penalties.low ?? 1
+                ? (penalties.low ?? 1)
                 : 0;
 
       if (penaltyValue > 0) {
