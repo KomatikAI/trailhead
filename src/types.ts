@@ -611,6 +611,18 @@ export const RepoConfig = z.object({
           max_changes: z.number().int().min(1).default(2000),
           mode: z.enum(["warn", "block"]).default("warn"),
           require_plan_for_agent_prs: z.boolean().default(false),
+          // Branch pairs exempt from scope limits (glob patterns; empty list
+          // matches any branch, same semantics as contexts[].match). Meant for
+          // promotion PRs (dev→staging, staging→master), which aggregate many
+          // already-gated merges and structurally exceed any sane max_files.
+          exempt: z
+            .array(
+              z.object({
+                head_branch: z.array(z.string()).default([]),
+                base_branch: z.array(z.string()).default([]),
+              }),
+            )
+            .default([]),
         })
         .default({}),
       duplicate_logic: z
@@ -637,8 +649,11 @@ export const RepoConfig = z.object({
         .default({}),
       // GATE-3: per-severity penalty points added to the weighted risk score
       // for each risk factor at that severity (applyRiskFactorSeverityPenalties).
+      // Opt-in: penalties apply only when enabled=true, so shipping the feature
+      // doesn't shift every repo's scores mid-calibration.
       risk_factor_severity: z
         .object({
+          enabled: z.boolean().default(false),
           critical: z.number().min(0).optional(),
           high: z.number().min(0).optional(),
           medium: z.number().min(0).optional(),

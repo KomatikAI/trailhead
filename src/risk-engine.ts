@@ -67,8 +67,14 @@ export interface DeploymentOutcomeSummary {
 // Pattern constants
 // ---------------------------------------------------------------------------
 
+// Recognizes test files across language conventions, not just JS `.test.`/`.spec.`.
+// The `_test.<ext>` arm covers the Deno convention (`foo_test.ts`) — komatik's
+// entire Edge-Function suite uses it, so without this every EF PR scored as
+// zero-coverage and got over-penalized at the agent risk threshold (#307). Also
+// covers Go (`_test.go`), Python (`test_*.py` / `*_test.py` / `conftest.py`),
+// Ruby (`*_spec.rb` / `spec/`), and Java (`*Test.java`/`*Tests.java`).
 export const TEST_FILE_PATTERN =
-  /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/;
+  /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs)$|_test\.(ts|tsx|js|jsx|mjs|cjs|go)$|(^|\/)test_[^/]+\.py$|_test\.py$|(^|\/)conftest\.py$|_spec\.rb$|(^|\/)spec\/|(Test|Tests)\.java$|__tests__\/|\.cy\.(ts|js)$/;
 
 export const NON_SOURCE_PATTERN =
   /\.(sql|ya?ml|json|md|css|svg|lock|txt|env|png|jpg|gif)$/i;

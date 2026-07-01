@@ -76,6 +76,24 @@ describe("risk-engine", () => {
       expect(isTestFile("src/auth.ts")).toBe(false);
     });
 
+    it("identifies test files across language conventions (#307)", () => {
+      // Deno underscore convention — komatik's entire EF suite uses it
+      expect(isTestFile("supabase/functions/_shared/shadcn-substrate_test.ts")).toBe(
+        true,
+      );
+      expect(isTestFile("pkg/server_test.go")).toBe(true);
+      expect(isTestFile("tests/test_models.py")).toBe(true);
+      expect(isTestFile("app/user_test.py")).toBe(true);
+      expect(isTestFile("conftest.py")).toBe(true);
+      expect(isTestFile("spec/models/user_spec.rb")).toBe(true);
+      expect(isTestFile("src/test/FooTest.java")).toBe(true);
+      // must NOT false-match real source
+      expect(isTestFile("src/latest.ts")).toBe(false);
+      expect(isTestFile("lib/mytest.ts")).toBe(false);
+      expect(isTestFile("app/contest.py")).toBe(false);
+      expect(isTestFile("supabase/functions/_shared/shadcn-substrate.ts")).toBe(false);
+    });
+
     it("identifies non-source files", () => {
       expect(isNonSourceFile("README.md")).toBe(true);
       expect(isNonSourceFile("data.json")).toBe(true);

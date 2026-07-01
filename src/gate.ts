@@ -871,15 +871,33 @@ interface PrScopeDetection {
   forceBlock: boolean;
 }
 
-async function detectPrScopeRisk(params: {
+export async function detectPrScopeRisk(params: {
   files: PrFileInfo[];
   repoConfig: RepoConfig | null;
   prNumber?: number;
   token?: string;
   provenance: PrProvenance | null;
+  headRef?: string;
+  baseRef?: string;
 }): Promise<PrScopeDetection> {
   const cfg = params.repoConfig?.policies?.pr_scope;
   if (!cfg?.enabled) return { factor: null, findings: [], forceBlock: false };
+
+  const exempt = (cfg.exempt ?? []).some((rule) => {
+    const headOk =
+      rule.head_branch.length === 0 ||
+      (params.headRef !== undefined && matchesGlobs(params.headRef, rule.head_branch));
+    const baseOk =
+      rule.base_branch.length === 0 ||
+      (params.baseRef !== undefined && matchesGlobs(params.baseRef, rule.base_branch));
+    return headOk && baseOk;
+  });
+  if (exempt) {
+    core.info(
+      `pr_scope: branch pair ${params.headRef ?? "?"} -> ${params.baseRef ?? "?"} matches an exempt rule — scope limits skipped`,
+    );
+    return { factor: null, findings: [], forceBlock: false };
+  }
 
   const fileCount = params.files.length;
   const totalChanges = params.files.reduce((sum, f) => sum + f.changes, 0);
@@ -1748,6 +1766,8 @@ export async function evaluateGate(
     prNumber,
     token: config.githubToken,
     provenance,
+    headRef: prMatchCtx.headRef,
+    baseRef: prMatchCtx.baseRef,
   });
   if (prScope.factor) {
     riskFactors.push(prScope.factor);
@@ -1778,19 +1798,23 @@ export async function evaluateGate(
       ? weightedAverageScores(riskFactors as RiskFactorResult[], customWeights)
       : localRiskScore;
 
-  // GATE-3: Apply severity-based penalties to risk factors
+  // GATE-3: Apply severity-based penalties to risk factors. Opt-in via
+  // policies.risk_factor_severity.enabled — an always-on penalty would shift
+  // every repo's scores mid-calibration, making block-rate movement
+  // unattributable to config vs release drift.
   const severityPenaltiesCfg = repoConfig?.policies?.risk_factor_severity;
-  const severityPenalties = severityPenaltiesCfg
-    ? {
-        critical: severityPenaltiesCfg.critical ?? 10,
-        high: severityPenaltiesCfg.high ?? 5,
-        medium: severityPenaltiesCfg.medium ?? 2,
-        low: severityPenaltiesCfg.low ?? 1,
-      }
-    : { critical: 10, high: 5, medium: 2, low: 1 }; // Default penalties
+  const severityPenaltiesEnabled = severityPenaltiesCfg?.enabled === true;
+  const severityPenalties = {
+    critical: severityPenaltiesCfg?.critical ?? 10,
+    high: severityPenaltiesCfg?.high ?? 5,
+    medium: severityPenaltiesCfg?.medium ?? 2,
+    low: severityPenaltiesCfg?.low ?? 1,
+  };
 
   const { adjustedScore: riskScoreWithPenalties, appliedPenalties } =
-    applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties);
+    severityPenaltiesEnabled
+      ? applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties)
+      : { adjustedScore: riskScore, appliedPenalties: 0 };
 
   if (appliedPenalties > 0) {
     core.info(
