@@ -78,7 +78,9 @@ describe("risk-engine", () => {
 
     it("identifies test files across language conventions (#307)", () => {
       // Deno underscore convention — komatik's entire EF suite uses it
-      expect(isTestFile("supabase/functions/_shared/shadcn-substrate_test.ts")).toBe(true);
+      expect(isTestFile("supabase/functions/_shared/shadcn-substrate_test.ts")).toBe(
+        true,
+      );
       expect(isTestFile("pkg/server_test.go")).toBe(true);
       expect(isTestFile("tests/test_models.py")).toBe(true);
       expect(isTestFile("app/user_test.py")).toBe(true);

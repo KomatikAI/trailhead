@@ -1811,9 +1811,10 @@ export async function evaluateGate(
     low: severityPenaltiesCfg?.low ?? 1,
   };
 
-  const { adjustedScore: riskScoreWithPenalties, appliedPenalties } = severityPenaltiesEnabled
-    ? applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties)
-    : { adjustedScore: riskScore, appliedPenalties: 0 };
+  const { adjustedScore: riskScoreWithPenalties, appliedPenalties } =
+    severityPenaltiesEnabled
+      ? applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties)
+      : { adjustedScore: riskScore, appliedPenalties: 0 };
 
   if (appliedPenalties > 0) {
     core.info(
