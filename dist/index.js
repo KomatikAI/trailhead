@@ -42339,6 +42339,15 @@ const RepoConfig = objectType({
             max_changes: numberType().int().min(1).default(2000),
             mode: enumType(["warn", "block"]).default("warn"),
             require_plan_for_agent_prs: booleanType().default(false),
+            // Branch pairs exempt from scope limits (glob patterns; empty list
+            // matches any branch, same semantics as contexts[].match). Meant for
+            // promotion PRs (dev→staging, staging→master), which aggregate many
+            // already-gated merges and structurally exceed any sane max_files.
+            exempt: arrayType(objectType({
+                head_branch: arrayType(stringType()).default([]),
+                base_branch: arrayType(stringType()).default([]),
+            }))
+                .default([]),
         })
             .default({}),
         duplicate_logic: objectType({
@@ -42360,6 +42369,18 @@ const RepoConfig = objectType({
             threshold: numberType().min(0).max(100).default(100),
         })
             .default({}),
+        // GATE-3: per-severity penalty points added to the weighted risk score
+        // for each risk factor at that severity (applyRiskFactorSeverityPenalties).
+        // Opt-in: penalties apply only when enabled=true, so shipping the feature
+        // doesn't shift every repo's scores mid-calibration.
+        risk_factor_severity: objectType({
+            enabled: booleanType().default(false),
+            critical: numberType().min(0).optional(),
+            high: numberType().min(0).optional(),
+            medium: numberType().min(0).optional(),
+            low: numberType().min(0).optional(),
+        })
+            .optional(),
     })
         .default({}),
 });
@@ -42503,7 +42524,13 @@ function parseRepoConfigContent(content) {
 // ---------------------------------------------------------------------------
 // Pattern constants
 // ---------------------------------------------------------------------------
-const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/;
+// Recognizes test files across language conventions, not just JS `.test.`/`.spec.`.
+// The `_test.<ext>` arm covers the Deno convention (`foo_test.ts`) — komatik's
+// entire Edge-Function suite uses it, so without this every EF PR scored as
+// zero-coverage and got over-penalized at the agent risk threshold (#307). Also
+// covers Go (`_test.go`), Python (`test_*.py` / `*_test.py` / `conftest.py`),
+// Ruby (`*_spec.rb` / `spec/`), and Java (`*Test.java`/`*Tests.java`).
+const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs)$|_test\.(ts|tsx|js|jsx|mjs|cjs|go)$|(^|\/)test_[^/]+\.py$|_test\.py$|(^|\/)conftest\.py$|_spec\.rb$|(^|\/)spec\/|(Test|Tests)\.java$|__tests__\/|\.cy\.(ts|js)$/;
 const NON_SOURCE_PATTERN = /\.(sql|ya?ml|json|md|css|svg|lock|txt|env|png|jpg|gif)$/i;
 const SENSITIVE_PATTERNS = [
     /(?:^|\/)migrations\//i,
@@ -49333,14 +49360,22 @@ function resolveRelativeImport(fromFile, specifier, prPaths) {
     return candidates.some((c) => prPaths.has(c));
 }
 function detectImportResolution(ctx) {
+    // Resolving relative imports needs repo ground truth: an import to an existing,
+    // UNCHANGED sibling (not in this PR's diff) is valid but looks "unresolved" if we
+    // only check changed files — a blocking false positive. Without repoPaths we can't
+    // tell that from a fabricated path, so stay dormant (the repoPaths convention used
+    // by the other existence-dependent detectors).
+    if (!ctx.repoPaths)
+        return null;
     const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+    const known = new Set([...ctx.prPaths, ...ctx.repoPaths]);
     const hits = [];
     for (const file of ctx.files) {
         if (!codeExts.has(extensionOf(file.filename)))
             continue;
         const content = fileContent(file);
         for (const specifier of extractRelativeImports(content)) {
-            if (!resolveRelativeImport(file.filename, specifier, ctx.prPaths)) {
+            if (!resolveRelativeImport(file.filename, specifier, known)) {
                 hits.push(file.filename);
                 break;
             }
@@ -50882,6 +50917,41 @@ async function fetchPrFiles(prNumber, token) {
         return [];
     }
 }
+/**
+ * Full file list of the PR head tree (git ls-files equivalent, via the API) so
+ * import_resolution can resolve relative imports to existing, UNCHANGED siblings
+ * — not just files in the PR diff. Returns undefined on any failure or a truncated
+ * tree, which leaves import_resolution dormant rather than risking false positives.
+ */
+async function fetchRepoPaths(prNumber, token) {
+    if (!token)
+        return undefined;
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const headSha = github_context.payload?.pull_request
+            ?.head?.sha ??
+            (await octokit.rest.pulls.get({ owner, repo, pull_number: prNumber })).data.head
+                .sha;
+        const { data } = await octokit.rest.git.getTree({
+            owner,
+            repo,
+            tree_sha: headSha,
+            recursive: "true",
+        });
+        if (data.truncated) {
+            core_debug("Repo tree truncated; skipping repoPaths (import_resolution stays dormant).");
+            return undefined;
+        }
+        return data.tree
+            .filter((e) => e.type === "blob" && typeof e.path === "string")
+            .map((e) => e.path);
+    }
+    catch (error) {
+        core_debug(`Failed to fetch repo tree for repoPaths: ${error}`);
+        return undefined;
+    }
+}
 // ---------------------------------------------------------------------------
 // Risk scoring — delegates to shared engine
 // ---------------------------------------------------------------------------
@@ -51310,6 +51380,17 @@ async function detectPrScopeRisk(params) {
     const cfg = params.repoConfig?.policies?.pr_scope;
     if (!cfg?.enabled)
         return { factor: null, findings: [], forceBlock: false };
+    const exempt = (cfg.exempt ?? []).some((rule) => {
+        const headOk = rule.head_branch.length === 0 ||
+            (params.headRef !== undefined && matchesGlobs(params.headRef, rule.head_branch));
+        const baseOk = rule.base_branch.length === 0 ||
+            (params.baseRef !== undefined && matchesGlobs(params.baseRef, rule.base_branch));
+        return headOk && baseOk;
+    });
+    if (exempt) {
+        info(`pr_scope: branch pair ${params.headRef ?? "?"} -> ${params.baseRef ?? "?"} matches an exempt rule — scope limits skipped`);
+        return { factor: null, findings: [], forceBlock: false };
+    }
     const fileCount = params.files.length;
     const totalChanges = params.files.reduce((sum, f) => sum + f.changes, 0);
     const findings = [];
@@ -51973,6 +52054,8 @@ async function evaluateGate(config, commitSha, prNumber) {
         prNumber,
         token: config.githubToken,
         provenance,
+        headRef: prMatchCtx.headRef,
+        baseRef: prMatchCtx.baseRef,
     });
     if (prScope.factor) {
         riskFactors.push(prScope.factor);
@@ -51995,6 +52078,24 @@ async function evaluateGate(config, commitSha, prNumber) {
     const riskScore = riskFactors.length > 0
         ? weightedAverageScores(riskFactors, customWeights)
         : localRiskScore;
+    // GATE-3: Apply severity-based penalties to risk factors. Opt-in via
+    // policies.risk_factor_severity.enabled — an always-on penalty would shift
+    // every repo's scores mid-calibration, making block-rate movement
+    // unattributable to config vs release drift.
+    const severityPenaltiesCfg = repoConfig?.policies?.risk_factor_severity;
+    const severityPenaltiesEnabled = severityPenaltiesCfg?.enabled === true;
+    const severityPenalties = {
+        critical: severityPenaltiesCfg?.critical ?? 10,
+        high: severityPenaltiesCfg?.high ?? 5,
+        medium: severityPenaltiesCfg?.medium ?? 2,
+        low: severityPenaltiesCfg?.low ?? 1,
+    };
+    const { adjustedScore: riskScoreWithPenalties, appliedPenalties } = severityPenaltiesEnabled
+        ? applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties)
+        : { adjustedScore: riskScore, appliedPenalties: 0 };
+    if (appliedPenalties > 0) {
+        info(`GATE-3: Applied ${appliedPenalties} points of severity penalties to risk score (${riskScore} -> ${riskScoreWithPenalties})`);
+    }
     const agentPolicy = await enforceAgentPrPolicies({
         prNumber,
         token: config.githubToken,
@@ -52028,6 +52129,12 @@ async function evaluateGate(config, commitSha, prNumber) {
                 core_warning(`contract_integrity: could not load catalog index "${catalogIndexPath}": ${err.message}`);
             }
         }
+        // import_resolution ground truth: the full repo file list lets relative
+        // imports resolve to existing, unchanged siblings (not just changed files),
+        // killing the false-positive block. Undefined → that detector stays dormant.
+        const repoPaths = prNumber
+            ? await fetchRepoPaths(prNumber, config.githubToken)
+            : undefined;
         submissionChecks = runSubmissionGate({
             files: files.map((f) => ({
                 filename: f.filename,
@@ -52040,6 +52147,7 @@ async function evaluateGate(config, commitSha, prNumber) {
             mode: submissionMode,
             declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
             catalogKnownEntities,
+            repoPaths,
             // promotion_coherence (ADR-010): branch topology from the Actions env.
             promotion: process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
                 ? {
@@ -52076,9 +52184,10 @@ async function evaluateGate(config, commitSha, prNumber) {
     if (mcpCheck)
         healthChecks.push(mcpCheck);
     const healthScore = aggregateHealthScore(healthChecks);
+    // GATE-3: Use riskScoreWithPenalties for gate decision
     const baselineDecision = freezeCheck.frozen
         ? "block"
-        : decideGate(riskScore, healthScore, adjustedRiskThreshold, effectiveWarnThreshold);
+        : decideGate(riskScoreWithPenalties, healthScore, adjustedRiskThreshold, effectiveWarnThreshold);
     // GATE-3 (2b): critical sensitive_files change escalates out of the risk average.
     const sensitiveEscalation = decideSensitiveFilesEscalation(riskFactors, repoConfig?.policies?.sensitive_files);
     if (sensitiveEscalation.reason)
@@ -52172,7 +52281,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                     info("[agent-trust] metrics present but trust=null (cold start — insufficient evidence or flat signals)");
                 }
             }
-            return strictnessFromTrust(trust, riskScore);
+            return strictnessFromTrust(trust, riskScoreWithPenalties);
         })()
         : {
             strictness: "baseline",
@@ -52184,7 +52293,7 @@ async function evaluateGate(config, commitSha, prNumber) {
         commitSha,
         prNumber,
         healthScore,
-        riskScore,
+        riskScore: riskScoreWithPenalties, // GATE-3: Use adjusted score with severity penalties
         gateDecision,
         healthChecks,
         riskFactors,
@@ -52280,7 +52389,7 @@ async function evaluateGate(config, commitSha, prNumber) {
     const releaseResult = computeReleaseReady({
         gateMode,
         gateDecision,
-        riskScore,
+        riskScore: riskScoreWithPenalties, // GATE-3: Use adjusted score
         riskThreshold: adjustedRiskThreshold,
         healthScore,
         healthChecksConfigured: healthChecks.length > 0,
@@ -52471,6 +52580,37 @@ async function createCheckRun(evaluation, report, token, checkName) {
     catch (error) {
         core_debug(`Failed to create check run: ${error}`);
     }
+}
+// ---------------------------------------------------------------------------
+// Risk factor severity penalty application (GATE-3)
+// ---------------------------------------------------------------------------
+/**
+ * Apply severity-based penalties to risk factors.
+ * Adds penalty points for high/critical severity factors to increase overall risk score.
+ */
+function applyRiskFactorSeverityPenalties(baseRiskScore, riskFactors, severityPenalties) {
+    const penalties = severityPenalties ?? { critical: 10, high: 5, medium: 2, low: 1 };
+    let totalPenalty = 0;
+    for (const factor of riskFactors) {
+        const detail = factor.detail;
+        const severity = detail?.["severity"];
+        if (severity) {
+            const penaltyValue = severity === "critical"
+                ? (penalties.critical ?? 10)
+                : severity === "high"
+                    ? (penalties.high ?? 5)
+                    : severity === "medium"
+                        ? (penalties.medium ?? 2)
+                        : severity === "low"
+                            ? (penalties.low ?? 1)
+                            : 0;
+            if (penaltyValue > 0) {
+                totalPenalty += penaltyValue;
+            }
+        }
+    }
+    const adjustedScore = Math.min(100, baseRiskScore + totalPenalty);
+    return { adjustedScore, appliedPenalties: totalPenalty };
 }
 
 // ---------------------------------------------------------------------------
