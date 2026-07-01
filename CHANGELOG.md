@@ -2,6 +2,16 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [4.5.7] - 2026-07-01
+
+### Fixed
+
+- **`TEST_FILE_PATTERN` recognizes Deno `_test.ts` + multi-language test conventions** ([#307](https://github.com/KomatikAI/trailhead/issues/307), [#308](https://github.com/KomatikAI/trailhead/pull/308)) — repos using Deno-style `*_test.ts` (e.g. komatik's Edge Function suite) scored zero test files, driving `test_coverage` to 100 and false-BLOCKing every EF PR. Dominant false-block class on komatik (test_coverage ≥60 on 70% of evals over 60d).
+
+### Added
+
+- **GATE-3: severity-based risk-factor penalties** ([#305](https://github.com/KomatikAI/trailhead/pull/305)) — per-severity penalty points (critical 10 / high 5 / medium 2 / low 1) added on top of the weighted risk score. **Opt-in**: applies only with `policies.risk_factor_severity.enabled: true` (changed from always-on before release so the fleet's block-rate calibration isn't shifted by release drift).
+
 ## [4.5.2] - 2026-06-06
 
 ### Fixed
