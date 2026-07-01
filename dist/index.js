@@ -42339,6 +42339,15 @@ const RepoConfig = objectType({
             max_changes: numberType().int().min(1).default(2000),
             mode: enumType(["warn", "block"]).default("warn"),
             require_plan_for_agent_prs: booleanType().default(false),
+            // Branch pairs exempt from scope limits (glob patterns; empty list
+            // matches any branch, same semantics as contexts[].match). Meant for
+            // promotion PRs (dev→staging, staging→master), which aggregate many
+            // already-gated merges and structurally exceed any sane max_files.
+            exempt: arrayType(objectType({
+                head_branch: arrayType(stringType()).default([]),
+                base_branch: arrayType(stringType()).default([]),
+            }))
+                .default([]),
         })
             .default({}),
         duplicate_logic: objectType({
@@ -51371,6 +51380,17 @@ async function detectPrScopeRisk(params) {
     const cfg = params.repoConfig?.policies?.pr_scope;
     if (!cfg?.enabled)
         return { factor: null, findings: [], forceBlock: false };
+    const exempt = (cfg.exempt ?? []).some((rule) => {
+        const headOk = rule.head_branch.length === 0 ||
+            (params.headRef !== undefined && matchesGlobs(params.headRef, rule.head_branch));
+        const baseOk = rule.base_branch.length === 0 ||
+            (params.baseRef !== undefined && matchesGlobs(params.baseRef, rule.base_branch));
+        return headOk && baseOk;
+    });
+    if (exempt) {
+        info(`pr_scope: branch pair ${params.headRef ?? "?"} -> ${params.baseRef ?? "?"} matches an exempt rule — scope limits skipped`);
+        return { factor: null, findings: [], forceBlock: false };
+    }
     const fileCount = params.files.length;
     const totalChanges = params.files.reduce((sum, f) => sum + f.changes, 0);
     const findings = [];
@@ -52034,6 +52054,8 @@ async function evaluateGate(config, commitSha, prNumber) {
         prNumber,
         token: config.githubToken,
         provenance,
+        headRef: prMatchCtx.headRef,
+        baseRef: prMatchCtx.baseRef,
     });
     if (prScope.factor) {
         riskFactors.push(prScope.factor);

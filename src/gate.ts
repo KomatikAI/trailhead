@@ -871,15 +871,33 @@ interface PrScopeDetection {
   forceBlock: boolean;
 }
 
-async function detectPrScopeRisk(params: {
+export async function detectPrScopeRisk(params: {
   files: PrFileInfo[];
   repoConfig: RepoConfig | null;
   prNumber?: number;
   token?: string;
   provenance: PrProvenance | null;
+  headRef?: string;
+  baseRef?: string;
 }): Promise<PrScopeDetection> {
   const cfg = params.repoConfig?.policies?.pr_scope;
   if (!cfg?.enabled) return { factor: null, findings: [], forceBlock: false };
+
+  const exempt = (cfg.exempt ?? []).some((rule) => {
+    const headOk =
+      rule.head_branch.length === 0 ||
+      (params.headRef !== undefined && matchesGlobs(params.headRef, rule.head_branch));
+    const baseOk =
+      rule.base_branch.length === 0 ||
+      (params.baseRef !== undefined && matchesGlobs(params.baseRef, rule.base_branch));
+    return headOk && baseOk;
+  });
+  if (exempt) {
+    core.info(
+      `pr_scope: branch pair ${params.headRef ?? "?"} -> ${params.baseRef ?? "?"} matches an exempt rule — scope limits skipped`,
+    );
+    return { factor: null, findings: [], forceBlock: false };
+  }
 
   const fileCount = params.files.length;
   const totalChanges = params.files.reduce((sum, f) => sum + f.changes, 0);
@@ -1748,6 +1766,8 @@ export async function evaluateGate(
     prNumber,
     token: config.githubToken,
     provenance,
+    headRef: prMatchCtx.headRef,
+    baseRef: prMatchCtx.baseRef,
   });
   if (prScope.factor) {
     riskFactors.push(prScope.factor);

@@ -74,6 +74,7 @@ const baseConfig = {
       max_changes: 2000,
       mode: "warn",
       require_plan_for_agent_prs: false,
+      exempt: [],
     },
     duplicate_logic: { enabled: true, mode: "warn" },
     cross_repo_impact: { enabled: true, mode: "warn" as const },
