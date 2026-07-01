@@ -29,7 +29,18 @@ jobs:
       - name: Build (ncc)
         run: npm run build
 
-      # Release tags are cut from ubuntu-latest; dist/ in the tag reflects this build.
+      # The action serves the COMMITTED dist/ at the tag (main: dist/index.js);
+      # this workflow's build output is discarded. If the committed bundle does
+      # not match a fresh build of the tagged source, the "release" ships stale
+      # code — this happened silently on v4.5.5/v4.5.6 (dist last committed
+      # 2026-06-07; the v4.5.5 import_resolution fix never reached consumers).
+      - name: Verify committed dist matches this source
+        run: |
+          if ! git diff --quiet -- dist; then
+            echo "::error::dist/ is stale — run 'npm run build' and commit dist before tagging"
+            git diff --stat -- dist
+            exit 1
+          fi
 
       - name: Update major version tag
         run: |
