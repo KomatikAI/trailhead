@@ -1778,19 +1778,22 @@ export async function evaluateGate(
       ? weightedAverageScores(riskFactors as RiskFactorResult[], customWeights)
       : localRiskScore;
 
-  // GATE-3: Apply severity-based penalties to risk factors
+  // GATE-3: Apply severity-based penalties to risk factors. Opt-in via
+  // policies.risk_factor_severity.enabled — an always-on penalty would shift
+  // every repo's scores mid-calibration, making block-rate movement
+  // unattributable to config vs release drift.
   const severityPenaltiesCfg = repoConfig?.policies?.risk_factor_severity;
-  const severityPenalties = severityPenaltiesCfg
-    ? {
-        critical: severityPenaltiesCfg.critical ?? 10,
-        high: severityPenaltiesCfg.high ?? 5,
-        medium: severityPenaltiesCfg.medium ?? 2,
-        low: severityPenaltiesCfg.low ?? 1,
-      }
-    : { critical: 10, high: 5, medium: 2, low: 1 }; // Default penalties
+  const severityPenaltiesEnabled = severityPenaltiesCfg?.enabled === true;
+  const severityPenalties = {
+    critical: severityPenaltiesCfg?.critical ?? 10,
+    high: severityPenaltiesCfg?.high ?? 5,
+    medium: severityPenaltiesCfg?.medium ?? 2,
+    low: severityPenaltiesCfg?.low ?? 1,
+  };
 
-  const { adjustedScore: riskScoreWithPenalties, appliedPenalties } =
-    applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties);
+  const { adjustedScore: riskScoreWithPenalties, appliedPenalties } = severityPenaltiesEnabled
+    ? applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties)
+    : { adjustedScore: riskScore, appliedPenalties: 0 };
 
   if (appliedPenalties > 0) {
     core.info(
