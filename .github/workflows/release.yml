@@ -29,17 +29,25 @@ jobs:
       - name: Build (ncc)
         run: npm run build
 
-      # The action serves the COMMITTED dist/ at the tag (main: dist/index.js);
-      # this workflow's build output is discarded. If the committed bundle does
-      # not match a fresh build of the tagged source, the "release" ships stale
-      # code — this happened silently on v4.5.5/v4.5.6 (dist last committed
-      # 2026-06-07; the v4.5.5 import_resolution fix never reached consumers).
-      - name: Verify committed dist matches this source
+      # The action serves the COMMITTED dist/ at the tag (main: dist/index.js).
+      # v4.5.5/v4.5.6 silently shipped stale dist (last committed 2026-06-07;
+      # the v4.5.5 import_resolution fix never reached consumers). ncc output
+      # is NOT byte-reproducible across environments, so instead of failing on
+      # any diff, make the CI build canonical: commit it and move the version
+      # tag to that commit. The shipped bundle then always matches the tagged
+      # source by construction. (GITHUB_TOKEN pushes don't re-trigger this
+      # workflow, so the run continues to the major-tag + release steps below.)
+      - name: Make CI-built dist canonical (commit + retag if it differs)
         run: |
           if ! git diff --quiet -- dist; then
-            echo "::error::dist/ is stale — run 'npm run build' and commit dist before tagging"
+            echo "dist differs from the CI build — committing the CI-built bundle and moving ${GITHUB_REF_NAME}"
             git diff --stat -- dist
-            exit 1
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add dist
+            git commit -m "build(release): CI-built dist for ${GITHUB_REF_NAME}"
+            git tag -f "${GITHUB_REF_NAME}" HEAD
+            git push origin "${GITHUB_REF_NAME}" --force
           fi
 
       - name: Update major version tag
