@@ -31,6 +31,9 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon.svg",
   },
+  other: {
+    "theme-color": "#0D1117",
+  },
 };
 
 // Shared shell: nav + footer + design tokens. Individual pages (Lane D) stay
