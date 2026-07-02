@@ -448,7 +448,11 @@ export async function storeEvaluationDetailed(
     // Cloud API, not transient failures — don't fall back to the legacy
     // Supabase direct-insert path, just report the state honestly.
     if (result.suspended || result.hardCapped) {
-      return { ...NOT_STORED, suspended: result.suspended, hardCapped: result.hardCapped };
+      return {
+        ...NOT_STORED,
+        suspended: result.suspended,
+        hardCapped: result.hardCapped,
+      };
     }
   } catch (error) {
     core.warning(`Evaluation store API failed: ${error}`);

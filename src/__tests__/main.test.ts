@@ -245,7 +245,10 @@ describe("run — cloud-upsell footer in the check summary", () => {
 
   it("does not show the no-key upsell to BYOS self-hosters (evaluation-store-url without a cloud key)", async () => {
     const { summaryText } = await runMain({
-      inputs: { "api-key": "test-key", "evaluation-store-url": "https://store.example.com" },
+      inputs: {
+        "api-key": "test-key",
+        "evaluation-store-url": "https://store.example.com",
+      },
       storeOutcome: {
         stored: true,
         quotaExceeded: false,

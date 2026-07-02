@@ -71,7 +71,11 @@ describe("buildCloudFooterLine", () => {
       buildCloudFooterLine({ hasCloudKey: true, disableUpsell: true, hardCapped: true }),
     ).toBeNull();
     expect(
-      buildCloudFooterLine({ hasCloudKey: true, disableUpsell: true, quotaExceeded: true }),
+      buildCloudFooterLine({
+        hasCloudKey: true,
+        disableUpsell: true,
+        quotaExceeded: true,
+      }),
     ).toBeNull();
   });
 
