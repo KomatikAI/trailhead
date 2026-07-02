@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export type PlanTier = "free" | "pro" | "team";
 
 export interface PlanDefinition {
@@ -66,6 +68,50 @@ export function quotaHeaders(plan: PlanTier, used: number): Record<string, strin
 export function canIngestEvaluation(plan: PlanTier, used: number): boolean {
   if (!PLANS[plan].cloudStore) return false;
   return used < PLANS[plan].evaluationsPerMonth;
+}
+
+/**
+ * Soft-launch quota multiplier: over-quota ingest is still stored (200 +
+ * `X-Trailhead-Quota-Exceeded`) up to HARD_LIMIT_MULTIPLIER × the tier limit,
+ * then hard-stopped (429). Fail-closed abuse backstop (komatik lesson).
+ */
+export const HARD_LIMIT_MULTIPLIER = 3;
+
+export interface QuotaEvaluation {
+  /** Plan permits the cloud store at all (free = false). */
+  planAllowsCloud: boolean;
+  /** Ingest should be persisted (stored even when soft over-quota). */
+  store: boolean;
+  /** At or beyond the monthly tier limit (soft over-quota). */
+  overQuota: boolean;
+  /** At or beyond HARD_LIMIT_MULTIPLIER × limit — reject (429). */
+  hardLimited: boolean;
+}
+
+/**
+ * Decide how to treat an ingest given the org's plan and its usage BEFORE this
+ * evaluation is counted. Encodes the v1 soft-launch quota semantics.
+ */
+export function evaluateQuota(plan: PlanTier, usedBeforeInsert: number): QuotaEvaluation {
+  const def = PLANS[plan];
+  if (!def.cloudStore) {
+    return { planAllowsCloud: false, store: false, overQuota: true, hardLimited: false };
+  }
+  const limit = def.evaluationsPerMonth;
+  const hardCap = limit * HARD_LIMIT_MULTIPLIER;
+  const overQuota = usedBeforeInsert >= limit;
+  const hardLimited = usedBeforeInsert >= hardCap;
+  return {
+    planAllowsCloud: true,
+    store: !hardLimited,
+    overQuota,
+    hardLimited,
+  };
+}
+
+/** sha256 hex of the full API key. PLAINTEXT IS NEVER STORED (contract). */
+export function hashApiKey(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
 }
 
 export function maskApiKey(key: string): string {

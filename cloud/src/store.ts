@@ -1,20 +1,52 @@
 import type {
   ApiKeyRecord,
   CloudStore,
+  CreateOrgWithSubscriptionInput,
+  CreateOrgWithSubscriptionResult,
   DeployEventPayload,
   EvaluationPayload,
+  IngestResult,
+  KeyClaimResult,
   ManagedApiKey,
   OrgRecord,
   OrgSettings,
   QuotaSnapshot,
   RepoRecord,
   StoredEvaluation,
+  SubscriptionPatch,
+  SubscriptionRecord,
 } from "./types.js";
 import type { DetectorFeedbackRecord } from "./feedback-core.js";
-import { canIngestEvaluation, generateApiKey, maskApiKey, monthKey } from "./billing.js";
+import {
+  evaluateQuota,
+  generateApiKey,
+  hashApiKey,
+  maskApiKey,
+  monthKey,
+  PLANS,
+} from "./billing.js";
 import type { PlanTier } from "./billing.js";
 
+/** Stripe subscription statuses that force key suspension (contract). */
+export const SUSPEND_STATUSES = new Set([
+  "past_due",
+  "unpaid",
+  "canceled",
+  "incomplete_expired",
+]);
+/** Statuses that (re)activate an org's keys. */
+export const UNSUSPEND_STATUSES = new Set(["active", "trialing"]);
+
+interface KeyClaim {
+  sessionId: string;
+  orgId: string;
+  ciphertext: string;
+  claimedAt: string | null;
+  expiresAt: string;
+}
+
 export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
+  // keyed by sha256(hash) of the plaintext key.
   const keys = new Map<string, ApiKeyRecord>();
   const managedKeys = new Map<string, ManagedApiKey>();
 
@@ -30,6 +62,9 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
     string,
     Map<string, import("./tuning-digest.js").DetectorDowngradeRecord>
   >();
+  const subscriptions = new Map<string, SubscriptionRecord>(); // by stripeSubscriptionId
+  const stripeEvents = new Set<string>();
+  const keyClaims = new Map<string, KeyClaim>();
 
   function ensureOrg(orgId: string, orgName: string): OrgRecord {
     const existing = orgs.get(orgId);
@@ -42,7 +77,7 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
     orgs.set(orgId, org);
     if (!orgSettings.has(orgId)) {
       orgSettings.set(orgId, {
-        plan: seedKeys.some((k) => k.orgId === orgId) ? "pro" : "free",
+        plan: [...keys.values()].some((k) => k.orgId === orgId) ? "pro" : "free",
         seats: 3,
         seatsUsed: 1,
       });
@@ -50,18 +85,23 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
     return org;
   }
 
+  function storeKey(record: ApiKeyRecord): void {
+    keys.set(hashApiKey(record.key), record);
+  }
+
   for (const record of seedKeys) {
-    keys.set(record.key, record);
-    managedKeys.set(record.keyId, {
-      id: record.keyId,
-      orgId: record.orgId,
-      key: record.key,
-      label: record.label ?? "Seed key",
-      keyPreview: maskApiKey(record.key),
+    const rec: ApiKeyRecord = { ...record, suspended: record.suspended ?? false };
+    storeKey(rec);
+    managedKeys.set(rec.keyId, {
+      id: rec.keyId,
+      orgId: rec.orgId,
+      key: rec.key,
+      label: rec.label ?? "Seed key",
+      keyPreview: maskApiKey(rec.key),
       createdAt: new Date().toISOString(),
       revokedAt: null,
     });
-    ensureOrg(record.orgId, record.orgName);
+    ensureOrg(rec.orgId, rec.orgName);
   }
 
   function getSettings(orgId: string): OrgSettings {
@@ -87,21 +127,47 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
     return `${orgId}:${fullName}`;
   }
 
+  function setKeySuspension(orgId: string, suspended: boolean): void {
+    for (const rec of keys.values()) {
+      if (rec.orgId === orgId) rec.suspended = suspended;
+    }
+  }
+
+  function applyStatusToKeys(orgId: string, status: string): void {
+    if (SUSPEND_STATUSES.has(status)) setKeySuspension(orgId, true);
+    else if (UNSUSPEND_STATUSES.has(status)) setKeySuspension(orgId, false);
+  }
+
+  function quotaFor(orgId: string): QuotaSnapshot {
+    const settings = getSettings(orgId);
+    const used = getUsage(orgId);
+    const limit = PLANS[settings.plan].evaluationsPerMonth;
+    return {
+      plan: settings.plan,
+      limit,
+      used,
+      remaining: Math.max(0, limit - used),
+    };
+  }
+
   return {
-    getOrgForKey(apiKey: string): ApiKeyRecord | null {
-      const record = keys.get(apiKey);
+    async getOrgForKey(apiKey: string): Promise<ApiKeyRecord | null> {
+      const record = keys.get(hashApiKey(apiKey));
       if (!record) return null;
       const managed = managedKeys.get(record.keyId);
       if (managed?.revokedAt) return null;
       return record;
     },
 
-    getOrgSettings(orgId: string): OrgSettings {
+    async getOrgSettings(orgId: string): Promise<OrgSettings> {
       ensureOrg(orgId, orgId);
       return getSettings(orgId);
     },
 
-    updateOrgSettings(orgId: string, patch: Partial<OrgSettings>): OrgSettings {
+    async updateOrgSettings(
+      orgId: string,
+      patch: Partial<OrgSettings>,
+    ): Promise<OrgSettings> {
       ensureOrg(orgId, orgId);
       const current = getSettings(orgId);
       const next: OrgSettings = {
@@ -114,23 +180,15 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       return next;
     },
 
-    getQuota(orgId: string): QuotaSnapshot {
-      const settings = getSettings(orgId);
-      const used = getUsage(orgId);
-      const limit = settings.plan === "free" ? 0 : settings.plan === "pro" ? 5000 : 50000;
-      return {
-        plan: settings.plan,
-        limit,
-        used,
-        remaining: Math.max(0, limit - used),
-      };
+    async getQuota(orgId: string): Promise<QuotaSnapshot> {
+      return quotaFor(orgId);
     },
 
-    ingestEvaluation(
+    async ingestEvaluation(
       orgId: string,
       payload: EvaluationPayload,
       idempotencyKey?: string,
-    ): { created: boolean; evaluation: StoredEvaluation; quotaExceeded?: boolean } {
+    ): Promise<IngestResult> {
       const keyRecord = [...keys.values()].find((k) => k.orgId === orgId);
       ensureOrg(orgId, keyRecord?.orgName ?? orgId);
       const settings = getSettings(orgId);
@@ -145,11 +203,13 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       }
 
       const used = getUsage(orgId);
-      if (!canIngestEvaluation(settings.plan, used)) {
+      const quota = evaluateQuota(settings.plan, used);
+      if (!quota.store) {
         return {
           created: false,
           evaluation: payload as StoredEvaluation,
-          quotaExceeded: true,
+          quotaExceeded: quota.overQuota,
+          hardLimited: quota.hardLimited,
         };
       }
 
@@ -189,31 +249,39 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
         });
       }
 
-      return { created: true, evaluation: stored };
+      return { created: true, evaluation: stored, quotaExceeded: quota.overQuota };
     },
 
-    recordDeployEvent(orgId: string, payload: DeployEventPayload): void {
+    async recordDeployEvent(orgId: string, payload: DeployEventPayload): Promise<void> {
       deployEvents.push({ orgId, payload });
     },
 
-    recordFeedback(record: DetectorFeedbackRecord): DetectorFeedbackRecord {
+    async recordFeedback(
+      record: DetectorFeedbackRecord,
+    ): Promise<DetectorFeedbackRecord> {
       feedback.push(record);
       return record;
     },
 
-    listFeedback(orgId: string, repoId?: string): DetectorFeedbackRecord[] {
+    async listFeedback(
+      orgId: string,
+      repoId?: string,
+    ): Promise<DetectorFeedbackRecord[]> {
       return feedback.filter(
         (row) => row.orgId === orgId && (!repoId || row.repo === repoId),
       );
     },
 
-    listManagedKeys(orgId: string): ManagedApiKey[] {
+    async listManagedKeys(orgId: string): Promise<ManagedApiKey[]> {
       return [...managedKeys.values()]
         .filter((k) => k.orgId === orgId && !k.revokedAt)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },
 
-    createApiKey(orgId: string, label?: string): { key: ManagedApiKey; secret: string } {
+    async createApiKey(
+      orgId: string,
+      label?: string,
+    ): Promise<{ key: ManagedApiKey; secret: string }> {
       const settings = getSettings(orgId);
       if (!settings.plan || settings.plan === "free") {
         throw new Error("API key provisioning requires Pro or Team plan");
@@ -230,40 +298,41 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
         revokedAt: null,
       };
       managedKeys.set(id, managed);
-      keys.set(secret, {
+      storeKey({
         keyId: id,
         key: secret,
         orgId,
         orgName: orgs.get(orgId)?.name ?? orgId,
         label: managed.label,
+        suspended: false,
       });
       return { key: managed, secret };
     },
 
-    revokeApiKey(orgId: string, keyId: string): boolean {
+    async revokeApiKey(orgId: string, keyId: string): Promise<boolean> {
       const managed = managedKeys.get(keyId);
       if (!managed || managed.orgId !== orgId || managed.revokedAt) return false;
       managed.revokedAt = new Date().toISOString();
-      keys.delete(managed.key);
+      keys.delete(hashApiKey(managed.key));
       return true;
     },
 
-    listOrgs(): OrgRecord[] {
+    async listOrgs(): Promise<OrgRecord[]> {
       return [...orgs.values()].sort((a, b) => a.name.localeCompare(b.name));
     },
 
-    listRepos(orgId: string): RepoRecord[] {
+    async listRepos(orgId: string): Promise<RepoRecord[]> {
       return [...repos.values()]
         .filter((r) => r.orgId === orgId)
         .sort((a, b) => a.fullName.localeCompare(b.fullName));
     },
 
-    listEvaluations(
+    async listEvaluations(
       orgId: string,
       repoId?: string,
       limit = 100,
       prNumber?: number,
-    ): StoredEvaluation[] {
+    ): Promise<StoredEvaluation[]> {
       let rows = [...evaluations.values()].filter((e) => e.orgId === orgId);
       if (repoId) {
         rows = rows.filter((e) => e.repoId === repoId);
@@ -275,30 +344,30 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       return rows.slice(0, limit);
     },
 
-    getEvaluation(orgId: string, id: string): StoredEvaluation | null {
+    async getEvaluation(orgId: string, id: string): Promise<StoredEvaluation | null> {
       const row = evaluations.get(id);
       if (!row || row.orgId !== orgId) return null;
       return row;
     },
 
-    listAllEvaluations(orgId: string): StoredEvaluation[] {
+    async listAllEvaluations(orgId: string): Promise<StoredEvaluation[]> {
       return [...evaluations.values()]
         .filter((e) => e.orgId === orgId)
         .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
     },
 
-    listDeployEvents(
+    async listDeployEvents(
       orgId: string,
-    ): Array<{ orgId: string; payload: DeployEventPayload }> {
+    ): Promise<Array<{ orgId: string; payload: DeployEventPayload }>> {
       return deployEvents.filter((e) => e.orgId === orgId);
     },
 
-    listDetectorDowngrades(orgId: string) {
+    async listDetectorDowngrades(orgId: string) {
       const rows = detectorDowngrades.get(orgId);
       return rows ? [...rows.values()] : [];
     },
 
-    recordDetectorDowngrade(orgId, record) {
+    async recordDetectorDowngrade(orgId, record) {
       let orgRows = detectorDowngrades.get(orgId);
       if (!orgRows) {
         orgRows = new Map();
@@ -308,7 +377,7 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       return record;
     },
 
-    revertDetectorDowngrade(orgId, detectorCode, revertedBy) {
+    async revertDetectorDowngrade(orgId, detectorCode, revertedBy) {
       const orgRows = detectorDowngrades.get(orgId);
       const existing = orgRows?.get(detectorCode);
       if (!existing || existing.revertedAt) return null;
@@ -319,6 +388,200 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       };
       orgRows!.set(detectorCode, next);
       return next;
+    },
+
+    // --- Billing surface ---
+
+    async createOrgWithSubscription(
+      input: CreateOrgWithSubscriptionInput,
+    ): Promise<CreateOrgWithSubscriptionResult> {
+      const orgId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const org: OrgRecord = { id: orgId, name: input.orgName, createdAt: now };
+      orgs.set(orgId, org);
+      orgSettings.set(orgId, {
+        plan: input.plan,
+        seats: PLANS[input.plan].seatsIncluded,
+        seatsUsed: 1,
+      });
+
+      const subscription: SubscriptionRecord = {
+        id: crypto.randomUUID(),
+        orgId,
+        stripeCustomerId: input.stripeCustomerId,
+        stripeSubscriptionId: input.stripeSubscriptionId,
+        plan: input.plan,
+        status: input.status,
+        currentPeriodEnd: input.currentPeriodEnd ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      subscriptions.set(subscription.stripeSubscriptionId, subscription);
+
+      const secret = generateApiKey();
+      const keyId = `key_${crypto.randomUUID()}`;
+      const keyRecord: ApiKeyRecord = {
+        keyId,
+        key: secret,
+        orgId,
+        orgName: input.orgName,
+        label: input.keyLabel ?? "Primary key",
+        suspended: false,
+      };
+      storeKey(keyRecord);
+      managedKeys.set(keyId, {
+        id: keyId,
+        orgId,
+        key: secret,
+        label: keyRecord.label ?? "Primary key",
+        keyPreview: maskApiKey(secret),
+        createdAt: now,
+        revokedAt: null,
+      });
+
+      return { org, keySecret: secret, keyRecord };
+    },
+
+    async updateSubscriptionByStripeId(
+      stripeSubscriptionId: string,
+      patch: SubscriptionPatch,
+    ): Promise<string | null> {
+      const existing = subscriptions.get(stripeSubscriptionId);
+      if (!existing) return null;
+      const next: SubscriptionRecord = {
+        ...existing,
+        plan: patch.plan ?? existing.plan,
+        status: patch.status ?? existing.status,
+        currentPeriodEnd:
+          patch.currentPeriodEnd !== undefined
+            ? patch.currentPeriodEnd
+            : existing.currentPeriodEnd,
+        updatedAt: new Date().toISOString(),
+      };
+      subscriptions.set(stripeSubscriptionId, next);
+
+      if (patch.plan) {
+        const settings = getSettings(existing.orgId);
+        orgSettings.set(existing.orgId, { ...settings, plan: patch.plan });
+      }
+      if (patch.status) {
+        applyStatusToKeys(existing.orgId, patch.status);
+      }
+      return existing.orgId;
+    },
+
+    async upsertSubscriptionFromStripe(sub): Promise<string> {
+      const now = new Date().toISOString();
+      const existing = subscriptions.get(sub.stripeSubscriptionId);
+      if (existing) {
+        subscriptions.set(sub.stripeSubscriptionId, {
+          ...existing,
+          plan: sub.plan,
+          status: sub.status,
+          currentPeriodEnd: sub.currentPeriodEnd ?? null,
+          updatedAt: now,
+        });
+        orgSettings.set(existing.orgId, {
+          ...getSettings(existing.orgId),
+          plan: sub.plan,
+        });
+        applyStatusToKeys(existing.orgId, sub.status);
+        return existing.orgId;
+      }
+
+      let orgId = [...subscriptions.values()].find(
+        (s) => s.stripeCustomerId === sub.stripeCustomerId,
+      )?.orgId;
+      if (!orgId) {
+        orgId = crypto.randomUUID();
+        orgs.set(orgId, { id: orgId, name: sub.stripeCustomerId, createdAt: now });
+        orgSettings.set(orgId, {
+          plan: sub.plan,
+          seats: PLANS[sub.plan].seatsIncluded,
+          seatsUsed: 1,
+        });
+      } else {
+        orgSettings.set(orgId, { ...getSettings(orgId), plan: sub.plan });
+      }
+
+      subscriptions.set(sub.stripeSubscriptionId, {
+        id: crypto.randomUUID(),
+        orgId,
+        stripeCustomerId: sub.stripeCustomerId,
+        stripeSubscriptionId: sub.stripeSubscriptionId,
+        plan: sub.plan,
+        status: sub.status,
+        currentPeriodEnd: sub.currentPeriodEnd ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      applyStatusToKeys(orgId, sub.status);
+      return orgId;
+    },
+
+    async setKeysSuspended(orgId: string, suspended: boolean): Promise<void> {
+      setKeySuspension(orgId, suspended);
+    },
+
+    async recordStripeEvent(
+      eventId: string,
+      _eventType: string,
+      _payload: unknown,
+    ): Promise<boolean> {
+      if (stripeEvents.has(eventId)) return false;
+      stripeEvents.add(eventId);
+      return true;
+    },
+
+    async removeStripeEvent(eventId: string): Promise<void> {
+      stripeEvents.delete(eventId);
+    },
+
+    async createKeyClaim(
+      sessionId: string,
+      orgId: string,
+      ciphertext: string,
+      expiresAt: string,
+    ): Promise<void> {
+      keyClaims.set(sessionId, {
+        sessionId,
+        orgId,
+        ciphertext,
+        claimedAt: null,
+        expiresAt,
+      });
+    },
+
+    async claimKey(sessionId: string): Promise<KeyClaimResult> {
+      const claim = keyClaims.get(sessionId);
+      if (!claim) return null;
+      if (claim.claimedAt) return { alreadyClaimed: true };
+      if (new Date(claim.expiresAt).getTime() <= Date.now()) return { expired: true };
+      claim.claimedAt = new Date().toISOString();
+      return { ciphertext: claim.ciphertext };
+    },
+
+    async purgeExpiredClaims(): Promise<number> {
+      const now = Date.now();
+      let purged = 0;
+      for (const [sessionId, claim] of keyClaims) {
+        if (!claim.claimedAt && new Date(claim.expiresAt).getTime() <= now) {
+          keyClaims.delete(sessionId);
+          purged += 1;
+        }
+      }
+      return purged;
+    },
+
+    async getSubscriptionForOrg(orgId: string): Promise<SubscriptionRecord | null> {
+      const rows = [...subscriptions.values()]
+        .filter((s) => s.orgId === orgId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      return rows[0] ?? null;
+    },
+
+    async listSubscriptions(): Promise<SubscriptionRecord[]> {
+      return [...subscriptions.values()];
     },
   };
 }
@@ -337,6 +600,7 @@ export function parseSeedKeys(raw: string | undefined): ApiKeyRecord[] {
         key,
         keyId: `seed_${orgId}`,
         label: "Seed key",
+        suspended: false,
       },
     ];
   });
