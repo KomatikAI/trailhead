@@ -55,6 +55,31 @@ export async function handleStripeEvent(
     return { handled: false, reason: "duplicate" };
   }
 
+  try {
+    return await applyStripeEvent(event, store);
+  } catch (err) {
+    // Insert-first alone is a trap: the route 500s so Stripe retries, but the
+    // retry would hit firstSeen=false and short-circuit as a duplicate — a
+    // transient store failure would permanently drop the event (paid customer,
+    // no org/key/claim ever created). Roll the ledger row back so the retry
+    // can actually reprocess. Concurrent duplicate delivery is still deduped
+    // by the insert; rollback only happens on handler failure.
+    try {
+      await store.removeStripeEvent(event.id);
+    } catch (rollbackErr) {
+      console.error(
+        `[webhook] Ledger rollback failed for ${event.id} — event may be dropped until reconcile:`,
+        rollbackErr,
+      );
+    }
+    throw err;
+  }
+}
+
+async function applyStripeEvent(
+  event: Stripe.Event,
+  store: BillingStore,
+): Promise<HandleResult> {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;

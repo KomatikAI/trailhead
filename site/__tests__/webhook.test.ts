@@ -22,6 +22,9 @@ function mockStore(overrides: Partial<BillingStore> = {}): BillingStore {
       seen.add(eventId);
       return { firstSeen };
     }),
+    removeStripeEvent: vi.fn(async (eventId: string) => {
+      seen.delete(eventId);
+    }),
     createOrgWithSubscription: vi.fn(async () => ({
       orgId: "org_1",
       apiKeySecret: "thk_generatedsecretkey",
@@ -58,6 +61,28 @@ describe("handleStripeEvent — idempotency", () => {
     expect(first.handled).toBe(true);
     expect(second).toEqual({ handled: false, reason: "duplicate" });
     expect(store.createOrgWithSubscription).toHaveBeenCalledTimes(1);
+  });
+
+  it("rolls the ledger back on handler failure so Stripe's retry can reprocess", async () => {
+    const store = mockStore({
+      createOrgWithSubscription: vi
+        .fn()
+        .mockRejectedValueOnce(new Error("transient db error"))
+        .mockResolvedValueOnce({
+          orgId: "org_1",
+          apiKeySecret: "thk_generatedsecretkey",
+          keyPreview: "thk_gen…rkey",
+        }),
+    });
+    const evt = checkoutEvent();
+
+    await expect(handleStripeEvent(evt, store)).rejects.toThrow("transient db error");
+    expect(store.removeStripeEvent).toHaveBeenCalledWith(evt.id);
+
+    // Stripe retries the SAME event id — it must NOT short-circuit as duplicate.
+    const retry = await handleStripeEvent(evt, store);
+    expect(retry.handled).toBe(true);
+    expect(store.createOrgWithSubscription).toHaveBeenCalledTimes(2);
   });
 });
 
