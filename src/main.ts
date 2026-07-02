@@ -635,7 +635,10 @@ async function run(): Promise<void> {
     }
 
     const cloudFooterLine = buildCloudFooterLine({
-      hasCloudKey: Boolean(config.trailheadApiKey),
+      // BYOS self-hosters (evaluation-store-url without a cloud key) DO
+      // persist evaluations — the "wasn't persisted" upsell must only fire
+      // in truly local-only mode.
+      hasCloudKey: Boolean(config.trailheadApiKey || config.evaluationStoreUrl),
       disableUpsell: config.disableCloudUpsell ?? false,
       quotaExceeded: cloudQuotaExceeded,
       suspended: cloudSuspended,

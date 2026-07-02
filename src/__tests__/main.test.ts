@@ -243,6 +243,21 @@ describe("run — cloud-upsell footer in the check summary", () => {
     expect(summaryText).not.toContain("utm_campaign=cloud-upsell");
   });
 
+  it("does not show the no-key upsell to BYOS self-hosters (evaluation-store-url without a cloud key)", async () => {
+    const { summaryText } = await runMain({
+      inputs: { "api-key": "test-key", "evaluation-store-url": "https://store.example.com" },
+      storeOutcome: {
+        stored: true,
+        quotaExceeded: false,
+        suspended: false,
+        hardCapped: false,
+      },
+    });
+
+    expect(summaryText).not.toContain("wasn't persisted");
+    expect(summaryText).not.toContain("utm_campaign=cloud-upsell");
+  });
+
   it("appends the soft quota-exceeded footer when the cloud store reports quotaExceeded", async () => {
     const { summaryText } = await runMain({
       inputs: { "api-key": "test-key", "trailhead-api-key": "th_live_abc" },
