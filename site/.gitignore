@@ -1,0 +1,18 @@
+# Next.js
+.next/
+out/
+next-env.d.ts.timestamp
+
+# deps
+node_modules/
+
+# env
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# test
+coverage/
+*.tsbuildinfo

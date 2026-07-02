@@ -178,13 +178,21 @@ export async function deliverWebhooks(
   }
 }
 
+interface StoreAttemptResult {
+  ok: boolean;
+  retryable: boolean;
+  /** 200 + X-Trailhead-Quota-Exceeded: true — stored, but over plan quota. */
+  quotaExceeded?: boolean;
+  /** 402 — org suspended (payment failure); evaluation NOT stored. */
+  suspended?: boolean;
+  /** 429 with a structured JSON body — hard usage cap; evaluation NOT stored. */
+  hardCapped?: boolean;
+}
+
 async function storeViaApiOnce(
   url: string,
   evaluation: GateEvaluation,
-): Promise<{
-  ok: boolean;
-  retryable: boolean;
-}> {
+): Promise<StoreAttemptResult> {
   const storeSecret = process.env.EVALUATION_STORE_SECRET;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -208,10 +216,40 @@ async function storeViaApiOnce(
   });
 
   const contentType = response.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
 
-  if (response.ok && contentType.includes("application/json")) {
+  if (response.ok && isJson) {
     core.info(`Evaluation stored successfully at ${url}`);
-    return { ok: true, retryable: false };
+    const quotaExceeded = response.headers.get("x-trailhead-quota-exceeded") === "true";
+    if (quotaExceeded) {
+      core.warning(
+        "Trailhead Cloud: this evaluation is over your plan's monthly quota. " +
+          "It was still stored — upgrade at https://trailhead.komatik.xyz/pricing",
+      );
+    }
+    return { ok: true, retryable: false, quotaExceeded };
+  }
+
+  // 402 = org suspended (payment failure). Availability of the paid store must
+  // never block a merge — this is informational only, never a gate failure.
+  if (response.status === 402) {
+    core.warning(
+      "Trailhead Cloud: your plan is suspended — this evaluation was NOT stored. " +
+        "Reactivate at https://trailhead.komatik.xyz/pricing",
+    );
+    return { ok: false, retryable: false, suspended: true };
+  }
+
+  // 429 with a structured JSON body is the Cloud API's hard usage cap
+  // (3x plan limit, abuse backstop) — permanent for the billing period, so
+  // retrying is pointless. A 429 with a non-JSON (HTML) body is most likely
+  // Vercel bot protection, which IS worth retrying — handled below.
+  if (response.status === 429 && isJson) {
+    core.warning(
+      "Trailhead Cloud: you're over this month's hard usage cap — this evaluation was NOT " +
+        "stored. Upgrade at https://trailhead.komatik.xyz/pricing",
+    );
+    return { ok: false, retryable: false, hardCapped: true };
   }
 
   const nonRetryableClientErrors = new Set([400, 401, 403]);
@@ -220,7 +258,7 @@ async function storeViaApiOnce(
     return { ok: false, retryable: false };
   }
 
-  if (!contentType.includes("application/json")) {
+  if (!isJson) {
     core.warning(
       `Evaluation store at ${url} returned HTML instead of JSON (HTTP ${response.status}). ` +
         `Vercel bot protection is likely blocking the request.`,
@@ -237,18 +275,45 @@ async function storeViaApiOnce(
   };
 }
 
+interface StoreViaApiResult {
+  stored: boolean;
+  quotaExceeded: boolean;
+  suspended: boolean;
+  hardCapped: boolean;
+}
+
 async function storeViaApi(
   url: string,
   evaluation: GateEvaluation,
   maxRetries = 3,
-): Promise<boolean> {
+): Promise<StoreViaApiResult> {
   const maxAttempts = maxRetries + 1;
+  const notStored: StoreViaApiResult = {
+    stored: false,
+    quotaExceeded: false,
+    suspended: false,
+    hardCapped: false,
+  };
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
       const result = await storeViaApiOnce(url, evaluation);
-      if (result.ok) return true;
-      if (!result.retryable || attempt >= maxAttempts - 1) return false;
+      if (result.ok) {
+        return {
+          stored: true,
+          quotaExceeded: result.quotaExceeded ?? false,
+          suspended: false,
+          hardCapped: false,
+        };
+      }
+      if (result.suspended || result.hardCapped) {
+        return {
+          ...notStored,
+          suspended: result.suspended ?? false,
+          hardCapped: result.hardCapped ?? false,
+        };
+      }
+      if (!result.retryable || attempt >= maxAttempts - 1) return notStored;
 
       const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
       core.warning(
@@ -267,7 +332,7 @@ async function storeViaApi(
     }
   }
 
-  return false;
+  return notStored;
 }
 
 async function storeViaSupabase(evaluation: GateEvaluation): Promise<boolean> {
@@ -345,22 +410,57 @@ export function buildEvaluationStoreRow(
   };
 }
 
-export async function storeEvaluation(
+export interface CloudStoreOutcome {
+  stored: boolean;
+  /** 200 + X-Trailhead-Quota-Exceeded: true — stored, but over plan quota. */
+  quotaExceeded: boolean;
+  /** 402 — org suspended (payment failure); evaluation NOT stored. */
+  suspended: boolean;
+  /** 429 hard usage cap (3x plan limit, abuse backstop); evaluation NOT stored. */
+  hardCapped: boolean;
+}
+
+const NOT_STORED: CloudStoreOutcome = {
+  stored: false,
+  quotaExceeded: false,
+  suspended: false,
+  hardCapped: false,
+};
+
+/**
+ * Store an evaluation and report the Cloud API's billing/quota state so
+ * callers can surface it in the check summary. Availability of the paid
+ * store — including suspension or a hard usage cap — must never throw or
+ * otherwise block the gate; every path here is fail-open.
+ */
+export async function storeEvaluationDetailed(
   url: string,
   evaluation: GateEvaluation,
   options: { maxRetries?: number } = {},
-): Promise<boolean> {
+): Promise<CloudStoreOutcome> {
   const maxRetries = options.maxRetries ?? 3;
   try {
-    const stored = await storeViaApi(url, evaluation, maxRetries);
-    if (stored) return true;
+    const result = await storeViaApi(url, evaluation, maxRetries);
+    if (result.stored) {
+      return { ...NOT_STORED, stored: true, quotaExceeded: result.quotaExceeded };
+    }
+    // Suspended/hard-capped are deliberate billing-gate outcomes from the
+    // Cloud API, not transient failures — don't fall back to the legacy
+    // Supabase direct-insert path, just report the state honestly.
+    if (result.suspended || result.hardCapped) {
+      return {
+        ...NOT_STORED,
+        suspended: result.suspended,
+        hardCapped: result.hardCapped,
+      };
+    }
   } catch (error) {
     core.warning(`Evaluation store API failed: ${error}`);
   }
 
   try {
     const fallback = await storeViaSupabase(evaluation);
-    if (fallback) return true;
+    if (fallback) return { ...NOT_STORED, stored: true };
   } catch (error) {
     core.warning(`Supabase direct fallback also failed: ${error}`);
   }
@@ -369,5 +469,14 @@ export async function storeEvaluation(
     "Evaluation could not be stored. To fix: either set VERCEL_AUTOMATION_BYPASS_SECRET " +
       "or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in your workflow env.",
   );
-  return false;
+  return NOT_STORED;
+}
+
+export async function storeEvaluation(
+  url: string,
+  evaluation: GateEvaluation,
+  options: { maxRetries?: number } = {},
+): Promise<boolean> {
+  const outcome = await storeEvaluationDetailed(url, evaluation, options);
+  return outcome.stored;
 }

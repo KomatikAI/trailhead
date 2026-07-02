@@ -91,6 +91,10 @@ inputs:
     description: "Number of retry attempts when POST to evaluation-store-url fails with transient errors (default 3)."
     required: false
     default: "3"
+  disable-cloud-upsell:
+    description: "Suppress the Trailhead Cloud upsell/quota footer line in the check summary (shown by default when no trailhead-api-key is set, or when the Cloud API reports quota/billing state)."
+    required: false
+    default: "false"
   dora-metrics:
     description: "Compute DORA-5 metrics (deployment frequency, change failure rate, lead time, FDRT, rework rate) alongside the gate evaluation."
     required: false

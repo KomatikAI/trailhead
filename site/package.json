@@ -1,0 +1,32 @@
+{
+  "name": "trailhead-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Trailhead Cloud marketing + billing + Cloud API — deploys to Vercel at trailhead.komatik.xyz",
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "hono": "^4.12.18",
+    "next": "16.2.6",
+    "pg": "^8.21.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "stripe": "^20.4.1",
+    "trailhead-cloud": "file:../cloud"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "@types/pg": "^8.15.5",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.6"
+  }
+}
