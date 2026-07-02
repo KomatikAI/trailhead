@@ -1,3 +1,6 @@
+-- migrate:skip — Supabase SQL-editor reference copy (targets the legacy
+-- `trailhead_evaluations` table); NOT applied by the plain-pg runner
+-- (cloud/scripts/migrate.ts), which manages the hosted contract schema.
 -- Trailhead Cloud analytics columns (reference copy for hosted tier).
 -- Komatik fleet store uses docs/komatik-migrations/20260606120000_trailhead_analytics_columns.sql
 

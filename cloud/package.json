@@ -4,20 +4,35 @@
   "private": true,
   "type": "module",
   "description": "Trailhead Cloud API — evaluation store, org/repo registry, deploy events",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./app": "./src/app.ts",
+    "./store": "./src/store.ts",
+    "./pg-store": "./src/pg-store.ts",
+    "./billing": "./src/billing.ts",
+    "./migrate": "./src/migrate.ts",
+    "./types": "./src/types.ts"
+  },
   "scripts": {
     "prebuild": "node ../scripts/copy-shared-src.mjs cloud",
+    "prepare": "npm run prebuild",
     "build": "npm run prebuild && tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
+    "migrate": "tsx scripts/migrate.ts",
     "test": "vitest run"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.13",
     "hono": "^4.12.18",
+    "pg": "^8.22.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",
+    "@types/pg": "^8.20.0",
     "tsx": "^4.22.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"

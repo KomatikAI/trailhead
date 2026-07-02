@@ -13,20 +13,20 @@ async function deliverForOrg(
   orgId: string,
   days: number,
 ): Promise<{ repo: string; status: number }[]> {
-  const settings = store.getOrgSettings(orgId);
+  const settings = await store.getOrgSettings(orgId);
   if (!settings.digest?.enabled || !settings.digest.destination) return [];
 
   const { buildTuningDigestV1 } = await import("./tuning-digest.js");
   const fpThreshold = (settings.digest.fpThreshold ?? 15) / 100;
-  const repos = store.listRepos(orgId);
+  const repos = await store.listRepos(orgId);
   const delivered: Array<{ repo: string; status: number }> = [];
 
   for (const repo of repos) {
     const digest = buildTuningDigestV1({
       repoId: repo.fullName,
-      evaluations: store.listAllEvaluations(orgId),
-      feedback: store.listFeedback(orgId, repo.fullName),
-      downgrades: store.listDetectorDowngrades(orgId),
+      evaluations: await store.listAllEvaluations(orgId),
+      feedback: await store.listFeedback(orgId, repo.fullName),
+      downgrades: await store.listDetectorDowngrades(orgId),
       days,
       fpThreshold,
     });
