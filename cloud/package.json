@@ -3,21 +3,42 @@
   "version": "4.5.2",
   "private": true,
   "type": "module",
-  "description": "Trailhead Cloud API — evaluation store, org/repo registry, deploy events",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "description": "Trailhead Cloud API \u2014 evaluation store, org/repo registry, deploy events",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./app": "./src/app.ts",
-    "./store": "./src/store.ts",
-    "./pg-store": "./src/pg-store.ts",
-    "./billing": "./src/billing.ts",
-    "./migrate": "./src/migrate.ts",
-    "./types": "./src/types.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./app": {
+      "types": "./dist/app.d.ts",
+      "default": "./dist/app.js"
+    },
+    "./store": {
+      "types": "./dist/store.d.ts",
+      "default": "./dist/store.js"
+    },
+    "./pg-store": {
+      "types": "./dist/pg-store.d.ts",
+      "default": "./dist/pg-store.js"
+    },
+    "./billing": {
+      "types": "./dist/billing.d.ts",
+      "default": "./dist/billing.js"
+    },
+    "./migrate": {
+      "types": "./dist/migrate.d.ts",
+      "default": "./dist/migrate.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
   },
   "scripts": {
     "prebuild": "node ../scripts/copy-shared-src.mjs cloud",
-    "prepare": "npm run prebuild",
+    "prepare": "npm run build",
     "build": "npm run prebuild && tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
