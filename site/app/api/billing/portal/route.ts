@@ -23,7 +23,10 @@ export async function POST(req: Request): Promise<Response> {
   const auth = req.headers.get("authorization") ?? "";
   const key = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   if (!key) {
-    return Response.json({ error: "Missing Authorization bearer token" }, { status: 401 });
+    return Response.json(
+      { error: "Missing Authorization bearer token" },
+      { status: 401 },
+    );
   }
 
   let stripe: ReturnType<typeof getStripeClient>;

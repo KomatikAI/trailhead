@@ -81,6 +81,14 @@ declare module "trailhead-cloud" {
     }): Promise<{ firstSeen: boolean }>;
 
     /**
+     * Rollback for the idempotency ledger: called when the handler THROWS
+     * after insert-first, so Stripe's retry of the same event id is not
+     * short-circuited as a duplicate and can actually reprocess. Without
+     * this, a transient store failure permanently drops the event.
+     */
+    removeStripeEvent(eventId: string): Promise<void>;
+
+    /**
      * checkout.session.completed handler — in ONE transaction: create org,
      * org_settings.plan, subscriptions row, and issue the first api_key
      * (key_hash + key_preview stored; plaintext returned once to the caller).
@@ -137,7 +145,9 @@ declare module "trailhead-cloud" {
     ): Promise<SubscriptionRow | null>;
 
     /** Reconcile repair: create/refresh a subscription row from Stripe truth. */
-    upsertSubscriptionFromStripe(input: UpsertSubscriptionInput): Promise<{ orgId: string }>;
+    upsertSubscriptionFromStripe(
+      input: UpsertSubscriptionInput,
+    ): Promise<{ orgId: string }>;
 
     /** Reconcile: unrevoked, unsuspended key count for an org. */
     countActiveKeys(orgId: string): Promise<number>;

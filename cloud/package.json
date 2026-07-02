@@ -4,20 +4,56 @@
   "private": true,
   "type": "module",
   "description": "Trailhead Cloud API — evaluation store, org/repo registry, deploy events",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./app": {
+      "types": "./dist/app.d.ts",
+      "default": "./dist/app.js"
+    },
+    "./store": {
+      "types": "./dist/store.d.ts",
+      "default": "./dist/store.js"
+    },
+    "./pg-store": {
+      "types": "./dist/pg-store.d.ts",
+      "default": "./dist/pg-store.js"
+    },
+    "./billing": {
+      "types": "./dist/billing.d.ts",
+      "default": "./dist/billing.js"
+    },
+    "./migrate": {
+      "types": "./dist/migrate.d.ts",
+      "default": "./dist/migrate.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
+  },
   "scripts": {
     "prebuild": "node ../scripts/copy-shared-src.mjs cloud",
+    "prepare": "npm run build",
     "build": "npm run prebuild && tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
+    "migrate": "tsx scripts/migrate.ts",
     "test": "vitest run"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.13",
     "hono": "^4.12.18",
+    "pg": "^8.22.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",
+    "@types/pg": "^8.20.0",
     "tsx": "^4.22.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"

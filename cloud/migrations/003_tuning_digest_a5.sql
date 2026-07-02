@@ -1,3 +1,6 @@
+-- migrate:skip — Supabase SQL-editor reference copy (targets the legacy
+-- `trailhead_evaluations` table + service_role RLS); NOT applied by the plain-pg
+-- runner (cloud/scripts/migrate.ts), which manages the hosted contract schema.
 -- A5 tuning digest — agent provenance + detector downgrade audit
 -- Trailhead Cloud reference migration.
 -- Komatik fleet store: apply equivalent via Komatik PR (never MCP prod DDL).

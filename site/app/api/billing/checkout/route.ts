@@ -18,6 +18,20 @@ function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "https://trailhead.komatik.xyz";
 }
 
+/**
+ * Structural email plausibility without a backtracking regex (CodeQL
+ * js/polynomial-redos): length-capped, single @, dotted domain, no whitespace.
+ * Stripe Checkout re-validates the address authoritatively.
+ */
+function isPlausibleEmail(email: string): boolean {
+  if (email.length === 0 || email.length > 254 || /\s/.test(email)) return false;
+  const at = email.indexOf("@");
+  if (at <= 0 || at !== email.lastIndexOf("@") || at === email.length - 1) return false;
+  const domain = email.slice(at + 1);
+  const dot = domain.lastIndexOf(".");
+  return dot > 0 && dot < domain.length - 1;
+}
+
 export async function POST(req: Request): Promise<Response> {
   // Rate limit first — cheap, and shields the Stripe API from abuse.
   const denied = guardRateLimit(req, "billing-checkout", 10);
@@ -40,12 +54,9 @@ export async function POST(req: Request): Promise<Response> {
 
   const { plan, email } = body;
   if (!isPaidPlan(plan)) {
-    return Response.json(
-      { error: "plan must be 'pro' or 'team'" },
-      { status: 400 },
-    );
+    return Response.json({ error: "plan must be 'pro' or 'team'" }, { status: 400 });
   }
-  if (typeof email !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+  if (typeof email !== "string" || !isPlausibleEmail(email)) {
     return Response.json({ error: "a valid email is required" }, { status: 400 });
   }
 

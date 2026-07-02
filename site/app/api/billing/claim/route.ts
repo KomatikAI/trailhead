@@ -30,7 +30,8 @@ export async function GET(req: Request): Promise<Response> {
     try {
       apiKey = decryptClaim(claim.keyCiphertext);
     } catch (err) {
-      console.error(`[claim] Decrypt failed for ${sessionId}:`, err);
+      // sessionId is user input — keep it out of the format-string position.
+      console.error("[claim] Decrypt failed for session:", sessionId, err);
       return Response.json(
         { error: "Could not decrypt key. Contact support to rotate." },
         { status: 500 },
@@ -39,8 +40,7 @@ export async function GET(req: Request): Promise<Response> {
     return Response.json({
       apiKey,
       once: true,
-      message:
-        "Store this key now — it is shown only once. Add it as TRAILHEAD_API_KEY.",
+      message: "Store this key now — it is shown only once. Add it as TRAILHEAD_API_KEY.",
     });
   }
 

@@ -11,7 +11,8 @@ import {
   resolveCheckName,
   wrapCollapsibleSection,
 } from "./gate.js";
-import { deliverWebhooks, storeEvaluation } from "./notify.js";
+import { deliverWebhooks, storeEvaluationDetailed } from "./notify.js";
+import { buildCloudFooterLine } from "./cloud-upsell.js";
 import {
   meterDeployCheck,
   resolveCreditMeterConfig,
@@ -298,6 +299,7 @@ async function run(): Promise<void> {
       ciManifestPath: ciManifestPath || undefined,
       agentBrief,
       submissionGate: core.getInput("submission-gate") === "true",
+      disableCloudUpsell: core.getInput("disable-cloud-upsell") === "true",
     };
 
     if (policyOverride?.changes.riskThreshold !== undefined) {
@@ -599,6 +601,10 @@ async function run(): Promise<void> {
     }
     let fullReport = reportParts.join("\n---\n\n");
 
+    let cloudQuotaExceeded = false;
+    let cloudSuspended = false;
+    let cloudHardCapped = false;
+
     if (config.evaluationStoreUrl) {
       const storeSecretInput = core.getInput("evaluation-store-secret");
       if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
@@ -610,15 +616,36 @@ async function run(): Promise<void> {
       const storeRetries = parseEvaluationStoreRetries(
         core.getInput("evaluation-store-retries") || "",
       );
-      const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation, {
-        maxRetries: storeRetries,
-      });
-      evaluation.storePersisted = stored;
-      if (!stored) {
+      const storeOutcome = await storeEvaluationDetailed(
+        config.evaluationStoreUrl,
+        evaluation,
+        { maxRetries: storeRetries },
+      );
+      evaluation.storePersisted = storeOutcome.stored;
+      cloudQuotaExceeded = storeOutcome.quotaExceeded;
+      cloudSuspended = storeOutcome.suspended;
+      cloudHardCapped = storeOutcome.hardCapped;
+      // The cloud-upsell footer below already explains suspended/hard-capped
+      // state plainly with a link — don't also prepend the generic warning.
+      if (!storeOutcome.stored && !cloudSuspended && !cloudHardCapped) {
         const persistWarning =
           "> ⚠️ **Evaluation not persisted — dashboard incomplete.**";
         fullReport = `${persistWarning}\n\n${fullReport}`;
       }
+    }
+
+    const cloudFooterLine = buildCloudFooterLine({
+      // BYOS self-hosters (evaluation-store-url without a cloud key) DO
+      // persist evaluations — the "wasn't persisted" upsell must only fire
+      // in truly local-only mode.
+      hasCloudKey: Boolean(config.trailheadApiKey || config.evaluationStoreUrl),
+      disableUpsell: config.disableCloudUpsell ?? false,
+      quotaExceeded: cloudQuotaExceeded,
+      suspended: cloudSuspended,
+      hardCapped: cloudHardCapped,
+    });
+    if (cloudFooterLine) {
+      fullReport = `${fullReport}\n\n${cloudFooterLine}`;
     }
 
     await core.summary.addRaw(fullReport).write();

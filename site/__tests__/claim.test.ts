@@ -61,7 +61,11 @@ describe("GET /api/billing/claim — one-time semantics", () => {
   it("404s for an unknown session", async () => {
     setStore({
       claimKey: vi.fn(async () => null),
-      getKeyClaimStatus: vi.fn(async () => ({ exists: false, claimed: false, expired: false })),
+      getKeyClaimStatus: vi.fn(async () => ({
+        exists: false,
+        claimed: false,
+        expired: false,
+      })),
     });
     const res = await GET(req("cs_unknown"));
     expect(res.status).toBe(404);
@@ -70,7 +74,11 @@ describe("GET /api/billing/claim — one-time semantics", () => {
   it("410s (expired) for an unclaimed but expired claim", async () => {
     setStore({
       claimKey: vi.fn(async () => null),
-      getKeyClaimStatus: vi.fn(async () => ({ exists: true, claimed: false, expired: true })),
+      getKeyClaimStatus: vi.fn(async () => ({
+        exists: true,
+        claimed: false,
+        expired: true,
+      })),
     });
     const res = await GET(req("cs_expired"));
     expect(res.status).toBe(410);

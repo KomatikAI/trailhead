@@ -15,16 +15,16 @@ self-managed through the Stripe Customer Portal.
 
 ## Environment matrix
 
-| Var | Required | Where | Purpose |
-|-----|----------|-------|---------|
-| `STRIPE_SECRET_KEY` | yes | Vercel (prod: `sk_live_`, preview/dev: `sk_test_`) | Stripe SDK. `assertStripeMode` refuses a live key outside prod and a test key in prod. |
-| `STRIPE_WEBHOOK_SECRET` | yes | Vercel | Verifies `POST /api/billing/webhook` signatures. |
-| `STRIPE_PRICE_PRO` | yes | Vercel | Recurring Price id for Pro ($39/mo). |
-| `STRIPE_PRICE_TEAM` | yes | Vercel | Recurring Price id for Team ($399/mo). |
-| `DATABASE_URL` | yes (prod) | Vercel | Postgres (dedicated Supabase project). Unset → in-memory store (dev only). Consumed by Lane A's `createPgStore`. |
-| `TRAILHEAD_CLAIM_SECRET` | yes | Vercel | AES-256-GCM key that encrypts the one-time key claim. `openssl rand -hex 32`. |
-| `CRON_SECRET` | yes | Vercel | Bearer secret for the daily reconcile cron. `openssl rand -hex 32`. |
-| `NEXT_PUBLIC_SITE_URL` | yes | Vercel | Public origin for Stripe success/cancel + portal return URLs. Prod = `https://trailhead.komatik.xyz`. |
+| Var                      | Required   | Where                                              | Purpose                                                                                                          |
+| ------------------------ | ---------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `STRIPE_SECRET_KEY`      | yes        | Vercel (prod: `sk_live_`, preview/dev: `sk_test_`) | Stripe SDK. `assertStripeMode` refuses a live key outside prod and a test key in prod.                           |
+| `STRIPE_WEBHOOK_SECRET`  | yes        | Vercel                                             | Verifies `POST /api/billing/webhook` signatures.                                                                 |
+| `STRIPE_PRICE_PRO`       | yes        | Vercel                                             | Recurring Price id for Pro ($39/mo).                                                                             |
+| `STRIPE_PRICE_TEAM`      | yes        | Vercel                                             | Recurring Price id for Team ($399/mo).                                                                           |
+| `DATABASE_URL`           | yes (prod) | Vercel                                             | Postgres (dedicated Supabase project). Unset → in-memory store (dev only). Consumed by Lane A's `createPgStore`. |
+| `TRAILHEAD_CLAIM_SECRET` | yes        | Vercel                                             | AES-256-GCM key that encrypts the one-time key claim. `openssl rand -hex 32`.                                    |
+| `CRON_SECRET`            | yes        | Vercel                                             | Bearer secret for the daily reconcile cron. `openssl rand -hex 32`.                                              |
+| `NEXT_PUBLIC_SITE_URL`   | yes        | Vercel                                             | Public origin for Stripe success/cancel + portal return URLs. Prod = `https://trailhead.komatik.xyz`.            |
 
 See `.env.example`. Local dev: `cp .env.example .env.local` and fill in test-mode values.
 
@@ -32,14 +32,14 @@ See `.env.example`. Local dev: `cp .env.example .env.local` and fill in test-mod
 
 ## Route map
 
-| Method | Path | Auth | Notes |
-|--------|------|------|-------|
-| POST | `/api/billing/checkout` | public (IP rate-limited) | `{ plan: 'pro'\|'team', email }` → Stripe Checkout Session (mode=subscription). |
-| POST | `/api/billing/webhook` | Stripe signature | Idempotent via `stripe_webhook_events` (insert-first). Handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. |
-| GET | `/api/billing/claim?session_id=` | one-time token (session id) | Atomic one-time API-key reveal. 410 if already claimed/expired. |
-| POST | `/api/billing/portal` | Bearer API key | Stripe Customer Portal session for the key's org. |
-| GET | `/api/billing/reconcile` | Bearer `CRON_SECRET` | Daily Vercel cron. Diffs Stripe ↔ `subscriptions`, repairs drift, purges expired claims. |
-| ANY | `/api/cloud/[[...route]]` | Bearer API key (`/v1/*`) | The mounted Cloud API. e.g. `POST /api/cloud/v1/evaluations`, `GET /api/cloud/health`. |
+| Method | Path                             | Auth                        | Notes                                                                                                                                                          |
+| ------ | -------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/billing/checkout`          | public (IP rate-limited)    | `{ plan: 'pro'\|'team', email }` → Stripe Checkout Session (mode=subscription).                                                                                |
+| POST   | `/api/billing/webhook`           | Stripe signature            | Idempotent via `stripe_webhook_events` (insert-first). Handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. |
+| GET    | `/api/billing/claim?session_id=` | one-time token (session id) | Atomic one-time API-key reveal. 410 if already claimed/expired.                                                                                                |
+| POST   | `/api/billing/portal`            | Bearer API key              | Stripe Customer Portal session for the key's org.                                                                                                              |
+| GET    | `/api/billing/reconcile`         | Bearer `CRON_SECRET`        | Daily Vercel cron. Diffs Stripe ↔ `subscriptions`, repairs drift, purges expired claims.                                                                       |
+| ANY    | `/api/cloud/[[...route]]`        | Bearer API key (`/v1/*`)    | The mounted Cloud API. e.g. `POST /api/cloud/v1/evaluations`, `GET /api/cloud/health`.                                                                         |
 
 ---
 

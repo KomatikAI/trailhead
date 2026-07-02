@@ -6,6 +6,7 @@ import {
   deliverWebhookEvent,
   sendWebhook,
   storeEvaluation,
+  storeEvaluationDetailed,
 } from "../notify.js";
 import { buildRemediation } from "../remediation.js";
 import type { GateEvaluation } from "../types.js";
@@ -406,5 +407,123 @@ describe("storeEvaluation", () => {
     await expect(promise).resolves.toBe(true);
     expect(fetch).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
+  });
+});
+
+describe("storeEvaluationDetailed — quota/billing surfacing", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+    delete process.env.EVALUATION_STORE_SECRET;
+    delete process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.EVALUATION_STORE_SECRET;
+    delete process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+    delete process.env.SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  });
+
+  it("reports quotaExceeded=true on 200 + X-Trailhead-Quota-Exceeded header, and stays stored", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response('{"stored":true}', {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Trailhead-Quota-Exceeded": "true",
+        },
+      }),
+    );
+
+    const outcome = await storeEvaluationDetailed(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    expect(outcome).toEqual({
+      stored: true,
+      quotaExceeded: true,
+      suspended: false,
+      hardCapped: false,
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not set quotaExceeded when the header is absent", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"stored":true}'));
+    const outcome = await storeEvaluationDetailed(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    expect(outcome.quotaExceeded).toBe(false);
+  });
+
+  it("reports suspended=true, stored=false, and does not throw on HTTP 402", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"error":"suspended"}', 402));
+
+    const outcome = await storeEvaluationDetailed(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    expect(outcome).toEqual({
+      stored: false,
+      quotaExceeded: false,
+      suspended: true,
+      hardCapped: false,
+    });
+    // Not retried, and no Supabase-fallback fetch either (deliberate billing gate).
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports hardCapped=true, stored=false, and does not throw on JSON HTTP 429", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"error":"hard_cap"}', 429));
+
+    const outcome = await storeEvaluationDetailed(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    expect(outcome).toEqual({
+      stored: false,
+      quotaExceeded: false,
+      suspended: false,
+      hardCapped: true,
+    });
+    // Not retried — a JSON 429 is a permanent-for-the-period hard cap, not transient.
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("still retries a non-JSON (HTML) 429 — likely bot protection, not a hard cap", async () => {
+    vi.useFakeTimers();
+    const html429 = () =>
+      new Response("<html>checkpoint</html>", {
+        status: 429,
+        headers: { "Content-Type": "text/html" },
+      });
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(html429())
+      .mockResolvedValueOnce(jsonResponse('{"stored":true}'));
+
+    const promise = storeEvaluationDetailed(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(promise).resolves.toEqual({
+      stored: true,
+      quotaExceeded: false,
+      suspended: false,
+      hardCapped: false,
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("storeEvaluation boolean wrapper still resolves false on suspended/hard-capped without throwing", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"error":"suspended"}', 402));
+    await expect(
+      storeEvaluation("https://example.com/api/trailhead/store", makeEvaluation()),
+    ).resolves.toBe(false);
   });
 });
