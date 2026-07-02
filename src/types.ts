@@ -690,6 +690,7 @@ export interface TrailheadConfig {
   ciManifestPath?: string;
   agentBrief?: AgentBriefMode;
   submissionGate?: boolean;
+  disableCloudUpsell?: boolean;
 }
 
 export interface TestRepairResult {

@@ -100,6 +100,24 @@ See [docs/evaluation-storage.md](docs/evaluation-storage.md) and [docs/marketpla
 
 Bring-your-own-store (`evaluation-store-url` + secret) remains supported for self-hosted deployments.
 
+#### Check-summary footer
+
+When no `trailhead-api-key` is configured, the check summary ends with one footer line pointing at Trailhead Cloud — it never affects the gate decision and is purely informational:
+
+> 📊 This evaluation wasn't persisted — track trends, DORA metrics & agent-governance across your org with Trailhead Cloud → https://trailhead.komatik.xyz
+
+Set `disable-cloud-upsell: true` to suppress it.
+
+When a `trailhead-api-key` **is** configured, the same footer slot instead surfaces plan/billing state reported by the Cloud API — the gate always evaluates normally; store availability never blocks a merge:
+
+| Cloud API response                              | Footer                                                             | Evaluation stored? |
+| ------------------------------------------------ | -------------------------------------------------------------------- | ------------------- |
+| `200` + `X-Trailhead-Quota-Exceeded: true`        | Soft over-quota warning with an upgrade link                         | Yes                 |
+| `402` (plan suspended)                            | Plain "not stored — plan suspended" notice with a reactivation link | No                  |
+| `429` (hard usage cap, 3× plan limit)             | Plain "not stored — over hard usage cap" notice with an upgrade link | No                  |
+
+All links carry `utm_source=action&utm_medium=check-summary&utm_campaign=<cloud-upsell|quota-upsell|suspended-upsell>` for clickthrough measurement.
+
 ### Gate modes
 
 | Mode            | Behavior                                                                                                                 |
@@ -187,6 +205,7 @@ For **AI-authored PRs**, enable the submission gate and remediation loop — see
 | `trailhead-api-key`               | —          | Trailhead Cloud API key (auto-configures store)       |
 | `evaluation-store-url`            | —          | BYOS evaluation trend store URL                       |
 | `evaluation-store-secret`         | —          | Bearer token for evaluation store                     |
+| `disable-cloud-upsell`            | `false`    | Suppress the Cloud upsell/quota footer line            |
 | `dora-metrics`                    | `false`    | Compute DORA-5 metrics alongside gate                 |
 | `dora-environment`                | —          | Filter DORA metrics to one environment                |
 | `environment`                     | —          | Target deployment environment for threshold overrides |
@@ -237,6 +256,7 @@ Full input list and outputs below. Legacy table retained for reference:
 | `evaluation-store-url`      | No       | —                     | URL to POST evaluations for trend dashboards (BYOS; omit if using `trailhead-api-key`)       |
 | `evaluation-store-secret`   | No       | —                     | Bearer token for `evaluation-store-url`                                                      |
 | `evaluation-store-retries`  | No       | `3`                   | Retry attempts for transient evaluation store failures                                       |
+| `disable-cloud-upsell`      | No       | `false`               | Suppress the Trailhead Cloud upsell/quota footer line in the check summary                   |
 | `dora-metrics`              | No       | `false`               | Compute DORA-5 metrics alongside the gate evaluation                                         |
 | `dora-environment`          | No       | —                     | Filter DORA metrics to a specific deployment environment                                     |
 | `environment`               | No       | —                     | Target deployment environment (for per-env threshold overrides)                              |
