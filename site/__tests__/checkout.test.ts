@@ -67,7 +67,9 @@ describe("POST /api/billing/checkout — happy path", () => {
       id: "cs_new",
     });
 
-    const arg = createSession.mock.calls[0]![0];
+    const [firstCall] = createSession.mock.calls;
+    if (!firstCall) throw new Error("createSession was not called");
+    const arg = firstCall[0];
     expect(arg.mode).toBe("subscription");
     expect(arg.customer_email).toBe("dev@acme.com");
     expect(arg.line_items).toEqual([{ price: "price_team_456", quantity: 1 }]);
@@ -89,7 +91,8 @@ describe("POST /api/billing/checkout — rate limiting", () => {
     for (let i = 0; i < 12; i++) {
       last = await POST(post({ plan: "pro", email: "a@b.com" }, ip));
     }
-    expect(last!.status).toBe(429);
-    expect(last!.headers.get("Retry-After")).toBeTruthy();
+    if (!last) throw new Error("no response captured");
+    expect(last.status).toBe(429);
+    expect(last.headers.get("Retry-After")).toBeTruthy();
   });
 });
