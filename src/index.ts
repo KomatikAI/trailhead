@@ -53,7 +53,15 @@ export {
   deliverWebhooks,
   deliverWebhookEvent,
   storeEvaluation,
+  storeEvaluationDetailed,
 } from "./notify.js";
+export type { CloudStoreOutcome } from "./notify.js";
+export {
+  buildCloudFooterLine,
+  CLOUD_MARKETING_URL,
+  CLOUD_PRICING_URL,
+} from "./cloud-upsell.js";
+export type { CloudFooterOptions, CloudUpsellCampaign } from "./cloud-upsell.js";
 export {
   meterDeployCheck,
   resolveCreditMeterConfig,

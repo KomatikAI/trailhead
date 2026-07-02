@@ -133,10 +133,74 @@ export interface RepoRecord {
 
 export interface ApiKeyRecord {
   keyId: string;
+  /** Plaintext key. Only populated at issuance / in the memory store; the
+   *  Postgres store never returns plaintext (hash-only per contract). */
   key: string;
   orgId: string;
   orgName: string;
   label?: string;
+  /** Payment failure → key resolves but callers must 402. */
+  suspended: boolean;
+}
+
+export interface SubscriptionRecord {
+  id: string;
+  orgId: string;
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  plan: "pro" | "team";
+  status: string;
+  currentPeriodEnd: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateOrgWithSubscriptionInput {
+  orgName: string;
+  githubOrg?: string;
+  plan: "pro" | "team";
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  status: string;
+  currentPeriodEnd?: string | null;
+  keyLabel?: string;
+}
+
+export interface CreateOrgWithSubscriptionResult {
+  org: OrgRecord;
+  keySecret: string;
+  keyRecord: ApiKeyRecord;
+}
+
+export interface SubscriptionPatch {
+  plan?: "pro" | "team";
+  status?: string;
+  currentPeriodEnd?: string | null;
+}
+
+/** Reconcile / lost-webhook repair: no caller-supplied orgId — the store
+ *  resolves (or creates) the org from stripe_customer_id. */
+export interface UpsertSubscriptionInput {
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  plan: "pro" | "team";
+  status: string;
+  currentPeriodEnd?: string | null;
+}
+
+export type KeyClaimResult =
+  | { ciphertext: string }
+  | { alreadyClaimed: true }
+  | { expired: true }
+  | null;
+
+export interface IngestResult {
+  created: boolean;
+  evaluation: StoredEvaluation;
+  /** Soft over-quota (stored) OR plan does not include the cloud store. */
+  quotaExceeded?: boolean;
+  /** At/above 3× the tier limit — rejected, not stored (429 backstop). */
+  hardLimited?: boolean;
 }
 
 export interface ManagedApiKey {
@@ -154,49 +218,83 @@ export interface CloudStore {
     orgId: string,
     payload: EvaluationPayload,
     idempotencyKey?: string,
-  ): {
-    created: boolean;
-    evaluation: StoredEvaluation;
-    quotaExceeded?: boolean;
-  };
-  recordDeployEvent(orgId: string, payload: DeployEventPayload): void;
+  ): Promise<IngestResult>;
+  recordDeployEvent(orgId: string, payload: DeployEventPayload): Promise<void>;
   recordFeedback(
     record: import("./feedback-core.js").DetectorFeedbackRecord,
-  ): import("./feedback-core.js").DetectorFeedbackRecord;
+  ): Promise<import("./feedback-core.js").DetectorFeedbackRecord>;
   listFeedback(
     orgId: string,
     repoId?: string,
-  ): import("./feedback-core.js").DetectorFeedbackRecord[];
-  listOrgs(): OrgRecord[];
-  listRepos(orgId: string): RepoRecord[];
+  ): Promise<import("./feedback-core.js").DetectorFeedbackRecord[]>;
+  listOrgs(): Promise<OrgRecord[]>;
+  listRepos(orgId: string): Promise<RepoRecord[]>;
   listEvaluations(
     orgId: string,
     repoId?: string,
     limit?: number,
     prNumber?: number,
-  ): StoredEvaluation[];
-  getEvaluation(orgId: string, id: string): StoredEvaluation | null;
-  listAllEvaluations(orgId: string): StoredEvaluation[];
-  listDeployEvents(orgId: string): Array<{ orgId: string; payload: DeployEventPayload }>;
-  getOrgForKey(apiKey: string): ApiKeyRecord | null;
-  getOrgSettings(orgId: string): OrgSettings;
-  updateOrgSettings(orgId: string, patch: Partial<OrgSettings>): OrgSettings;
-  getQuota(orgId: string): QuotaSnapshot;
-  listManagedKeys(orgId: string): ManagedApiKey[];
-  createApiKey(orgId: string, label?: string): { key: ManagedApiKey; secret: string };
-  revokeApiKey(orgId: string, keyId: string): boolean;
+  ): Promise<StoredEvaluation[]>;
+  getEvaluation(orgId: string, id: string): Promise<StoredEvaluation | null>;
+  listAllEvaluations(orgId: string): Promise<StoredEvaluation[]>;
+  listDeployEvents(
+    orgId: string,
+  ): Promise<Array<{ orgId: string; payload: DeployEventPayload }>>;
+  getOrgForKey(apiKey: string): Promise<ApiKeyRecord | null>;
+  getOrgSettings(orgId: string): Promise<OrgSettings>;
+  updateOrgSettings(orgId: string, patch: Partial<OrgSettings>): Promise<OrgSettings>;
+  getQuota(orgId: string): Promise<QuotaSnapshot>;
+  listManagedKeys(orgId: string): Promise<ManagedApiKey[]>;
+  createApiKey(
+    orgId: string,
+    label?: string,
+  ): Promise<{ key: ManagedApiKey; secret: string }>;
+  revokeApiKey(orgId: string, keyId: string): Promise<boolean>;
   listDetectorDowngrades(
     orgId: string,
-  ): import("./tuning-digest.js").DetectorDowngradeRecord[];
+  ): Promise<import("./tuning-digest.js").DetectorDowngradeRecord[]>;
   recordDetectorDowngrade(
     orgId: string,
     record: import("./tuning-digest.js").DetectorDowngradeRecord,
-  ): import("./tuning-digest.js").DetectorDowngradeRecord;
+  ): Promise<import("./tuning-digest.js").DetectorDowngradeRecord>;
   revertDetectorDowngrade(
     orgId: string,
     detectorCode: string,
     revertedBy: string,
-  ): import("./tuning-digest.js").DetectorDowngradeRecord | null;
+  ): Promise<import("./tuning-digest.js").DetectorDowngradeRecord | null>;
+
+  // --- Billing surface ---
+  createOrgWithSubscription(
+    input: CreateOrgWithSubscriptionInput,
+  ): Promise<CreateOrgWithSubscriptionResult>;
+  updateSubscriptionByStripeId(
+    stripeSubscriptionId: string,
+    patch: SubscriptionPatch,
+  ): Promise<string | null>;
+  /** Idempotent reconcile: resolve org by stripe_customer_id (create a minimal
+   *  org + settings if the webhook was lost), upsert the subscription, sync
+   *  plan + key suspension. Returns the affected orgId. */
+  upsertSubscriptionFromStripe(sub: UpsertSubscriptionInput): Promise<string>;
+  setKeysSuspended(orgId: string, suspended: boolean): Promise<void>;
+  recordStripeEvent(
+    eventId: string,
+    eventType: string,
+    payload: unknown,
+  ): Promise<boolean>;
+  /** Rollback for the insert-first idempotency ledger: delete the ledger row
+   *  when webhook processing throws AFTER recordStripeEvent, so Stripe's retry
+   *  of the same event id is not short-circuited as a duplicate. */
+  removeStripeEvent(eventId: string): Promise<void>;
+  createKeyClaim(
+    sessionId: string,
+    orgId: string,
+    ciphertext: string,
+    expiresAt: string,
+  ): Promise<void>;
+  claimKey(sessionId: string): Promise<KeyClaimResult>;
+  purgeExpiredClaims(): Promise<number>;
+  getSubscriptionForOrg(orgId: string): Promise<SubscriptionRecord | null>;
+  listSubscriptions(): Promise<SubscriptionRecord[]>;
 }
 
 export interface RateLimitState {
