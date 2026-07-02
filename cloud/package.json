@@ -3,7 +3,7 @@
   "version": "4.5.2",
   "private": true,
   "type": "module",
-  "description": "Trailhead Cloud API \u2014 evaluation store, org/repo registry, deploy events",
+  "description": "Trailhead Cloud API — evaluation store, org/repo registry, deploy events",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
