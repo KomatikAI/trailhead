@@ -15,10 +15,12 @@ export default function PricingPage() {
   return (
     <main className="wrap" style={{ padding: "64px 24px 96px" }}>
       <div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 48px" }}>
-        <h1 style={{ fontSize: "2.25rem", margin: "0 0 12px", letterSpacing: "-0.01em" }}>Pricing</h1>
+        <h1 style={{ fontSize: "2.25rem", margin: "0 0 12px", letterSpacing: "-0.01em" }}>
+          Pricing
+        </h1>
         <p className="muted" style={{ fontSize: "1.0625rem" }}>
-          The gate is free. Cloud is for teams that need the history, the dashboard, and org-wide
-          agent-governance policy.
+          The gate is free. Cloud is for teams that need the history, the dashboard, and
+          org-wide agent-governance policy.
         </p>
       </div>
 
@@ -41,7 +43,11 @@ export default function PricingPage() {
             "No API key, no account, no store",
           ]}
           cta={
-            <Link href={MARKETPLACE_URL} className="btn btn-secondary" style={{ width: "100%" }}>
+            <Link
+              href={MARKETPLACE_URL}
+              className="btn btn-secondary"
+              style={{ width: "100%" }}
+            >
               Install from Marketplace
             </Link>
           }
@@ -113,7 +119,13 @@ function PlanCard({
       }}
     >
       <div>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+          }}
+        >
           <h2 style={{ margin: 0, fontSize: "1.25rem" }}>{name}</h2>
           {highlight ? <span className="badge">Most popular</span> : null}
         </div>
@@ -125,7 +137,17 @@ function PlanCard({
           {tagline}
         </p>
       </div>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+      <ul
+        style={{
+          listStyle: "none",
+          padding: 0,
+          margin: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          flex: 1,
+        }}
+      >
         {features.map((f) => (
           <li key={f} style={{ display: "flex", gap: 8, fontSize: "0.875rem" }}>
             <span aria-hidden="true" style={{ color: "var(--green)" }}>
@@ -145,11 +167,11 @@ function QuotaNote() {
     <div className="card" style={{ marginTop: 40 }}>
       <h2 style={{ fontSize: "1.0625rem", margin: "0 0 8px" }}>How quota works</h2>
       <p className="muted" style={{ margin: 0, fontSize: "0.9375rem" }}>
-        Going over your monthly evaluation limit does not stop your gate. Evaluations keep being
-        stored and the response carries an upsell header until usage reaches <strong>3&times;</strong>{" "}
-        your plan limit — at that point ingest is hard-capped (402/429) as an abuse backstop until
-        the next billing cycle or an upgrade. You will see the quota warning in your CI logs well
-        before that happens.
+        Going over your monthly evaluation limit does not stop your gate. Evaluations keep
+        being stored and the response carries an upsell header until usage reaches{" "}
+        <strong>3&times;</strong> your plan limit — at that point ingest is hard-capped
+        (402/429) as an abuse backstop until the next billing cycle or an upgrade. You
+        will see the quota warning in your CI logs well before that happens.
       </p>
     </div>
   );

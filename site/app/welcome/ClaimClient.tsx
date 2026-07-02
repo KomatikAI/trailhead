@@ -27,7 +27,11 @@ export default function ClaimClient() {
     };
   }, [sessionId]);
 
-  return <div className="wrap" style={{ padding: "64px 24px 96px", maxWidth: 640 }}>{render(state)}</div>;
+  return (
+    <div className="wrap" style={{ padding: "64px 24px 96px", maxWidth: 640 }}>
+      {render(state)}
+    </div>
+  );
 }
 
 function render(state: ClaimState) {
@@ -38,17 +42,17 @@ function render(state: ClaimState) {
     case "missing":
       return (
         <ErrorPanel title="No checkout session found">
-          This page expects a <code>?session_id=</code> query parameter from a Stripe Checkout
-          redirect. If you just paid, check your email receipt for the correct link, or{" "}
-          <a href="mailto:support@komatik.ai">contact support</a>.
+          This page expects a <code>?session_id=</code> query parameter from a Stripe
+          Checkout redirect. If you just paid, check your email receipt for the correct
+          link, or <a href="mailto:support@komatik.ai">contact support</a>.
         </ErrorPanel>
       );
 
     case "not_found":
       return (
         <ErrorPanel title="We couldn't find that checkout session">
-          Double-check the link, or <a href="mailto:support@komatik.ai">contact support</a> with
-          your receipt email.
+          Double-check the link, or{" "}
+          <a href="mailto:support@komatik.ai">contact support</a> with your receipt email.
         </ErrorPanel>
       );
 
@@ -56,8 +60,8 @@ function render(state: ClaimState) {
       return (
         <ErrorPanel title="This key was already claimed">
           {state.message} Lost the key?{" "}
-          <a href="mailto:support@komatik.ai">Contact support</a> to rotate it, or open the billing
-          portal from your <a href="/dashboard">dashboard</a>.
+          <a href="mailto:support@komatik.ai">Contact support</a> to rotate it, or open
+          the billing portal from your <a href="/dashboard">dashboard</a>.
         </ErrorPanel>
       );
 
@@ -65,7 +69,8 @@ function render(state: ClaimState) {
       return (
         <ErrorPanel title="This claim link has expired">
           {state.message} Claim links are valid for 72 hours after checkout.{" "}
-          <a href="mailto:support@komatik.ai">Contact support</a> to issue a replacement key.
+          <a href="mailto:support@komatik.ai">Contact support</a> to issue a replacement
+          key.
         </ErrorPanel>
       );
 
@@ -79,7 +84,8 @@ function render(state: ClaimState) {
     case "error":
       return (
         <ErrorPanel title="Something went wrong">
-          {state.message} <a href="mailto:support@komatik.ai">Contact support</a> if this persists.
+          {state.message} <a href="mailto:support@komatik.ai">Contact support</a> if this
+          persists.
         </ErrorPanel>
       );
 
@@ -115,7 +121,9 @@ function RevealPanel({ apiKey, message }: { apiKey: string; message: string }) {
   return (
     <div>
       <h1 style={{ fontSize: "1.75rem", margin: "0 0 8px" }}>You&rsquo;re in 🎉</h1>
-      <p className="muted" style={{ marginTop: 0 }}>{message}</p>
+      <p className="muted" style={{ marginTop: 0 }}>
+        {message}
+      </p>
 
       <div
         role="alert"
@@ -129,7 +137,8 @@ function RevealPanel({ apiKey, message }: { apiKey: string; message: string }) {
           margin: "20px 0",
         }}
       >
-        This key is shown once. It will not be shown again — copy it now and store it as a secret.
+        This key is shown once. It will not be shown again — copy it now and store it as a
+        secret.
       </div>
 
       <div
@@ -144,7 +153,12 @@ function RevealPanel({ apiKey, message }: { apiKey: string; message: string }) {
         }}
       >
         <span>{apiKey}</span>
-        <button type="button" className="btn btn-primary" onClick={copy} style={{ flexShrink: 0 }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={copy}
+          style={{ flexShrink: 0 }}
+        >
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
@@ -152,17 +166,21 @@ function RevealPanel({ apiKey, message }: { apiKey: string; message: string }) {
       <h2 style={{ fontSize: "1.125rem", marginTop: 36 }}>Next steps</h2>
       <ol style={{ paddingLeft: 20, fontSize: "0.9375rem" }}>
         <li style={{ marginBottom: 12 }}>
-          Add it as a repo or org secret named <code>TRAILHEAD_API_KEY</code> — GitHub &rarr;
-          Settings &rarr; Secrets and variables &rarr; Actions.
+          Add it as a repo or org secret named <code>TRAILHEAD_API_KEY</code> — GitHub
+          &rarr; Settings &rarr; Secrets and variables &rarr; Actions.
         </li>
         <li style={{ marginBottom: 12 }}>
           Reference it in your workflow so Trailhead auto-configures the Cloud store:
-          <div className="card mono" style={{ marginTop: 8, fontSize: "0.8125rem", overflowX: "auto" }}>
+          <div
+            className="card mono"
+            style={{ marginTop: 8, fontSize: "0.8125rem", overflowX: "auto" }}
+          >
             <pre style={{ margin: 0, whiteSpace: "pre" }}>{WORKFLOW_SNIPPET}</pre>
           </div>
         </li>
         <li>
-          Open your <a href="/dashboard">dashboard</a> to watch evaluations land after the next PR.
+          Open your <a href="/dashboard">dashboard</a> to watch evaluations land after the
+          next PR.
         </li>
       </ol>
     </div>

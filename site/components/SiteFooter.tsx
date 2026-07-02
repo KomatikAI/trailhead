@@ -16,7 +16,10 @@ export default function SiteFooter() {
       >
         <span>&copy; {new Date().getFullYear()} Komatik. Trailhead is MIT-licensed.</span>
         <div style={{ display: "flex", gap: 20 }}>
-          <Link href="https://github.com/KomatikAI/trailhead" style={{ textDecoration: "none" }}>
+          <Link
+            href="https://github.com/KomatikAI/trailhead"
+            style={{ textDecoration: "none" }}
+          >
             GitHub
           </Link>
           <Link

@@ -13,7 +13,10 @@ describe("submitCheckout — pricing page checkout form handler", () => {
     const result = await submitCheckout("pro", "dev@acme.com", async (url, init) => {
       expect(url).toBe("/api/billing/checkout");
       expect(init.method).toBe("POST");
-      expect(JSON.parse(init.body as string)).toEqual({ plan: "pro", email: "dev@acme.com" });
+      expect(JSON.parse(init.body as string)).toEqual({
+        plan: "pro",
+        email: "dev@acme.com",
+      });
       return jsonResponse(200, { url: "https://checkout.stripe/cs_new", id: "cs_new" });
     });
     expect(result).toEqual({ status: "redirect", url: "https://checkout.stripe/cs_new" });
@@ -31,7 +34,9 @@ describe("submitCheckout — pricing page checkout form handler", () => {
   });
 
   it("returns rate_limited with null retryAfterSeconds when the body omits it", async () => {
-    const result = await submitCheckout("pro", "a@b.com", async () => jsonResponse(429, {}));
+    const result = await submitCheckout("pro", "a@b.com", async () =>
+      jsonResponse(429, {}),
+    );
     expect(result).toEqual({ status: "rate_limited", retryAfterSeconds: null });
   });
 
@@ -50,7 +55,9 @@ describe("submitCheckout — pricing page checkout form handler", () => {
   });
 
   it("returns error when the response has no url", async () => {
-    const result = await submitCheckout("pro", "a@b.com", async () => jsonResponse(200, {}));
+    const result = await submitCheckout("pro", "a@b.com", async () =>
+      jsonResponse(200, {}),
+    );
     expect(result).toEqual({
       status: "error",
       message: "Checkout session did not return a redirect URL.",

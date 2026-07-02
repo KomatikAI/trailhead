@@ -32,14 +32,18 @@ export async function submitCheckout(
       body: JSON.stringify({ plan, email }),
     });
   } catch {
-    return { status: "error", message: "Network error — check your connection and try again." };
+    return {
+      status: "error",
+      message: "Network error — check your connection and try again.",
+    };
   }
 
   if (res.status === 429) {
     const body = (await res.json().catch(() => ({}))) as { retryAfterSeconds?: number };
     return {
       status: "rate_limited",
-      retryAfterSeconds: typeof body.retryAfterSeconds === "number" ? body.retryAfterSeconds : null,
+      retryAfterSeconds:
+        typeof body.retryAfterSeconds === "number" ? body.retryAfterSeconds : null,
     };
   }
 
@@ -50,7 +54,10 @@ export async function submitCheckout(
 
   const body = (await res.json()) as { url?: string };
   if (!body.url) {
-    return { status: "error", message: "Checkout session did not return a redirect URL." };
+    return {
+      status: "error",
+      message: "Checkout session did not return a redirect URL.",
+    };
   }
   return { status: "redirect", url: body.url };
 }

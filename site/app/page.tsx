@@ -54,19 +54,38 @@ function Hero() {
       </h1>
       <p
         className="muted"
-        style={{ fontSize: "1.1875rem", maxWidth: 640, margin: "0 auto 36px", lineHeight: 1.6 }}
+        style={{
+          fontSize: "1.1875rem",
+          maxWidth: 640,
+          margin: "0 auto 36px",
+          lineHeight: 1.6,
+        }}
       >
-        Trailhead waits for your CI, scores every pull request across 17 weighted risk factors,
-        checks production health, and gates AI-authored PRs before they hit main — one{" "}
-        <strong>Release&nbsp;Ready</strong> check, one merge rule.
+        Trailhead waits for your CI, scores every pull request across 17 weighted risk
+        factors, checks production health, and gates AI-authored PRs before they hit main
+        — one <strong>Release&nbsp;Ready</strong> check, one merge rule.
       </p>
       <div
-        style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 16 }}
+        style={{
+          display: "flex",
+          gap: 12,
+          justifyContent: "center",
+          flexWrap: "wrap",
+          marginBottom: 16,
+        }}
       >
-        <Link href={MARKETPLACE_URL} className="btn btn-primary" style={{ padding: "12px 22px" }}>
+        <Link
+          href={MARKETPLACE_URL}
+          className="btn btn-primary"
+          style={{ padding: "12px 22px" }}
+        >
           Install from GitHub Marketplace
         </Link>
-        <Link href="/pricing" className="btn btn-secondary" style={{ padding: "12px 22px" }}>
+        <Link
+          href="/pricing"
+          className="btn btn-secondary"
+          style={{ padding: "12px 22px" }}
+        >
           View Trailhead Cloud pricing
         </Link>
       </div>
@@ -108,7 +127,12 @@ function Proof() {
     ["0", "secrets required for the free Action"],
   ];
   return (
-    <section style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+    <section
+      style={{
+        borderTop: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
       <div
         className="wrap"
         style={{
@@ -143,12 +167,15 @@ function HowItWorks() {
     ],
     [
       "Get one merge decision",
-      "allow, warn, or block. \"Trailhead — Release Ready\" is the one check your branch protection rule requires, so there's nothing else to reconcile across CI and risk.",
+      'allow, warn, or block. "Trailhead — Release Ready" is the one check your branch protection rule requires, so there\'s nothing else to reconcile across CI and risk.',
     ],
   ];
   return (
     <section className="wrap" style={{ padding: "72px 24px" }}>
-      <SectionHeading eyebrow="How it works" title="Three steps from PR open to merge decision" />
+      <SectionHeading
+        eyebrow="How it works"
+        title="Three steps from PR open to merge decision"
+      />
       <div
         style={{
           display: "grid",
@@ -161,7 +188,12 @@ function HowItWorks() {
           <div key={title} className="card">
             <div
               className="mono"
-              style={{ color: "var(--accent)", fontWeight: 700, marginBottom: 12, fontSize: "0.875rem" }}
+              style={{
+                color: "var(--accent)",
+                fontWeight: 700,
+                marginBottom: 12,
+                fontSize: "0.875rem",
+              }}
             >
               STEP {i + 1}
             </div>
@@ -178,13 +210,31 @@ function HowItWorks() {
 
 function AgentGovernance() {
   const findings: [string, string][] = [
-    ["Provenance classification", "Every PR is labeled human, dependabot, copilot, codex, claude, custom-bot, or unknown."],
-    ["Agent-policy findings", "Sensitive-path gates, required-approval counts, and code-owner review for agent-authored PRs."],
-    ["Session-burst detection", "Flags correlated bursts of agent commits inside a time window — a signature of runaway automation."],
-    ["Trust profiles & SLAs", "Per-repo strictness (baseline, elevated, strict) plus escalation status and acknowledge/resolve SLAs."],
+    [
+      "Provenance classification",
+      "Every PR is labeled human, dependabot, copilot, codex, claude, custom-bot, or unknown.",
+    ],
+    [
+      "Agent-policy findings",
+      "Sensitive-path gates, required-approval counts, and code-owner review for agent-authored PRs.",
+    ],
+    [
+      "Session-burst detection",
+      "Flags correlated bursts of agent commits inside a time window — a signature of runaway automation.",
+    ],
+    [
+      "Trust profiles & SLAs",
+      "Per-repo strictness (baseline, elevated, strict) plus escalation status and acknowledge/resolve SLAs.",
+    ],
   ];
   return (
-    <section style={{ background: "var(--bg-raised)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+    <section
+      style={{
+        background: "var(--bg-raised)",
+        borderTop: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
       <div className="wrap" style={{ padding: "72px 24px" }}>
         <SectionHeading
           eyebrow="Agent governance"
@@ -209,9 +259,13 @@ function AgentGovernance() {
           ))}
         </div>
         <p className="muted" style={{ marginTop: 28, fontSize: "0.875rem" }}>
-          Governance policies (approval requirements, sensitive-path gates, strict unknown-provenance
-          handling) are configured per-repo in <code>.trailhead.yml</code> — see the{" "}
-          <Link href={`${REPO_URL}#agent-governance-optional`}>agent governance docs</Link>.
+          Governance policies (approval requirements, sensitive-path gates, strict
+          unknown-provenance handling) are configured per-repo in{" "}
+          <code>.trailhead.yml</code> — see the{" "}
+          <Link href={`${REPO_URL}#agent-governance-optional`}>
+            agent governance docs
+          </Link>
+          .
         </p>
       </div>
     </section>
@@ -238,11 +292,15 @@ function Dogfood() {
           <h2 style={{ fontSize: "1.5rem", margin: "0 0 12px" }}>
             We run Trailhead on our own agent fleet
           </h2>
-          <p className="muted" style={{ margin: 0, fontSize: "0.9375rem", maxWidth: 560 }}>
+          <p
+            className="muted"
+            style={{ margin: 0, fontSize: "0.9375rem", maxWidth: 560 }}
+          >
             Komatik gates every pull request its own AI agents open against{" "}
-            <code>KomatikAI/agents</code> with the same submission engine, trust scoring, and risk
-            factors shipped here — provenance classification, sensitive-path policies, and Gate 1
-            submission checks, running on real, autonomous, multi-agent PR traffic every day.
+            <code>KomatikAI/agents</code> with the same submission engine, trust scoring,
+            and risk factors shipped here — provenance classification, sensitive-path
+            policies, and Gate 1 submission checks, running on real, autonomous,
+            multi-agent PR traffic every day.
           </p>
         </div>
       </div>
@@ -254,10 +312,15 @@ function PlanTeaser() {
   return (
     <section style={{ borderTop: "1px solid var(--border)" }}>
       <div className="wrap" style={{ padding: "72px 24px", textAlign: "center" }}>
-        <SectionHeading eyebrow="Pricing" title="Free to gate. Paid to remember." center />
+        <SectionHeading
+          eyebrow="Pricing"
+          title="Free to gate. Paid to remember."
+          center
+        />
         <p className="muted" style={{ maxWidth: 560, margin: "16px auto 32px" }}>
-          The Action is free forever — no API key, no store. Trailhead Cloud adds hosted evaluation
-          history, dashboards, and org-wide agent-governance policy for teams that need the record.
+          The Action is free forever — no API key, no store. Trailhead Cloud adds hosted
+          evaluation history, dashboards, and org-wide agent-governance policy for teams
+          that need the record.
         </p>
         <div
           style={{
@@ -274,7 +337,13 @@ function PlanTeaser() {
             ["Team", "50,000 evals/mo + org rollup + SSO", "$399/mo"],
           ].map(([name, desc, price]) => (
             <div key={name} className="card" style={{ textAlign: "left" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                }}
+              >
                 <strong>{name}</strong>
                 <span className="mono muted">{price}</span>
               </div>
@@ -284,7 +353,11 @@ function PlanTeaser() {
             </div>
           ))}
         </div>
-        <Link href="/pricing" className="btn btn-primary" style={{ padding: "12px 22px" }}>
+        <Link
+          href="/pricing"
+          className="btn btn-primary"
+          style={{ padding: "12px 22px" }}
+        >
           See full plan details
         </Link>
       </div>
@@ -294,17 +367,31 @@ function PlanTeaser() {
 
 function FinalCta() {
   return (
-    <section style={{ background: "var(--bg-raised)", borderTop: "1px solid var(--border)" }}>
+    <section
+      style={{ background: "var(--bg-raised)", borderTop: "1px solid var(--border)" }}
+    >
       <div className="wrap" style={{ padding: "72px 24px", textAlign: "center" }}>
-        <h2 style={{ fontSize: "1.875rem", margin: "0 0 12px" }}>Ship your next PR through a real gate</h2>
+        <h2 style={{ fontSize: "1.875rem", margin: "0 0 12px" }}>
+          Ship your next PR through a real gate
+        </h2>
         <p className="muted" style={{ margin: "0 0 28px" }}>
           Add the Action in a few minutes. Add Cloud when you need the history.
         </p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href={MARKETPLACE_URL} className="btn btn-primary" style={{ padding: "12px 22px" }}>
+        <div
+          style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}
+        >
+          <Link
+            href={MARKETPLACE_URL}
+            className="btn btn-primary"
+            style={{ padding: "12px 22px" }}
+          >
             Install from GitHub Marketplace
           </Link>
-          <Link href={REPO_URL} className="btn btn-secondary" style={{ padding: "12px 22px" }}>
+          <Link
+            href={REPO_URL}
+            className="btn btn-secondary"
+            style={{ padding: "12px 22px" }}
+          >
             View source on GitHub
           </Link>
         </div>
@@ -325,14 +412,27 @@ function SectionHeading({
   center?: boolean;
 }) {
   return (
-    <div style={{ textAlign: center ? "center" : "left", maxWidth: 720, margin: center ? "0 auto" : 0 }}>
+    <div
+      style={{
+        textAlign: center ? "center" : "left",
+        maxWidth: 720,
+        margin: center ? "0 auto" : 0,
+      }}
+    >
       <div
         className="mono muted"
-        style={{ fontSize: "0.8125rem", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}
+        style={{
+          fontSize: "0.8125rem",
+          fontWeight: 700,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+        }}
       >
         {eyebrow}
       </div>
-      <h2 style={{ fontSize: "1.75rem", margin: "8px 0 0", letterSpacing: "-0.01em" }}>{title}</h2>
+      <h2 style={{ fontSize: "1.75rem", margin: "8px 0 0", letterSpacing: "-0.01em" }}>
+        {title}
+      </h2>
       {body ? (
         <p className="muted" style={{ marginTop: 12, fontSize: "0.9375rem" }}>
           {body}

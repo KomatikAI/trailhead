@@ -12,7 +12,13 @@ export const metadata: Metadata = {
 // for useSearchParams in an App Router page).
 export default function WelcomePage() {
   return (
-    <Suspense fallback={<div className="wrap" style={{ padding: "64px 24px" }}>Loading…</div>}>
+    <Suspense
+      fallback={
+        <div className="wrap" style={{ padding: "64px 24px" }}>
+          Loading…
+        </div>
+      }
+    >
       <ClaimClient />
     </Suspense>
   );

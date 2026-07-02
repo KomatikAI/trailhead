@@ -44,8 +44,15 @@ export default function CheckoutForm({ plan, label }: { plan: PaidPlan; label: s
   const busy = status === "loading";
 
   return (
-    <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <label htmlFor={`email-${plan}`} className="muted" style={{ fontSize: "0.8125rem" }}>
+    <form
+      onSubmit={onSubmit}
+      style={{ display: "flex", flexDirection: "column", gap: 8 }}
+    >
+      <label
+        htmlFor={`email-${plan}`}
+        className="muted"
+        style={{ fontSize: "0.8125rem" }}
+      >
         Work email
       </label>
       <input
@@ -65,7 +72,12 @@ export default function CheckoutForm({ plan, label }: { plan: PaidPlan; label: s
           fontSize: "0.9375rem",
         }}
       />
-      <button type="submit" className="btn btn-primary" disabled={busy} style={{ marginTop: 4 }}>
+      <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={busy}
+        style={{ marginTop: 4 }}
+      >
         {busy ? "Redirecting to Stripe…" : label}
       </button>
       {status === "rate_limited" ? (

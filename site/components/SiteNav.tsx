@@ -41,7 +41,14 @@ export default function SiteNav() {
           <TrailheadMark size={22} />
           Trailhead
         </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: "0.9375rem" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 20,
+            fontSize: "0.9375rem",
+          }}
+        >
           <Link href={`${REPO_URL}#documentation`} style={{ textDecoration: "none" }}>
             Docs
           </Link>
@@ -57,7 +64,10 @@ export default function SiteNav() {
           >
             Status
           </Link>
-          <Link href="https://github.com/marketplace/actions/trailhead" className="btn btn-primary">
+          <Link
+            href="https://github.com/marketplace/actions/trailhead"
+            className="btn btn-primary"
+          >
             Install
           </Link>
         </div>

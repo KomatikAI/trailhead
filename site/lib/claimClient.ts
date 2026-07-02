@@ -36,9 +36,14 @@ export async function resolveClaimState(
 
   let res: Response;
   try {
-    res = await fetchImpl(`/api/billing/claim?session_id=${encodeURIComponent(sessionId)}`);
+    res = await fetchImpl(
+      `/api/billing/claim?session_id=${encodeURIComponent(sessionId)}`,
+    );
   } catch {
-    return { status: "error", message: "Network error — check your connection and reload." };
+    return {
+      status: "error",
+      message: "Network error — check your connection and reload.",
+    };
   }
 
   if (res.status === 200) {
@@ -52,9 +57,15 @@ export async function resolveClaimState(
     return { status: "not_found" };
   }
   if (res.status === 410) {
-    const body = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
+    const body = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      message?: string;
+    };
     if (body.code === "already_claimed") {
-      return { status: "already_claimed", message: body.message ?? "This key was already claimed." };
+      return {
+        status: "already_claimed",
+        message: body.message ?? "This key was already claimed.",
+      };
     }
     return { status: "expired", message: body.message ?? "This claim link has expired." };
   }
