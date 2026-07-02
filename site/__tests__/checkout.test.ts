@@ -72,7 +72,9 @@ describe("POST /api/billing/checkout — happy path", () => {
     expect(arg.customer_email).toBe("dev@acme.com");
     expect(arg.line_items).toEqual([{ price: "price_team_456", quantity: 1 }]);
     expect(arg.metadata).toEqual({ plan: "team", email: "dev@acme.com" });
-    expect(arg.subscription_data).toEqual({ metadata: { plan: "team", email: "dev@acme.com" } });
+    expect(arg.subscription_data).toEqual({
+      metadata: { plan: "team", email: "dev@acme.com" },
+    });
     expect(arg.success_url).toBe(
       "https://trailhead.komatik.xyz/welcome?session_id={CHECKOUT_SESSION_ID}",
     );

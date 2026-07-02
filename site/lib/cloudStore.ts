@@ -1,8 +1,4 @@
-import {
-  createMemoryStore,
-  createPgStore,
-  type BillingStore,
-} from "trailhead-cloud";
+import { createMemoryStore, createPgStore, type BillingStore } from "trailhead-cloud";
 
 /**
  * Billing store accessor for the site routes.

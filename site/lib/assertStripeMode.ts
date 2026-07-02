@@ -22,7 +22,9 @@ export function isProductionEnvironment(opts: AssertStripeModeOptions = {}): boo
   return process.env.NODE_ENV === "production";
 }
 
-export function detectStripeMode(secretKey: string | undefined | null): StripeMode | null {
+export function detectStripeMode(
+  secretKey: string | undefined | null,
+): StripeMode | null {
   if (!secretKey) return null;
   if (secretKey.startsWith("sk_live_") || secretKey.startsWith("rk_live_")) return "live";
   if (secretKey.startsWith("sk_test_") || secretKey.startsWith("rk_test_")) return "test";
@@ -50,7 +52,9 @@ export function assertStripeMode(
       );
     }
     if (mode === null) {
-      throw new Error("STRIPE_SECRET_KEY has unrecognized prefix in production environment");
+      throw new Error(
+        "STRIPE_SECRET_KEY has unrecognized prefix in production environment",
+      );
     }
     return;
   }

@@ -57,7 +57,13 @@ export async function GET(req: Request): Promise<Response> {
   const localRows = await store.listSubscriptions();
   const localByStripeId = new Map(localRows.map((r) => [r.stripeSubscriptionId, r]));
 
-  const summary = { scanned: 0, repaired: 0, resynced: 0, needsAttention: 0, claimsPurged: 0 };
+  const summary = {
+    scanned: 0,
+    repaired: 0,
+    resynced: 0,
+    needsAttention: 0,
+    claimsPurged: 0,
+  };
 
   try {
     // Walk all Stripe subscriptions; keep only those on a Price we own.
@@ -121,7 +127,10 @@ export async function GET(req: Request): Promise<Response> {
   } catch (err) {
     console.error("[reconcile] Error:", err);
     return Response.json(
-      { error: err instanceof Error ? err.message : "Reconcile failed", partial: summary },
+      {
+        error: err instanceof Error ? err.message : "Reconcile failed",
+        partial: summary,
+      },
       { status: 500 },
     );
   }

@@ -130,7 +130,11 @@ describe("handleStripeEvent — checkout.session.completed", () => {
 });
 
 describe("handleStripeEvent — subscription lifecycle", () => {
-  function subEvent(type: string, status: string, priceId = "price_team_456"): Stripe.Event {
+  function subEvent(
+    type: string,
+    status: string,
+    priceId = "price_team_456",
+  ): Stripe.Event {
     return {
       id: `evt_${type}_${status}`,
       type,
@@ -166,7 +170,11 @@ describe("handleStripeEvent — subscription lifecycle", () => {
 
   it("ignores unrelated event types (but still ledgers them)", async () => {
     const store = mockStore();
-    const evt = { id: "evt_x", type: "invoice.paid", data: { object: {} } } as unknown as Stripe.Event;
+    const evt = {
+      id: "evt_x",
+      type: "invoice.paid",
+      data: { object: {} },
+    } as unknown as Stripe.Event;
     const res = await handleStripeEvent(evt, store);
     expect(res).toEqual({ handled: false, reason: "ignored" });
     expect(store.recordStripeEvent).toHaveBeenCalledOnce();

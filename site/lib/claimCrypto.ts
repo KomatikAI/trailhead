@@ -27,7 +27,10 @@ function fromB64u(s: string): Buffer {
   return Buffer.from(s, "base64url");
 }
 
-export function encryptClaim(plaintext: string, secret = process.env.TRAILHEAD_CLAIM_SECRET): string {
+export function encryptClaim(
+  plaintext: string,
+  secret = process.env.TRAILHEAD_CLAIM_SECRET,
+): string {
   if (!secret) throw new Error("TRAILHEAD_CLAIM_SECRET is not configured");
   const key = deriveKey(secret);
   const iv = randomBytes(IV_BYTES);
@@ -37,7 +40,10 @@ export function encryptClaim(plaintext: string, secret = process.env.TRAILHEAD_C
   return `${VERSION}.${b64u(iv)}.${b64u(tag)}.${b64u(ct)}`;
 }
 
-export function decryptClaim(envelope: string, secret = process.env.TRAILHEAD_CLAIM_SECRET): string {
+export function decryptClaim(
+  envelope: string,
+  secret = process.env.TRAILHEAD_CLAIM_SECRET,
+): string {
   if (!secret) throw new Error("TRAILHEAD_CLAIM_SECRET is not configured");
   const parts = envelope.split(".");
   if (parts.length !== 4 || parts[0] !== VERSION) {
@@ -47,5 +53,7 @@ export function decryptClaim(envelope: string, secret = process.env.TRAILHEAD_CL
   const key = deriveKey(secret);
   const decipher = createDecipheriv("aes-256-gcm", key, fromB64u(ivB64));
   decipher.setAuthTag(fromB64u(tagB64));
-  return Buffer.concat([decipher.update(fromB64u(ctB64)), decipher.final()]).toString("utf8");
+  return Buffer.concat([decipher.update(fromB64u(ctB64)), decipher.final()]).toString(
+    "utf8",
+  );
 }

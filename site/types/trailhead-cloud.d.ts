@@ -145,7 +145,9 @@ declare module "trailhead-cloud" {
     ): Promise<SubscriptionRow | null>;
 
     /** Reconcile repair: create/refresh a subscription row from Stripe truth. */
-    upsertSubscriptionFromStripe(input: UpsertSubscriptionInput): Promise<{ orgId: string }>;
+    upsertSubscriptionFromStripe(
+      input: UpsertSubscriptionInput,
+    ): Promise<{ orgId: string }>;
 
     /** Reconcile: unrevoked, unsuspended key count for an org. */
     countActiveKeys(orgId: string): Promise<number>;
