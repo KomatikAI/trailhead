@@ -153,7 +153,17 @@ export function createPgStore(pool) {
                 }
                 const settingsRes = await client.query(`SELECT plan FROM org_settings WHERE org_id = $1`, [orgId]);
                 const plan = settingsRes.rows[0]?.plan ?? "free";
-                const usageRes = await client.query(`SELECT evals FROM usage_counters WHERE org_id = $1 AND month_key = $2`, [orgId, monthKey()]);
+                // Quota check-then-act race fix: two concurrent ingests both reading
+                // `used` before either increments can both pass the hardLimited check
+                // at the boundary. Ensure a row exists (INSERT ... ON CONFLICT DO
+                // NOTHING) then take SELECT ... FOR UPDATE to lock it for the rest of
+                // this transaction — any concurrent ingest for the same org+month
+                // blocks here until we commit/rollback, serializing the
+                // read-decide-increment sequence.
+                await client.query(`INSERT INTO usage_counters (org_id, month_key, evals)
+             VALUES ($1, $2, 0)
+           ON CONFLICT (org_id, month_key) DO NOTHING`, [orgId, monthKey()]);
+                const usageRes = await client.query(`SELECT evals FROM usage_counters WHERE org_id = $1 AND month_key = $2 FOR UPDATE`, [orgId, monthKey()]);
                 const used = usageRes.rows[0] ? Number(usageRes.rows[0].evals) : 0;
                 const quota = evaluateQuota(plan, used);
                 if (!quota.store) {
