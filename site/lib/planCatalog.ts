@@ -1,13 +1,11 @@
 /**
  * Marketing-facing plan catalog for the pricing page.
  *
- * Mirrors `cloud/src/billing.ts` PLANS exactly (Lane A, `feat/cloud-pg-store`,
- * not yet merged into this branch). We don't import PLANS from the
- * `trailhead-cloud` package here because the ambient module declaration in
- * `site/types/trailhead-cloud.d.ts` (Lane B's pre-merge compatibility shim)
- * doesn't export it yet — importing it would pass at runtime post-merge but
- * fail `tsc` today. Once Lane A merges and the package exposes real types,
- * swap this for `import { PLANS } from "trailhead-cloud"` and delete this file.
+ * Mirrors `cloud/src/billing.ts` PLANS exactly. The real `trailhead-cloud`
+ * package now exports `PLANS` directly (see cloud/src/index.ts) — this file
+ * could be replaced with `import { PLANS } from "trailhead-cloud"`, but is
+ * left as a separate catalog since the pricing page wants marketing copy
+ * fields (name, orgRollup, sso) that PLANS doesn't carry.
  */
 export interface PlanCatalogEntry {
   id: "free" | "pro" | "team";

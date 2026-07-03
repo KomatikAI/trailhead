@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { BillingStore } from "trailhead-cloud";
+import type { BillingStore } from "@/lib/cloudStore";
 import { encryptClaim } from "@/lib/claimCrypto";
 
 // Mock the store accessor so the route never touches the real cloud package.
@@ -35,16 +35,16 @@ describe("GET /api/billing/claim — one-time semantics", () => {
     const ciphertext = encryptClaim(KEY, SECRET);
     let claimed = false;
     setStore({
+      // Real claimKey (cloud/src/store.ts / pg-store.ts): a single atomic call
+      // returning a discriminated union — {ciphertext} | {alreadyClaimed:true}
+      // | {expired:true} | null. There is no separate getKeyClaimStatus (that
+      // only ever existed in the stale ambient .d.ts) — the variants
+      // themselves carry the status.
       claimKey: vi.fn(async () => {
-        if (claimed) return null;
+        if (claimed) return { alreadyClaimed: true as const };
         claimed = true;
-        return { keyCiphertext: ciphertext };
+        return { ciphertext };
       }),
-      getKeyClaimStatus: vi.fn(async () => ({
-        exists: true,
-        claimed: true,
-        expired: false,
-      })),
     });
 
     const first = await GET(req("cs_1"));
@@ -61,11 +61,6 @@ describe("GET /api/billing/claim — one-time semantics", () => {
   it("404s for an unknown session", async () => {
     setStore({
       claimKey: vi.fn(async () => null),
-      getKeyClaimStatus: vi.fn(async () => ({
-        exists: false,
-        claimed: false,
-        expired: false,
-      })),
     });
     const res = await GET(req("cs_unknown"));
     expect(res.status).toBe(404);
@@ -73,12 +68,7 @@ describe("GET /api/billing/claim — one-time semantics", () => {
 
   it("410s (expired) for an unclaimed but expired claim", async () => {
     setStore({
-      claimKey: vi.fn(async () => null),
-      getKeyClaimStatus: vi.fn(async () => ({
-        exists: true,
-        claimed: false,
-        expired: true,
-      })),
+      claimKey: vi.fn(async () => ({ expired: true as const })),
     });
     const res = await GET(req("cs_expired"));
     expect(res.status).toBe(410);
