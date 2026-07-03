@@ -170,6 +170,29 @@ describe("risk-engine", () => {
       expect(result.factors.some((f) => f.type === "code_churn")).toBe(true);
     });
 
+    it("can report size factors outside the blocking risk average", () => {
+      const files = Array.from({ length: 12 }, (_, i) => ({
+        filename: `docs/guide-${i}.md`,
+        changes: 20,
+      }));
+
+      const baseline = computeRiskScore(files);
+      const split = computeRiskScore(files, {
+        size_factors: {
+          mode: "metadata",
+          factors: ["file_count", "code_churn"],
+        },
+      });
+
+      expect(baseline.score).toBeGreaterThan(0);
+      expect(split.score).toBe(0);
+      expect(split.sizeScore).toBeGreaterThan(0);
+      expect(split.factors.map((f) => f.type)).toEqual(
+        expect.arrayContaining(["file_count", "code_churn"]),
+      );
+      expect(split.sizeFactors?.map((f) => f.type)).toEqual(["file_count", "code_churn"]);
+    });
+
     it("detects sensitive files", () => {
       const files = [
         { filename: "src/auth/login.ts", changes: 10 },

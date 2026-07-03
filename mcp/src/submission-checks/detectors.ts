@@ -432,14 +432,21 @@ function resolveRelativeImport(
 export function detectImportResolution(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
+  // Resolving relative imports needs repo ground truth: an import to an existing,
+  // UNCHANGED sibling (not in this PR's diff) is valid but looks "unresolved" if we
+  // only check changed files — a blocking false positive. Without repoPaths we can't
+  // tell that from a fabricated path, so stay dormant (the repoPaths convention used
+  // by the other existence-dependent detectors).
+  if (!ctx.repoPaths) return null;
   const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+  const known = new Set<string>([...ctx.prPaths, ...ctx.repoPaths]);
   const hits: string[] = [];
 
   for (const file of ctx.files) {
     if (!codeExts.has(extensionOf(file.filename))) continue;
     const content = fileContent(file);
     for (const specifier of extractRelativeImports(content)) {
-      if (!resolveRelativeImport(file.filename, specifier, ctx.prPaths)) {
+      if (!resolveRelativeImport(file.filename, specifier, known)) {
         hits.push(file.filename);
         break;
       }

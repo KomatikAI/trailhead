@@ -7,7 +7,14 @@ import { normalizeCheckRuns, evaluateRequiredChecks, } from "./ci-core.js";
 import { computeReleaseReady } from "./release-ready.js";
 import { registerAllAdapters, getAdapter, getAvailableAdapters, runAllAvailable, listAdapterNames, } from "./adapters/index.js";
 import { aggregateDetectorNoise, recommendPolicyTuning } from "./feedback-core.js";
-import { fetchCloudDetectorNoise, fetchCloudPolicyTuning, isCloudFeedbackEnabled, postCloudFeedback, } from "./cloud-feedback.js";
+import { fetchCloudDetectorNoise, fetchCloudEvaluationById, fetchCloudEvaluations, fetchCloudPolicyTuning, isCloudFeedbackEnabled, postCloudFeedback, } from "./cloud-feedback.js";
+import { evaluationMatchesTrailheadEvent, parseWebhookEvents, TRAILHEAD_EVENT_TYPES, } from "./trailhead-events.js";
+import { runSubmissionGate, getSubmissionConfigWarnings, submissionGateShouldBlock, } from "./submission-engine.js";
+import { deriveSubmissionFixes } from "./submission-remediation.js";
+import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
+import { assessColdStartFromMetrics } from "./agent-trust-metrics.js";
+import { computeAgentTrustScore } from "./trust-score.js";
+import { buildGateVerdict } from "./verdict.js";
 registerAllAdapters();
 const HEALTH_CHECK_TIMEOUT_MS = 10_000;
 const VERCEL_TIMEOUT_MS = 10_000;
@@ -888,8 +895,29 @@ server.tool("evaluate-policy", "Run a full Trailhead policy evaluation for a PR 
     catch {
         /* skip */
     }
+    const structuredVerdict = buildGateVerdict({
+        id: `mcp-${owner}-${repo}-${Date.now()}`,
+        repoId: `${owner}/${repo}`,
+        commitSha: commitSha ?? "unknown",
+        prNumber,
+        healthScore: 100,
+        riskScore,
+        gateDecision: decision,
+        healthChecks: [],
+        riskFactors: riskFactors.map((factor) => ({
+            type: factor.type,
+            score: factor.score,
+        })),
+        evaluationMs: 0,
+        releaseReady,
+        releaseReadyReasons: reasons,
+        ci: ciSummary ?? undefined,
+        gateMode: "release-ready",
+        policyFindings: reasons.length > 0 ? reasons : undefined,
+    });
     return jsonResult({
-        verdict: decision,
+        verdict: structuredVerdict,
+        gate_decision: decision,
         riskScore,
         releaseReady: releaseReady ?? null,
         releaseReadyReasons: releaseReadyReasons ?? [],
@@ -1256,6 +1284,378 @@ server.tool("recommend-policy-tuning", "Propose detector threshold/policy tuning
         source: "local-file",
     });
 });
+server.tool("get-remediation", "Return the Remediation block (trailhead.remediation.v1) from inline evaluation JSON or Trailhead Cloud.", {
+    evaluation_id: z
+        .string()
+        .optional()
+        .describe("Evaluation id stored in Trailhead Cloud"),
+    repo_id: z
+        .string()
+        .optional()
+        .describe("Repository id (owner/repo) when looking up by PR"),
+    pr_number: z
+        .number()
+        .int()
+        .optional()
+        .describe("Pull request number when looking up by PR"),
+    evaluation_json: z
+        .string()
+        .optional()
+        .describe("Raw GateEvaluation JSON from evaluation-json action output"),
+}, async ({ evaluation_id, repo_id, pr_number, evaluation_json }) => {
+    if (evaluation_json) {
+        try {
+            const parsed = JSON.parse(evaluation_json);
+            if (parsed.remediation) {
+                return jsonResult({
+                    source: "inline-json",
+                    evaluationId: parsed.id,
+                    remediation: parsed.remediation,
+                });
+            }
+            return jsonResult({ error: "evaluation_json has no remediation field" });
+        }
+        catch (error) {
+            return jsonResult({ error: `Invalid evaluation_json: ${String(error)}` });
+        }
+    }
+    if (!isCloudFeedbackEnabled()) {
+        return jsonResult({
+            error: "Trailhead Cloud not configured. Set TRAILHEAD_CLOUD_API_URL + TRAILHEAD_API_KEY, or pass evaluation_json.",
+        });
+    }
+    if (evaluation_id) {
+        const row = await fetchCloudEvaluationById(evaluation_id);
+        if (!row) {
+            return jsonResult({ error: `Evaluation ${evaluation_id} not found` });
+        }
+        if (!row.remediation) {
+            return jsonResult({
+                error: `Evaluation ${evaluation_id} has no remediation block`,
+            });
+        }
+        return jsonResult({
+            source: "trailhead-cloud",
+            evaluationId: evaluation_id,
+            remediation: row.remediation,
+        });
+    }
+    if (repo_id && pr_number !== undefined) {
+        const rows = (await fetchCloudEvaluations(repo_id)) ?? [];
+        const match = rows.find((row) => {
+            const pr = row.prNumber ?? row.pr_number;
+            return pr === pr_number;
+        });
+        if (!match) {
+            return jsonResult({ error: `No evaluation found for ${repo_id}#${pr_number}` });
+        }
+        if (!match.remediation) {
+            return jsonResult({
+                error: `Latest evaluation for ${repo_id}#${pr_number} has no remediation`,
+            });
+        }
+        return jsonResult({
+            source: "trailhead-cloud",
+            evaluationId: match.id,
+            remediation: match.remediation,
+        });
+    }
+    return jsonResult({
+        error: "Provide evaluation_json, evaluation_id, or repo_id + pr_number",
+    });
+});
+server.tool("subscribe-events", "Long-poll Trailhead Cloud evaluations for semantic gate events (trailhead.blocked, trailhead.ready, etc.).", {
+    events: z
+        .string()
+        .describe(`Comma-separated event types (${TRAILHEAD_EVENT_TYPES.join(", ")})`),
+    repo_id: z.string().optional().describe("Filter by repository id (owner/repo)"),
+    pr_number: z.number().int().optional().describe("Filter by pull request number"),
+    since: z
+        .string()
+        .optional()
+        .describe("ISO-8601 timestamp — ignore evaluations received before this time"),
+    timeout_seconds: z.number().min(1).max(120).default(30),
+    poll_interval_ms: z.number().min(500).max(10_000).default(2000),
+    risk_threshold: z.number().min(0).max(100).default(70),
+}, async ({ events, repo_id, pr_number, since, timeout_seconds, poll_interval_ms, risk_threshold, }) => {
+    if (!isCloudFeedbackEnabled()) {
+        return jsonResult({
+            error: "Trailhead Cloud not configured. Set TRAILHEAD_CLOUD_API_URL + TRAILHEAD_API_KEY.",
+        });
+    }
+    const subscribed = parseWebhookEvents(events);
+    const wanted = TRAILHEAD_EVENT_TYPES.filter((event) => subscribed.has(event));
+    if (wanted.length === 0) {
+        return jsonResult({
+            error: `No supported trailhead.* events in subscription. Supported: ${TRAILHEAD_EVENT_TYPES.join(", ")}`,
+        });
+    }
+    const sinceMs = since ? Date.parse(since) : Date.now() - timeout_seconds * 1000;
+    const deadline = Date.now() + timeout_seconds * 1000;
+    const seen = new Set();
+    while (Date.now() < deadline) {
+        const rows = (await fetchCloudEvaluations(repo_id)) ?? [];
+        for (const row of rows) {
+            const receivedAt = String(row.receivedAt ?? row.received_at ?? "");
+            const receivedMs = receivedAt ? Date.parse(receivedAt) : Date.now();
+            if (receivedMs < sinceMs)
+                continue;
+            const rowPr = row.prNumber ?? row.pr_number;
+            if (pr_number !== undefined && rowPr !== pr_number)
+                continue;
+            const evaluation = row;
+            for (const event of wanted) {
+                if (!evaluationMatchesTrailheadEvent(evaluation, event, {
+                    riskThreshold: risk_threshold,
+                })) {
+                    continue;
+                }
+                const dedupeKey = `${evaluation.id}:${event}`;
+                if (seen.has(dedupeKey))
+                    continue;
+                seen.add(dedupeKey);
+                return jsonResult({
+                    matched: true,
+                    event,
+                    evaluationId: evaluation.id,
+                    repoId: evaluation.repoId,
+                    prNumber: evaluation.prNumber,
+                    remediation: evaluation.remediation,
+                    releaseReady: evaluation.releaseReady,
+                    gateDecision: evaluation.gateDecision,
+                    receivedAt,
+                });
+            }
+        }
+        await new Promise((resolve) => setTimeout(resolve, poll_interval_ms));
+    }
+    return jsonResult({
+        matched: false,
+        waitedMs: timeout_seconds * 1000,
+        subscribed: wanted,
+    });
+});
+server.tool("validate-submission", "Run Gate 1 submission checks (including Phase 0 suggestion heuristics) on PR file patches or full suggestion content.", {
+    files: z
+        .array(z.object({
+        filename: z.string(),
+        patch: z.string().optional(),
+        content: z.string().optional(),
+    }))
+        .min(1)
+        .describe("Changed files with unified diff patches and/or full content"),
+    komatik_instance: z
+        .boolean()
+        .optional()
+        .describe("Enable Komatik-only checks (SOUL, stale naming, etc.)"),
+    mode: z
+        .enum(["warn", "block"])
+        .default("block")
+        .describe("Whether blocking severities should fail the gate"),
+    declared_packages: z
+        .array(z.string())
+        .optional()
+        .describe("Root package.json dependency names for import resolution"),
+    submission: z
+        .object({
+        stale_terms: z.array(z.string()).optional(),
+        rename_patterns: z
+            .array(z.object({ old: z.string(), new: z.string() }))
+            .optional(),
+        slug_only_patterns: z.array(z.string()).optional(),
+        path_ignore: z.array(z.string()).optional(),
+        naming_allowlist: z
+            .object({
+            skip_extensions: z.array(z.string()).optional(),
+            skip_path_patterns: z.array(z.string()).optional(),
+            skip_comment_markers: z.array(z.string()).optional(),
+            skip_in_imports: z.boolean().optional(),
+        })
+            .optional(),
+        detectors: z
+            .record(z.object({
+            enabled: z.boolean().optional(),
+            severity: z.enum(["block", "warn", "advisory", "blocking"]).optional(),
+            file_globs: z.array(z.string()).optional(),
+            path_ignore: z.array(z.string()).optional(),
+        }))
+            .optional(),
+    })
+        .optional()
+        .describe("submission block from .trailhead.yml (detector policy + rename rules)"),
+}, async ({ files, komatik_instance, mode, declared_packages, submission, }) => {
+    const repoConfig = submission ? { submission } : undefined;
+    const checks = runSubmissionGate({
+        files,
+        komatikInstance: komatik_instance ?? false,
+        mode,
+        declaredPackages: declared_packages,
+        repoConfig: repoConfig,
+    });
+    const fixes = deriveSubmissionFixes(checks);
+    const blocking = submissionGateShouldBlock(checks, mode);
+    const phase0Count = checks.filter((c) => [
+        "output_size_min",
+        "action_extraction_present",
+        "delta_section_present",
+        "preamble_absent",
+        "graduation_signals_section_present",
+        "fabricated_id_check",
+        "session_narrative_detection",
+        "incompleteness_self_flag",
+        "referenced_files_exist",
+        "prerequisite_secrets_check",
+        "dependency_dag_validation",
+        "uncommitted_fix_check",
+        "verification_owner_assigned",
+        "external_interface_validation",
+    ].includes(c.code)).length;
+    const configWarnings = getSubmissionConfigWarnings(submission);
+    const gateDecision = submissionGateShouldBlock(checks, mode)
+        ? "block"
+        : checks.some((check) => check.severity === "warn")
+            ? "warn"
+            : "allow";
+    const verdict = buildGateVerdict({
+        id: `sub-${Date.now()}`,
+        repoId: "mcp/submission",
+        commitSha: "0000000",
+        healthScore: 100,
+        riskScore: 0,
+        gateDecision,
+        healthChecks: [],
+        riskFactors: [],
+        evaluationMs: 0,
+        submissionChecks: checks,
+        gateMode: "advisory",
+        policyFindings: configWarnings.length > 0 ? configWarnings : undefined,
+    });
+    return jsonResult({
+        checks,
+        fixes,
+        config_warnings: configWarnings,
+        verdict,
+        gate_decision: gateDecision,
+        blocking,
+        summary: {
+            total: checks.length,
+            blocking: checks.filter((c) => c.severity === "blocking").length,
+            warn: checks.filter((c) => c.severity === "warn").length,
+            advisory: checks.filter((c) => c.severity === "advisory").length,
+            phase0: phase0Count,
+        },
+    });
+});
+server.tool("apply-autofix", "Plan allowlisted autofixes from remediation fixes (dry-run by default; no git writes from MCP).", {
+    fixes: z
+        .array(z.object({
+        code: z.string(),
+        severity: z.enum(["blocking", "warn", "advisory"]),
+        title: z.string(),
+        detail: z.string(),
+        files: z.array(z.string()).default([]),
+        suggested_action: z.string().optional(),
+        suggested_command: z.string().optional(),
+        autofix_eligible: z.boolean().default(false),
+        autofix_class: z
+            .enum([
+            "format",
+            "lint",
+            "import-fix",
+            "type-narrow",
+            "test-scaffold",
+            "doc-update",
+            "dependency-bump",
+        ])
+            .optional(),
+    }))
+        .min(1)
+        .describe("Remediation fixes (e.g. from validate-submission or get-remediation)"),
+    dry_run: z
+        .boolean()
+        .default(true)
+        .describe("When true (default), return plan only without executing commands"),
+}, async ({ fixes, dry_run }) => {
+    const plan = buildAutofixPlan(fixes);
+    const selected = selectAutofixCommit(plan);
+    return jsonResult({
+        dryRun: dry_run,
+        executed: false,
+        plan,
+        selectedCommit: selected,
+        note: dry_run
+            ? "MCP returns plans only; run autofix via GitHub App fixer or local CI."
+            : "Git execution is not available from MCP — use the returned plan in your runner.",
+    });
+});
+server.tool("get-trust-score", "Compute dynamic agent trust score and profile from evaluation metrics (Phase B3). Returns trust=null on cold start.", {
+    evaluations: z.number().int().min(0).describe("Total gate evaluations in window"),
+    release_ready_count: z
+        .number()
+        .int()
+        .min(0)
+        .describe("Evaluations ending release_ready"),
+    revert_count: z.number().int().min(0).default(0),
+    human_review_required_count: z.number().int().min(0).default(0),
+    policy_violation_count: z.number().int().min(0).default(0),
+    sensitive_path_violation_count: z.number().int().min(0).default(0),
+    remediation_rounds_to_ready: z
+        .array(z.number().int().min(0))
+        .default([])
+        .describe("Loop rounds for PRs that reached release_ready"),
+    penalty_quality: z
+        .object({
+        mean: z.number(),
+        std_dev: z.number().min(0),
+        clean_rate: z.number().min(0).max(1),
+        sample_count: z.number().int().min(0),
+    })
+        .optional()
+        .describe("Aggregated gate penalty total_score stats (lower mean = cleaner)"),
+    feedback: z
+        .object({
+        ci_failures: z.number().int().min(0).optional(),
+        reverts: z.number().int().min(0).optional(),
+        human_review: z.number().int().min(0).optional(),
+    })
+        .optional(),
+}, async ({ evaluations, release_ready_count, revert_count, human_review_required_count, policy_violation_count, sensitive_path_violation_count, remediation_rounds_to_ready, penalty_quality, feedback, }) => {
+    const metrics = {
+        evaluations,
+        releaseReadyCount: release_ready_count,
+        revertCount: revert_count,
+        humanReviewRequiredCount: human_review_required_count,
+        policyViolationCount: policy_violation_count,
+        sensitivePathViolationCount: sensitive_path_violation_count,
+        remediationRoundsToReady: remediation_rounds_to_ready,
+        ...(penalty_quality
+            ? {
+                penaltyQuality: {
+                    mean: penalty_quality.mean,
+                    stdDev: penalty_quality.std_dev,
+                    cleanRate: penalty_quality.clean_rate,
+                    sampleCount: penalty_quality.sample_count,
+                },
+            }
+            : {}),
+        ...(feedback
+            ? {
+                feedback: {
+                    ciFailures: feedback.ci_failures,
+                    reverts: feedback.reverts,
+                    humanReview: feedback.human_review,
+                },
+            }
+            : {}),
+    };
+    const trust = computeAgentTrustScore(metrics);
+    const coldStart = assessColdStartFromMetrics(metrics);
+    return jsonResult({
+        trust,
+        cold_start: trust ? null : coldStart,
+        schema: "trailhead.agent_trust_metrics.v1",
+    });
+});
 server.tool("recommend-rollback", "Recommend rollback action based on canary failure and PR provenance.", {
     provenanceType: z
         .enum([
@@ -1365,6 +1765,11 @@ server.resource("server-card", "trailhead://server-card", { mimeType: "applicati
                     "record-finding-feedback",
                     "get-detector-noise",
                     "recommend-policy-tuning",
+                    "get-remediation",
+                    "subscribe-events",
+                    "validate-submission",
+                    "apply-autofix",
+                    "get-trust-score",
                     "recommend-rollback",
                 ],
                 resources: ["trailhead://health", "trailhead://server-card"],

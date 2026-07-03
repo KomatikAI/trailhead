@@ -550,6 +550,15 @@ describe("formatGateReport", () => {
     expect(report).toContain("ALLOW");
   });
 
+  it("shows size score separately when present", () => {
+    const report = formatGateReport({
+      ...baseEvaluation,
+      sizeScore: 72,
+      sizeFactors: [{ type: "file_count", score: 72 }],
+    });
+    expect(report).toContain("| Size / blast radius | 72/100 |");
+  });
+
   it("shows actual health score when checks are present", () => {
     const evaluation: GateEvaluation = {
       ...baseEvaluation,

@@ -48,6 +48,7 @@ const baseConfig = {
   policies: {
     agent_prs: {
       enabled: false,
+      mode: "block" as const,
       required_approvals: 1,
       require_code_owner_approval: false,
       code_owner_reviewers: [],

@@ -66,6 +66,7 @@ Table: `public.trailhead_evaluations`
 
 Base migration: `Komatik/supabase/migrations/20260524090000_trailhead_evaluations.sql`  
 Loop columns: `…/20260527073857_trailhead_loop_bookkeeping.sql`
+Size-factor analytics reference: `docs/komatik-migrations/20260703120000_trailhead_size_factor_analytics.sql`
 
 Reference copy for Trailhead Cloud hosted tier: `cloud/migrations/002_loop_bookkeeping.sql` (different deployment — do not conflate).
 

@@ -1,17 +1,10 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 6390:
+/***/ 8066:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-gnu.node")
-
-/***/ }),
-
-/***/ 7064:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-musl.node")
+module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
 
 /***/ }),
 
@@ -958,7 +951,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(9763)
+        return __nccwpck_require__(8066)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1092,7 +1085,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(7064)
+        return __nccwpck_require__(5254)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1104,7 +1097,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6390)
+        return __nccwpck_require__(6571)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -29776,6 +29769,22 @@ module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
 
 /***/ }),
 
+/***/ 6571:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-linux-arm64-gnu");
+
+
+/***/ }),
+
+/***/ 5254:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-linux-arm64-musl");
+
+
+/***/ }),
+
 /***/ 3586:
 /***/ ((module) => {
 
@@ -29844,14 +29853,6 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
-
-
-/***/ }),
-
-/***/ 9763:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-win32-x64-msvc");
 
 
 /***/ }),
@@ -42036,9 +42037,11 @@ const GateEvaluation = objectType({
     prNumber: numberType().optional(),
     healthScore: numberType().min(0).max(100),
     riskScore: numberType().min(0).max(100),
+    sizeScore: numberType().min(0).max(100).optional(),
     gateDecision: GateDecision,
     healthChecks: arrayType(HealthCheckResult),
     riskFactors: arrayType(RiskFactor),
+    sizeFactors: arrayType(RiskFactor).optional(),
     files: arrayType(stringType()).optional(),
     evaluationMs: numberType(),
     reportUrl: stringType().url().optional(),
@@ -42105,9 +42108,11 @@ const GateApiResponse = objectType({
     reportUrl: stringType().url().optional(),
     healthScore: numberType().min(0).max(100).optional(),
     riskScore: numberType().min(0).max(100).optional(),
+    sizeScore: numberType().min(0).max(100).optional(),
     gateDecision: GateDecision.optional(),
     healthChecks: arrayType(HealthCheckResult).optional(),
     riskFactors: arrayType(RiskFactor).optional(),
+    sizeFactors: arrayType(RiskFactor).optional(),
 });
 const FreezeWindow = objectType({
     days: arrayType(stringType()).default([]),
@@ -42190,6 +42195,13 @@ const RemediationConfig = objectType({
 const RiskPathProfileConfig = objectType({
     /** Extra globs excluded from sensitive_files + test_coverage (not file_count/churn). */
     non_source_globs: arrayType(stringType()).default([]),
+    /** Move structural size factors out of the blocking risk average while still reporting them. */
+    size_factors: objectType({
+        mode: enumType(["risk", "metadata"]).default("risk"),
+        factors: arrayType(enumType(["file_count", "code_churn"]))
+            .default(["file_count", "code_churn"]),
+    })
+        .default({}),
 });
 const OverrideConfig = objectType({
     enabled: booleanType().default(true),
@@ -42296,6 +42308,7 @@ const RepoConfig = objectType({
     policies: objectType({
         agent_prs: objectType({
             enabled: booleanType().default(false),
+            mode: enumType(["warn", "block"]).default("block"),
             risk_threshold: numberType().min(0).max(100).optional(),
             required_approvals: numberType().int().min(0).default(1),
             require_code_owner_approval: booleanType().default(false),
@@ -42589,6 +42602,7 @@ const FACTOR_WEIGHTS = {
     duplicate_logic: 1,
     cross_repo_impact: 2,
 };
+const DEFAULT_SIZE_FACTOR_TYPES = ["file_count", "code_churn"];
 // ---------------------------------------------------------------------------
 // Glob matching
 // ---------------------------------------------------------------------------
@@ -42670,6 +42684,24 @@ function riskConfigFromRepo(repo) {
         ignore: repo.ignore,
         profiles: repo.profiles,
         non_source_globs: repo.risk?.non_source_globs,
+        size_factors: repo.risk?.size_factors,
+    };
+}
+function sizeFactorsAreMetadata(config) {
+    return config?.size_factors?.mode === "metadata";
+}
+function configuredSizeFactorTypes(config) {
+    const factors = config?.size_factors?.factors ?? DEFAULT_SIZE_FACTOR_TYPES;
+    return new Set(factors);
+}
+function splitSizeFactors(factors, config) {
+    const sizeTypes = configuredSizeFactorTypes(config);
+    const sizeFactors = factors.filter((f) => sizeTypes.has(f.type));
+    const riskFactors = factors.filter((f) => !sizeTypes.has(f.type));
+    return {
+        riskFactors,
+        sizeFactors,
+        sizeFactorsAsMetadata: sizeFactorsAreMetadata(config),
     };
 }
 function sensitivityWeight(filename, config) {
@@ -42788,7 +42820,17 @@ function computeRiskScore(files, config) {
             },
         });
     }
-    return { score: weightedAverageScores(factors, customWeights), factors };
+    const split = splitSizeFactors(factors, config);
+    const scoreFactors = split.sizeFactorsAsMetadata ? split.riskFactors : factors;
+    const sizeScore = split.sizeFactors.length > 0
+        ? weightedAverageScores(split.sizeFactors, customWeights)
+        : undefined;
+    return {
+        score: weightedAverageScores(scoreFactors, customWeights),
+        factors,
+        sizeScore,
+        sizeFactors: split.sizeFactors.length > 0 ? split.sizeFactors : undefined,
+    };
 }
 // ---------------------------------------------------------------------------
 // Dependency change detection
@@ -50966,6 +51008,8 @@ function gate_computeRiskScore(files, repoConfig) {
     return {
         score: result.score,
         factors: result.factors,
+        sizeScore: result.sizeScore,
+        sizeFactors: result.sizeFactors,
     };
 }
 // ---------------------------------------------------------------------------
@@ -51528,13 +51572,20 @@ async function enforceAgentPrPolicies(params) {
     const findings = [];
     let adjustedRiskThreshold;
     let forceBlock = false;
+    const mode = policy.mode ?? "block";
+    const enforce = mode === "block";
     if (isUnknownStrict) {
         findings.push("PR provenance is unknown and strict mode is enabled; applying agent PR policy checks.");
     }
     if (policy.risk_threshold !== undefined &&
         policy.risk_threshold < params.currentRiskThreshold) {
-        adjustedRiskThreshold = policy.risk_threshold;
-        findings.push(`Agent PR risk threshold tightened from ${params.currentRiskThreshold} to ${policy.risk_threshold}.`);
+        if (enforce) {
+            adjustedRiskThreshold = policy.risk_threshold;
+            findings.push(`Agent PR risk threshold tightened from ${params.currentRiskThreshold} to ${policy.risk_threshold}.`);
+        }
+        else {
+            findings.push(`Agent PR risk threshold would tighten from ${params.currentRiskThreshold} to ${policy.risk_threshold} (warn mode; not applied).`);
+        }
     }
     const sensitivePatterns = policy.sensitive_paths.length > 0
         ? policy.sensitive_paths
@@ -51560,19 +51611,28 @@ async function enforceAgentPrPolicies(params) {
             .map((r) => r.user?.login)
             .filter((u) => Boolean(u)));
         if (approvedBy.size < policy.required_approvals) {
-            forceBlock = true;
-            findings.push(`Sensitive-path agent PR requires ${policy.required_approvals} approval(s); found ${approvedBy.size}.`);
+            if (enforce)
+                forceBlock = true;
+            findings.push(enforce
+                ? `Sensitive-path agent PR requires ${policy.required_approvals} approval(s); found ${approvedBy.size}.`
+                : `Sensitive-path agent PR would require ${policy.required_approvals} approval(s); found ${approvedBy.size} (warn mode; not blocking).`);
         }
         if (policy.require_code_owner_approval) {
             if (policy.code_owner_reviewers.length === 0) {
-                forceBlock = true;
-                findings.push("Code-owner approval required for sensitive-path agent PRs, but no code_owner_reviewers configured.");
+                if (enforce)
+                    forceBlock = true;
+                findings.push(enforce
+                    ? "Code-owner approval required for sensitive-path agent PRs, but no code_owner_reviewers configured."
+                    : "Code-owner approval would be required for sensitive-path agent PRs, but no code_owner_reviewers are configured (warn mode; not blocking).");
             }
             else {
                 const hasCodeOwnerApproval = policy.code_owner_reviewers.some((r) => approvedBy.has(r));
                 if (!hasCodeOwnerApproval) {
-                    forceBlock = true;
-                    findings.push(`Sensitive-path agent PR requires one code-owner approval (${policy.code_owner_reviewers.join(", ")}).`);
+                    if (enforce)
+                        forceBlock = true;
+                    findings.push(enforce
+                        ? `Sensitive-path agent PR requires one code-owner approval (${policy.code_owner_reviewers.join(", ")}).`
+                        : `Sensitive-path agent PR would require one code-owner approval (${policy.code_owner_reviewers.join(", ")}) (warn mode; not blocking).`);
                 }
             }
         }
@@ -51981,6 +52041,7 @@ async function evaluateGate(config, commitSha, prNumber) {
     if (freezeCheck.frozen) {
         core_warning(`Release freeze active: ${freezeCheck.message}`);
     }
+    const scoringRiskConfig = riskConfigFromRepo(repoConfig);
     const { score: localRiskScore, factors: riskFactors } = gate_computeRiskScore(files, repoConfig);
     if (authorFactor)
         riskFactors.push(authorFactor);
@@ -52075,9 +52136,24 @@ async function evaluateGate(config, commitSha, prNumber) {
     if (crossRepoImpact.factor) {
         riskFactors.push(crossRepoImpact.factor);
     }
-    const riskScore = riskFactors.length > 0
-        ? weightedAverageScores(riskFactors, customWeights)
-        : localRiskScore;
+    const splitRiskFactors = splitSizeFactors(riskFactors, scoringRiskConfig);
+    const sizeFactors = splitRiskFactors.sizeFactors;
+    const scoreFactors = splitRiskFactors.sizeFactorsAsMetadata
+        ? splitRiskFactors.riskFactors
+        : riskFactors;
+    const sizeScore = sizeFactors.length > 0
+        ? weightedAverageScores(sizeFactors, customWeights)
+        : undefined;
+    if (splitRiskFactors.sizeFactorsAsMetadata && sizeFactors.length > 0) {
+        policyFindings.push(`Size factors reported separately from blocking risk average (${sizeFactors
+            .map((factor) => `${factor.type}=${factor.score}`)
+            .join(", ")}).`);
+    }
+    const riskScore = scoreFactors.length > 0
+        ? weightedAverageScores(scoreFactors, customWeights)
+        : splitRiskFactors.sizeFactorsAsMetadata
+            ? 0
+            : localRiskScore;
     // GATE-3: Apply severity-based penalties to risk factors. Opt-in via
     // policies.risk_factor_severity.enabled — an always-on penalty would shift
     // every repo's scores mid-calibration, making block-rate movement
@@ -52091,7 +52167,7 @@ async function evaluateGate(config, commitSha, prNumber) {
         low: severityPenaltiesCfg?.low ?? 1,
     };
     const { adjustedScore: riskScoreWithPenalties, appliedPenalties } = severityPenaltiesEnabled
-        ? applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties)
+        ? applyRiskFactorSeverityPenalties(riskScore, scoreFactors, severityPenalties)
         : { adjustedScore: riskScore, appliedPenalties: 0 };
     if (appliedPenalties > 0) {
         info(`GATE-3: Applied ${appliedPenalties} points of severity penalties to risk score (${riskScore} -> ${riskScoreWithPenalties})`);
@@ -52294,9 +52370,11 @@ async function evaluateGate(config, commitSha, prNumber) {
         prNumber,
         healthScore,
         riskScore: riskScoreWithPenalties, // GATE-3: Use adjusted score with severity penalties
+        sizeScore,
         gateDecision,
         healthChecks,
         riskFactors,
+        sizeFactors: sizeFactors.length > 0 ? sizeFactors : undefined,
         files: fileNames.length > 0 ? fileNames : undefined,
         evaluationMs: Date.now() - start,
         environment: effectiveEnvironment,
@@ -52916,7 +52994,9 @@ function formatGateReport(evaluation, riskThreshold) {
         ``,
     ];
     if (mode === "release-ready" || mode === "advisory") {
-        lines.push(`| Dimension | Status |`, `|-----------|--------|`, `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`, `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`, `| Health | ${healthDisplay} |`, `| Gate | ${evaluation.gateDecision.toUpperCase()} |`, ``);
+        lines.push(`| Dimension | Status |`, `|-----------|--------|`, `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`, `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`, ...(evaluation.sizeScore !== undefined
+            ? [`| Size / blast radius | ${evaluation.sizeScore}/100 (reported separately) |`]
+            : []), `| Health | ${healthDisplay} |`, `| Gate | ${evaluation.gateDecision.toUpperCase()} |`, ``);
         if (evaluation.ci && evaluation.ci.checks.length > 0) {
             lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
             for (const check of evaluation.ci.checks) {
@@ -52952,7 +53032,9 @@ function formatGateReport(evaluation, riskThreshold) {
     else {
         lines.push(riskBadge(evaluation.riskScore, threshold) +
             " " +
-            (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""), ``, `| Metric | Score |`, `|--------|-------|`, `| Health | ${healthDisplay} |`, `| Risk   | ${evaluation.riskScore}/100 |`, `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`, ``);
+            (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""), ``, `| Metric | Score |`, `|--------|-------|`, `| Health | ${healthDisplay} |`, `| Risk   | ${evaluation.riskScore}/100 |`, ...(evaluation.sizeScore !== undefined
+            ? [`| Size / blast radius | ${evaluation.sizeScore}/100 |`]
+            : []), `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`, ``);
         if (riskThreshold !== undefined) {
             lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
         }
@@ -53395,12 +53477,14 @@ function buildLegacyWebhookPayload(evaluation, prUrl) {
         text: slackTextForEvaluation(evaluation, prUrl),
         decision: evaluation.gateDecision,
         riskScore: evaluation.riskScore,
+        sizeScore: evaluation.sizeScore,
         healthScore: evaluation.healthScore,
         repoId: evaluation.repoId,
         prNumber: evaluation.prNumber,
         prUrl,
         commitSha: evaluation.commitSha,
         riskFactors: evaluation.riskFactors,
+        sizeFactors: evaluation.sizeFactors,
         healthChecks: evaluation.healthChecks,
         reportUrl: evaluation.reportUrl,
         timestamp: new Date().toISOString(),
@@ -53415,6 +53499,8 @@ function buildTrailheadEventPayload(evaluation, event, prUrl) {
         decision: evaluation.gateDecision,
         releaseReady: evaluation.releaseReady,
         riskScore: evaluation.riskScore,
+        sizeScore: evaluation.sizeScore,
+        sizeFactors: evaluation.sizeFactors,
         healthScore: evaluation.healthScore,
         repoId: evaluation.repoId,
         prNumber: evaluation.prNumber,
@@ -53491,16 +53577,38 @@ async function storeViaApiOnce(url, evaluation) {
         signal: AbortSignal.timeout(STORE_TIMEOUT_MS),
     });
     const contentType = response.headers.get("content-type") ?? "";
-    if (response.ok && contentType.includes("application/json")) {
+    const isJson = contentType.includes("application/json");
+    if (response.ok && isJson) {
         info(`Evaluation stored successfully at ${url}`);
-        return { ok: true, retryable: false };
+        const quotaExceeded = response.headers.get("x-trailhead-quota-exceeded") === "true";
+        if (quotaExceeded) {
+            core_warning("Trailhead Cloud: this evaluation is over your plan's monthly quota. " +
+                "It was still stored — upgrade at https://trailhead.komatik.xyz/pricing");
+        }
+        return { ok: true, retryable: false, quotaExceeded };
+    }
+    // 402 = org suspended (payment failure). Availability of the paid store must
+    // never block a merge — this is informational only, never a gate failure.
+    if (response.status === 402) {
+        core_warning("Trailhead Cloud: your plan is suspended — this evaluation was NOT stored. " +
+            "Reactivate at https://trailhead.komatik.xyz/pricing");
+        return { ok: false, retryable: false, suspended: true };
+    }
+    // 429 with a structured JSON body is the Cloud API's hard usage cap
+    // (3x plan limit, abuse backstop) — permanent for the billing period, so
+    // retrying is pointless. A 429 with a non-JSON (HTML) body is most likely
+    // Vercel bot protection, which IS worth retrying — handled below.
+    if (response.status === 429 && isJson) {
+        core_warning("Trailhead Cloud: you're over this month's hard usage cap — this evaluation was NOT " +
+            "stored. Upgrade at https://trailhead.komatik.xyz/pricing");
+        return { ok: false, retryable: false, hardCapped: true };
     }
     const nonRetryableClientErrors = new Set([400, 401, 403]);
     if (nonRetryableClientErrors.has(response.status)) {
         core_warning(`Evaluation store returned HTTP ${response.status} — not retrying`);
         return { ok: false, retryable: false };
     }
-    if (!contentType.includes("application/json")) {
+    if (!isJson) {
         core_warning(`Evaluation store at ${url} returned HTML instead of JSON (HTTP ${response.status}). ` +
             `Vercel bot protection is likely blocking the request.`);
     }
@@ -53514,13 +53622,32 @@ async function storeViaApiOnce(url, evaluation) {
 }
 async function storeViaApi(url, evaluation, maxRetries = 3) {
     const maxAttempts = maxRetries + 1;
+    const notStored = {
+        stored: false,
+        quotaExceeded: false,
+        suspended: false,
+        hardCapped: false,
+    };
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         try {
             const result = await storeViaApiOnce(url, evaluation);
-            if (result.ok)
-                return true;
+            if (result.ok) {
+                return {
+                    stored: true,
+                    quotaExceeded: result.quotaExceeded ?? false,
+                    suspended: false,
+                    hardCapped: false,
+                };
+            }
+            if (result.suspended || result.hardCapped) {
+                return {
+                    ...notStored,
+                    suspended: result.suspended ?? false,
+                    hardCapped: result.hardCapped ?? false,
+                };
+            }
             if (!result.retryable || attempt >= maxAttempts - 1)
-                return false;
+                return notStored;
             const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
             core_warning(`Evaluation store attempt ${attempt + 1}/${maxAttempts} failed — retrying in ${delayMs}ms`);
             await sleep(delayMs);
@@ -53534,7 +53661,7 @@ async function storeViaApi(url, evaluation, maxRetries = 3) {
             await sleep(delayMs);
         }
     }
-    return false;
+    return notStored;
 }
 async function storeViaSupabase(evaluation) {
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -53577,9 +53704,11 @@ function buildEvaluationStoreRow(evaluation) {
         pr_number: evaluation.prNumber ?? null,
         health_score: evaluation.healthScore,
         risk_score: evaluation.riskScore,
+        size_score: evaluation.sizeScore ?? null,
         gate_decision: evaluation.gateDecision,
         health_checks: evaluation.healthChecks,
         risk_factors: evaluation.riskFactors,
+        size_factors: evaluation.sizeFactors ?? null,
         files: evaluation.files ?? null,
         evaluation_ms: evaluation.evaluationMs,
         report_url: evaluation.reportUrl ?? null,
@@ -53602,12 +53731,35 @@ function buildEvaluationStoreRow(evaluation) {
         agent_provenance_id: agentId,
     };
 }
-async function storeEvaluation(url, evaluation, options = {}) {
+const NOT_STORED = {
+    stored: false,
+    quotaExceeded: false,
+    suspended: false,
+    hardCapped: false,
+};
+/**
+ * Store an evaluation and report the Cloud API's billing/quota state so
+ * callers can surface it in the check summary. Availability of the paid
+ * store — including suspension or a hard usage cap — must never throw or
+ * otherwise block the gate; every path here is fail-open.
+ */
+async function storeEvaluationDetailed(url, evaluation, options = {}) {
     const maxRetries = options.maxRetries ?? 3;
     try {
-        const stored = await storeViaApi(url, evaluation, maxRetries);
-        if (stored)
-            return true;
+        const result = await storeViaApi(url, evaluation, maxRetries);
+        if (result.stored) {
+            return { ...NOT_STORED, stored: true, quotaExceeded: result.quotaExceeded };
+        }
+        // Suspended/hard-capped are deliberate billing-gate outcomes from the
+        // Cloud API, not transient failures — don't fall back to the legacy
+        // Supabase direct-insert path, just report the state honestly.
+        if (result.suspended || result.hardCapped) {
+            return {
+                ...NOT_STORED,
+                suspended: result.suspended,
+                hardCapped: result.hardCapped,
+            };
+        }
     }
     catch (error) {
         core_warning(`Evaluation store API failed: ${error}`);
@@ -53615,14 +53767,69 @@ async function storeEvaluation(url, evaluation, options = {}) {
     try {
         const fallback = await storeViaSupabase(evaluation);
         if (fallback)
-            return true;
+            return { ...NOT_STORED, stored: true };
     }
     catch (error) {
         core_warning(`Supabase direct fallback also failed: ${error}`);
     }
     core_warning("Evaluation could not be stored. To fix: either set VERCEL_AUTOMATION_BYPASS_SECRET " +
         "or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in your workflow env.");
-    return false;
+    return NOT_STORED;
+}
+async function storeEvaluation(url, evaluation, options = {}) {
+    const outcome = await storeEvaluationDetailed(url, evaluation, options);
+    return outcome.stored;
+}
+
+;// CONCATENATED MODULE: ./src/cloud-upsell.ts
+/**
+ * Trailhead Cloud upsell + quota/billing surfacing for the check summary footer.
+ *
+ * One line, always at the end of the summary, never affects the gate decision.
+ * Suppressible via the `disable-cloud-upsell` action input.
+ */
+const CLOUD_MARKETING_URL = "https://trailhead.komatik.xyz";
+const CLOUD_PRICING_URL = "https://trailhead.komatik.xyz/pricing";
+function withUtm(url, campaign) {
+    const u = new URL(url);
+    u.searchParams.set("utm_source", "action");
+    u.searchParams.set("utm_medium", "check-summary");
+    u.searchParams.set("utm_campaign", campaign);
+    return u.toString();
+}
+/**
+ * Build the single footer line to append to the check summary, or null if
+ * nothing should be shown (has a key, under quota, no billing issue, or
+ * the user opted out).
+ *
+ * Precedence: suspended > hard-capped > quota-exceeded > no-key upsell.
+ * These are mutually exclusive in practice (all require a configured key
+ * except the no-key case), but the order guards against ambiguous input.
+ */
+function buildCloudFooterLine(options) {
+    if (options.disableUpsell)
+        return null;
+    if (options.suspended) {
+        const link = withUtm(CLOUD_PRICING_URL, "suspended-upsell");
+        return (`> 🚫 **Evaluation not stored — your Trailhead Cloud plan is suspended.** ` +
+            `Reactivate to resume history & trends → ${link}`);
+    }
+    if (options.hardCapped) {
+        const link = withUtm(CLOUD_PRICING_URL, "quota-upsell");
+        return (`> 🚫 **Evaluation not stored — you're over this month's hard usage cap.** ` +
+            `Upgrade your plan to keep full history → ${link}`);
+    }
+    if (options.quotaExceeded) {
+        const link = withUtm(CLOUD_PRICING_URL, "quota-upsell");
+        return (`> ⚠️ Over your plan's monthly evaluations — history still stored this quarter; ` +
+            `upgrade at ${link}`);
+    }
+    if (!options.hasCloudKey) {
+        const link = withUtm(CLOUD_MARKETING_URL, "cloud-upsell");
+        return (`📊 This evaluation wasn't persisted — track trends, DORA metrics & agent-governance ` +
+            `across your org with Trailhead Cloud → ${link}`);
+    }
+    return null;
 }
 
 ;// CONCATENATED MODULE: ./src/credit-meter.ts
@@ -56018,6 +56225,7 @@ async function runCrossRepoOpener(opts) {
 
 
 
+
 class PolicyOverrideError extends Error {
     constructor(message) {
         super(message);
@@ -56240,6 +56448,7 @@ async function run() {
             ciManifestPath: ciManifestPath || undefined,
             agentBrief,
             submissionGate: getInput("submission-gate") === "true",
+            disableCloudUpsell: getInput("disable-cloud-upsell") === "true",
         };
         if (policyOverride?.changes.riskThreshold !== undefined) {
             config.riskThreshold = policyOverride.changes.riskThreshold;
@@ -56480,6 +56689,9 @@ async function run() {
             reportParts.push(wrapCollapsibleSection("DORA-5 Metrics", doraReport));
         }
         let fullReport = reportParts.join("\n---\n\n");
+        let cloudQuotaExceeded = false;
+        let cloudSuspended = false;
+        let cloudHardCapped = false;
         if (config.evaluationStoreUrl) {
             const storeSecretInput = getInput("evaluation-store-secret");
             if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
@@ -56489,14 +56701,30 @@ async function run() {
                 process.env.EVALUATION_STORE_SECRET = config.trailheadApiKey;
             }
             const storeRetries = parseEvaluationStoreRetries(getInput("evaluation-store-retries") || "");
-            const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation, {
-                maxRetries: storeRetries,
-            });
-            evaluation.storePersisted = stored;
-            if (!stored) {
+            const storeOutcome = await storeEvaluationDetailed(config.evaluationStoreUrl, evaluation, { maxRetries: storeRetries });
+            evaluation.storePersisted = storeOutcome.stored;
+            cloudQuotaExceeded = storeOutcome.quotaExceeded;
+            cloudSuspended = storeOutcome.suspended;
+            cloudHardCapped = storeOutcome.hardCapped;
+            // The cloud-upsell footer below already explains suspended/hard-capped
+            // state plainly with a link — don't also prepend the generic warning.
+            if (!storeOutcome.stored && !cloudSuspended && !cloudHardCapped) {
                 const persistWarning = "> ⚠️ **Evaluation not persisted — dashboard incomplete.**";
                 fullReport = `${persistWarning}\n\n${fullReport}`;
             }
+        }
+        const cloudFooterLine = buildCloudFooterLine({
+            // BYOS self-hosters (evaluation-store-url without a cloud key) DO
+            // persist evaluations — the "wasn't persisted" upsell must only fire
+            // in truly local-only mode.
+            hasCloudKey: Boolean(config.trailheadApiKey || config.evaluationStoreUrl),
+            disableUpsell: config.disableCloudUpsell ?? false,
+            quotaExceeded: cloudQuotaExceeded,
+            suspended: cloudSuspended,
+            hardCapped: cloudHardCapped,
+        });
+        if (cloudFooterLine) {
+            fullReport = `${fullReport}\n\n${cloudFooterLine}`;
         }
         await summary.addRaw(fullReport).write();
         const checkName = resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);

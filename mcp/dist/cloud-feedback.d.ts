@@ -12,3 +12,5 @@ export declare function postCloudFeedback(payload: {
 export declare function fetchCloudDetectorNoise(repo?: string): Promise<unknown | null>;
 export declare function fetchCloudPolicyTuning(repo?: string, falsePositiveThreshold?: number): Promise<unknown | null>;
 export declare function cloudFeedbackHint(): string;
+export declare function fetchCloudEvaluations(repoId?: string): Promise<Array<Record<string, unknown>> | null>;
+export declare function fetchCloudEvaluationById(evaluationId: string): Promise<Record<string, unknown> | null>;

@@ -227,6 +227,7 @@ thresholds:
 policies:
   agent_prs:
     enabled: true
+    mode: warn
     risk_threshold: 55
     required_approvals: 2
     require_code_owner_approval: true
@@ -239,11 +240,28 @@ policies:
     const config = await loadRepoConfig("ghp_test");
     expect(config).not.toBeNull();
     expect(config!.policies.agent_prs.enabled).toBe(true);
+    expect(config!.policies.agent_prs.mode).toBe("warn");
     expect(config!.policies.agent_prs.risk_threshold).toBe(55);
     expect(config!.policies.agent_prs.required_approvals).toBe(2);
     expect(config!.policies.agent_prs.require_code_owner_approval).toBe(true);
     expect(config!.policies.agent_prs.code_owner_reviewers).toEqual(["alice", "bob"]);
     expect(config!.policies.agent_prs.sensitive_paths).toEqual(["src/auth/**"]);
+  });
+
+  it("parses size factor metadata mode", async () => {
+    mockOctokit(
+      `schema_version: 1
+risk:
+  size_factors:
+    mode: metadata
+    factors:
+      - file_count
+      - code_churn`,
+    );
+    const config = await loadRepoConfig("ghp_test");
+    expect(config).not.toBeNull();
+    expect(config!.risk?.size_factors.mode).toBe("metadata");
+    expect(config!.risk?.size_factors.factors).toEqual(["file_count", "code_churn"]);
   });
 
   it("parses session correlation and ci integrity policy blocks", async () => {

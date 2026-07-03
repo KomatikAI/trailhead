@@ -3,7 +3,13 @@
 // ---------------------------------------------------------------------------
 // Pattern constants
 // ---------------------------------------------------------------------------
-export const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/;
+// Recognizes test files across language conventions, not just JS `.test.`/`.spec.`.
+// The `_test.<ext>` arm covers the Deno convention (`foo_test.ts`) — komatik's
+// entire Edge-Function suite uses it, so without this every EF PR scored as
+// zero-coverage and got over-penalized at the agent risk threshold (#307). Also
+// covers Go (`_test.go`), Python (`test_*.py` / `*_test.py` / `conftest.py`),
+// Ruby (`*_spec.rb` / `spec/`), and Java (`*Test.java`/`*Tests.java`).
+export const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs)$|_test\.(ts|tsx|js|jsx|mjs|cjs|go)$|(^|\/)test_[^/]+\.py$|_test\.py$|(^|\/)conftest\.py$|_spec\.rb$|(^|\/)spec\/|(Test|Tests)\.java$|__tests__\/|\.cy\.(ts|js)$/;
 export const NON_SOURCE_PATTERN = /\.(sql|ya?ml|json|md|css|svg|lock|txt|env|png|jpg|gif)$/i;
 export const SENSITIVE_PATTERNS = [
     /(?:^|\/)migrations\//i,
@@ -62,6 +68,7 @@ export const FACTOR_WEIGHTS = {
     duplicate_logic: 1,
     cross_repo_impact: 2,
 };
+export const DEFAULT_SIZE_FACTOR_TYPES = ["file_count", "code_churn"];
 // ---------------------------------------------------------------------------
 // Glob matching
 // ---------------------------------------------------------------------------
@@ -110,8 +117,58 @@ export function isTestFile(filename) {
 export function isNonSourceFile(filename) {
     return NON_SOURCE_PATTERN.test(filename);
 }
-export function isSensitiveFile(filename) {
+export function isWorkflowFile(filename) {
+    return /(?:^|\/)\.github\/workflows\//i.test(filename);
+}
+/** Non-source for risk-factor purposes (markdown, config, consumer-declared globs). */
+export function isContentNonSource(filename, config) {
+    if (/(?:^|\/)migrations\//i.test(filename))
+        return false;
+    if (isNonSourceFile(filename) && !isWorkflowFile(filename))
+        return true;
+    const extra = config?.non_source_globs ?? [];
+    return extra.length > 0 && matchesGlobs(filename, extra);
+}
+export function isTestableSourceFile(filename, config) {
+    if (isTestFile(filename))
+        return false;
+    if (/(?:^|\/)migrations\//i.test(filename))
+        return false;
+    return !isContentNonSource(filename, config);
+}
+export function isSensitiveFile(filename, config) {
+    if (isContentNonSource(filename, config) && !isWorkflowFile(filename))
+        return false;
     return SENSITIVE_PATTERNS.some((p) => p.test(filename));
+}
+export function riskConfigFromRepo(repo) {
+    if (!repo)
+        return null;
+    return {
+        sensitivity: repo.sensitivity,
+        weights: repo.weights,
+        ignore: repo.ignore,
+        profiles: repo.profiles,
+        non_source_globs: repo.risk?.non_source_globs,
+        size_factors: repo.risk?.size_factors,
+    };
+}
+export function sizeFactorsAreMetadata(config) {
+    return config?.size_factors?.mode === "metadata";
+}
+export function configuredSizeFactorTypes(config) {
+    const factors = config?.size_factors?.factors ?? DEFAULT_SIZE_FACTOR_TYPES;
+    return new Set(factors);
+}
+export function splitSizeFactors(factors, config) {
+    const sizeTypes = configuredSizeFactorTypes(config);
+    const sizeFactors = factors.filter((f) => sizeTypes.has(f.type));
+    const riskFactors = factors.filter((f) => !sizeTypes.has(f.type));
+    return {
+        riskFactors,
+        sizeFactors,
+        sizeFactorsAsMetadata: sizeFactorsAreMetadata(config),
+    };
 }
 export function sensitivityWeight(filename, config) {
     if (config) {
@@ -188,10 +245,10 @@ export function computeRiskScore(files, config) {
         },
     });
     const testFileCount = effectiveFiles.filter((f) => isTestFile(f.filename)).length;
-    const nonSourceCount = effectiveFiles.filter((f) => !isTestFile(f.filename) && isNonSourceFile(f.filename)).length;
-    const sourceFileCount = effectiveFiles.length - testFileCount - nonSourceCount;
-    if (sourceFileCount > 0) {
-        const testRatio = testFileCount / sourceFileCount;
+    const testableSourceFiles = effectiveFiles.filter((f) => isTestableSourceFile(f.filename, config));
+    const nonSourceCount = effectiveFiles.filter((f) => !isTestFile(f.filename) && isContentNonSource(f.filename, config)).length;
+    if (testableSourceFiles.length > 0) {
+        const testRatio = testFileCount / testableSourceFiles.length;
         const testCoverageScore = testFileCount === 0
             ? 100
             : Math.round(Math.max(0, 100 - testRatio * 100 - Math.min(testFileCount, 5) * 10));
@@ -200,9 +257,10 @@ export function computeRiskScore(files, config) {
             score: testCoverageScore,
             detail: {
                 testFiles: testFileCount,
-                sourceFiles: sourceFileCount,
+                sourceFiles: testableSourceFiles.length,
                 nonSourceFiles: nonSourceCount,
                 testRatio: Math.round(testRatio * 100) / 100,
+                skipped: false,
             },
         });
     }
@@ -210,7 +268,7 @@ export function computeRiskScore(files, config) {
     const sensitiveByConfig = highSensPatterns.length > 0
         ? effectiveFiles.filter((f) => matchesGlobs(f.filename, highSensPatterns))
         : [];
-    const sensitiveByDefault = effectiveFiles.filter((f) => isSensitiveFile(f.filename));
+    const sensitiveByDefault = effectiveFiles.filter((f) => isSensitiveFile(f.filename, config));
     const sensitiveFilenames = new Set([
         ...sensitiveByConfig.map((f) => f.filename),
         ...sensitiveByDefault.map((f) => f.filename),
@@ -228,7 +286,17 @@ export function computeRiskScore(files, config) {
             },
         });
     }
-    return { score: weightedAverageScores(factors, customWeights), factors };
+    const split = splitSizeFactors(factors, config);
+    const scoreFactors = split.sizeFactorsAsMetadata ? split.riskFactors : factors;
+    const sizeScore = split.sizeFactors.length > 0
+        ? weightedAverageScores(split.sizeFactors, customWeights)
+        : undefined;
+    return {
+        score: weightedAverageScores(scoreFactors, customWeights),
+        factors,
+        sizeScore,
+        sizeFactors: split.sizeFactors.length > 0 ? split.sizeFactors : undefined,
+    };
 }
 // ---------------------------------------------------------------------------
 // Dependency change detection
@@ -395,6 +463,32 @@ export function decideGate(riskScore, healthScore, blockThreshold, warnThreshold
     if (riskScore > effectiveWarn || healthScore < 50)
         return "warn";
     return "allow";
+}
+/**
+ * GATE-3 (2b): critical-factor hard-escalation for sensitive_files.
+ *
+ * The final risk score is a weighted AVERAGE, so a single critical factor can be
+ * diluted by clean ones. Most genuinely-critical conditions (destructive SQL,
+ * supply-chain critical vulns, prompt injection, CI/workflow integrity) already
+ * bypass the average via forceBlock. `sensitive_files` did NOT — a change touching
+ * auth/payment/infra-critical files (score up to 100) only fed the average.
+ *
+ * This escalates it OUT of the average: at/above the threshold it forces at least
+ * a warn (mode: "warn", the soak default) or a block (mode: "block"). Scoped to
+ * the sensitive_files factor by design — the noisy factors (file_count, code_churn,
+ * test_coverage, external deps, mock/placeholder) must never escalate.
+ */
+export function decideSensitiveFilesEscalation(factors, cfg) {
+    const none = { block: false, warn: false, reason: null };
+    if (cfg?.enabled === false)
+        return none;
+    const factor = factors.find((f) => f.type === "sensitive_files");
+    const threshold = cfg?.threshold ?? 100;
+    if (!factor || factor.score < threshold)
+        return none;
+    const mode = cfg?.mode ?? "warn";
+    const reason = `Sensitive-file change at critical level (sensitive_files score ${factor.score} ≥ ${threshold}) — escalated out of the risk average (${mode}).`;
+    return { block: mode === "block", warn: mode === "warn", reason };
 }
 // ---------------------------------------------------------------------------
 // Rollback detection

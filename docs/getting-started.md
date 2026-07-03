@@ -129,7 +129,8 @@ Pin an explicit Action version in CI (e.g. `KomatikAI/trailhead@v4.5.2`), not on
 
 ### What you get
 
-- **`risk.non_source_globs`** — excludes docs/suggestions from `sensitive_files` and `test_coverage` (file_count/churn unchanged)
+- **`risk.non_source_globs`** — excludes docs/suggestions from `sensitive_files` and `test_coverage`
+- **`risk.size_factors.mode: metadata`** — optionally reports `file_count` and `code_churn` outside the blocking risk average while retaining them in evaluation metadata
 - Same submission gate + remediation as agent-guard when enabled
 
 ### Setup

@@ -36,9 +36,12 @@ export function computeReleaseReady(input) {
     if (input.freezeActive) {
         reasons.push(`Release freeze active${input.freezeMessage ? `: ${input.freezeMessage}` : ""}`);
     }
-    if (input.healthChecksConfigured && input.healthScore < 50) {
-        reasons.push(`Health score ${input.healthScore} below minimum (50)`);
-    }
+    // health_score is WARN-ONLY (GATE-3): it no longer blocks release-readiness.
+    // Rationale: across 1,500+ stored evaluations health_score barely discriminates
+    // (release_ready true=88.1 vs false=81.8 → ~6pt = noise) while risk_score carries
+    // the signal (44.2 vs 78.9 → ~35pt). A low health_score still surfaces as a `warn`
+    // gate decision (see decideGate in risk-engine.ts: `healthScore < 50` → "warn"),
+    // so the genuine-outage signal stays visible — it just doesn't flip releaseReady.
     if (input.requireSecurityClear && input.securityBlocked) {
         reasons.push("Security gate requires clearance — blocking alerts present");
     }

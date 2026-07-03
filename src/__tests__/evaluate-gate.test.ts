@@ -1,10 +1,18 @@
 import { vi } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 import { evaluateGate } from "../gate.js";
 import type { TrailheadConfig } from "../types.js";
 import * as evaluationHistory from "../evaluation-history.js";
 
 vi.mock("../evaluation-history.js");
+
+const githubMockState = vi.hoisted(() => ({
+  pullRequest: {} as Record<string, unknown>,
+  reviews: [] as Array<{ state: string; user?: { login?: string } }>,
+}));
 
 vi.mock("@actions/core", () => ({
   debug: vi.fn(),
@@ -49,11 +57,12 @@ vi.mock("@actions/github", () => ({
             },
           ],
         }),
-        get: vi.fn().mockResolvedValue({
-          data: {
-            user: { login: "test-author" },
-          },
-        }),
+        get: vi.fn().mockImplementation(async () => ({
+          data: githubMockState.pullRequest,
+        })),
+        listReviews: vi.fn().mockImplementation(async () => ({
+          data: githubMockState.reviews,
+        })),
       },
       repos: {
         listCommits: vi.fn().mockResolvedValue({
@@ -87,10 +96,29 @@ function makeConfig(overrides: Partial<TrailheadConfig> = {}): TrailheadConfig {
   };
 }
 
+async function withLocalTrailheadConfig<T>(
+  content: string,
+  run: () => Promise<T>,
+): Promise<T> {
+  const workspace = await mkdtemp(path.join(os.tmpdir(), "trailhead-test-"));
+  await writeFile(path.join(workspace, ".trailhead.yml"), content, "utf-8");
+  vi.stubEnv("GITHUB_WORKSPACE", workspace);
+  try {
+    return await run();
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+  }
+}
+
 describe("evaluateGate (integration)", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
     vi.mocked(evaluationHistory.fetchPreviousEvaluationForPr).mockResolvedValue(null);
+    githubMockState.pullRequest = {
+      user: { login: "test-author" },
+      head: { ref: "feature/test" },
+    };
+    githubMockState.reviews = [];
     // Avoid loading repo .trailhead.yml on CI (GITHUB_WORKSPACE is set there).
     vi.stubEnv("GITHUB_WORKSPACE", "");
   });
@@ -223,6 +251,33 @@ describe("evaluateGate (integration)", () => {
     const result = await evaluateGate(config, "abc1234567890", 42);
 
     expect(result.gateDecision).toBe("allow");
+  });
+
+  it("keeps agent PR threshold policy advisory in warn mode", async () => {
+    githubMockState.pullRequest = {
+      user: { login: "komatik-bot[bot]" },
+      head: { ref: "agent/frontend-dev/polish-gate" },
+    };
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 1
+policies:
+  agent_prs:
+    enabled: true
+    mode: warn
+    risk_threshold: 5`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", riskThreshold: 99 }),
+          "abc1234567890",
+          42,
+        ),
+    );
+
+    expect(result.gateDecision).toBe("allow");
+    expect(result.policyFindings).toContain(
+      "Agent PR risk threshold would tighten from 99 to 5 (warn mode; not applied).",
+    );
   });
 
   it("preserves fail-open on health check network failure", async () => {

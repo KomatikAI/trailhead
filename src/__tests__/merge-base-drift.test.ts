@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 
+import { evaluateGate } from "../gate.js";
 import type { TrailheadConfig } from "../types.js";
 
 const mockListFiles = vi.fn();
@@ -66,7 +67,13 @@ function makeFile(name: string, changes = 10) {
 
 describe("merge-base drift detection", () => {
   beforeEach(() => {
+    mockListFiles.mockReset();
+    mockListCommits.mockReset();
+    mockGetCommit.mockReset();
+    mockPullsGet.mockReset();
+    mockReposListCommits.mockReset();
     vi.stubGlobal("fetch", vi.fn());
+    vi.stubEnv("GITHUB_WORKSPACE", "");
     mockPullsGet.mockResolvedValue({
       data: { user: { login: "test-author" }, created_at: new Date().toISOString() },
     });
@@ -80,6 +87,7 @@ describe("merge-base drift detection", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
@@ -90,7 +98,6 @@ describe("merge-base drift detection", () => {
       data: [{ sha: "c1", commit: { message: "feat" } }],
     });
 
-    const { evaluateGate } = await import("../gate.js");
     const result = await evaluateGate(makeConfig(), "abc1234567890", 42);
 
     expect(result.files).toHaveLength(20);
@@ -137,7 +144,6 @@ describe("merge-base drift detection", () => {
         },
       });
 
-    const { evaluateGate } = await import("../gate.js");
     const result = await evaluateGate(makeConfig(), "abc1234567890", 42);
 
     expect(result.files).toHaveLength(17);
@@ -180,7 +186,6 @@ describe("merge-base drift detection", () => {
         },
       });
 
-    const { evaluateGate } = await import("../gate.js");
     const result = await evaluateGate(makeConfig(), "abc1234567890", 42);
 
     expect(result.files).toHaveLength(40);
@@ -219,7 +224,6 @@ describe("merge-base drift detection", () => {
       },
     });
 
-    const { evaluateGate } = await import("../gate.js");
     const result = await evaluateGate(makeConfig(), "abc1234567890", 42);
 
     expect(result.files).toHaveLength(4);
@@ -241,8 +245,6 @@ describe("merge-base drift detection", () => {
       data: [{ sha: "c1", commit: { message: "feat" } }],
     });
     mockGetCommit.mockRejectedValue(new Error("API rate limit"));
-
-    const { evaluateGate } = await import("../gate.js");
 
     const result = await evaluateGate(makeConfig(), "abc1234567890", 42);
     // When commit enumeration fails, we gracefully fall back to the API

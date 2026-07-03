@@ -47,6 +47,7 @@ import {
   matchRiskProfile,
   riskConfigFromRepo,
   sensitivityWeight as sensitivityWeightShared,
+  splitSizeFactors,
   isInFreezeWindow,
   type FileInfo,
   type RiskFactorResult,
@@ -306,6 +307,8 @@ export function computeRiskScore(
 ): {
   score: number;
   factors: RiskFactor[];
+  sizeScore?: number;
+  sizeFactors?: RiskFactor[];
 } {
   const fileInfos: FileInfo[] = files.map((f) => ({
     filename: f.filename,
@@ -319,6 +322,8 @@ export function computeRiskScore(
   return {
     score: result.score,
     factors: result.factors as RiskFactor[],
+    sizeScore: result.sizeScore,
+    sizeFactors: result.sizeFactors as RiskFactor[] | undefined,
   };
 }
 
@@ -1091,6 +1096,8 @@ async function enforceAgentPrPolicies(params: {
   const findings: string[] = [];
   let adjustedRiskThreshold: number | undefined;
   let forceBlock = false;
+  const mode = policy.mode ?? "block";
+  const enforce = mode === "block";
 
   if (isUnknownStrict) {
     findings.push(
@@ -1102,10 +1109,16 @@ async function enforceAgentPrPolicies(params: {
     policy.risk_threshold !== undefined &&
     policy.risk_threshold < params.currentRiskThreshold
   ) {
-    adjustedRiskThreshold = policy.risk_threshold;
-    findings.push(
-      `Agent PR risk threshold tightened from ${params.currentRiskThreshold} to ${policy.risk_threshold}.`,
-    );
+    if (enforce) {
+      adjustedRiskThreshold = policy.risk_threshold;
+      findings.push(
+        `Agent PR risk threshold tightened from ${params.currentRiskThreshold} to ${policy.risk_threshold}.`,
+      );
+    } else {
+      findings.push(
+        `Agent PR risk threshold would tighten from ${params.currentRiskThreshold} to ${policy.risk_threshold} (warn mode; not applied).`,
+      );
+    }
   }
 
   const sensitivePatterns =
@@ -1142,26 +1155,32 @@ async function enforceAgentPrPolicies(params: {
     );
 
     if (approvedBy.size < policy.required_approvals) {
-      forceBlock = true;
+      if (enforce) forceBlock = true;
       findings.push(
-        `Sensitive-path agent PR requires ${policy.required_approvals} approval(s); found ${approvedBy.size}.`,
+        enforce
+          ? `Sensitive-path agent PR requires ${policy.required_approvals} approval(s); found ${approvedBy.size}.`
+          : `Sensitive-path agent PR would require ${policy.required_approvals} approval(s); found ${approvedBy.size} (warn mode; not blocking).`,
       );
     }
 
     if (policy.require_code_owner_approval) {
       if (policy.code_owner_reviewers.length === 0) {
-        forceBlock = true;
+        if (enforce) forceBlock = true;
         findings.push(
-          "Code-owner approval required for sensitive-path agent PRs, but no code_owner_reviewers configured.",
+          enforce
+            ? "Code-owner approval required for sensitive-path agent PRs, but no code_owner_reviewers configured."
+            : "Code-owner approval would be required for sensitive-path agent PRs, but no code_owner_reviewers are configured (warn mode; not blocking).",
         );
       } else {
         const hasCodeOwnerApproval = policy.code_owner_reviewers.some((r) =>
           approvedBy.has(r),
         );
         if (!hasCodeOwnerApproval) {
-          forceBlock = true;
+          if (enforce) forceBlock = true;
           findings.push(
-            `Sensitive-path agent PR requires one code-owner approval (${policy.code_owner_reviewers.join(", ")}).`,
+            enforce
+              ? `Sensitive-path agent PR requires one code-owner approval (${policy.code_owner_reviewers.join(", ")}).`
+              : `Sensitive-path agent PR would require one code-owner approval (${policy.code_owner_reviewers.join(", ")}) (warn mode; not blocking).`,
           );
         }
       }
@@ -1674,6 +1693,7 @@ export async function evaluateGate(
     core.warning(`Release freeze active: ${freezeCheck.message}`);
   }
 
+  const scoringRiskConfig = riskConfigFromRepo(repoConfig);
   const { score: localRiskScore, factors: riskFactors } = computeRiskScore(
     files,
     repoConfig,
@@ -1793,10 +1813,31 @@ export async function evaluateGate(
   if (crossRepoImpact.factor) {
     riskFactors.push(crossRepoImpact.factor);
   }
+  const splitRiskFactors = splitSizeFactors(
+    riskFactors as RiskFactorResult[],
+    scoringRiskConfig,
+  );
+  const sizeFactors = splitRiskFactors.sizeFactors as RiskFactor[];
+  const scoreFactors = splitRiskFactors.sizeFactorsAsMetadata
+    ? (splitRiskFactors.riskFactors as RiskFactor[])
+    : riskFactors;
+  const sizeScore =
+    sizeFactors.length > 0
+      ? weightedAverageScores(sizeFactors as RiskFactorResult[], customWeights)
+      : undefined;
+  if (splitRiskFactors.sizeFactorsAsMetadata && sizeFactors.length > 0) {
+    policyFindings.push(
+      `Size factors reported separately from blocking risk average (${sizeFactors
+        .map((factor) => `${factor.type}=${factor.score}`)
+        .join(", ")}).`,
+    );
+  }
   const riskScore =
-    riskFactors.length > 0
-      ? weightedAverageScores(riskFactors as RiskFactorResult[], customWeights)
-      : localRiskScore;
+    scoreFactors.length > 0
+      ? weightedAverageScores(scoreFactors as RiskFactorResult[], customWeights)
+      : splitRiskFactors.sizeFactorsAsMetadata
+        ? 0
+        : localRiskScore;
 
   // GATE-3: Apply severity-based penalties to risk factors. Opt-in via
   // policies.risk_factor_severity.enabled — an always-on penalty would shift
@@ -1813,7 +1854,7 @@ export async function evaluateGate(
 
   const { adjustedScore: riskScoreWithPenalties, appliedPenalties } =
     severityPenaltiesEnabled
-      ? applyRiskFactorSeverityPenalties(riskScore, riskFactors, severityPenalties)
+      ? applyRiskFactorSeverityPenalties(riskScore, scoreFactors, severityPenalties)
       : { adjustedScore: riskScore, appliedPenalties: 0 };
 
   if (appliedPenalties > 0) {
@@ -2071,9 +2112,11 @@ export async function evaluateGate(
     prNumber,
     healthScore,
     riskScore: riskScoreWithPenalties, // GATE-3: Use adjusted score with severity penalties
+    sizeScore,
     gateDecision,
     healthChecks,
     riskFactors,
+    sizeFactors: sizeFactors.length > 0 ? sizeFactors : undefined,
     files: fileNames.length > 0 ? fileNames : undefined,
     evaluationMs: Date.now() - start,
     environment: effectiveEnvironment,
@@ -2839,6 +2882,9 @@ export function formatGateReport(
       `|-----------|--------|`,
       `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
       `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
+      ...(evaluation.sizeScore !== undefined
+        ? [`| Size / blast radius | ${evaluation.sizeScore}/100 (reported separately) |`]
+        : []),
       `| Health | ${healthDisplay} |`,
       `| Gate | ${evaluation.gateDecision.toUpperCase()} |`,
       ``,
@@ -2891,6 +2937,9 @@ export function formatGateReport(
       `|--------|-------|`,
       `| Health | ${healthDisplay} |`,
       `| Risk   | ${evaluation.riskScore}/100 |`,
+      ...(evaluation.sizeScore !== undefined
+        ? [`| Size / blast radius | ${evaluation.sizeScore}/100 |`]
+        : []),
       `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`,
       ``,
     );

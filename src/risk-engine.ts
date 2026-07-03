@@ -45,6 +45,11 @@ export interface RiskConfig {
   profiles?: RiskProfileDef[];
   /** Extra globs treated as non-source for sensitive_files + test_coverage (not file_count). */
   non_source_globs?: string[];
+  /** When mode=metadata, selected size factors stay visible but leave the blocking risk average. */
+  size_factors?: {
+    mode?: "risk" | "metadata";
+    factors?: string[];
+  };
 }
 
 export interface SecurityAlertCounts {
@@ -143,6 +148,8 @@ export const FACTOR_WEIGHTS: Record<string, number> = {
   duplicate_logic: 1,
   cross_repo_impact: 2,
 };
+
+export const DEFAULT_SIZE_FACTOR_TYPES = ["file_count", "code_churn"];
 
 // ---------------------------------------------------------------------------
 // Glob matching
@@ -247,7 +254,10 @@ export function riskConfigFromRepo(
     weights?: Record<string, number>;
     ignore?: string[];
     profiles?: RiskProfileDef[];
-    risk?: { non_source_globs?: string[] };
+    risk?: {
+      non_source_globs?: string[];
+      size_factors?: { mode?: "risk" | "metadata"; factors?: string[] };
+    };
   } | null,
 ): RiskConfig | null {
   if (!repo) return null;
@@ -257,6 +267,34 @@ export function riskConfigFromRepo(
     ignore: repo.ignore,
     profiles: repo.profiles,
     non_source_globs: repo.risk?.non_source_globs,
+    size_factors: repo.risk?.size_factors,
+  };
+}
+
+export function sizeFactorsAreMetadata(config?: RiskConfig | null): boolean {
+  return config?.size_factors?.mode === "metadata";
+}
+
+export function configuredSizeFactorTypes(config?: RiskConfig | null): Set<string> {
+  const factors = config?.size_factors?.factors ?? DEFAULT_SIZE_FACTOR_TYPES;
+  return new Set(factors);
+}
+
+export function splitSizeFactors(
+  factors: RiskFactorResult[],
+  config?: RiskConfig | null,
+): {
+  riskFactors: RiskFactorResult[];
+  sizeFactors: RiskFactorResult[];
+  sizeFactorsAsMetadata: boolean;
+} {
+  const sizeTypes = configuredSizeFactorTypes(config);
+  const sizeFactors = factors.filter((f) => sizeTypes.has(f.type));
+  const riskFactors = factors.filter((f) => !sizeTypes.has(f.type));
+  return {
+    riskFactors,
+    sizeFactors,
+    sizeFactorsAsMetadata: sizeFactorsAreMetadata(config),
   };
 }
 
@@ -314,6 +352,8 @@ export function computeRiskScore(
 ): {
   score: number;
   factors: RiskFactorResult[];
+  sizeScore?: number;
+  sizeFactors?: RiskFactorResult[];
 } {
   if (files.length === 0) {
     return { score: 0, factors: [] };
@@ -411,7 +451,19 @@ export function computeRiskScore(
     });
   }
 
-  return { score: weightedAverageScores(factors, customWeights), factors };
+  const split = splitSizeFactors(factors, config);
+  const scoreFactors = split.sizeFactorsAsMetadata ? split.riskFactors : factors;
+  const sizeScore =
+    split.sizeFactors.length > 0
+      ? weightedAverageScores(split.sizeFactors, customWeights)
+      : undefined;
+
+  return {
+    score: weightedAverageScores(scoreFactors, customWeights),
+    factors,
+    sizeScore,
+    sizeFactors: split.sizeFactors.length > 0 ? split.sizeFactors : undefined,
+  };
 }
 
 // ---------------------------------------------------------------------------

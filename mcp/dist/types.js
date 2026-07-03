@@ -43,6 +43,7 @@ export const PrProvenance = z.object({
     source: z.string().optional(),
 });
 export const GateMode = z.enum(["release-ready", "advisory", "risk-only"]);
+export const AgentBriefMode = z.enum(["off", "collapsed", "expanded"]);
 export const CiCheckStatusEnum = z.enum([
     "pass",
     "fail",
@@ -69,6 +70,125 @@ export const MatchedContext = z.object({
     name: z.string(),
     environment: z.string().optional(),
 });
+export const RemediationSeverity = z.enum(["blocking", "warn", "advisory"]);
+export const SubmissionCheckCode = z.enum([
+    "artifact_integrity",
+    "mock_placeholder",
+    "context_freshness",
+    "destructive_sql",
+    "secrets",
+    "path_format",
+    "syntax_validity",
+    "import_resolution",
+    "rls_new_tables",
+    "auth_route_auth",
+    "hardcoded_env",
+    "external_package_deps",
+    "sql_syntax_basic",
+    "large_file",
+    "soul_integrity",
+    // ADR-010 — architecture & lifecycle gates
+    "contract_integrity",
+    "safe_deprecation",
+    "destructive_change",
+    "claim_anchoring",
+    "promotion_coherence",
+    // Phase 0 — agent suggestion quality (advisory / weight=0)
+    "output_size_min",
+    "action_extraction_present",
+    "delta_section_present",
+    "preamble_absent",
+    "graduation_signals_section_present",
+    "fabricated_id_check",
+    "session_narrative_detection",
+    "incompleteness_self_flag",
+    "referenced_files_exist",
+    "prerequisite_secrets_check",
+    "dependency_dag_validation",
+    "uncommitted_fix_check",
+    "verification_owner_assigned",
+    "external_interface_validation",
+]);
+export const SubmissionCheckResult = z.object({
+    code: SubmissionCheckCode,
+    severity: RemediationSeverity,
+    title: z.string(),
+    detail: z.string(),
+    files: z.array(z.string()).default([]),
+    suggested_action: z.string().optional(),
+    autofix_eligible: z.boolean().default(false),
+});
+export const RemediationAutofixClass = z.enum([
+    "format",
+    "lint",
+    "import-fix",
+    "type-narrow",
+    "test-scaffold",
+    "doc-update",
+    "dependency-bump",
+]);
+export const RemediationFix = z.object({
+    code: z.string(),
+    severity: RemediationSeverity,
+    title: z.string(),
+    detail: z.string(),
+    files: z.array(z.string()).default([]),
+    suggested_action: z.string().optional(),
+    suggested_command: z.string().optional(),
+    autofix_eligible: z.boolean().default(false),
+    autofix_class: RemediationAutofixClass.optional(),
+    policy_link: z.string().url().optional(),
+});
+export const RemediationNextAction = z.enum([
+    "ready_to_merge",
+    "fix_and_retry",
+    "human_review_required",
+    "max_rounds_exceeded",
+]);
+export const Remediation = z.object({
+    schema: z.literal("trailhead.remediation.v1").default("trailhead.remediation.v1"),
+    release_ready: z.boolean(),
+    fixes: z.array(RemediationFix),
+    blocking_count: z.number().int().min(0),
+    warn_count: z.number().int().min(0),
+    advisory_count: z.number().int().min(0),
+    autofix_eligible_count: z.number().int().min(0),
+    loop_round: z.number().int().min(0).default(0),
+    max_loop_rounds: z.number().int().min(0).default(3),
+    previous_evaluation_id: z.string().optional(),
+    fixes_resolved: z.array(z.string()).default([]),
+    fixes_introduced: z.array(z.string()).default([]),
+    next_action: RemediationNextAction,
+});
+export const PolicyOverrideChanges = z.object({
+    failMode: z.enum(["open", "closed"]).optional(),
+    riskThreshold: z.number().min(0).max(100).optional(),
+    warnThreshold: z.number().min(0).max(100).optional(),
+    releaseReady: z.literal(true).optional(),
+});
+export const PolicyOverrideAudit = z.object({
+    source: z.enum(["workflow", "label"]).default("workflow"),
+    owner: z.string(),
+    reason: z.string(),
+    linkedTicket: z.string(),
+    expiresAt: z.string(),
+    appliedAt: z.string(),
+    changes: PolicyOverrideChanges.default({}),
+    preOverrideDecision: GateDecision.optional(),
+    preOverrideReleaseReady: z.boolean().optional(),
+    preOverrideReasons: z.array(z.string()).optional(),
+});
+export const CreditMeterResult = z.object({
+    metered: z.boolean(),
+    skipped: z.boolean().optional(),
+    reason: z.string().optional(),
+    shadow: z.boolean().optional(),
+    would_charge: z.number().optional(),
+    charged: z.number().optional(),
+    balance: z.number().optional(),
+    allowed: z.boolean().optional(),
+    ok: z.boolean().optional(),
+});
 export const GateEvaluation = z.object({
     id: z.string(),
     repoId: z.string(),
@@ -76,9 +196,11 @@ export const GateEvaluation = z.object({
     prNumber: z.number().optional(),
     healthScore: z.number().min(0).max(100),
     riskScore: z.number().min(0).max(100),
+    sizeScore: z.number().min(0).max(100).optional(),
     gateDecision: GateDecision,
     healthChecks: z.array(HealthCheckResult),
     riskFactors: z.array(RiskFactor),
+    sizeFactors: z.array(RiskFactor).optional(),
     files: z.array(z.string()).optional(),
     evaluationMs: z.number(),
     reportUrl: z.string().url().optional(),
@@ -88,6 +210,7 @@ export const GateEvaluation = z.object({
     pr: z
         .object({
         provenance: PrProvenance.optional(),
+        headRef: z.string().optional(),
     })
         .optional(),
     session_correlation: z
@@ -108,22 +231,16 @@ export const GateEvaluation = z.object({
         .object({
         strictness: z.enum(["baseline", "elevated", "strict"]),
         reason: z.string(),
+        score: z.number().min(0).max(1).optional(),
+        profile: z.enum(["fast-track", "standard", "probation"]).optional(),
+        factors: z.record(z.number()).optional(),
     })
         .optional(),
-    policyOverride: z
+    policyOverride: PolicyOverrideAudit.optional(),
+    labelOverrideFeedback: z
         .object({
-        owner: z.string(),
-        reason: z.string(),
-        linkedTicket: z.string(),
-        expiresAt: z.string(),
-        appliedAt: z.string(),
-        changes: z
-            .object({
-            failMode: z.enum(["open", "closed"]).optional(),
-            riskThreshold: z.number().min(0).max(100).optional(),
-            warnThreshold: z.number().min(0).max(100).optional(),
-        })
-            .default({}),
+        status: z.enum(["applied", "rejected"]),
+        message: z.string(),
     })
         .optional(),
     releaseReady: z.boolean().optional(),
@@ -132,6 +249,10 @@ export const GateEvaluation = z.object({
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
     storePersisted: z.boolean().optional(),
+    credit_meter: CreditMeterResult.optional(),
+    remediation: Remediation.optional(),
+    agentBriefMode: AgentBriefMode.optional(),
+    submissionChecks: z.array(SubmissionCheckResult).optional(),
     cross_repo_impact: z
         .object({
         services: z.array(z.object({
@@ -152,9 +273,11 @@ export const GateApiResponse = z.object({
     reportUrl: z.string().url().optional(),
     healthScore: z.number().min(0).max(100).optional(),
     riskScore: z.number().min(0).max(100).optional(),
+    sizeScore: z.number().min(0).max(100).optional(),
     gateDecision: GateDecision.optional(),
     healthChecks: z.array(HealthCheckResult).optional(),
     riskFactors: z.array(RiskFactor).optional(),
+    sizeFactors: z.array(RiskFactor).optional(),
 });
 export const FreezeWindow = z.object({
     days: z.array(z.string()).default([]),
@@ -229,10 +352,103 @@ export const TrailheadContext = z.object({
 export const GateConfig = z.object({
     mode: GateMode.default("risk-only"),
     check_name: z.string().default("Trailhead — Release Ready"),
+    agent_brief: AgentBriefMode.optional(),
+});
+export const RemediationConfig = z.object({
+    enabled: z.boolean().default(true),
+    max_loop_rounds: z.number().int().min(0).default(3),
+});
+export const RiskPathProfileConfig = z.object({
+    /** Extra globs excluded from sensitive_files + test_coverage (not file_count/churn). */
+    non_source_globs: z.array(z.string()).default([]),
+    /** Move structural size factors out of the blocking risk average while still reporting them. */
+    size_factors: z
+        .object({
+        mode: z.enum(["risk", "metadata"]).default("risk"),
+        factors: z
+            .array(z.enum(["file_count", "code_churn"]))
+            .default(["file_count", "code_churn"]),
+    })
+        .default({}),
+});
+export const OverrideConfig = z.object({
+    enabled: z.boolean().default(true),
+    max_per_week: z.number().int().min(1).default(5),
+});
+export const TuningConfig = z.object({
+    auto_downgrade: z.boolean().default(true),
+    digest_webhook_url: z.string().url().optional(),
+    fp_threshold: z.number().min(0).max(1).default(0.15),
+});
+export const SubmissionDetectorPolicyEntry = z.object({
+    enabled: z.boolean().optional(),
+    severity: z.enum(["block", "warn", "advisory", "blocking"]).optional(),
+    file_globs: z.array(z.string()).optional(),
+    path_ignore: z.array(z.string()).optional(),
+    weight: z.number().optional(),
+});
+export const SubmissionRenamePattern = z.object({
+    old: z.string().min(1),
+    new: z.string().min(1),
+});
+export const SubmissionConfig = z.object({
+    enabled: z.boolean().default(false),
+    mode: z.enum(["warn", "block"]).default("block"),
+    stale_terms: z.array(z.string()).optional(),
+    auth_route_allowlist: z.array(z.string()).optional(),
+    max_file_lines: z.number().int().positive().optional(),
+    /** Path substrings to skip for context_freshness (e.g. archived suggestion dirs). */
+    path_ignore: z.array(z.string()).optional(),
+    /** Legacy naming allowlist — skip stale-term hits on imports, slugs in strings, etc. */
+    naming_allowlist: z
+        .object({
+        skip_extensions: z.array(z.string()).optional(),
+        skip_path_patterns: z.array(z.string()).optional(),
+        skip_comment_markers: z.array(z.string()).optional(),
+        skip_in_imports: z.boolean().optional(),
+    })
+        .optional(),
+    /** Project rename vocabulary — extends Komatik defaults when KOMATIK_INSTANCE=true. */
+    rename_patterns: z.array(SubmissionRenamePattern).optional(),
+    /** Extra slug-only regex sources (merged with product defaults). */
+    slug_only_patterns: z.array(z.string()).optional(),
+    /** Per-detector policy overrides (enable/severity/file scope). */
+    detectors: z.record(SubmissionDetectorPolicyEntry).optional(),
+    /** contract_integrity (ADR-010): cross-repo catalog resolution. */
+    contract_integrity: z
+        .object({
+        /** Entity names published org-wide; lets cross-repo contract refs resolve. */
+        known_entities: z.array(z.string()).optional(),
+        /** Path to a JSON catalog index ({ entities: string[] }), merged with known_entities. */
+        catalog_index_path: z.string().optional(),
+        /** entity name → "owner/repo" that should publish it. Resolution registry
+         * for the cross-repo PR opener: a dangling consumesApis/dependsOn ref whose
+         * name is mapped here triggers a declaration PR in the owning repo. */
+        api_owners: z.record(z.string()).optional(),
+        /** Path to a catalog index JSON with an `owners` map; merged with api_owners
+         * (inline api_owners wins). Usually the same file as catalog_index_path. */
+        api_owners_path: z.string().optional(),
+        /** Cross-repo PR opener (ADR-010). Off by default; opens declaration PRs in
+         * the OWNING repo for dangling cross-repo contract refs. Needs a token with
+         * write access to those repos (cross-repo-token input). */
+        cross_repo_opener: z
+            .object({
+            enabled: z.boolean().default(false),
+            /** Owners the opener may open PRs in. Defaults to the gated repo's owner. */
+            owner_allowlist: z.array(z.string()).optional(),
+        })
+            .optional(),
+    })
+        .optional(),
 });
 export const RepoConfig = z.object({
     schema_version: z.number().int().positive().default(1),
     gate: GateConfig.default({}),
+    risk: RiskPathProfileConfig.optional(),
+    remediation: RemediationConfig.optional(),
+    override: OverrideConfig.optional(),
+    tuning: TuningConfig.optional(),
+    submission: SubmissionConfig.optional(),
     contexts: z.array(TrailheadContext).default([]),
     sensitivity: z
         .object({
@@ -268,6 +484,7 @@ export const RepoConfig = z.object({
         agent_prs: z
             .object({
             enabled: z.boolean().default(false),
+            mode: z.enum(["warn", "block"]).default("block"),
             risk_threshold: z.number().min(0).max(100).optional(),
             required_approvals: z.number().int().min(0).default(1),
             require_code_owner_approval: z.boolean().default(false),
@@ -317,6 +534,16 @@ export const RepoConfig = z.object({
             max_changes: z.number().int().min(1).default(2000),
             mode: z.enum(["warn", "block"]).default("warn"),
             require_plan_for_agent_prs: z.boolean().default(false),
+            // Branch pairs exempt from scope limits (glob patterns; empty list
+            // matches any branch, same semantics as contexts[].match). Meant for
+            // promotion PRs (dev→staging, staging→master), which aggregate many
+            // already-gated merges and structurally exceed any sane max_files.
+            exempt: z
+                .array(z.object({
+                head_branch: z.array(z.string()).default([]),
+                base_branch: z.array(z.string()).default([]),
+            }))
+                .default([]),
         })
             .default({}),
         duplicate_logic: z
@@ -332,6 +559,28 @@ export const RepoConfig = z.object({
             consumer_registry_path: z.string().optional(),
         })
             .default({}),
+        // GATE-3 (2b): escalate a critical sensitive_files change OUT of the risk
+        // average. Default mode "warn" (soak) — flip to "block" per repo when ready.
+        sensitive_files: z
+            .object({
+            enabled: z.boolean().default(true),
+            mode: z.enum(["warn", "block"]).default("warn"),
+            threshold: z.number().min(0).max(100).default(100),
+        })
+            .default({}),
+        // GATE-3: per-severity penalty points added to the weighted risk score
+        // for each risk factor at that severity (applyRiskFactorSeverityPenalties).
+        // Opt-in: penalties apply only when enabled=true, so shipping the feature
+        // doesn't shift every repo's scores mid-calibration.
+        risk_factor_severity: z
+            .object({
+            enabled: z.boolean().default(false),
+            critical: z.number().min(0).optional(),
+            high: z.number().min(0).optional(),
+            medium: z.number().min(0).optional(),
+            low: z.number().min(0).optional(),
+        })
+            .optional(),
     })
         .default({}),
 });

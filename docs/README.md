@@ -175,6 +175,7 @@ Agent and detector-specific policy controls live in `.trailhead.yml`:
 policies:
   agent_prs:
     enabled: true
+    mode: block # use warn for advisory-only measurement
     risk_threshold: 60
     required_approvals: 2
     require_code_owner_approval: true

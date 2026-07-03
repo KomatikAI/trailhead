@@ -1,3 +1,4 @@
+import { resolveAgentProvenanceId } from "./tuning-digest.js";
 function inWindow(iso, since) {
     return new Date(iso).getTime() >= since.getTime();
 }
@@ -136,12 +137,6 @@ export function computeCfrStats(deployEvents, options) {
         cfr: known > 0 ? Math.round((failures / known) * 1000) / 10 : 0,
     };
 }
-function parseAgentIdFromHeadRef(headRef) {
-    if (!headRef)
-        return null;
-    const match = headRef.match(/^agent\/([a-z0-9-]+)\//);
-    return match?.[1] ?? null;
-}
 function median(values) {
     if (values.length === 0)
         return null;
@@ -155,13 +150,7 @@ export function computeAgentLoopEfficiency(rows, options) {
     const filtered = filterEvaluations(rows, options);
     const buckets = new Map();
     for (const row of filtered) {
-        const headRef = typeof row.pr === "object" &&
-            row.pr !== null &&
-            "headRef" in row.pr &&
-            typeof row.pr.headRef === "string"
-            ? row.pr.headRef
-            : undefined;
-        const agentId = parseAgentIdFromHeadRef(headRef);
+        const agentId = resolveAgentProvenanceId(row);
         if (!agentId)
             continue;
         const remediation = row.remediation;

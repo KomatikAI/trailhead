@@ -1,4 +1,5 @@
 import type { DeployEventPayload, StoredEvaluation } from "./types.js";
+import { resolveAgentProvenanceId } from "./tuning-digest.js";
 
 export interface AnalyticsOptions {
   repoId?: string;
@@ -246,12 +247,6 @@ export interface AgentLoopEfficiencyPanel {
   fleetMedianRoundsToReady: number | null;
 }
 
-function parseAgentIdFromHeadRef(headRef: string | undefined): string | null {
-  if (!headRef) return null;
-  const match = headRef.match(/^agent\/([a-z0-9-]+)\//);
-  return match?.[1] ?? null;
-}
-
 function median(values: number[]): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -269,14 +264,7 @@ export function computeAgentLoopEfficiency(
   const buckets = new Map<string, { ready: number; blocked: number; rounds: number[] }>();
 
   for (const row of filtered) {
-    const headRef =
-      typeof row.pr === "object" &&
-      row.pr !== null &&
-      "headRef" in row.pr &&
-      typeof row.pr.headRef === "string"
-        ? row.pr.headRef
-        : undefined;
-    const agentId = parseAgentIdFromHeadRef(headRef);
+    const agentId = resolveAgentProvenanceId(row);
     if (!agentId) continue;
 
     const remediation = row.remediation as

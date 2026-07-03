@@ -367,6 +367,14 @@ thresholds:
   risk: 80
   warn: 60
 
+# Risk calibration
+risk:
+  size_factors:
+    # "risk" preserves legacy behavior; "metadata" reports file_count/code_churn
+    # separately from the blocking weighted risk average.
+    mode: risk
+    factors: ["file_count", "code_churn"]
+
 # Per-environment threshold overrides
 environments:
   production:
@@ -405,6 +413,8 @@ escalation:
 policies:
   agent_prs:
     enabled: true
+    # "block" preserves legacy enforcement; "warn" reports would-block findings only.
+    mode: block
     risk_threshold: 60
     required_approvals: 2
     require_code_owner_approval: true

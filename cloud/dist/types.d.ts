@@ -8,9 +8,11 @@ export declare const EvaluationPayload: z.ZodObject<{
     prNumber: z.ZodOptional<z.ZodNumber>;
     healthScore: z.ZodNumber;
     riskScore: z.ZodNumber;
+    sizeScore: z.ZodOptional<z.ZodNumber>;
     gateDecision: z.ZodEnum<["allow", "warn", "block"]>;
     healthChecks: z.ZodDefault<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
     riskFactors: z.ZodDefault<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
+    sizeFactors: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
     files: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     evaluationMs: z.ZodNumber;
     reportUrl: z.ZodOptional<z.ZodString>;
@@ -27,9 +29,11 @@ export declare const EvaluationPayload: z.ZodObject<{
     prNumber: z.ZodOptional<z.ZodNumber>;
     healthScore: z.ZodNumber;
     riskScore: z.ZodNumber;
+    sizeScore: z.ZodOptional<z.ZodNumber>;
     gateDecision: z.ZodEnum<["allow", "warn", "block"]>;
     healthChecks: z.ZodDefault<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
     riskFactors: z.ZodDefault<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
+    sizeFactors: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
     files: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     evaluationMs: z.ZodNumber;
     reportUrl: z.ZodOptional<z.ZodString>;
@@ -46,9 +50,11 @@ export declare const EvaluationPayload: z.ZodObject<{
     prNumber: z.ZodOptional<z.ZodNumber>;
     healthScore: z.ZodNumber;
     riskScore: z.ZodNumber;
+    sizeScore: z.ZodOptional<z.ZodNumber>;
     gateDecision: z.ZodEnum<["allow", "warn", "block"]>;
     healthChecks: z.ZodDefault<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
     riskFactors: z.ZodDefault<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
+    sizeFactors: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
     files: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     evaluationMs: z.ZodNumber;
     reportUrl: z.ZodOptional<z.ZodString>;

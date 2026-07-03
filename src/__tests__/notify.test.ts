@@ -180,6 +180,8 @@ describe("buildEvaluationStoreRow", () => {
         gateMode: "release-ready",
         releaseReady: false,
         releaseReadyReasons: ["Risk score 85 exceeds threshold 70"],
+        sizeScore: 70,
+        sizeFactors: [{ type: "file_count", score: 70 }],
         policyFindings: ["CI integrity blocking patterns detected (1)."],
         submissionChecks: [
           {
@@ -210,6 +212,8 @@ describe("buildEvaluationStoreRow", () => {
     );
 
     expect(row.gate_mode).toBe("release-ready");
+    expect(row.size_score).toBe(70);
+    expect(row.size_factors).toEqual([{ type: "file_count", score: 70 }]);
     expect(row.release_ready_reasons).toEqual(["Risk score 85 exceeds threshold 70"]);
     expect(row.policy_findings).toContain("CI integrity blocking patterns detected (1).");
     expect(row.submission_checks).toHaveLength(1);

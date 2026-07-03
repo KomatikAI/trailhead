@@ -238,9 +238,11 @@ export const GateEvaluation = z.object({
   prNumber: z.number().optional(),
   healthScore: z.number().min(0).max(100),
   riskScore: z.number().min(0).max(100),
+  sizeScore: z.number().min(0).max(100).optional(),
   gateDecision: GateDecision,
   healthChecks: z.array(HealthCheckResult),
   riskFactors: z.array(RiskFactor),
+  sizeFactors: z.array(RiskFactor).optional(),
   files: z.array(z.string()).optional(),
   evaluationMs: z.number(),
   reportUrl: z.string().url().optional(),
@@ -319,9 +321,11 @@ export const GateApiResponse = z.object({
   reportUrl: z.string().url().optional(),
   healthScore: z.number().min(0).max(100).optional(),
   riskScore: z.number().min(0).max(100).optional(),
+  sizeScore: z.number().min(0).max(100).optional(),
   gateDecision: GateDecision.optional(),
   healthChecks: z.array(HealthCheckResult).optional(),
   riskFactors: z.array(RiskFactor).optional(),
+  sizeFactors: z.array(RiskFactor).optional(),
 });
 export type GateApiResponse = z.infer<typeof GateApiResponse>;
 
@@ -436,6 +440,15 @@ export type RemediationConfig = z.infer<typeof RemediationConfig>;
 export const RiskPathProfileConfig = z.object({
   /** Extra globs excluded from sensitive_files + test_coverage (not file_count/churn). */
   non_source_globs: z.array(z.string()).default([]),
+  /** Move structural size factors out of the blocking risk average while still reporting them. */
+  size_factors: z
+    .object({
+      mode: z.enum(["risk", "metadata"]).default("risk"),
+      factors: z
+        .array(z.enum(["file_count", "code_churn"]))
+        .default(["file_count", "code_churn"]),
+    })
+    .default({}),
 });
 export type RiskPathProfileConfig = z.infer<typeof RiskPathProfileConfig>;
 
@@ -562,6 +575,7 @@ export const RepoConfig = z.object({
       agent_prs: z
         .object({
           enabled: z.boolean().default(false),
+          mode: z.enum(["warn", "block"]).default("block"),
           risk_threshold: z.number().min(0).max(100).optional(),
           required_approvals: z.number().int().min(0).default(1),
           require_code_owner_approval: z.boolean().default(false),

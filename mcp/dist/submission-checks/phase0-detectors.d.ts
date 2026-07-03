@@ -1,0 +1,18 @@
+import type { SubmissionCheckResult } from "../types.js";
+import type { SubmissionCheckContext, SubmissionFileInfo } from "./types.js";
+export declare function suggestionMarkdownFiles(ctx: SubmissionCheckContext): SubmissionFileInfo[];
+export declare function detectOutputSizeMin(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectActionExtractionPresent(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectDeltaSectionPresent(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectPreambleAbsent(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectGraduationSignalsSectionPresent(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectFabricatedIdCheck(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectSessionNarrativeDetection(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectIncompletenessSelfFlag(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectReferencedFilesExist(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectPrerequisiteSecretsCheck(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectDependencyDagValidation(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectUncommittedFixCheck(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectVerificationOwnerAssigned(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectExternalInterfaceValidation(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function runPhase0Detectors(ctx: SubmissionCheckContext): SubmissionCheckResult[];

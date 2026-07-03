@@ -12,14 +12,14 @@ export declare const CiManifestJob: z.ZodObject<{
     check_run_id: z.ZodOptional<z.ZodNumber>;
     details_url: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
     outcome: "ran" | "passed" | "skipped" | "failed" | "pending" | "cancelled";
+    name: string;
     reason?: "paths-filter" | "paths-ignore" | "manual" | "condition" | "concurrency" | "workflow_dispatch" | "other" | undefined;
     check_run_id?: number | undefined;
     details_url?: string | undefined;
 }, {
-    name: string;
     outcome: "ran" | "passed" | "skipped" | "failed" | "pending" | "cancelled";
+    name: string;
     reason?: "paths-filter" | "paths-ignore" | "manual" | "condition" | "concurrency" | "workflow_dispatch" | "other" | undefined;
     check_run_id?: number | undefined;
     details_url?: string | undefined;
@@ -38,14 +38,14 @@ export declare const CiManifest: z.ZodObject<{
         check_run_id: z.ZodOptional<z.ZodNumber>;
         details_url: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        name: string;
         outcome: "ran" | "passed" | "skipped" | "failed" | "pending" | "cancelled";
+        name: string;
         reason?: "paths-filter" | "paths-ignore" | "manual" | "condition" | "concurrency" | "workflow_dispatch" | "other" | undefined;
         check_run_id?: number | undefined;
         details_url?: string | undefined;
     }, {
-        name: string;
         outcome: "ran" | "passed" | "skipped" | "failed" | "pending" | "cancelled";
+        name: string;
         reason?: "paths-filter" | "paths-ignore" | "manual" | "condition" | "concurrency" | "workflow_dispatch" | "other" | undefined;
         check_run_id?: number | undefined;
         details_url?: string | undefined;
@@ -53,8 +53,8 @@ export declare const CiManifest: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     schema_version: 1;
     jobs: {
-        name: string;
         outcome: "ran" | "passed" | "skipped" | "failed" | "pending" | "cancelled";
+        name: string;
         reason?: "paths-filter" | "paths-ignore" | "manual" | "condition" | "concurrency" | "workflow_dispatch" | "other" | undefined;
         check_run_id?: number | undefined;
         details_url?: string | undefined;
@@ -66,8 +66,8 @@ export declare const CiManifest: z.ZodObject<{
 }, {
     schema_version: 1;
     jobs: {
-        name: string;
         outcome: "ran" | "passed" | "skipped" | "failed" | "pending" | "cancelled";
+        name: string;
         reason?: "paths-filter" | "paths-ignore" | "manual" | "condition" | "concurrency" | "workflow_dispatch" | "other" | undefined;
         check_run_id?: number | undefined;
         details_url?: string | undefined;

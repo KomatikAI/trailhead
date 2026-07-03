@@ -149,4 +149,49 @@ describe("analytics", () => {
     expect(panel.agents[0].blockedCount).toBe(1);
     expect(panel.agents[0].medianRoundsToReady).toBe(2);
   });
+
+  it("computes agent loop efficiency from stored provenance metadata", () => {
+    const rows = [
+      evalRow({
+        id: "codex-blocked",
+        releaseReady: false,
+        gateDecision: "block",
+        agentProvenanceId: "codex-reviewer",
+      }),
+      evalRow({
+        id: "claude-ready",
+        releaseReady: true,
+        gateDecision: "allow",
+        pr: {
+          headRef: "claude/gate-polish",
+          provenance: {
+            type: "claude",
+            confidence: 0.92,
+            source: "claude-code",
+          },
+        },
+        remediation: {
+          loop_round: 3,
+          next_action: "ready_to_merge",
+        },
+      }),
+    ];
+
+    const panel = computeAgentLoopEfficiency(rows, {
+      days: 30,
+      now: new Date("2026-05-22"),
+    });
+
+    expect(panel.agents.map((row) => row.agentId)).toEqual([
+      "claude-code",
+      "codex-reviewer",
+    ]);
+    expect(panel.agents.find((row) => row.agentId === "claude-code")).toMatchObject({
+      readyCount: 1,
+      medianRoundsToReady: 3,
+    });
+    expect(panel.agents.find((row) => row.agentId === "codex-reviewer")).toMatchObject({
+      blockedCount: 1,
+    });
+  });
 });

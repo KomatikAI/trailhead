@@ -25,6 +25,9 @@ export {
   computeSecurityFactor,
   computeDeploymentHistoryFactor,
   decideSensitiveFilesEscalation,
+  splitSizeFactors,
+  sizeFactorsAreMetadata,
+  configuredSizeFactorTypes,
 } from "./risk-engine.js";
 export type {
   FileInfo,
