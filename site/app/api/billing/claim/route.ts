@@ -24,32 +24,17 @@ export async function GET(req: Request): Promise<Response> {
 
   const store = await getBillingStore();
 
+  // The real claimKey (cloud/src/store.ts / pg-store.ts) is a single atomic
+  // UPDATE ... RETURNING that returns one of four variants — there is no
+  // separate getKeyClaimStatus (that only ever existed in the stale ambient
+  // .d.ts); the variants themselves carry the status.
   const claim = await store.claimKey(sessionId);
-  if (claim) {
-    let apiKey: string;
-    try {
-      apiKey = decryptClaim(claim.keyCiphertext);
-    } catch (err) {
-      // sessionId is user input — keep it out of the format-string position.
-      console.error("[claim] Decrypt failed for session:", sessionId, err);
-      return Response.json(
-        { error: "Could not decrypt key. Contact support to rotate." },
-        { status: 500 },
-      );
-    }
-    return Response.json({
-      apiKey,
-      once: true,
-      message: "Store this key now — it is shown only once. Add it as TRAILHEAD_API_KEY.",
-    });
-  }
 
-  // Nothing revealed — explain why (unknown / already-claimed / expired).
-  const status = await store.getKeyClaimStatus(sessionId);
-  if (!status.exists) {
+  if (claim === null) {
     return Response.json({ error: "No key claim for this session." }, { status: 404 });
   }
-  if (status.claimed) {
+
+  if ("alreadyClaimed" in claim) {
     return Response.json(
       {
         error: "This key was already claimed.",
@@ -59,12 +44,32 @@ export async function GET(req: Request): Promise<Response> {
       { status: 410 },
     );
   }
-  return Response.json(
-    {
-      error: "This claim link has expired.",
-      code: "expired",
-      message: "Contact support to issue a replacement key.",
-    },
-    { status: 410 },
-  );
+
+  if ("expired" in claim) {
+    return Response.json(
+      {
+        error: "This claim link has expired.",
+        code: "expired",
+        message: "Contact support to issue a replacement key.",
+      },
+      { status: 410 },
+    );
+  }
+
+  let apiKey: string;
+  try {
+    apiKey = decryptClaim(claim.ciphertext);
+  } catch (err) {
+    // sessionId is user input — keep it out of the format-string position.
+    console.error("[claim] Decrypt failed for session:", sessionId, err);
+    return Response.json(
+      { error: "Could not decrypt key. Contact support to rotate." },
+      { status: 500 },
+    );
+  }
+  return Response.json({
+    apiKey,
+    once: true,
+    message: "Store this key now — it is shown only once. Add it as TRAILHEAD_API_KEY.",
+  });
 }

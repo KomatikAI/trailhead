@@ -67,7 +67,7 @@ export function createCloudApp(options = {}) {
             c.header(header, value);
         }
         if (rate.remaining < 0) {
-            return c.json({ error: "rate limit exceeded" }, 429);
+            return c.json({ error: "rate limit exceeded", code: "rate_limited" }, 429);
         }
         await applyQuotaHeaders(c, store, keyRecord.orgId);
         await next();
@@ -92,6 +92,7 @@ export function createCloudApp(options = {}) {
             const quota = await store.getQuota(orgId);
             return c.json({
                 error: "evaluation hard limit reached — usage is far above your plan's monthly quota. Upgrade to keep ingesting.",
+                code: "hard_cap_exceeded",
                 plan: quota.plan,
                 limit: quota.limit,
                 used: quota.used,

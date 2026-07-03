@@ -530,8 +530,26 @@
         return "var(--green)";
       }
 
+      // Every dynamic value interpolated into innerHTML/insertAdjacentHTML in
+      // this file MUST be routed through escapeHtml() — including values used
+      // inside HTML attributes (quotes are escaped too). Values sourced from
+      // untrusted/attacker-influenced input (API key labels, CI check/context
+      // names, free-text reasons, etc.) are especially important here: a
+      // stored XSS in this file executes for every viewer of the dashboard.
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
       function badge(text, kind) {
-        return '<span class="badge badge-' + kind + '">' + text + "</span>";
+        // `kind` is always one of our own hardcoded literals ("pass"/"fail"/"warn"),
+        // never attacker-controlled, so it is safe to place directly in the class
+        // attribute. `text` may be a dynamic label in the future, so escape it.
+        return '<span class="badge badge-' + kind + '">' + escapeHtml(text) + "</span>";
       }
 
       function relativeTime(dateStr) {
@@ -568,13 +586,13 @@
           .map(function (point) {
             return (
               '<div class="bar" style="height:' +
-              point.avgRisk +
+              escapeHtml(point.avgRisk) +
               "%;background:" +
               scoreColor(point.avgRisk) +
               '" title="' +
-              point.date +
+              escapeHtml(point.date) +
               ": " +
-              point.avgRisk +
+              escapeHtml(point.avgRisk) +
               '"></div>'
             );
           })
@@ -584,14 +602,14 @@
       function renderReleaseReady(rr) {
         document.getElementById("releaseReadyPanel").innerHTML =
           '<div class="stat-value" style="color:var(--green)">' +
-          rr.passRate +
+          escapeHtml(rr.passRate) +
           "%</div>" +
           '<div class="stat-sub">' +
-          rr.pass +
+          escapeHtml(rr.pass) +
           " pass / " +
-          rr.fail +
+          escapeHtml(rr.fail) +
           " fail" +
-          (rr.unknown ? " / " + rr.unknown + " unknown" : "") +
+          (rr.unknown ? " / " + escapeHtml(rr.unknown) + " unknown" : "") +
           "</div>" +
           Object.entries(rr.byContext || {})
             .map(function (entry) {
@@ -600,7 +618,13 @@
               const total = stats.pass + stats.fail;
               const rate = total ? Math.round((stats.pass / total) * 100) : 0;
               return (
-                "<div class='stat-sub'>" + name + ": " + rate + "% (" + total + ")</div>"
+                "<div class='stat-sub'>" +
+                escapeHtml(name) +
+                ": " +
+                rate +
+                "% (" +
+                total +
+                ")</div>"
               );
             })
             .join("");
@@ -609,32 +633,32 @@
       function renderCi(ci) {
         document.getElementById("ciPanel").innerHTML =
           "<div class='stat-sub'>CI failed: <strong>" +
-          ci.ciFailed +
+          escapeHtml(ci.ciFailed) +
           "</strong></div>" +
           "<div class='stat-sub'>Release Ready failed: <strong>" +
-          ci.releaseReadyFailed +
+          escapeHtml(ci.releaseReadyFailed) +
           "</strong></div>" +
           "<div class='stat-sub'>Both: <strong>" +
-          ci.both +
+          escapeHtml(ci.both) +
           "</strong></div>" +
           "<div class='stat-sub'>RR failed without CI fail: <strong>" +
-          ci.releaseReadyFailedOnly +
+          escapeHtml(ci.releaseReadyFailedOnly) +
           "</strong></div>";
       }
 
       function renderDora(dora) {
         document.getElementById("doraPanel").innerHTML =
           "<div class='stat-value'>" +
-          dora.rating +
+          escapeHtml(dora.rating) +
           "</div>" +
           "<div class='stat-sub'>Deploy freq: " +
-          dora.deploymentFrequencyPerWeek +
+          escapeHtml(dora.deploymentFrequencyPerWeek) +
           "/wk</div>" +
           "<div class='stat-sub'>CFR: " +
-          dora.changeFailureRate +
+          escapeHtml(dora.changeFailureRate) +
           "%</div>" +
           "<div class='stat-sub'>Avg risk: " +
-          dora.avgRiskScore +
+          escapeHtml(dora.avgRiskScore) +
           "</div>";
       }
 
@@ -643,12 +667,12 @@
           "<div class='stat-value' style='color:" +
           (cfr.cfr > 15 ? "var(--red)" : cfr.cfr > 5 ? "var(--yellow)" : "var(--green)") +
           "'>" +
-          cfr.cfr +
+          escapeHtml(cfr.cfr) +
           "%</div>" +
           "<div class='stat-sub'>" +
-          cfr.failures +
+          escapeHtml(cfr.failures) +
           " failures / " +
-          (cfr.successes + cfr.failures) +
+          escapeHtml(cfr.successes + cfr.failures) +
           " deploys</div>";
       }
 
@@ -664,23 +688,23 @@
             : 0;
         document.getElementById("stats").innerHTML =
           "<div class='stat-card'><div class='stat-label'>Evaluations</div><div class='stat-value'>" +
-          data.recentEvaluations.length +
+          escapeHtml(data.recentEvaluations.length) +
           "+</div><div class='stat-sub'>" +
-          data.windowDays +
+          escapeHtml(data.windowDays) +
           "d window</div></div>" +
           "<div class='stat-card'><div class='stat-label'>Avg Risk</div><div class='stat-value' style='color:" +
           scoreColor(avgRisk) +
           "'>" +
-          avgRisk +
+          escapeHtml(avgRisk) +
           "</div></div>" +
           "<div class='stat-card'><div class='stat-label'>Release Ready</div><div class='stat-value allow'>" +
-          rr.passRate +
+          escapeHtml(rr.passRate) +
           "%</div></div>" +
           "<div class='stat-card'><div class='stat-label'>CFR</div><div class='stat-value'>" +
-          data.cfr.cfr +
+          escapeHtml(data.cfr.cfr) +
           "%</div></div>" +
           "<div class='stat-card'><div class='stat-label'>DORA Rating</div><div class='stat-value'>" +
-          data.dora.rating +
+          escapeHtml(data.dora.rating) +
           "</div></div>";
       }
 
@@ -695,13 +719,13 @@
           .map(function (d) {
             return (
               "<div class='stat-sub'>" +
-              d.detector +
+              escapeHtml(d.detector) +
               ": " +
-              d.falsePositiveRate +
+              escapeHtml(d.falsePositiveRate) +
               "% FP (" +
-              d.falsePositive +
+              escapeHtml(d.falsePositive) +
               "/" +
-              d.total +
+              escapeHtml(d.total) +
               ")" +
               (d.noisy ? " " + badge("NOISY", "fail") : "") +
               "</div>"
@@ -726,30 +750,32 @@
         const q = data.quota;
         document.getElementById("planPanel").innerHTML =
           "<div class='stat-value'>" +
-          (data.settings.plan || "pro").toUpperCase() +
+          escapeHtml((data.settings.plan || "pro").toUpperCase()) +
           "</div>" +
           "<div class='stat-sub'>Quota: " +
-          q.used +
+          escapeHtml(q.used) +
           " / " +
-          q.limit +
+          escapeHtml(q.limit) +
           " evaluations this month</div>" +
           "<div class='stat-sub'>Seats: " +
-          data.settings.seatsUsed +
+          escapeHtml(data.settings.seatsUsed) +
           " / " +
-          data.settings.seats +
+          escapeHtml(data.settings.seats) +
           "</div>";
 
         const keys = await apiFetch("/v1/api-keys");
         document.getElementById("keysPanel").innerHTML = (keys.keys || [])
           .map(function (k) {
+            // k.label is attacker-controlled free text (set via POST /v1/api-keys)
+            // and rendered for every viewer of this org's dashboard — must be escaped.
             return (
               "<div class='stat-sub'>" +
-              k.label +
+              escapeHtml(k.label) +
               " — <code>" +
-              k.keyPreview +
+              escapeHtml(k.keyPreview) +
               "</code> " +
               "<button type='button' data-revoke='" +
-              k.id +
+              escapeHtml(k.id) +
               "' class='danger-btn' style='margin-left:8px;padding:2px 8px;font-size:0.75rem'>Revoke</button></div>"
             );
           })
@@ -799,7 +825,10 @@
       function renderTable(rows) {
         document.getElementById("evalBody").innerHTML = rows
           .map(function (row) {
-            const ctx = row.context && row.context.name ? row.context.name : "—";
+            // row.context.name is a CI-derived, effectively attacker-influenced
+            // string (workflow/job name) — escape along with every other field.
+            const ctx =
+              row.context && row.context.name ? escapeHtml(row.context.name) : "—";
             const rr =
               row.releaseReady === true
                 ? badge("PASS", "pass")
@@ -808,21 +837,21 @@
                   : "—";
             return (
               '<tr class="clickable" data-id="' +
-              row.id +
+              escapeHtml(row.id) +
               '"><td title="' +
-              row.receivedAt +
+              escapeHtml(row.receivedAt) +
               '">' +
-              relativeTime(row.receivedAt) +
+              escapeHtml(relativeTime(row.receivedAt)) +
               "</td><td>" +
-              row.repoId +
+              escapeHtml(row.repoId) +
               "</td><td>" +
-              (row.prNumber ? "#" + row.prNumber : "—") +
+              (row.prNumber ? "#" + escapeHtml(row.prNumber) : "—") +
               "</td><td style='color:" +
               scoreColor(row.riskScore) +
               "'>" +
-              row.riskScore +
+              escapeHtml(row.riskScore) +
               "</td><td>" +
-              row.gateDecision +
+              escapeHtml(row.gateDecision) +
               "</td><td>" +
               rr +
               "</td><td>" +
@@ -843,23 +872,32 @@
         const data = await apiFetch("/v1/evaluations/" + encodeURIComponent(id));
         const e = data.evaluation;
         currentEval = e;
+        // CI check names, release-ready reasons, and risk-factor types/scores
+        // are all derived from CI/webhook payloads and are effectively
+        // attacker-influenced (an attacker who controls a repo's CI config or
+        // PR content can set them) — every field here must be escaped.
         const ciChecks =
           e.ci && e.ci.checks
             ? e.ci.checks
                 .map(function (c) {
-                  return c.name + ": " + c.status + (c.required ? " (required)" : "");
+                  return (
+                    escapeHtml(c.name) +
+                    ": " +
+                    escapeHtml(c.status) +
+                    (c.required ? " (required)" : "")
+                  );
                 })
                 .join("\n")
             : "—";
-        const reasons = (e.releaseReadyReasons || []).join("\n") || "—";
+        const reasons = (e.releaseReadyReasons || []).map(escapeHtml).join("\n") || "—";
         const factors = (e.riskFactors || [])
           .map(function (f) {
             return (
-              f.type +
+              escapeHtml(f.type) +
               ": " +
-              f.score +
+              escapeHtml(f.score) +
               ' <button type="button" data-detector="' +
-              f.type +
+              escapeHtml(f.type) +
               '" class="dismiss-factor-btn" style="margin-left:6px;font-size:0.7rem">Dismiss</button>'
             );
           })
@@ -868,18 +906,18 @@
         document.getElementById("modalBody").innerHTML =
           "<dl class='detail-grid'>" +
           "<dt>Commit</dt><dd><code>" +
-          e.commitSha.substring(0, 7) +
+          escapeHtml(e.commitSha.substring(0, 7)) +
           "</code></dd>" +
           "<dt>PR</dt><dd>" +
-          (e.prNumber ? "#" + e.prNumber : "—") +
+          (e.prNumber ? "#" + escapeHtml(e.prNumber) : "—") +
           "</dd>" +
           "<dt>Risk / Health</dt><dd>" +
-          e.riskScore +
+          escapeHtml(e.riskScore) +
           " / " +
-          e.healthScore +
+          escapeHtml(e.healthScore) +
           "</dd>" +
           "<dt>Gate mode</dt><dd>" +
-          (e.gateMode || "—") +
+          escapeHtml(e.gateMode || "—") +
           "</dd></dl>" +
           "<h3>CI checks</h3><pre>" +
           ciChecks +

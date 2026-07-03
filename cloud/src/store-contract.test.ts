@@ -296,4 +296,38 @@ describe.each(backends)("CloudStore contract [$name]", (backend) => {
     expect(hard.hardLimited).toBe(true);
     expect(await store.getEvaluation(org.id, "hard-1")).toBeNull();
   });
+
+  it("concurrent ingests at the hard-cap boundary never overshoot the cap (quota race fix)", async () => {
+    const { org } = await newProOrg();
+    const limit = PLANS.pro.evaluationsPerMonth;
+    const hardCap = limit * 3; // HARD_LIMIT_MULTIPLIER
+
+    // evaluateQuota: store === !hardLimited, and hardLimited === used >= hardCap
+    // (usage measured BEFORE this insert). So exactly `margin` more ingests can
+    // still be stored (usage climbs hardCap-margin, ..., hardCap-1) before the
+    // used-count reaches hardCap and every subsequent ingest is rejected —
+    // regardless of how many arrive concurrently at that boundary.
+    const margin = 5;
+    const burst = 20;
+    await seedUsage(org.id, hardCap - margin);
+
+    const results = await Promise.all(
+      Array.from({ length: burst }, (_, i) =>
+        store.ingestEvaluation(org.id, evalPayload(`race-${org.id}-${i}`)),
+      ),
+    );
+
+    const storedCount = results.filter((r) => r.created).length;
+    const hardLimitedCount = results.filter((r) => r.hardLimited).length;
+
+    // The race (unlocked read-then-increment) would let more than `margin`
+    // concurrent requests all observe used < hardCap and all get stored,
+    // pushing usage past hardCap. The fix (row lock / atomic JS execution)
+    // must cap stored count at exactly `margin`.
+    expect(storedCount).toBe(margin);
+    expect(hardLimitedCount).toBe(burst - margin);
+
+    const finalUsed = (await store.getQuota(org.id)).used;
+    expect(finalUsed).toBe(hardCap);
+  });
 });
