@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type Stripe from "stripe";
-import type { BillingStore } from "trailhead-cloud";
+import { createMemoryStore } from "trailhead-cloud";
+import type { BillingStore } from "@/lib/cloudStore";
 import { handleStripeEvent } from "@/lib/webhookHandlers";
 import { decryptClaim } from "@/lib/claimCrypto";
 
@@ -13,25 +14,37 @@ beforeEach(() => {
   vi.stubEnv("STRIPE_PRICE_TEAM", "price_team_456");
 });
 
-/** A mock BillingStore recording calls; recordStripeEvent is first-seen by default. */
+/**
+ * A mock BillingStore recording calls; recordStripeEvent is first-seen by
+ * default. Typed against the REAL store shape (cloud/src/types.ts CloudStore)
+ * — positional args, boolean firstSeen, {org,keySecret,keyRecord} result,
+ * string|null updateSubscriptionByStripeId — not the fictional ambient .d.ts
+ * shape this file used to mock against.
+ */
 function mockStore(overrides: Partial<BillingStore> = {}): BillingStore {
   const seen = new Set<string>();
   const base: Partial<BillingStore> = {
-    recordStripeEvent: vi.fn(async ({ eventId }) => {
+    recordStripeEvent: vi.fn(async (eventId: string) => {
       const firstSeen = !seen.has(eventId);
       seen.add(eventId);
-      return { firstSeen };
+      return firstSeen;
     }),
     removeStripeEvent: vi.fn(async (eventId: string) => {
       seen.delete(eventId);
     }),
     createOrgWithSubscription: vi.fn(async () => ({
-      orgId: "org_1",
-      apiKeySecret: "thk_generatedsecretkey",
-      keyPreview: "thk_gen…rkey",
+      org: { id: "org_1", name: "acme.com", createdAt: new Date().toISOString() },
+      keySecret: "thk_generatedsecretkey",
+      keyRecord: {
+        keyId: "key_1",
+        key: "thk_generatedsecretkey",
+        orgId: "org_1",
+        orgName: "acme.com",
+        suspended: false,
+      },
     })),
     createKeyClaim: vi.fn(async () => undefined),
-    updateSubscriptionByStripeId: vi.fn(async () => ({ orgId: "org_1" })),
+    updateSubscriptionByStripeId: vi.fn(async () => "org_1"),
   };
   return { ...base, ...overrides } as BillingStore;
 }
@@ -69,9 +82,15 @@ describe("handleStripeEvent — idempotency", () => {
         .fn()
         .mockRejectedValueOnce(new Error("transient db error"))
         .mockResolvedValueOnce({
-          orgId: "org_1",
-          apiKeySecret: "thk_generatedsecretkey",
-          keyPreview: "thk_gen…rkey",
+          org: { id: "org_1", name: "acme.com", createdAt: new Date().toISOString() },
+          keySecret: "thk_generatedsecretkey",
+          keyRecord: {
+            keyId: "key_1",
+            key: "thk_generatedsecretkey",
+            orgId: "org_1",
+            orgName: "acme.com",
+            suspended: false,
+          },
         }),
     });
     const evt = checkoutEvent();
@@ -101,13 +120,16 @@ describe("handleStripeEvent — checkout.session.completed", () => {
       }),
     );
 
-    const claimArg = (store.createKeyClaim as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    expect(claimArg.checkoutSessionId).toBe("cs_test_1");
-    expect(claimArg.keyCiphertext).not.toContain("thk_generatedsecretkey");
+    // createKeyClaim is positional: (sessionId, orgId, ciphertext, expiresAt).
+    const claimArgs = (store.createKeyClaim as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [sessionId, orgId, ciphertext, expiresAt] = claimArgs;
+    expect(sessionId).toBe("cs_test_1");
+    expect(orgId).toBe("org_1");
+    expect(ciphertext).not.toContain("thk_generatedsecretkey");
     // ciphertext decrypts back to the plaintext key (never stored raw)
-    expect(decryptClaim(claimArg.keyCiphertext, SECRET)).toBe("thk_generatedsecretkey");
+    expect(decryptClaim(ciphertext, SECRET)).toBe("thk_generatedsecretkey");
     // ~72h expiry
-    const ttl = new Date(claimArg.expiresAt).getTime() - Date.now();
+    const ttl = new Date(expiresAt).getTime() - Date.now();
     expect(ttl).toBeGreaterThan(71 * 3600 * 1000);
     expect(ttl).toBeLessThan(73 * 3600 * 1000);
   });
@@ -178,5 +200,76 @@ describe("handleStripeEvent — subscription lifecycle", () => {
     const res = await handleStripeEvent(evt, store);
     expect(res).toEqual({ handled: false, reason: "ignored" });
     expect(store.recordStripeEvent).toHaveBeenCalledOnce();
+  });
+});
+
+/**
+ * Integration path against the REAL `createMemoryStore()` from the
+ * `trailhead-cloud` package — not a hand-rolled mock. This is the test that
+ * would have caught the whole P0: every mock above (and every mock this file
+ * used to have) encoded the fictional ambient-.d.ts interface, so they stayed
+ * green while the real store's shapes silently diverged (boolean
+ * recordStripeEvent, {org,keySecret} result, positional createKeyClaim,
+ * string|null updateSubscriptionByStripeId, discriminated-union claimKey).
+ */
+describe("handleStripeEvent — real store integration (createMemoryStore)", () => {
+  it("checkout.session.completed → org+key+claim created, key revealed once via claimKey", async () => {
+    const store = createMemoryStore();
+
+    const evt = checkoutEvent();
+    const res = await handleStripeEvent(evt, store);
+    expect(res.handled).toBe(true);
+    expect(res.orgId).toBeTruthy();
+
+    const settings = await store.getOrgSettings(res.orgId as string);
+    expect(settings.plan).toBe("pro");
+
+    // Claim the key exactly once via the real atomic claimKey.
+    const first = await store.claimKey("cs_test_1");
+    expect(first).not.toBeNull();
+    expect(first && "ciphertext" in first).toBe(true);
+    const ciphertext = (first as { ciphertext: string }).ciphertext;
+    expect(decryptClaim(ciphertext, SECRET)).toMatch(/^thk_/);
+
+    // Second reveal attempt → alreadyClaimed, not the key again.
+    const second = await store.claimKey("cs_test_1");
+    expect(second).toEqual({ alreadyClaimed: true });
+  });
+
+  it("duplicate webhook delivery is a true no-op against the real ledger", async () => {
+    const store = createMemoryStore();
+    const evt = checkoutEvent();
+
+    const first = await handleStripeEvent(evt, store);
+    const second = await handleStripeEvent(evt, store);
+
+    expect(first.handled).toBe(true);
+    expect(second).toEqual({ handled: false, reason: "duplicate" });
+  });
+
+  it("customer.subscription.updated resolves and suspends the real org", async () => {
+    const store = createMemoryStore();
+    const created = await handleStripeEvent(checkoutEvent(), store);
+    const orgId = created.orgId as string;
+
+    const updated = await handleStripeEvent(
+      {
+        id: "evt_sub_updated",
+        type: "customer.subscription.updated",
+        data: {
+          object: {
+            id: "sub_1",
+            status: "past_due",
+            current_period_end: 1893456000,
+            items: { data: [{ price: { id: "price_pro_123" } }] },
+          },
+        },
+      } as unknown as Stripe.Event,
+      store,
+    );
+
+    expect(updated.orgId).toBe(orgId);
+    const settings = await store.getOrgSettings(orgId);
+    expect(settings.plan).toBe("pro");
   });
 });

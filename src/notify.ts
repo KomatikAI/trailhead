@@ -244,16 +244,44 @@ async function storeViaApiOnce(
     return { ok: false, retryable: false, suspended: true };
   }
 
-  // 429 with a structured JSON body is the Cloud API's hard usage cap
-  // (3x plan limit, abuse backstop) — permanent for the billing period, so
-  // retrying is pointless. A 429 with a non-JSON (HTML) body is most likely
-  // Vercel bot protection, which IS worth retrying — handled below.
+  // A 429 with a structured JSON body can be EITHER the per-org rate limiter
+  // (transient — a CI burst on one key — retryable) OR the monthly hard usage
+  // cap backstop (permanent for the billing period — not retryable). The
+  // Cloud API distinguishes the two via a machine-readable `code` field. A
+  // 429 with a non-JSON (HTML) body is most likely Vercel bot protection,
+  // which IS worth retrying — handled by the generic path below.
   if (response.status === 429 && isJson) {
+    let code: unknown;
+    try {
+      const parsed = (await response.clone().json()) as { code?: unknown };
+      code = parsed?.code;
+    } catch {
+      code = undefined;
+    }
+
+    if (code === "hard_cap_exceeded") {
+      core.warning(
+        "Trailhead Cloud: you're over this month's hard usage cap — this evaluation was NOT " +
+          "stored. Upgrade at https://trailhead.komatik.xyz/pricing",
+      );
+      return { ok: false, retryable: false, hardCapped: true };
+    }
+
+    if (code === "rate_limited") {
+      core.warning(
+        `Trailhead Cloud: rate limit exceeded on attempt — this evaluation will be retried`,
+      );
+      return { ok: false, retryable: true, hardCapped: false };
+    }
+
+    // Unknown/missing code (e.g. an older Cloud API deployment that hasn't
+    // rolled out the `code` field yet) — fail open and treat as retryable
+    // rather than risk showing a false "hard cap" message to paying orgs.
     core.warning(
-      "Trailhead Cloud: you're over this month's hard usage cap — this evaluation was NOT " +
-        "stored. Upgrade at https://trailhead.komatik.xyz/pricing",
+      "Trailhead Cloud: received HTTP 429 without a recognized `code` field — " +
+        "treating as retryable",
     );
-    return { ok: false, retryable: false, hardCapped: true };
+    return { ok: false, retryable: true, hardCapped: false };
   }
 
   const nonRetryableClientErrors = new Set([400, 401, 403]);

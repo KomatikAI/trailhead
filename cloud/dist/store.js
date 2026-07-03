@@ -142,6 +142,12 @@ export function createMemoryStore(seedKeys = []) {
                     return { created: false, evaluation: existing };
                 }
             }
+            // NOTE on the pg-store check-then-act race (SELECT ... FOR UPDATE fix
+            // there): this in-memory store does not need an equivalent lock. There
+            // is no `await` between reading `used` here and calling
+            // incrementUsage() below, and this store runs entirely on the single
+            // JS event loop (no separate DB round-trip to interleave with), so the
+            // read-decide-increment sequence is already atomic.
             const used = getUsage(orgId);
             const quota = evaluateQuota(settings.plan, used);
             if (!quota.store) {

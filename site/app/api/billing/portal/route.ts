@@ -1,5 +1,5 @@
 import { getStripeClient } from "@/lib/stripe";
-import { getBillingStore } from "@/lib/cloudStore";
+import { getBillingStore, resolveStripeCustomerIdForKey } from "@/lib/cloudStore";
 import { guardRateLimit } from "@/lib/rateLimit";
 
 /**
@@ -38,7 +38,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const store = await getBillingStore();
-  const resolved = await store.getStripeCustomerIdForKey(key);
+  const resolved = await resolveStripeCustomerIdForKey(store, key);
   if (!resolved) {
     return Response.json({ error: "Invalid API key" }, { status: 401 });
   }
