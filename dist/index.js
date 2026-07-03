@@ -53491,16 +53491,60 @@ async function storeViaApiOnce(url, evaluation) {
         signal: AbortSignal.timeout(STORE_TIMEOUT_MS),
     });
     const contentType = response.headers.get("content-type") ?? "";
-    if (response.ok && contentType.includes("application/json")) {
+    const isJson = contentType.includes("application/json");
+    if (response.ok && isJson) {
         info(`Evaluation stored successfully at ${url}`);
-        return { ok: true, retryable: false };
+        const quotaExceeded = response.headers.get("x-trailhead-quota-exceeded") === "true";
+        if (quotaExceeded) {
+            core_warning("Trailhead Cloud: this evaluation is over your plan's monthly quota. " +
+                "It was still stored — upgrade at https://trailhead.komatik.xyz/pricing");
+        }
+        return { ok: true, retryable: false, quotaExceeded };
+    }
+    // 402 = org suspended (payment failure). Availability of the paid store must
+    // never block a merge — this is informational only, never a gate failure.
+    if (response.status === 402) {
+        core_warning("Trailhead Cloud: your plan is suspended — this evaluation was NOT stored. " +
+            "Reactivate at https://trailhead.komatik.xyz/pricing");
+        return { ok: false, retryable: false, suspended: true };
+    }
+    // A 429 with a structured JSON body can be EITHER the per-org rate limiter
+    // (transient — a CI burst on one key — retryable) OR the monthly hard usage
+    // cap backstop (permanent for the billing period — not retryable). The
+    // Cloud API distinguishes the two via a machine-readable `code` field. A
+    // 429 with a non-JSON (HTML) body is most likely Vercel bot protection,
+    // which IS worth retrying — handled by the generic path below.
+    if (response.status === 429 && isJson) {
+        let code;
+        try {
+            const parsed = (await response.clone().json());
+            code = parsed?.code;
+        }
+        catch {
+            code = undefined;
+        }
+        if (code === "hard_cap_exceeded") {
+            core_warning("Trailhead Cloud: you're over this month's hard usage cap — this evaluation was NOT " +
+                "stored. Upgrade at https://trailhead.komatik.xyz/pricing");
+            return { ok: false, retryable: false, hardCapped: true };
+        }
+        if (code === "rate_limited") {
+            core_warning(`Trailhead Cloud: rate limit exceeded on attempt — this evaluation will be retried`);
+            return { ok: false, retryable: true, hardCapped: false };
+        }
+        // Unknown/missing code (e.g. an older Cloud API deployment that hasn't
+        // rolled out the `code` field yet) — fail open and treat as retryable
+        // rather than risk showing a false "hard cap" message to paying orgs.
+        core_warning("Trailhead Cloud: received HTTP 429 without a recognized `code` field — " +
+            "treating as retryable");
+        return { ok: false, retryable: true, hardCapped: false };
     }
     const nonRetryableClientErrors = new Set([400, 401, 403]);
     if (nonRetryableClientErrors.has(response.status)) {
         core_warning(`Evaluation store returned HTTP ${response.status} — not retrying`);
         return { ok: false, retryable: false };
     }
-    if (!contentType.includes("application/json")) {
+    if (!isJson) {
         core_warning(`Evaluation store at ${url} returned HTML instead of JSON (HTTP ${response.status}). ` +
             `Vercel bot protection is likely blocking the request.`);
     }
@@ -53514,13 +53558,32 @@ async function storeViaApiOnce(url, evaluation) {
 }
 async function storeViaApi(url, evaluation, maxRetries = 3) {
     const maxAttempts = maxRetries + 1;
+    const notStored = {
+        stored: false,
+        quotaExceeded: false,
+        suspended: false,
+        hardCapped: false,
+    };
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         try {
             const result = await storeViaApiOnce(url, evaluation);
-            if (result.ok)
-                return true;
+            if (result.ok) {
+                return {
+                    stored: true,
+                    quotaExceeded: result.quotaExceeded ?? false,
+                    suspended: false,
+                    hardCapped: false,
+                };
+            }
+            if (result.suspended || result.hardCapped) {
+                return {
+                    ...notStored,
+                    suspended: result.suspended ?? false,
+                    hardCapped: result.hardCapped ?? false,
+                };
+            }
             if (!result.retryable || attempt >= maxAttempts - 1)
-                return false;
+                return notStored;
             const delayMs = STORE_RETRY_BACKOFF_MS[attempt] ?? 16_000;
             core_warning(`Evaluation store attempt ${attempt + 1}/${maxAttempts} failed — retrying in ${delayMs}ms`);
             await sleep(delayMs);
@@ -53534,7 +53597,7 @@ async function storeViaApi(url, evaluation, maxRetries = 3) {
             await sleep(delayMs);
         }
     }
-    return false;
+    return notStored;
 }
 async function storeViaSupabase(evaluation) {
     const supabaseUrl = process.env.SUPABASE_URL;
@@ -53602,12 +53665,35 @@ function buildEvaluationStoreRow(evaluation) {
         agent_provenance_id: agentId,
     };
 }
-async function storeEvaluation(url, evaluation, options = {}) {
+const NOT_STORED = {
+    stored: false,
+    quotaExceeded: false,
+    suspended: false,
+    hardCapped: false,
+};
+/**
+ * Store an evaluation and report the Cloud API's billing/quota state so
+ * callers can surface it in the check summary. Availability of the paid
+ * store — including suspension or a hard usage cap — must never throw or
+ * otherwise block the gate; every path here is fail-open.
+ */
+async function storeEvaluationDetailed(url, evaluation, options = {}) {
     const maxRetries = options.maxRetries ?? 3;
     try {
-        const stored = await storeViaApi(url, evaluation, maxRetries);
-        if (stored)
-            return true;
+        const result = await storeViaApi(url, evaluation, maxRetries);
+        if (result.stored) {
+            return { ...NOT_STORED, stored: true, quotaExceeded: result.quotaExceeded };
+        }
+        // Suspended/hard-capped are deliberate billing-gate outcomes from the
+        // Cloud API, not transient failures — don't fall back to the legacy
+        // Supabase direct-insert path, just report the state honestly.
+        if (result.suspended || result.hardCapped) {
+            return {
+                ...NOT_STORED,
+                suspended: result.suspended,
+                hardCapped: result.hardCapped,
+            };
+        }
     }
     catch (error) {
         core_warning(`Evaluation store API failed: ${error}`);
@@ -53615,14 +53701,69 @@ async function storeEvaluation(url, evaluation, options = {}) {
     try {
         const fallback = await storeViaSupabase(evaluation);
         if (fallback)
-            return true;
+            return { ...NOT_STORED, stored: true };
     }
     catch (error) {
         core_warning(`Supabase direct fallback also failed: ${error}`);
     }
     core_warning("Evaluation could not be stored. To fix: either set VERCEL_AUTOMATION_BYPASS_SECRET " +
         "or set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in your workflow env.");
-    return false;
+    return NOT_STORED;
+}
+async function storeEvaluation(url, evaluation, options = {}) {
+    const outcome = await storeEvaluationDetailed(url, evaluation, options);
+    return outcome.stored;
+}
+
+;// CONCATENATED MODULE: ./src/cloud-upsell.ts
+/**
+ * Trailhead Cloud upsell + quota/billing surfacing for the check summary footer.
+ *
+ * One line, always at the end of the summary, never affects the gate decision.
+ * Suppressible via the `disable-cloud-upsell` action input.
+ */
+const CLOUD_MARKETING_URL = "https://trailhead.komatik.xyz";
+const CLOUD_PRICING_URL = "https://trailhead.komatik.xyz/pricing";
+function withUtm(url, campaign) {
+    const u = new URL(url);
+    u.searchParams.set("utm_source", "action");
+    u.searchParams.set("utm_medium", "check-summary");
+    u.searchParams.set("utm_campaign", campaign);
+    return u.toString();
+}
+/**
+ * Build the single footer line to append to the check summary, or null if
+ * nothing should be shown (has a key, under quota, no billing issue, or
+ * the user opted out).
+ *
+ * Precedence: suspended > hard-capped > quota-exceeded > no-key upsell.
+ * These are mutually exclusive in practice (all require a configured key
+ * except the no-key case), but the order guards against ambiguous input.
+ */
+function buildCloudFooterLine(options) {
+    if (options.disableUpsell)
+        return null;
+    if (options.suspended) {
+        const link = withUtm(CLOUD_PRICING_URL, "suspended-upsell");
+        return (`> 🚫 **Evaluation not stored — your Trailhead Cloud plan is suspended.** ` +
+            `Reactivate to resume history & trends → ${link}`);
+    }
+    if (options.hardCapped) {
+        const link = withUtm(CLOUD_PRICING_URL, "quota-upsell");
+        return (`> 🚫 **Evaluation not stored — you're over this month's hard usage cap.** ` +
+            `Upgrade your plan to keep full history → ${link}`);
+    }
+    if (options.quotaExceeded) {
+        const link = withUtm(CLOUD_PRICING_URL, "quota-upsell");
+        return (`> ⚠️ Over your plan's monthly evaluations — history still stored this quarter; ` +
+            `upgrade at ${link}`);
+    }
+    if (!options.hasCloudKey) {
+        const link = withUtm(CLOUD_MARKETING_URL, "cloud-upsell");
+        return (`📊 This evaluation wasn't persisted — track trends, DORA metrics & agent-governance ` +
+            `across your org with Trailhead Cloud → ${link}`);
+    }
+    return null;
 }
 
 ;// CONCATENATED MODULE: ./src/credit-meter.ts
@@ -56018,6 +56159,7 @@ async function runCrossRepoOpener(opts) {
 
 
 
+
 class PolicyOverrideError extends Error {
     constructor(message) {
         super(message);
@@ -56240,6 +56382,7 @@ async function run() {
             ciManifestPath: ciManifestPath || undefined,
             agentBrief,
             submissionGate: getInput("submission-gate") === "true",
+            disableCloudUpsell: getInput("disable-cloud-upsell") === "true",
         };
         if (policyOverride?.changes.riskThreshold !== undefined) {
             config.riskThreshold = policyOverride.changes.riskThreshold;
@@ -56480,6 +56623,9 @@ async function run() {
             reportParts.push(wrapCollapsibleSection("DORA-5 Metrics", doraReport));
         }
         let fullReport = reportParts.join("\n---\n\n");
+        let cloudQuotaExceeded = false;
+        let cloudSuspended = false;
+        let cloudHardCapped = false;
         if (config.evaluationStoreUrl) {
             const storeSecretInput = getInput("evaluation-store-secret");
             if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
@@ -56489,14 +56635,30 @@ async function run() {
                 process.env.EVALUATION_STORE_SECRET = config.trailheadApiKey;
             }
             const storeRetries = parseEvaluationStoreRetries(getInput("evaluation-store-retries") || "");
-            const stored = await storeEvaluation(config.evaluationStoreUrl, evaluation, {
-                maxRetries: storeRetries,
-            });
-            evaluation.storePersisted = stored;
-            if (!stored) {
+            const storeOutcome = await storeEvaluationDetailed(config.evaluationStoreUrl, evaluation, { maxRetries: storeRetries });
+            evaluation.storePersisted = storeOutcome.stored;
+            cloudQuotaExceeded = storeOutcome.quotaExceeded;
+            cloudSuspended = storeOutcome.suspended;
+            cloudHardCapped = storeOutcome.hardCapped;
+            // The cloud-upsell footer below already explains suspended/hard-capped
+            // state plainly with a link — don't also prepend the generic warning.
+            if (!storeOutcome.stored && !cloudSuspended && !cloudHardCapped) {
                 const persistWarning = "> ⚠️ **Evaluation not persisted — dashboard incomplete.**";
                 fullReport = `${persistWarning}\n\n${fullReport}`;
             }
+        }
+        const cloudFooterLine = buildCloudFooterLine({
+            // BYOS self-hosters (evaluation-store-url without a cloud key) DO
+            // persist evaluations — the "wasn't persisted" upsell must only fire
+            // in truly local-only mode.
+            hasCloudKey: Boolean(config.trailheadApiKey || config.evaluationStoreUrl),
+            disableUpsell: config.disableCloudUpsell ?? false,
+            quotaExceeded: cloudQuotaExceeded,
+            suspended: cloudSuspended,
+            hardCapped: cloudHardCapped,
+        });
+        if (cloudFooterLine) {
+            fullReport = `${fullReport}\n\n${cloudFooterLine}`;
         }
         await summary.addRaw(fullReport).write();
         const checkName = resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);

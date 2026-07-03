@@ -87,8 +87,25 @@ describe("app billing responses", () => {
     });
     const res = await post(app);
     expect(res.status).toBe(429);
-    const body = (await res.json()) as { error: string };
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.error).toMatch(/hard limit/i);
+    // Distinguishes this from the rate-limiter's 429 so notify.ts (Action side)
+    // never mistakes a transient rate-limit burst for a permanent hard cap.
+    expect(body.code).toBe("hard_cap_exceeded");
+  });
+
+  it("per-org rate limit → 429 with code=rate_limited (distinct from the hard-cap 429)", async () => {
+    const app = createCloudApp({ store: stubStore({}) });
+    // RATE_LIMIT is 120 requests per org per window — burst past it on a
+    // fresh app (fresh rateBuckets) so this is independent of quota/hard-cap.
+    let last: Awaited<ReturnType<typeof post>> | undefined;
+    for (let i = 0; i < 122; i += 1) {
+      last = await post(app);
+    }
+    expect(last!.status).toBe(429);
+    const body = (await last!.json()) as { error: string; code: string };
+    expect(body.error).toMatch(/rate limit/i);
+    expect(body.code).toBe("rate_limited");
   });
 
   it("soft over-quota ingest → 200 + X-Trailhead-Quota-Exceeded header + body flag", async () => {

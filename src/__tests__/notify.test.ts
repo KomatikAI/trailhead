@@ -477,8 +477,10 @@ describe("storeEvaluationDetailed — quota/billing surfacing", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("reports hardCapped=true, stored=false, and does not throw on JSON HTTP 429", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse('{"error":"hard_cap"}', 429));
+  it("reports hardCapped=true, stored=false, and does not throw on a JSON HTTP 429 with code=hard_cap_exceeded", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse('{"error":"hard_cap","code":"hard_cap_exceeded"}', 429),
+    );
 
     const outcome = await storeEvaluationDetailed(
       "https://example.com/api/trailhead/store",
@@ -490,8 +492,52 @@ describe("storeEvaluationDetailed — quota/billing surfacing", () => {
       suspended: false,
       hardCapped: true,
     });
-    // Not retried — a JSON 429 is a permanent-for-the-period hard cap, not transient.
+    // Not retried — code:hard_cap_exceeded is permanent for the billing period.
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a JSON HTTP 429 with code=rate_limited instead of reporting hardCapped", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        jsonResponse('{"error":"rate limit exceeded","code":"rate_limited"}', 429),
+      )
+      .mockResolvedValueOnce(jsonResponse('{"stored":true}'));
+
+    const promise = storeEvaluationDetailed(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(promise).resolves.toEqual({
+      stored: true,
+      quotaExceeded: false,
+      suspended: false,
+      hardCapped: false,
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("defaults an unrecognized/missing 429 `code` to retryable (fail-open) rather than hard-capped", async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse('{"error":"too many requests"}', 429))
+      .mockResolvedValueOnce(jsonResponse('{"stored":true}'));
+
+    const promise = storeEvaluationDetailed(
+      "https://example.com/api/trailhead/store",
+      makeEvaluation(),
+    );
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(promise).resolves.toEqual({
+      stored: true,
+      quotaExceeded: false,
+      suspended: false,
+      hardCapped: false,
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 
   it("still retries a non-JSON (HTML) 429 — likely bot protection, not a hard cap", async () => {
