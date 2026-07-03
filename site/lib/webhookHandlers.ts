@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
-import type { BillingStore, PaidPlan } from "trailhead-cloud";
+import type { BillingStore } from "@/lib/cloudStore";
 import { encryptClaim } from "@/lib/claimCrypto";
-import { isPaidPlan, planForPriceId } from "@/lib/plans";
+import { isPaidPlan, planForPriceId, type PaidPlan } from "@/lib/plans";
 
 const CLAIM_TTL_MS = 72 * 60 * 60 * 1000; // 72h, per contract key_claims.expires_at
 
@@ -46,11 +46,7 @@ export async function handleStripeEvent(
   event: Stripe.Event,
   store: BillingStore,
 ): Promise<HandleResult> {
-  const { firstSeen } = await store.recordStripeEvent({
-    eventId: event.id,
-    eventType: event.type,
-    payload: event,
-  });
+  const firstSeen = await store.recordStripeEvent(event.id, event.type, event);
   if (!firstSeen) {
     return { handled: false, reason: "duplicate" };
   }
@@ -101,7 +97,7 @@ async function applyStripeEvent(
       // Create org + org_settings.plan + subscriptions row + first api_key, all
       // in one store transaction. Precise status/current_period_end are synced
       // by the following customer.subscription.updated event (and reconcile).
-      const { orgId, apiKeySecret } = await store.createOrgWithSubscription({
+      const { org, keySecret } = await store.createOrgWithSubscription({
         orgName: orgNameFromEmail(email),
         plan,
         stripeCustomerId,
@@ -110,40 +106,41 @@ async function applyStripeEvent(
         currentPeriodEnd: null,
         keyLabel: "Initial key",
       });
+      const orgId = org.id;
 
       // Encrypt the plaintext key under TRAILHEAD_CLAIM_SECRET and stash the
       // one-time claim. Plaintext is never persisted (only key_hash + this
       // AES-256-GCM ciphertext).
-      const keyCiphertext = encryptClaim(apiKeySecret);
-      await store.createKeyClaim({
-        checkoutSessionId: session.id,
+      const keyCiphertext = encryptClaim(keySecret);
+      await store.createKeyClaim(
+        session.id,
         orgId,
         keyCiphertext,
-        expiresAt: new Date(Date.now() + CLAIM_TTL_MS).toISOString(),
-      });
+        new Date(Date.now() + CLAIM_TTL_MS).toISOString(),
+      );
 
       return { handled: true, orgId };
     }
 
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      const res = await store.updateSubscriptionByStripeId(sub.id, {
+      const orgId = await store.updateSubscriptionByStripeId(sub.id, {
         plan: planFromSubscription(sub),
         status: sub.status,
         currentPeriodEnd: periodEndIso(sub),
       });
       // Key suspend/unsuspend by status happens inside the store (single source
       // of truth), per contract flow 2.
-      return { handled: true, orgId: res?.orgId };
+      return { handled: true, orgId: orgId ?? undefined };
     }
 
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      const res = await store.updateSubscriptionByStripeId(sub.id, {
+      const orgId = await store.updateSubscriptionByStripeId(sub.id, {
         status: "canceled",
         currentPeriodEnd: periodEndIso(sub),
       });
-      return { handled: true, orgId: res?.orgId };
+      return { handled: true, orgId: orgId ?? undefined };
     }
 
     default:

@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { getStripeClient } from "@/lib/stripe";
-import { getBillingStore } from "@/lib/cloudStore";
+import { countActiveKeys, getBillingStore } from "@/lib/cloudStore";
 import { ownedPriceIds, planForPriceId, type PaidPlan } from "@/lib/plans";
 
 /**
@@ -78,15 +78,19 @@ export async function GET(req: Request): Promise<Response> {
       const currentPeriodEnd = periodEndIso(sub);
 
       const local = localByStripeId.get(sub.id);
+      let resolvedOrgId: string | null = local?.orgId ?? null;
       if (!local) {
-        // Missing locally — repair from Stripe truth.
-        const { orgId } = await store.upsertSubscriptionFromStripe({
+        // Missing locally — repair from Stripe truth. Real
+        // upsertSubscriptionFromStripe returns the bare orgId string (not
+        // `{orgId}` — that shape only ever existed in the stale ambient .d.ts).
+        const orgId = await store.upsertSubscriptionFromStripe({
           stripeCustomerId,
           stripeSubscriptionId: sub.id,
           plan,
           status: sub.status,
           currentPeriodEnd,
         });
+        resolvedOrgId = orgId;
         summary.repaired += 1;
         console.warn(
           `[reconcile] repaired missing subscription ${sub.id} → org ${orgId} (${plan}/${sub.status})`,
@@ -109,16 +113,15 @@ export async function GET(req: Request): Promise<Response> {
       }
 
       // Active sub but no usable key → flag for attention (contract flow 5).
-      if (ACTIVE_STATUSES.has(sub.status)) {
-        const row = local ?? (await store.getSubscriptionByStripeId(sub.id));
-        if (row) {
-          const keys = await store.countActiveKeys(row.orgId);
-          if (keys === 0) {
-            summary.needsAttention += 1;
-            console.warn(
-              `[reconcile] needs_attention: org ${row.orgId} has active sub ${sub.id} but 0 active keys`,
-            );
-          }
+      // The real store has no getSubscriptionByStripeId — we already have the
+      // orgId from the branch above (local row or the just-repaired upsert).
+      if (ACTIVE_STATUSES.has(sub.status) && resolvedOrgId) {
+        const keys = await countActiveKeys(store, resolvedOrgId);
+        if (keys === 0) {
+          summary.needsAttention += 1;
+          console.warn(
+            `[reconcile] needs_attention: org ${resolvedOrgId} has active sub ${sub.id} but 0 active keys`,
+          );
         }
       }
     }
