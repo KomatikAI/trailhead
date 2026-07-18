@@ -1,6 +1,6 @@
 {
   "name": "@komatikai/trailhead",
-  "version": "4.5.7",
+  "version": "4.6.0",
   "description": "Trailhead CLI — setup wizard and utilities for the Trailhead deployment gate",
   "bin": {
     "trailhead": "dist/index.js"
