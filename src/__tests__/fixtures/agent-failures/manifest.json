@@ -45,7 +45,8 @@
     "dependency_dag_validation",
     "uncommitted_fix_check",
     "verification_owner_assigned",
-    "external_interface_validation"
+    "external_interface_validation",
+    "close_on_ship_link"
   ],
   "coveredRiskFactors": [
     "test_coverage",

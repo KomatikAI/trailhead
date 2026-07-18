@@ -2,6 +2,13 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [4.6.0] - 2026-07-18
+
+### Added
+
+- **Phase-0 `close_on_ship_link` detector** ([#301](https://github.com/KomatikAI/trailhead/pull/301)) — producer side of the close-on-ship loop: submission checks now surface agent PRs that lack an explicit `Closes task: <id>` / `Resolves task: <id>` link, so merged work can be reconciled back to fleet tasks instead of dying unlinked (the planner's RECONCILE-SHIPPED pass consumes these links).
+- **On-demand / backfill evaluation (`evaluate-pr`)** — new Action input to evaluate a specific PR by number instead of the triggering event's PR. Resolves the PR head commit via the API and scores the diff with the current engine, so historical PRs (open, closed, or merged) can be re-evaluated or backfilled with the latest version. Diff/author/age/provenance are fetched by PR number (no checkout required). In this mode the gate only scores and persists the evaluation — PR comments, labels, reviewer requests, self-heal, and autofix are skipped. Drivable from `workflow_dispatch` or a direct `node dist/index.js` run. See `examples/github-actions/trailhead-backfill.yml`.
+
 ## [4.5.7] - 2026-07-01
 
 ### Fixed
