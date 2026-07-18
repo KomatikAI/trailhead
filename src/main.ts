@@ -408,7 +408,12 @@ async function run(): Promise<void> {
 
     // Autofix self-heal (ADR-010) — opt-in; dry-run (plan only) unless enabled.
     const autofixFixes = evaluation.remediation?.fixes ?? [];
-    if (config.githubToken && prNumber && !backfillMode && autofixFixes.some((f) => f.autofix_eligible)) {
+    if (
+      config.githubToken &&
+      prNumber &&
+      !backfillMode &&
+      autofixFixes.some((f) => f.autofix_eligible)
+    ) {
       try {
         const autofixEnabled =
           core.getInput("autofix") === "true" || readEnv("TRAILHEAD_AUTOFIX") === "true";
@@ -711,7 +716,12 @@ async function run(): Promise<void> {
     if (!blockMerge) {
       if (evaluation.gateDecision === "warn") {
         core.warning(fullReport);
-        if (config.githubToken && prNumber && !backfillMode && config.reviewersOnRisk.length > 0) {
+        if (
+          config.githubToken &&
+          prNumber &&
+          !backfillMode &&
+          config.reviewersOnRisk.length > 0
+        ) {
           await requestHighRiskReviewers(
             prNumber,
             config.reviewersOnRisk,
@@ -733,7 +743,12 @@ async function run(): Promise<void> {
       return;
     }
 
-    if (config.githubToken && prNumber && !backfillMode && config.reviewersOnRisk.length > 0) {
+    if (
+      config.githubToken &&
+      prNumber &&
+      !backfillMode &&
+      config.reviewersOnRisk.length > 0
+    ) {
       await requestHighRiskReviewers(
         prNumber,
         config.reviewersOnRisk,
