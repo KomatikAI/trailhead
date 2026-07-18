@@ -2,6 +2,12 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **On-demand / backfill evaluation (`evaluate-pr`)** — new Action input to evaluate a specific PR by number instead of the triggering event's PR. Resolves the PR head commit via the API and scores the diff with the current engine, so historical PRs (open, closed, or merged) can be re-evaluated or backfilled with the latest version. Diff/author/age/provenance are fetched by PR number (no checkout required). In this mode the gate only scores and persists the evaluation — PR comments, labels, reviewer requests, self-heal, and autofix are skipped. Drivable from `workflow_dispatch` or a direct `node dist/index.js` run. See `examples/github-actions/trailhead-backfill.yml`.
+
 ## [4.5.7] - 2026-07-01
 
 ### Fixed
