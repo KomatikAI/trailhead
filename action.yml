@@ -211,6 +211,10 @@ inputs:
     description: "Set to 'false' to disable the cross-repo PR opener even when configured. Default enabled (the opener still requires submission.contract_integrity.cross_repo_opener.enabled, an api_owners map, and a cross-repo-token to actually open PRs)."
     required: false
     default: "true"
+  evaluate-pr:
+    description: "Evaluate a specific PR by number instead of the triggering event's PR. Enables backfill / on-demand re-evaluation of historical PRs (open, closed, or merged) with the current engine version — driven from workflow_dispatch or a direct `node dist/index.js` run. The diff, author history, age, and provenance are fetched from the GitHub API by PR number, so no checkout of the PR is required. In this mode the gate only scores and persists the evaluation; PR comments, labels, reviewer requests, self-heal, and autofix are skipped. Requires github-token."
+    required: false
+    default: ""
 
 outputs:
   health-score:

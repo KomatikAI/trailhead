@@ -56484,8 +56484,35 @@ async function run() {
         if (policyOverride) {
             core_warning(`Governed override active (${policyOverride.linkedTicket}) by ${policyOverride.owner}; expires ${policyOverride.expiresAt}.`);
         }
-        const commitSha = context.sha;
-        const prNumber = context.payload.pull_request?.number;
+        // On-demand evaluation: when `evaluate-pr` is set, score that PR by number
+        // instead of the triggering event's PR. Enables backfill / re-evaluation of
+        // historical PRs (open, closed, or merged) with the current engine version,
+        // driven from a workflow_dispatch or a direct `node dist/index.js` run.
+        // The diff/author/age/provenance are all fetched from the GitHub API by PR
+        // number (see evaluateGate), so no checkout of the PR is required.
+        let commitSha = context.sha;
+        let prNumber = context.payload.pull_request?.number;
+        const evaluatePrInput = getInput("evaluate-pr").trim();
+        const backfillMode = Boolean(evaluatePrInput);
+        if (evaluatePrInput) {
+            const parsedPr = parseInt(evaluatePrInput, 10);
+            if (Number.isNaN(parsedPr) || parsedPr <= 0) {
+                throw new Error(`evaluate-pr must be a positive PR number; got "${evaluatePrInput}".`);
+            }
+            if (!config.githubToken) {
+                throw new Error("evaluate-pr requires a github-token to resolve the PR head commit.");
+            }
+            const octokit = getOctokit(config.githubToken);
+            const { data: targetPr } = await octokit.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: parsedPr,
+            });
+            prNumber = parsedPr;
+            commitSha = targetPr.head.sha;
+            info(`evaluate-pr mode: PR #${parsedPr} (${targetPr.state}) @ ${commitSha.substring(0, 7)} ` +
+                `base=${targetPr.base.ref} — backfill/re-evaluation; PR comments, labels and autofix are skipped.`);
+        }
         info(`Evaluating deployment gate for ${commitSha.substring(0, 7)}`);
         const evaluation = await evaluateGate(config, commitSha, prNumber);
         if (policyOverride && !evaluation.policyOverride) {
@@ -56524,7 +56551,7 @@ async function run() {
         }
         // Autofix self-heal (ADR-010) — opt-in; dry-run (plan only) unless enabled.
         const autofixFixes = evaluation.remediation?.fixes ?? [];
-        if (config.githubToken && prNumber && autofixFixes.some((f) => f.autofix_eligible)) {
+        if (config.githubToken && prNumber && !backfillMode && autofixFixes.some((f) => f.autofix_eligible)) {
             try {
                 const autofixEnabled = getInput("autofix") === "true" || readEnv("TRAILHEAD_AUTOFIX") === "true";
                 const prPayload = context.payload.pull_request;
@@ -56750,7 +56777,7 @@ async function run() {
         }
         await summary.addRaw(fullReport).write();
         const checkName = resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);
-        if (config.githubToken) {
+        if (config.githubToken && !backfillMode) {
             if (prNumber) {
                 await postPrComment(fullReport, prNumber, config.githubToken);
             }
@@ -56769,10 +56796,10 @@ async function run() {
         if (!blockMerge) {
             if (evaluation.gateDecision === "warn") {
                 core_warning(fullReport);
-                if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
+                if (config.githubToken && prNumber && !backfillMode && config.reviewersOnRisk.length > 0) {
                     await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
                 }
-                if (config.selfHeal && prNumber) {
+                if (config.selfHeal && prNumber && !backfillMode) {
                     const repairs = await runSelfHeal(config, prNumber);
                     if (repairs.length > 0) {
                         info(`Self-heal attempted ${repairs.length} repair(s): ` +
@@ -56785,10 +56812,10 @@ async function run() {
             }
             return;
         }
-        if (config.githubToken && prNumber && config.reviewersOnRisk.length > 0) {
+        if (config.githubToken && prNumber && !backfillMode && config.reviewersOnRisk.length > 0) {
             await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
         }
-        if (config.selfHeal && prNumber) {
+        if (config.selfHeal && prNumber && !backfillMode) {
             const repairs = await runSelfHeal(config, prNumber);
             const successes = repairs.filter((r) => r.success);
             if (successes.length > 0) {
