@@ -61,6 +61,8 @@ export interface SubmissionEngineOptions {
   catalogKnownEntities?: string[];
   /** Promotion branch topology (GITHUB_BASE_REF / GITHUB_HEAD_REF), set by the gate. */
   promotion?: { baseBranch?: string; headBranch?: string };
+  /** PR description body (pull_request.body), set by the gate — for close_on_ship_link. */
+  prBody?: string;
 }
 
 function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext {
@@ -98,6 +100,7 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
     catalogKnownEntities:
       catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
     promotion: options.promotion,
+    prBody: options.prBody,
   };
 }
 
