@@ -1,10 +1,17 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 8066:
+/***/ 2814:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
+module.exports = require(__nccwpck_require__.ab + "swc.linux-x64-gnu.node")
+
+/***/ }),
+
+/***/ 1528:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+module.exports = require(__nccwpck_require__.ab + "swc.linux-x64-musl.node")
 
 /***/ }),
 
@@ -951,7 +958,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8066)
+        return __nccwpck_require__(9763)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1059,7 +1066,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6900)
+        return __nccwpck_require__(1528)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1071,7 +1078,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(7793)
+        return __nccwpck_require__(2814)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -29817,22 +29824,6 @@ module.exports = eval("require")("@swc/core-linux-s390x-gnu");
 
 /***/ }),
 
-/***/ 7793:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-linux-x64-gnu");
-
-
-/***/ }),
-
-/***/ 6900:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-linux-x64-musl");
-
-
-/***/ }),
-
 /***/ 9301:
 /***/ ((module) => {
 
@@ -29853,6 +29844,14 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
+
+
+/***/ }),
+
+/***/ 9763:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-win32-x64-msvc");
 
 
 /***/ }),
@@ -41949,6 +41948,7 @@ const SubmissionCheckCode = enumType([
     "uncommitted_fix_check",
     "verification_owner_assigned",
     "external_interface_validation",
+    "close_on_ship_link",
 ]);
 const SubmissionCheckResult = objectType({
     code: SubmissionCheckCode,
@@ -44505,10 +44505,60 @@ function detectExternalInterfaceValidation(ctx) {
         suggested_action: "Link verified target schema or mark PROPOSAL_ONLY.",
     });
 }
+// close-on-ship producer link (docs/plans/close-on-ship-v0.1.md): a suggestion
+// should carry a `Task: <id>` provenance line, and when shipped its PR body should
+// carry `Closes task: <id>` — that link is what lets the task auto-close on merge.
+// This nudges the producer side so the Spark-side reconcilers have something to act
+// on. Advisory only — never blocks.
+const TASK_PROVENANCE = /\bTask:\s*([0-9a-f]{8}[0-9a-f-]*)/i;
+const CLOSES_TASK = /\b(?:close[sd]?|resolve[sd]?|fix(?:e[sd])?)\s+task\s*[:#]?\s*([0-9a-f]{8}[0-9a-f-]*)/gi;
+function detectCloseOnShipLink(ctx) {
+    const files = suggestionMarkdownFiles(ctx);
+    const missingProvenance = [];
+    const taskIds = new Set();
+    for (const file of files) {
+        const m = fileContent(file).match(TASK_PROVENANCE);
+        if (m)
+            taskIds.add(m[1].toLowerCase());
+        else
+            missingProvenance.push(file.filename);
+    }
+    // PR-body half: only when the gate supplied the body (dormant on local runs).
+    const unlinked = [];
+    if (ctx.prBody !== undefined && taskIds.size > 0) {
+        const linked = new Set();
+        const re = new RegExp(CLOSES_TASK.source, CLOSES_TASK.flags);
+        let bm;
+        while ((bm = re.exec(ctx.prBody)) !== null)
+            linked.add(bm[1].toLowerCase());
+        for (const id of taskIds) {
+            const isLinked = [...linked].some((l) => l === id || id.startsWith(l) || l.startsWith(id));
+            if (!isLinked)
+                unlinked.push(id);
+        }
+    }
+    const problems = [];
+    if (missingProvenance.length > 0) {
+        problems.push(`${missingProvenance.length} suggestion(s) missing a 'Task: <id>' provenance line`);
+    }
+    if (unlinked.length > 0) {
+        problems.push(`PR body has no 'Closes task: <id>' for: ${unlinked.map((i) => i.slice(0, 8)).join(", ")}`);
+    }
+    if (problems.length === 0)
+        return null;
+    return advisory({
+        code: "close_on_ship_link",
+        title: "Close-on-ship link missing",
+        detail: `${problems.join("; ")}. Add 'Task: <id>' in the suggestion and 'Closes task: <id>' in the PR body so the task auto-closes on merge (docs/plans/close-on-ship-v0.1.md).`,
+        files: missingProvenance,
+        suggested_action: "Record the task link so the shipped work closes its task automatically.",
+    });
+}
 function runPhase0Detectors(ctx) {
     if (suggestionMarkdownFiles(ctx).length === 0)
         return [];
     const checks = [
+        detectCloseOnShipLink,
         detectOutputSizeMin,
         detectActionExtractionPresent,
         detectDeltaSectionPresent,
@@ -49685,6 +49735,7 @@ function buildContext(options) {
         repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
         catalogKnownEntities: catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
         promotion: options.promotion,
+        prBody: options.prBody,
     };
 }
 function runSubmissionGate(options) {
@@ -52231,6 +52282,9 @@ async function evaluateGate(config, commitSha, prNumber) {
                     headBranch: process.env.GITHUB_HEAD_REF,
                 }
                 : undefined,
+            // close_on_ship_link: the PR body carries the `Closes task: <id>` convention.
+            prBody: github_context.payload?.pull_request?.body ??
+                undefined,
         });
         if (submissionChecks.length > 0) {
             policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);
@@ -56551,7 +56605,10 @@ async function run() {
         }
         // Autofix self-heal (ADR-010) — opt-in; dry-run (plan only) unless enabled.
         const autofixFixes = evaluation.remediation?.fixes ?? [];
-        if (config.githubToken && prNumber && !backfillMode && autofixFixes.some((f) => f.autofix_eligible)) {
+        if (config.githubToken &&
+            prNumber &&
+            !backfillMode &&
+            autofixFixes.some((f) => f.autofix_eligible)) {
             try {
                 const autofixEnabled = getInput("autofix") === "true" || readEnv("TRAILHEAD_AUTOFIX") === "true";
                 const prPayload = context.payload.pull_request;
@@ -56796,7 +56853,10 @@ async function run() {
         if (!blockMerge) {
             if (evaluation.gateDecision === "warn") {
                 core_warning(fullReport);
-                if (config.githubToken && prNumber && !backfillMode && config.reviewersOnRisk.length > 0) {
+                if (config.githubToken &&
+                    prNumber &&
+                    !backfillMode &&
+                    config.reviewersOnRisk.length > 0) {
                     await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
                 }
                 if (config.selfHeal && prNumber && !backfillMode) {
@@ -56812,7 +56872,10 @@ async function run() {
             }
             return;
         }
-        if (config.githubToken && prNumber && !backfillMode && config.reviewersOnRisk.length > 0) {
+        if (config.githubToken &&
+            prNumber &&
+            !backfillMode &&
+            config.reviewersOnRisk.length > 0) {
             await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
         }
         if (config.selfHeal && prNumber && !backfillMode) {
