@@ -49755,6 +49755,7 @@ function submissionGateShouldBlock(checks, mode = "block") {
 // Maps submission-engine check results to RemediationFix entries.
 
 
+
 function deriveSubmissionFixes(checks) {
     if (!checks || checks.length === 0)
         return [];
@@ -50013,13 +50014,13 @@ function deriveCiFixes(ci) {
     }
     return fixes;
 }
-function derivePolicyFindingFixes(findings) {
+function derivePolicyFindingFixes(findings, severity) {
     if (!findings || findings.length === 0)
         return [];
     return [
         RemediationFix.parse({
             code: "policy.finding",
-            severity: "blocking",
+            severity,
             title: `${findings.length} policy finding${findings.length === 1 ? "" : "s"}`,
             detail: findings.map((f) => `- ${f}`).join("\n"),
         }),
@@ -50062,7 +50063,7 @@ function buildRemediation(input) {
         fixes.push(RemediationFix.parse({ ...built, severity }));
     }
     fixes.push(...deriveCiFixes(input.evaluation.ci));
-    fixes.push(...derivePolicyFindingFixes(input.evaluation.policyFindings));
+    fixes.push(...derivePolicyFindingFixes(input.evaluation.policyFindings, input.evaluation.gateDecision === "block" ? "blocking" : "warn"));
     fixes.push(...deriveSubmissionFixes(input.submissionChecks));
     // Deduplicate by code, keeping the highest severity occurrence.
     const severityRank = {

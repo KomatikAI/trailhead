@@ -43,6 +43,9 @@ jobs:
       - name: Verify CLI bundle (offline doctor)
         run: node cli/dist/index.js doctor --offline --path .
 
+      - name: Dry-run simulator smoke
+        run: node scripts/run-simulate.mjs --threshold 100
+
       - name: Typecheck app/
         run: |
           cd app && npm ci && npm run prebuild && npx tsc --noEmit
