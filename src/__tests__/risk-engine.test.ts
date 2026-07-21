@@ -289,6 +289,21 @@ describe("risk-engine", () => {
       const result = detectDependencyChanges(files);
       expect(result).toBeNull();
     });
+
+    it("parses long dependency lines and nested paths without unsafe backtracking", () => {
+      const files = [
+        {
+          filename: "packages/web/package.json",
+          changes: 2,
+          patch:
+            '@@ -1,3 +1,3 @@\n  "dependencies": {\n-    "example": "1.0.0"\n+    "example": "' +
+            " ".repeat(100_000) +
+            '"\n   }\n',
+        },
+      ];
+
+      expect(detectDependencyChanges(files)?.type).toBe("dependency_changes");
+    });
   });
 
   describe("decideGate", () => {
