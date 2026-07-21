@@ -42850,6 +42850,21 @@ function detectDependencyChanges(files) {
             return true;
         let activeSection = null;
         let sectionDepth = 0;
+        const isStringProperty = (line) => {
+            let candidate = line.trim();
+            if (candidate.endsWith(","))
+                candidate = candidate.slice(0, -1).trimEnd();
+            if (!candidate.startsWith('"'))
+                return false;
+            const keyEnd = candidate.indexOf('"', 1);
+            if (keyEnd < 2)
+                return false;
+            const afterKey = candidate.slice(keyEnd + 1).trimStart();
+            if (!afterKey.startsWith(":"))
+                return false;
+            const value = afterKey.slice(1).trim();
+            return value.length >= 2 && value.startsWith('"') && value.endsWith('"');
+        };
         for (const rawLine of patch.split("\n")) {
             if (rawLine.startsWith("@@"))
                 continue;
@@ -42873,7 +42888,7 @@ function detectDependencyChanges(files) {
             const openCount = (line.match(/\{/g) ?? []).length;
             const closeCount = (line.match(/\}/g) ?? []).length;
             sectionDepth += openCount - closeCount;
-            if (prefix !== " " && /^\s*"[^"\r\n]+"\s*:\s*"[^"\r\n]*"\s*,?\s*$/.test(line)) {
+            if (prefix !== " " && isStringProperty(line)) {
                 return true;
             }
             if (sectionDepth <= 0) {
