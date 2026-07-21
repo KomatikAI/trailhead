@@ -1,14 +1,27 @@
 import type { TestHealer } from "./index.js";
 
-const TIMEOUT_PATTERN = /Timeout (\d+)ms exceeded|Test timeout of (\d+)ms exceeded/i;
-const NAVIGATION_PATTERN = /page\.goto.*net::|ERR_CONNECTION_REFUSED|Navigation failed/i;
-const SELECTOR_PATTERN =
-  /locator\..*resolved to (\d+) element|waiting for (locator|selector)|element not found/i;
-
 function detectFailureType(errorOutput: string): string {
-  if (TIMEOUT_PATTERN.test(errorOutput)) return "timeout";
-  if (NAVIGATION_PATTERN.test(errorOutput)) return "navigation-failure";
-  if (SELECTOR_PATTERN.test(errorOutput)) return "selector-drift";
+  const normalized = errorOutput.toLowerCase();
+  if (normalized.includes("timeout") && normalized.includes("ms exceeded")) {
+    return "timeout";
+  }
+  if (
+    (normalized.includes("page.goto") && normalized.includes("net::")) ||
+    normalized.includes("err_connection_refused") ||
+    normalized.includes("navigation failed")
+  ) {
+    return "navigation-failure";
+  }
+  if (
+    (normalized.includes("locator.") &&
+      normalized.includes("resolved to") &&
+      normalized.includes("element")) ||
+    normalized.includes("waiting for locator") ||
+    normalized.includes("waiting for selector") ||
+    normalized.includes("element not found")
+  ) {
+    return "selector-drift";
+  }
   return "unknown";
 }
 
@@ -16,7 +29,9 @@ function repairSelector(
   testFile: string,
   errorOutput: string,
 ): { diff: string; success: boolean } {
-  const selectorMatch = errorOutput.match(/(?:locator|getBy\w+)\(['"]([^'"]+)['"]\)/);
+  const selectorMatch = errorOutput.match(
+    /(?:locator|getBy[A-Za-z]{1,32})\(['"]([^'"\r\n]{1,500})['"]\)/,
+  );
   const selector = selectorMatch?.[1] ?? "(unknown selector)";
 
   return {

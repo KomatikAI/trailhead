@@ -2,6 +2,12 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [Unreleased]
+
+### Security
+
+- **Legacy CodeQL high-severity backlog cleared** — replaces potentially super-linear diagnostic and package-diff regexes with bounded or string-based parsing, removes clear-text dashboard API-key persistence, and avoids incomplete dynamic-regex escaping in the v4.3 rollout helper.
+
 ## [4.6.1] - 2026-07-21
 
 ### Fixed

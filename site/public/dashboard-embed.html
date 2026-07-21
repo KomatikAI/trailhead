@@ -948,7 +948,6 @@
         }
 
         sessionStorage.setItem("th_cloud_base", apiBase());
-        sessionStorage.setItem("th_cloud_key", key);
 
         try {
           const orgs = await apiFetch("/v1/orgs");
@@ -1043,10 +1042,7 @@
       });
 
       const savedBase = sessionStorage.getItem("th_cloud_base");
-      const savedKey = sessionStorage.getItem("th_cloud_key");
       document.getElementById("apiBase").value = savedBase || DEFAULT_BASE;
-      if (savedKey) document.getElementById("apiKey").value = savedKey;
-      if (savedKey) loadData();
     </script>
   </body>
 </html>
