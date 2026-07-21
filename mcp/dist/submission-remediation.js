@@ -1,6 +1,7 @@
 // Submission-gate remediation mapping (Phase B).
 // Maps submission-engine check results to RemediationFix entries.
 import { RemediationFix as RemediationFixSchema } from "./types.js";
+export { SubmissionCheckCode } from "./types.js";
 export { SUBMISSION_CHECK_CODES } from "./submission-engine.js";
 export function deriveSubmissionFixes(checks) {
     if (!checks || checks.length === 0)

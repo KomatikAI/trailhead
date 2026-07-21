@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,17 +36,35 @@ const BINDING_PACKAGES = [
 ];
 
 function copyNodeFile(src, destName) {
-  fs.copyFileSync(src, path.join(distDir, destName));
+  const dest = path.join(distDir, destName);
+  if (
+    fs.existsSync(dest) &&
+    fs.statSync(src).size === fs.statSync(dest).size &&
+    fs.readFileSync(src).equals(fs.readFileSync(dest))
+  ) {
+    console.log(`copy-swc-bindings: ${destName} (already current)`);
+    return;
+  }
+  fs.copyFileSync(src, dest);
   console.log(`copy-swc-bindings: ${destName}`);
 }
 
 function fetchNodeBinary(pkg) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "swc-pack-"));
   try {
-    execSync(`npm pack ${pkg}@${swcVersion}`, { cwd: tmp, stdio: "pipe" });
+    const npmCli = process.env.npm_execpath;
+    if (!npmCli) {
+      throw new Error(
+        "npm_execpath is unavailable; run this helper through an npm script",
+      );
+    }
+    execFileSync(process.execPath, [npmCli, "pack", `${pkg}@${swcVersion}`], {
+      cwd: tmp,
+      stdio: "pipe",
+    });
     const tgz = fs.readdirSync(tmp).find((f) => f.endsWith(".tgz"));
     if (!tgz) return null;
-    execSync(`tar -xzf ${JSON.stringify(tgz)}`, { cwd: tmp, stdio: "pipe" });
+    execFileSync("tar", ["-xzf", tgz], { cwd: tmp, stdio: "pipe" });
     const pkgDir = path.join(tmp, "package");
     const nodeFile = fs.readdirSync(pkgDir).find((f) => f.endsWith(".node"));
     if (!nodeFile) return null;
