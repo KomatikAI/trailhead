@@ -172,6 +172,20 @@ describe("buildRemediation", () => {
       expect(fix?.detail).toContain("Workflow uses unpinned action");
       expect(fix?.detail).toContain("Secrets exposed");
     });
+
+    it("keeps non-blocking policy findings non-blocking when the gate allows", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "allow",
+          releaseReady: true,
+          policyFindings: ["Supply-chain warnings detected (4)."],
+        }),
+      });
+      const fix = remediation.fixes.find((f) => f.code === "policy.finding");
+      expect(fix?.severity).toBe("warn");
+      expect(remediation.blocking_count).toBe(0);
+      expect(remediation.release_ready).toBe(true);
+    });
   });
 
   describe("deduplication and ordering", () => {
