@@ -36,7 +36,16 @@ const BINDING_PACKAGES = [
 ];
 
 function copyNodeFile(src, destName) {
-  fs.copyFileSync(src, path.join(distDir, destName));
+  const dest = path.join(distDir, destName);
+  if (
+    fs.existsSync(dest) &&
+    fs.statSync(src).size === fs.statSync(dest).size &&
+    fs.readFileSync(src).equals(fs.readFileSync(dest))
+  ) {
+    console.log(`copy-swc-bindings: ${destName} (already current)`);
+    return;
+  }
+  fs.copyFileSync(src, dest);
   console.log(`copy-swc-bindings: ${destName}`);
 }
 
