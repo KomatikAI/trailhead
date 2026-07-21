@@ -4,7 +4,7 @@
  * Usage:
  *   node scripts/run-simulate.mjs
  *   node scripts/run-simulate.mjs --repo owner/repo --pr 123
- *   node scripts/run-simulate.mjs --health-url https://api.example.com/health
+ *   node scripts/run-simulate.mjs --health-url http://localhost:3000/health
  *   node scripts/run-simulate.mjs --threshold 50
  *
  * Environment variables (optional):
