@@ -302,7 +302,11 @@ export function computeRiskScore(files, config) {
 // Dependency change detection
 // ---------------------------------------------------------------------------
 export function detectDependencyChanges(files) {
-    const depFiles = files.filter((f) => DEPENDENCY_FILES.some((p) => p.test(f.filename.replace(/.*\//, ""))));
+    const dependencyBasename = (filename) => {
+        const separator = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+        return separator >= 0 ? filename.slice(separator + 1) : filename;
+    };
+    const depFiles = files.filter((f) => DEPENDENCY_FILES.some((p) => p.test(dependencyBasename(f.filename))));
     if (depFiles.length === 0)
         return null;
     const isLockfile = (filename) => /\.(lock|sum)$|lock\.(json|yaml)$/.test(filename);
@@ -311,6 +315,21 @@ export function detectDependencyChanges(files) {
             return true;
         let activeSection = null;
         let sectionDepth = 0;
+        const isStringProperty = (line) => {
+            let candidate = line.trim();
+            if (candidate.endsWith(","))
+                candidate = candidate.slice(0, -1).trimEnd();
+            if (!candidate.startsWith('"'))
+                return false;
+            const keyEnd = candidate.indexOf('"', 1);
+            if (keyEnd < 2)
+                return false;
+            const afterKey = candidate.slice(keyEnd + 1).trimStart();
+            if (!afterKey.startsWith(":"))
+                return false;
+            const value = afterKey.slice(1).trim();
+            return value.length >= 2 && value.startsWith('"') && value.endsWith('"');
+        };
         for (const rawLine of patch.split("\n")) {
             if (rawLine.startsWith("@@"))
                 continue;
@@ -334,7 +353,7 @@ export function detectDependencyChanges(files) {
             const openCount = (line.match(/\{/g) ?? []).length;
             const closeCount = (line.match(/\}/g) ?? []).length;
             sectionDepth += openCount - closeCount;
-            if (prefix !== " " && /^\s*"[^"]+"\s*:\s*".*"\s*,?\s*$/.test(line)) {
+            if (prefix !== " " && isStringProperty(line)) {
                 return true;
             }
             if (sectionDepth <= 0) {
@@ -345,7 +364,7 @@ export function detectDependencyChanges(files) {
         return false;
     };
     const relevantDepFiles = depFiles.filter((f) => {
-        const base = f.filename.replace(/.*\//, "");
+        const base = dependencyBasename(f.filename);
         if (base === "package.json") {
             return packageJsonTouchesDependencies(f.patch);
         }

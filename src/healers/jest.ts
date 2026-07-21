@@ -1,13 +1,19 @@
 import type { TestHealer } from "./index.js";
 
-const SNAPSHOT_PATTERN = /Snapshot .* mismatched|›.*Snapshot/i;
 const IMPORT_PATTERN = /Cannot find module ['"]([^'"]+)['"]/i;
-const MOCK_DRIFT_PATTERN = /TypeError:.*is not a function/i;
 
 function detectFailureType(errorOutput: string): string {
-  if (SNAPSHOT_PATTERN.test(errorOutput)) return "snapshot-mismatch";
+  const normalized = errorOutput.toLowerCase();
+  if (
+    (normalized.includes("snapshot") && normalized.includes("mismatched")) ||
+    (errorOutput.includes("›") && normalized.includes("snapshot"))
+  ) {
+    return "snapshot-mismatch";
+  }
   if (IMPORT_PATTERN.test(errorOutput)) return "import-resolution";
-  if (MOCK_DRIFT_PATTERN.test(errorOutput)) return "mock-drift";
+  if (normalized.includes("typeerror:") && normalized.includes("is not a function")) {
+    return "mock-drift";
+  }
   return "unknown";
 }
 

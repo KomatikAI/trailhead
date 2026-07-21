@@ -1,14 +1,28 @@
 import type { TestHealer } from "./index.js";
 
-const SELECTOR_PATTERN =
-  /Timed out retrying.*cy\.(get|find|contains)|Expected to find element|querying for.*element/i;
-const INTERCEPT_PATTERN = /cy\.intercept|cy\.wait.*alias|No request ever occurred/i;
-const TIMEOUT_PATTERN = /Timed out retrying after (\d+)ms|CypressError.*timeout/i;
-
 function detectFailureType(errorOutput: string): string {
-  if (INTERCEPT_PATTERN.test(errorOutput)) return "intercept-drift";
-  if (SELECTOR_PATTERN.test(errorOutput)) return "selector-drift";
-  if (TIMEOUT_PATTERN.test(errorOutput)) return "timeout";
+  const normalized = errorOutput.toLowerCase();
+  if (
+    normalized.includes("cy.intercept") ||
+    (normalized.includes("cy.wait") && normalized.includes("alias")) ||
+    normalized.includes("no request ever occurred")
+  ) {
+    return "intercept-drift";
+  }
+  if (
+    (normalized.includes("timed out retrying") &&
+      ["cy.get", "cy.find", "cy.contains"].some((token) => normalized.includes(token))) ||
+    normalized.includes("expected to find element") ||
+    (normalized.includes("querying for") && normalized.includes("element"))
+  ) {
+    return "selector-drift";
+  }
+  if (
+    normalized.includes("timed out retrying after ") ||
+    (normalized.includes("cypresserror") && normalized.includes("timeout"))
+  ) {
+    return "timeout";
+  }
   return "unknown";
 }
 
@@ -41,7 +55,7 @@ function repairIntercept(
   errorOutput: string,
 ): { diff: string; success: boolean } {
   const aliasMatch = errorOutput.match(
-    /cy\.wait\(['"]@([^'"]+)['"]\)|alias.*['"]@([^'"]+)['"]/,
+    /cy\.wait\(['"]@([^'"\r\n]{1,200})['"]\)|alias[^'"\r\n]{0,200}['"]@([^'"\r\n]{1,200})['"]/,
   );
   const alias = aliasMatch?.[1] ?? aliasMatch?.[2] ?? "(unknown)";
 

@@ -120,15 +120,18 @@ function patchWorkflow(content) {
     return `${prefix}${ACTION_REPO}${TARGET_REF}`;
   });
 
-  const storeRegex = new RegExp(LEGACY_STORE.replace(/\//g, "\\/"), "g");
-  const nextStore = nextAction.replace(storeRegex, () => {
+  const nextStore = nextAction.replaceAll(LEGACY_STORE, () => {
     storeChanged = true;
     return CANONICAL_STORE;
   });
 
-  const alreadyPinned = new RegExp(
-    `${ACTION_REPO.replace("/", "\\/")}${TARGET_REF.replace(".", "\\.")}(?:\\s|$)`,
-  ).test(content);
+  const targetPin = `${ACTION_REPO}${TARGET_REF}`;
+  const alreadyPinned = content.split(/\r?\n/).some((line) => {
+    const pinIndex = line.indexOf(targetPin);
+    if (pinIndex < 0) return false;
+    const following = line[pinIndex + targetPin.length];
+    return following === undefined || following === "#" || /\s/.test(following);
+  });
   const alreadyStore = !content.includes(LEGACY_STORE);
 
   return {
