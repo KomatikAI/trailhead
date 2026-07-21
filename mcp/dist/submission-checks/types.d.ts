@@ -59,4 +59,11 @@ export interface SubmissionCheckContext {
         baseBranch?: string;
         headBranch?: string;
     };
+    /**
+     * The PR description body (from `pull_request.body`, set by the gate I/O layer).
+     * Lets `close_on_ship_link` check for the `Closes task: <id>` convention that
+     * lives in the body, not the diff. Absent for non-PR / local runs, leaving that
+     * half of the detector dormant.
+     */
+    prBody?: string;
 }

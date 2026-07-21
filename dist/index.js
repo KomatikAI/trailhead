@@ -41949,6 +41949,7 @@ const SubmissionCheckCode = enumType([
     "uncommitted_fix_check",
     "verification_owner_assigned",
     "external_interface_validation",
+    "close_on_ship_link",
 ]);
 const SubmissionCheckResult = objectType({
     code: SubmissionCheckCode,
@@ -44505,10 +44506,60 @@ function detectExternalInterfaceValidation(ctx) {
         suggested_action: "Link verified target schema or mark PROPOSAL_ONLY.",
     });
 }
+// close-on-ship producer link (docs/plans/close-on-ship-v0.1.md): a suggestion
+// should carry a `Task: <id>` provenance line, and when shipped its PR body should
+// carry `Closes task: <id>` — that link is what lets the task auto-close on merge.
+// This nudges the producer side so the Spark-side reconcilers have something to act
+// on. Advisory only — never blocks.
+const TASK_PROVENANCE = /\bTask:\s*([0-9a-f]{8}[0-9a-f-]*)/i;
+const CLOSES_TASK = /\b(?:close[sd]?|resolve[sd]?|fix(?:e[sd])?)\s+task\s*[:#]?\s*([0-9a-f]{8}[0-9a-f-]*)/gi;
+function detectCloseOnShipLink(ctx) {
+    const files = suggestionMarkdownFiles(ctx);
+    const missingProvenance = [];
+    const taskIds = new Set();
+    for (const file of files) {
+        const m = fileContent(file).match(TASK_PROVENANCE);
+        if (m)
+            taskIds.add(m[1].toLowerCase());
+        else
+            missingProvenance.push(file.filename);
+    }
+    // PR-body half: only when the gate supplied the body (dormant on local runs).
+    const unlinked = [];
+    if (ctx.prBody !== undefined && taskIds.size > 0) {
+        const linked = new Set();
+        const re = new RegExp(CLOSES_TASK.source, CLOSES_TASK.flags);
+        let bm;
+        while ((bm = re.exec(ctx.prBody)) !== null)
+            linked.add(bm[1].toLowerCase());
+        for (const id of taskIds) {
+            const isLinked = [...linked].some((l) => l === id || id.startsWith(l) || l.startsWith(id));
+            if (!isLinked)
+                unlinked.push(id);
+        }
+    }
+    const problems = [];
+    if (missingProvenance.length > 0) {
+        problems.push(`${missingProvenance.length} suggestion(s) missing a 'Task: <id>' provenance line`);
+    }
+    if (unlinked.length > 0) {
+        problems.push(`PR body has no 'Closes task: <id>' for: ${unlinked.map((i) => i.slice(0, 8)).join(", ")}`);
+    }
+    if (problems.length === 0)
+        return null;
+    return advisory({
+        code: "close_on_ship_link",
+        title: "Close-on-ship link missing",
+        detail: `${problems.join("; ")}. Add 'Task: <id>' in the suggestion and 'Closes task: <id>' in the PR body so the task auto-closes on merge (docs/plans/close-on-ship-v0.1.md).`,
+        files: missingProvenance,
+        suggested_action: "Record the task link so the shipped work closes its task automatically.",
+    });
+}
 function runPhase0Detectors(ctx) {
     if (suggestionMarkdownFiles(ctx).length === 0)
         return [];
     const checks = [
+        detectCloseOnShipLink,
         detectOutputSizeMin,
         detectActionExtractionPresent,
         detectDeltaSectionPresent,
@@ -49685,6 +49736,7 @@ function buildContext(options) {
         repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
         catalogKnownEntities: catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
         promotion: options.promotion,
+        prBody: options.prBody,
     };
 }
 function runSubmissionGate(options) {
@@ -52231,6 +52283,9 @@ async function evaluateGate(config, commitSha, prNumber) {
                     headBranch: process.env.GITHUB_HEAD_REF,
                 }
                 : undefined,
+            // close_on_ship_link: the PR body carries the `Closes task: <id>` convention.
+            prBody: github_context.payload?.pull_request?.body ??
+                undefined,
         });
         if (submissionChecks.length > 0) {
             policyFindings.push(`Submission gate: ${submissionChecks.length} finding(s).`);
@@ -56224,7 +56279,24 @@ async function runCrossRepoOpener(opts) {
     return { ...base, outcomes, unresolved };
 }
 
+;// CONCATENATED MODULE: ./src/github-event.ts
+/**
+ * Resolve the commit and PR associated with a workflow event.
+ *
+ * GitHub sets `context.sha` to a synthetic merge commit for pull_request
+ * workflows, while sibling check runs are attached to the PR head commit.
+ * Non-PR events (including merge_group) intentionally keep context.sha.
+ */
+function resolveEvaluationTarget(context) {
+    const pullRequest = context.payload.pull_request;
+    return {
+        commitSha: pullRequest?.head?.sha ?? context.sha,
+        prNumber: pullRequest?.number,
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/main.ts
+
 
 
 
@@ -56409,11 +56481,36 @@ async function run() {
         const circleciToken = getInput("circleci-token") || "";
         const circleciProjectSlug = getInput("circleci-project-slug") || "";
         const context = github_context;
+        const githubToken = getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
+        let { commitSha, prNumber } = resolveEvaluationTarget(context);
+        // Resolve on-demand targets before external CI so every check provider
+        // queries the same commit as the gate.
+        const evaluatePrInput = getInput("evaluate-pr").trim();
+        const backfillMode = Boolean(evaluatePrInput);
+        if (evaluatePrInput) {
+            const parsedPr = parseInt(evaluatePrInput, 10);
+            if (Number.isNaN(parsedPr) || parsedPr <= 0) {
+                throw new Error(`evaluate-pr must be a positive PR number; got "${evaluatePrInput}".`);
+            }
+            if (!githubToken) {
+                throw new Error("evaluate-pr requires a github-token to resolve the PR head commit.");
+            }
+            const octokit = getOctokit(githubToken);
+            const { data: targetPr } = await octokit.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: parsedPr,
+            });
+            prNumber = parsedPr;
+            commitSha = targetPr.head.sha;
+            info(`evaluate-pr mode: PR #${parsedPr} (${targetPr.state}) @ ${commitSha.substring(0, 7)} ` +
+                `base=${targetPr.base.ref} — backfill/re-evaluation; PR comments, labels and autofix are skipped.`);
+        }
         const ciManifest = await resolveCiManifests({
             ciManifestPath: ciManifestPath || undefined,
             ciExternalStatusUrl: ciExternalStatusUrl || undefined,
             ciExternalStatusSecret: ciExternalStatusSecret || undefined,
-            commitSha: context.sha,
+            commitSha,
             gitlabApiUrl: gitlabApiUrl || undefined,
             gitlabToken: gitlabToken || undefined,
             gitlabProjectId: gitlabProjectId || undefined,
@@ -56432,7 +56529,7 @@ async function run() {
         const config = {
             apiKey: getInput("api-key") || "",
             apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
-            githubToken: getInput("github-token") || process.env.GITHUB_TOKEN || undefined,
+            githubToken,
             healthCheckUrls: (getInput("health-check-urls") || "")
                 .split(",")
                 .map((s) => s.trim())
@@ -56484,35 +56581,6 @@ async function run() {
         if (policyOverride) {
             core_warning(`Governed override active (${policyOverride.linkedTicket}) by ${policyOverride.owner}; expires ${policyOverride.expiresAt}.`);
         }
-        // On-demand evaluation: when `evaluate-pr` is set, score that PR by number
-        // instead of the triggering event's PR. Enables backfill / re-evaluation of
-        // historical PRs (open, closed, or merged) with the current engine version,
-        // driven from a workflow_dispatch or a direct `node dist/index.js` run.
-        // The diff/author/age/provenance are all fetched from the GitHub API by PR
-        // number (see evaluateGate), so no checkout of the PR is required.
-        let commitSha = context.sha;
-        let prNumber = context.payload.pull_request?.number;
-        const evaluatePrInput = getInput("evaluate-pr").trim();
-        const backfillMode = Boolean(evaluatePrInput);
-        if (evaluatePrInput) {
-            const parsedPr = parseInt(evaluatePrInput, 10);
-            if (Number.isNaN(parsedPr) || parsedPr <= 0) {
-                throw new Error(`evaluate-pr must be a positive PR number; got "${evaluatePrInput}".`);
-            }
-            if (!config.githubToken) {
-                throw new Error("evaluate-pr requires a github-token to resolve the PR head commit.");
-            }
-            const octokit = getOctokit(config.githubToken);
-            const { data: targetPr } = await octokit.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: parsedPr,
-            });
-            prNumber = parsedPr;
-            commitSha = targetPr.head.sha;
-            info(`evaluate-pr mode: PR #${parsedPr} (${targetPr.state}) @ ${commitSha.substring(0, 7)} ` +
-                `base=${targetPr.base.ref} — backfill/re-evaluation; PR comments, labels and autofix are skipped.`);
-        }
         info(`Evaluating deployment gate for ${commitSha.substring(0, 7)}`);
         const evaluation = await evaluateGate(config, commitSha, prNumber);
         if (policyOverride && !evaluation.policyOverride) {
@@ -56551,7 +56619,10 @@ async function run() {
         }
         // Autofix self-heal (ADR-010) — opt-in; dry-run (plan only) unless enabled.
         const autofixFixes = evaluation.remediation?.fixes ?? [];
-        if (config.githubToken && prNumber && !backfillMode && autofixFixes.some((f) => f.autofix_eligible)) {
+        if (config.githubToken &&
+            prNumber &&
+            !backfillMode &&
+            autofixFixes.some((f) => f.autofix_eligible)) {
             try {
                 const autofixEnabled = getInput("autofix") === "true" || readEnv("TRAILHEAD_AUTOFIX") === "true";
                 const prPayload = context.payload.pull_request;
@@ -56796,7 +56867,10 @@ async function run() {
         if (!blockMerge) {
             if (evaluation.gateDecision === "warn") {
                 core_warning(fullReport);
-                if (config.githubToken && prNumber && !backfillMode && config.reviewersOnRisk.length > 0) {
+                if (config.githubToken &&
+                    prNumber &&
+                    !backfillMode &&
+                    config.reviewersOnRisk.length > 0) {
                     await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
                 }
                 if (config.selfHeal && prNumber && !backfillMode) {
@@ -56812,7 +56886,10 @@ async function run() {
             }
             return;
         }
-        if (config.githubToken && prNumber && !backfillMode && config.reviewersOnRisk.length > 0) {
+        if (config.githubToken &&
+            prNumber &&
+            !backfillMode &&
+            config.reviewersOnRisk.length > 0) {
             await requestHighRiskReviewers(prNumber, config.reviewersOnRisk, config.githubToken);
         }
         if (config.selfHeal && prNumber && !backfillMode) {

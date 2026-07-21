@@ -12,6 +12,15 @@ vi.mock("../evaluation-history.js");
 const githubMockState = vi.hoisted(() => ({
   pullRequest: {} as Record<string, unknown>,
   reviews: [] as Array<{ state: string; user?: { login?: string } }>,
+  payload: {} as Record<string, unknown>,
+  checkRuns: [] as Array<{
+    name: string;
+    status: string;
+    conclusion: string | null;
+    html_url?: string;
+    details_url?: string;
+  }>,
+  checkRefs: [] as string[],
 }));
 
 vi.mock("@actions/core", () => ({
@@ -28,7 +37,10 @@ vi.mock("@actions/github", () => ({
   context: {
     repo: { owner: "test-owner", repo: "test-repo" },
     sha: "abc1234567890",
-    payload: {},
+    eventName: "pull_request",
+    get payload() {
+      return githubMockState.payload;
+    },
   },
   getOctokit: (_token: string) => ({
     rest: {
@@ -63,6 +75,12 @@ vi.mock("@actions/github", () => ({
         listReviews: vi.fn().mockImplementation(async () => ({
           data: githubMockState.reviews,
         })),
+      },
+      checks: {
+        listForRef: vi.fn().mockImplementation(async ({ ref }: { ref: string }) => {
+          githubMockState.checkRefs.push(ref);
+          return { data: { check_runs: githubMockState.checkRuns } };
+        }),
       },
       repos: {
         listCommits: vi.fn().mockResolvedValue({
@@ -116,9 +134,15 @@ describe("evaluateGate (integration)", () => {
     vi.mocked(evaluationHistory.fetchPreviousEvaluationForPr).mockResolvedValue(null);
     githubMockState.pullRequest = {
       user: { login: "test-author" },
-      head: { ref: "feature/test" },
+      base: { ref: "main" },
+      head: { ref: "feature/test", sha: "pull-request-head-sha" },
+    };
+    githubMockState.payload = {
+      pull_request: githubMockState.pullRequest,
     };
     githubMockState.reviews = [];
+    githubMockState.checkRuns = [];
+    githubMockState.checkRefs = [];
     // Avoid loading repo .trailhead.yml on CI (GITHUB_WORKSPACE is set there).
     vi.stubEnv("GITHUB_WORKSPACE", "");
   });
@@ -148,6 +172,44 @@ describe("evaluateGate (integration)", () => {
       "src/utils.ts",
       "src/__tests__/app.test.ts",
     ]);
+  });
+
+  it("fails release readiness when a required check fails on the PR head SHA", async () => {
+    githubMockState.checkRuns = [
+      {
+        name: "Security audit",
+        status: "completed",
+        conclusion: "failure",
+        html_url: "https://example.com/checks/security-audit",
+      },
+    ];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [Security audit]
+      optional_checks: []
+      missing_required: skip`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", securityGate: false }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(githubMockState.checkRefs).toContain("pull-request-head-sha");
+    expect(result.ci?.failedCount).toBe(1);
+    expect(result.releaseReady).toBe(false);
+    expect(result.releaseReadyReasons).toContain(
+      'Required CI check "Security audit" is FAIL',
+    );
   });
 
   it("includes author_history factor when token and PR are provided", async () => {
