@@ -53,6 +53,7 @@ function buildContext(options) {
         repoPaths: options.repoPaths ? new Set(options.repoPaths) : undefined,
         catalogKnownEntities: catalogKnownEntities.size > 0 ? catalogKnownEntities : undefined,
         promotion: options.promotion,
+        prBody: options.prBody,
     };
 }
 export function runSubmissionGate(options) {

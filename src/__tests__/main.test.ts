@@ -4,6 +4,7 @@ import * as github from "@actions/github";
 import * as gate from "../gate.js";
 import * as notify from "../notify.js";
 import * as healers from "../healers/index.js";
+import * as ciExternal from "../ci-external.js";
 import type { GateEvaluation } from "../types.js";
 
 function makeEvaluation(overrides: Partial<GateEvaluation> = {}): GateEvaluation {
@@ -29,8 +30,12 @@ describe("run (main entrypoint)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(core.getInput).mockReturnValue("");
-    (github.context as { payload: { pull_request?: { number: number } } }).payload = {
-      pull_request: { number: 42 },
+    (
+      github.context as {
+        payload: { pull_request?: { number: number; head: { sha: string } } };
+      }
+    ).payload = {
+      pull_request: { number: 42, head: { sha: "pr-head-sha-123" } },
     };
 
     vi.mocked(github.getOctokit).mockReturnValue({
@@ -77,6 +82,9 @@ describe("run (main entrypoint)", () => {
     vi.spyOn(gate, "formatGateReport").mockReturnValue("## Report");
     const commentSpy = vi.spyOn(gate, "postPrComment").mockResolvedValue();
     const checkSpy = vi.spyOn(gate, "createCheckRun").mockResolvedValue();
+    const ciManifestSpy = vi
+      .spyOn(ciExternal, "resolveCiManifests")
+      .mockResolvedValue(null);
     const webhookSpy = vi.spyOn(notify, "deliverWebhooks").mockResolvedValue();
     const storeSpy = vi.spyOn(notify, "storeEvaluationDetailed").mockResolvedValue({
       stored: true,
@@ -96,6 +104,14 @@ describe("run (main entrypoint)", () => {
     await import("../main.js");
     await new Promise((r) => setTimeout(r, 0));
 
+    expect(gate.evaluateGate).toHaveBeenCalledWith(
+      expect.any(Object),
+      "pr-head-sha-123",
+      42,
+    );
+    expect(ciManifestSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ commitSha: "pr-head-sha-123" }),
+    );
     expect(registerSpy).toHaveBeenCalledTimes(3);
     expect(core.setOutput).toHaveBeenCalledWith("health-score", "100");
     expect(core.setOutput).toHaveBeenCalledWith("risk-score", "30");

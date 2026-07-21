@@ -15,4 +15,5 @@ export declare function detectDependencyDagValidation(ctx: SubmissionCheckContex
 export declare function detectUncommittedFixCheck(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
 export declare function detectVerificationOwnerAssigned(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
 export declare function detectExternalInterfaceValidation(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
+export declare function detectCloseOnShipLink(ctx: SubmissionCheckContext): SubmissionCheckResult | null;
 export declare function runPhase0Detectors(ctx: SubmissionCheckContext): SubmissionCheckResult[];

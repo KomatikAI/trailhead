@@ -39,6 +39,7 @@ import { runGateAutofix, type GateAutofixClient } from "./gate-autofix.js";
 import { runCrossRepoOpener, type CrossRepoOpenerClient } from "./cross-repo-opener.js";
 import { loadRepoConfig } from "./config.js";
 import { loadCatalogIndex, loadCatalogOwners } from "./catalog-index.js";
+import { resolveEvaluationTarget } from "./github-event.js";
 import type { TrailheadConfig, TestRepairResult, PolicyOverrideAudit } from "./types.js";
 
 class PolicyOverrideError extends Error {
@@ -233,11 +234,45 @@ async function run(): Promise<void> {
     const circleciProjectSlug = core.getInput("circleci-project-slug") || "";
 
     const context = github.context;
+    const githubToken =
+      core.getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
+    let { commitSha, prNumber } = resolveEvaluationTarget(context);
+
+    // Resolve on-demand targets before external CI so every check provider
+    // queries the same commit as the gate.
+    const evaluatePrInput = core.getInput("evaluate-pr").trim();
+    const backfillMode = Boolean(evaluatePrInput);
+    if (evaluatePrInput) {
+      const parsedPr = parseInt(evaluatePrInput, 10);
+      if (Number.isNaN(parsedPr) || parsedPr <= 0) {
+        throw new Error(
+          `evaluate-pr must be a positive PR number; got "${evaluatePrInput}".`,
+        );
+      }
+      if (!githubToken) {
+        throw new Error(
+          "evaluate-pr requires a github-token to resolve the PR head commit.",
+        );
+      }
+      const octokit = github.getOctokit(githubToken);
+      const { data: targetPr } = await octokit.rest.pulls.get({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        pull_number: parsedPr,
+      });
+      prNumber = parsedPr;
+      commitSha = targetPr.head.sha;
+      core.info(
+        `evaluate-pr mode: PR #${parsedPr} (${targetPr.state}) @ ${commitSha.substring(0, 7)} ` +
+          `base=${targetPr.base.ref} — backfill/re-evaluation; PR comments, labels and autofix are skipped.`,
+      );
+    }
+
     const ciManifest = await resolveCiManifests({
       ciManifestPath: ciManifestPath || undefined,
       ciExternalStatusUrl: ciExternalStatusUrl || undefined,
       ciExternalStatusSecret: ciExternalStatusSecret || undefined,
-      commitSha: context.sha,
+      commitSha,
       gitlabApiUrl: gitlabApiUrl || undefined,
       gitlabToken: gitlabToken || undefined,
       gitlabProjectId: gitlabProjectId || undefined,
@@ -259,7 +294,7 @@ async function run(): Promise<void> {
     const config: TrailheadConfig = {
       apiKey: core.getInput("api-key") || "",
       apiUrl: readEnv("TRAILHEAD_API_URL", "DEPLOYGUARD_API_URL") || "",
-      githubToken: core.getInput("github-token") || process.env.GITHUB_TOKEN || undefined,
+      githubToken,
       healthCheckUrls: (core.getInput("health-check-urls") || "")
         .split(",")
         .map((s) => s.trim())
@@ -315,43 +350,6 @@ async function run(): Promise<void> {
     if (policyOverride) {
       core.warning(
         `Governed override active (${policyOverride.linkedTicket}) by ${policyOverride.owner}; expires ${policyOverride.expiresAt}.`,
-      );
-    }
-
-    // On-demand evaluation: when `evaluate-pr` is set, score that PR by number
-    // instead of the triggering event's PR. Enables backfill / re-evaluation of
-    // historical PRs (open, closed, or merged) with the current engine version,
-    // driven from a workflow_dispatch or a direct `node dist/index.js` run.
-    // The diff/author/age/provenance are all fetched from the GitHub API by PR
-    // number (see evaluateGate), so no checkout of the PR is required.
-    let commitSha = context.sha;
-    let prNumber = context.payload.pull_request?.number;
-
-    const evaluatePrInput = core.getInput("evaluate-pr").trim();
-    const backfillMode = Boolean(evaluatePrInput);
-    if (evaluatePrInput) {
-      const parsedPr = parseInt(evaluatePrInput, 10);
-      if (Number.isNaN(parsedPr) || parsedPr <= 0) {
-        throw new Error(
-          `evaluate-pr must be a positive PR number; got "${evaluatePrInput}".`,
-        );
-      }
-      if (!config.githubToken) {
-        throw new Error(
-          "evaluate-pr requires a github-token to resolve the PR head commit.",
-        );
-      }
-      const octokit = github.getOctokit(config.githubToken);
-      const { data: targetPr } = await octokit.rest.pulls.get({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        pull_number: parsedPr,
-      });
-      prNumber = parsedPr;
-      commitSha = targetPr.head.sha;
-      core.info(
-        `evaluate-pr mode: PR #${parsedPr} (${targetPr.state}) @ ${commitSha.substring(0, 7)} ` +
-          `base=${targetPr.base.ref} — backfill/re-evaluation; PR comments, labels and autofix are skipped.`,
       );
     }
 

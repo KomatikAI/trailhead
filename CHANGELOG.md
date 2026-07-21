@@ -2,6 +2,14 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **Pull-request release gates target the PR head SHA** ([#327](https://github.com/KomatikAI/trailhead/issues/327)) — normal `pull_request` workflows now fetch native and external CI results from `pull_request.head.sha` instead of GitHub's synthetic merge commit, preventing `missing_required: skip` from incorrectly marking a PR release-ready when a required check failed. Push and merge-queue events continue to use the event SHA.
+- **Windows action builds tolerate an already-current SWC binding** — the bundle copy step now skips an identical native binary instead of attempting to overwrite a file that may still be locked by the compiler.
+- **GitHub App and MCP shared submission sources are synchronized** — restores the generated `close_on_ship_link` detector copies omitted from the v4.6.0 feature merge, including the MCP runtime output.
+
 ## [4.6.0] - 2026-07-18
 
 ### Added

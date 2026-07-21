@@ -108,6 +108,7 @@ export const SubmissionCheckCode = z.enum([
     "uncommitted_fix_check",
     "verification_owner_assigned",
     "external_interface_validation",
+    "close_on_ship_link",
 ]);
 export const SubmissionCheckResult = z.object({
     code: SubmissionCheckCode,
