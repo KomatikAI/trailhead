@@ -7,9 +7,10 @@ All notable changes to Trailhead will be documented in this file.
 ### Fixed
 
 - **Pull-request release gates target the PR head SHA** ([#327](https://github.com/KomatikAI/trailhead/issues/327)) — normal `pull_request` workflows now fetch native and external CI results from `pull_request.head.sha` instead of GitHub's synthetic merge commit, preventing `missing_required: skip` from incorrectly marking a PR release-ready when a required check failed. Push and merge-queue events continue to use the event SHA.
-- **Windows action builds tolerate an already-current SWC binding** — the bundle copy step now skips an identical native binary instead of attempting to overwrite a file that may still be locked by the compiler.
+- **SWC binding copies are safe and Windows-tolerant** — the bundle helper now passes package and archive names as process arguments instead of shell commands, and skips an identical native binary instead of attempting to overwrite a file that may still be locked by the compiler.
 - **GitHub App and MCP shared submission sources are synchronized** — restores the generated `close_on_ship_link` detector copies omitted from the v4.6.0 feature merge, including the MCP runtime output.
 - **Cross-platform release version sync** — the root `npm version` lifecycle now updates the CLI package through a Node helper instead of relying on POSIX shell variable expansion under Windows `cmd.exe`.
+- **Dry-run evaluation works with ESM-only Actions packages** — the simulator now runs as an ES module, synthesizes the target PR event context before loading the gate, reports the configured threshold, and is covered by a CI smoke test. Non-blocking policy warnings no longer contradict a release-ready evaluation by becoming blocking remediation fixes.
 
 ## [4.6.0] - 2026-07-18
 

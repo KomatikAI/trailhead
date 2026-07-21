@@ -1,4 +1,5 @@
 node_modules/
+.trailhead-simulate-build-*/
 .next/
 
 # dist/ — only keep ncc bundle output needed by GitHub Actions
