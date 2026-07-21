@@ -56,6 +56,22 @@ describe("healer registry", () => {
   });
 });
 
+describe("healer diagnostic parsing safety", () => {
+  it("handles adversarially long repeated diagnostics without regex backtracking", async () => {
+    const repeated = " repeated-token".repeat(20_000);
+
+    const [cypress, jest, playwright] = await Promise.all([
+      cypressHealer.repair("cypress/e2e/home.cy.ts", `cy.wait${repeated}`),
+      jestHealer.repair("src/app.test.ts", `Snapshot${repeated}`),
+      playwrightHealer.repair("tests/login.spec.ts", `locator.${repeated}`),
+    ]);
+
+    expect(cypress.failureType).toBe("unknown");
+    expect(jest.failureType).toBe("unknown");
+    expect(playwright.failureType).toBe("unknown");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Jest healer
 // ---------------------------------------------------------------------------

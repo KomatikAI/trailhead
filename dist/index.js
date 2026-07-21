@@ -42837,7 +42837,11 @@ function computeRiskScore(files, config) {
 // Dependency change detection
 // ---------------------------------------------------------------------------
 function detectDependencyChanges(files) {
-    const depFiles = files.filter((f) => DEPENDENCY_FILES.some((p) => p.test(f.filename.replace(/.*\//, ""))));
+    const dependencyBasename = (filename) => {
+        const separator = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+        return separator >= 0 ? filename.slice(separator + 1) : filename;
+    };
+    const depFiles = files.filter((f) => DEPENDENCY_FILES.some((p) => p.test(dependencyBasename(f.filename))));
     if (depFiles.length === 0)
         return null;
     const isLockfile = (filename) => /\.(lock|sum)$|lock\.(json|yaml)$/.test(filename);
@@ -42869,7 +42873,7 @@ function detectDependencyChanges(files) {
             const openCount = (line.match(/\{/g) ?? []).length;
             const closeCount = (line.match(/\}/g) ?? []).length;
             sectionDepth += openCount - closeCount;
-            if (prefix !== " " && /^\s*"[^"]+"\s*:\s*".*"\s*,?\s*$/.test(line)) {
+            if (prefix !== " " && /^\s*"[^"\r\n]+"\s*:\s*"[^"\r\n]*"\s*,?\s*$/.test(line)) {
                 return true;
             }
             if (sectionDepth <= 0) {
@@ -42880,7 +42884,7 @@ function detectDependencyChanges(files) {
         return false;
     };
     const relevantDepFiles = depFiles.filter((f) => {
-        const base = f.filename.replace(/.*\//, "");
+        const base = dependencyBasename(f.filename);
         if (base === "package.json") {
             return packageJsonTouchesDependencies(f.patch);
         }
@@ -54816,16 +54820,18 @@ async function attemptRepair(testFile, errorOutput) {
 }
 
 ;// CONCATENATED MODULE: ./src/healers/jest.ts
-const SNAPSHOT_PATTERN = /Snapshot .* mismatched|›.*Snapshot/i;
 const IMPORT_PATTERN = /Cannot find module ['"]([^'"]+)['"]/i;
-const MOCK_DRIFT_PATTERN = /TypeError:.*is not a function/i;
 function detectFailureType(errorOutput) {
-    if (SNAPSHOT_PATTERN.test(errorOutput))
+    const normalized = errorOutput.toLowerCase();
+    if ((normalized.includes("snapshot") && normalized.includes("mismatched")) ||
+        (errorOutput.includes("›") && normalized.includes("snapshot"))) {
         return "snapshot-mismatch";
+    }
     if (IMPORT_PATTERN.test(errorOutput))
         return "import-resolution";
-    if (MOCK_DRIFT_PATTERN.test(errorOutput))
+    if (normalized.includes("typeerror:") && normalized.includes("is not a function")) {
         return "mock-drift";
+    }
     return "unknown";
 }
 function repairSnapshot(testFile) {
@@ -54910,20 +54916,28 @@ const jestHealer = {
 };
 
 ;// CONCATENATED MODULE: ./src/healers/playwright.ts
-const TIMEOUT_PATTERN = /Timeout (\d+)ms exceeded|Test timeout of (\d+)ms exceeded/i;
-const NAVIGATION_PATTERN = /page\.goto.*net::|ERR_CONNECTION_REFUSED|Navigation failed/i;
-const SELECTOR_PATTERN = /locator\..*resolved to (\d+) element|waiting for (locator|selector)|element not found/i;
 function playwright_detectFailureType(errorOutput) {
-    if (TIMEOUT_PATTERN.test(errorOutput))
+    const normalized = errorOutput.toLowerCase();
+    if (normalized.includes("timeout") && normalized.includes("ms exceeded")) {
         return "timeout";
-    if (NAVIGATION_PATTERN.test(errorOutput))
+    }
+    if ((normalized.includes("page.goto") && normalized.includes("net::")) ||
+        normalized.includes("err_connection_refused") ||
+        normalized.includes("navigation failed")) {
         return "navigation-failure";
-    if (SELECTOR_PATTERN.test(errorOutput))
+    }
+    if ((normalized.includes("locator.") &&
+        normalized.includes("resolved to") &&
+        normalized.includes("element")) ||
+        normalized.includes("waiting for locator") ||
+        normalized.includes("waiting for selector") ||
+        normalized.includes("element not found")) {
         return "selector-drift";
+    }
     return "unknown";
 }
 function repairSelector(testFile, errorOutput) {
-    const selectorMatch = errorOutput.match(/(?:locator|getBy\w+)\(['"]([^'"]+)['"]\)/);
+    const selectorMatch = errorOutput.match(/(?:locator|getBy[A-Za-z]{1,32})\(['"]([^'"\r\n]{1,500})['"]\)/);
     const selector = selectorMatch?.[1] ?? "(unknown selector)";
     return {
         success: true,
@@ -55012,16 +55026,23 @@ const playwrightHealer = {
 };
 
 ;// CONCATENATED MODULE: ./src/healers/cypress.ts
-const cypress_SELECTOR_PATTERN = /Timed out retrying.*cy\.(get|find|contains)|Expected to find element|querying for.*element/i;
-const INTERCEPT_PATTERN = /cy\.intercept|cy\.wait.*alias|No request ever occurred/i;
-const cypress_TIMEOUT_PATTERN = /Timed out retrying after (\d+)ms|CypressError.*timeout/i;
 function cypress_detectFailureType(errorOutput) {
-    if (INTERCEPT_PATTERN.test(errorOutput))
+    const normalized = errorOutput.toLowerCase();
+    if (normalized.includes("cy.intercept") ||
+        (normalized.includes("cy.wait") && normalized.includes("alias")) ||
+        normalized.includes("no request ever occurred")) {
         return "intercept-drift";
-    if (cypress_SELECTOR_PATTERN.test(errorOutput))
+    }
+    if ((normalized.includes("timed out retrying") &&
+        ["cy.get", "cy.find", "cy.contains"].some((token) => normalized.includes(token))) ||
+        normalized.includes("expected to find element") ||
+        (normalized.includes("querying for") && normalized.includes("element"))) {
         return "selector-drift";
-    if (cypress_TIMEOUT_PATTERN.test(errorOutput))
+    }
+    if (normalized.includes("timed out retrying after ") ||
+        (normalized.includes("cypresserror") && normalized.includes("timeout"))) {
         return "timeout";
+    }
     return "unknown";
 }
 function cypress_repairSelector(testFile, errorOutput) {
@@ -55044,7 +55065,7 @@ function cypress_repairSelector(testFile, errorOutput) {
     };
 }
 function repairIntercept(testFile, errorOutput) {
-    const aliasMatch = errorOutput.match(/cy\.wait\(['"]@([^'"]+)['"]\)|alias.*['"]@([^'"]+)['"]/);
+    const aliasMatch = errorOutput.match(/cy\.wait\(['"]@([^'"\r\n]{1,200})['"]\)|alias[^'"\r\n]{0,200}['"]@([^'"\r\n]{1,200})['"]/);
     const alias = aliasMatch?.[1] ?? aliasMatch?.[2] ?? "(unknown)";
     return {
         success: true,

@@ -302,7 +302,11 @@ export function computeRiskScore(files, config) {
 // Dependency change detection
 // ---------------------------------------------------------------------------
 export function detectDependencyChanges(files) {
-    const depFiles = files.filter((f) => DEPENDENCY_FILES.some((p) => p.test(f.filename.replace(/.*\//, ""))));
+    const dependencyBasename = (filename) => {
+        const separator = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+        return separator >= 0 ? filename.slice(separator + 1) : filename;
+    };
+    const depFiles = files.filter((f) => DEPENDENCY_FILES.some((p) => p.test(dependencyBasename(f.filename))));
     if (depFiles.length === 0)
         return null;
     const isLockfile = (filename) => /\.(lock|sum)$|lock\.(json|yaml)$/.test(filename);
@@ -334,7 +338,7 @@ export function detectDependencyChanges(files) {
             const openCount = (line.match(/\{/g) ?? []).length;
             const closeCount = (line.match(/\}/g) ?? []).length;
             sectionDepth += openCount - closeCount;
-            if (prefix !== " " && /^\s*"[^"]+"\s*:\s*".*"\s*,?\s*$/.test(line)) {
+            if (prefix !== " " && /^\s*"[^"\r\n]+"\s*:\s*"[^"\r\n]*"\s*,?\s*$/.test(line)) {
                 return true;
             }
             if (sectionDepth <= 0) {
@@ -345,7 +349,7 @@ export function detectDependencyChanges(files) {
         return false;
     };
     const relevantDepFiles = depFiles.filter((f) => {
-        const base = f.filename.replace(/.*\//, "");
+        const base = dependencyBasename(f.filename);
         if (base === "package.json") {
             return packageJsonTouchesDependencies(f.patch);
         }
