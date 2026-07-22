@@ -52,6 +52,8 @@ import { assessColdStartFromMetrics } from "./agent-trust-metrics.js";
 import { computeAgentTrustScore } from "./trust-score.js";
 import { buildGateVerdict } from "./verdict.js";
 import type { GateDecision, GateEvaluation, RiskFactor } from "./types.js";
+import { detectCiIntegrity as detectCiIntegrityShared } from "./ci-integrity.js";
+import { fetchGitHubJsonPages } from "./github-pagination.js";
 
 registerAllAdapters();
 
@@ -135,44 +137,7 @@ function detectCiIntegrity(
     patch?: string;
   }>,
 ): { score: number; blockingPatterns: string[]; warningSignals: string[] } {
-  const blockingPatterns: string[] = [];
-  const warningSignals: string[] = [];
-  let score = 0;
-
-  for (const file of files.filter((f) => f.filename.startsWith(".github/workflows/"))) {
-    const patch = file.patch ?? "";
-    if (/\|\|\s*true/.test(patch)) {
-      blockingPatterns.push(`${file.filename}: workflow bypass pattern "|| true"`);
-      score += 45;
-    }
-    if (/^\+\s*continue-on-error:\s*true\b/m.test(patch)) {
-      blockingPatterns.push(`${file.filename}: introduced "continue-on-error: true"`);
-      score += 45;
-    }
-    if (/^\+\s*if:\s*\$\{\{\s*always\(\)\s*\}\}/m.test(patch)) {
-      warningSignals.push(`${file.filename}: always() condition added to workflow gate`);
-      score += 20;
-    }
-  }
-
-  for (const file of files.filter((f) =>
-    /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/.test(f.filename),
-  )) {
-    const additions = file.additions ?? 0;
-    const deletions = file.deletions ?? 0;
-    if (deletions > additions * 2 && deletions >= 10) {
-      warningSignals.push(
-        `${file.filename}: heavy test deletion (${deletions} deleted / ${additions} added)`,
-      );
-      score += 25;
-    }
-  }
-
-  return {
-    score: Math.min(100, score),
-    blockingPatterns,
-    warningSignals,
-  };
+  return detectCiIntegrityShared(files);
 }
 
 function detectSupplyChain(files: Array<{ filename: string; patch?: string }>): {
@@ -647,6 +612,20 @@ const GITHUB_HEADERS = () => {
   };
 };
 
+async function fetchAllPrFiles(
+  owner: string,
+  repo: string,
+  prNumber: number,
+  headers: Record<string, string>,
+): Promise<FileInfo[]> {
+  const result = await fetchGitHubJsonPages<FileInfo>(
+    `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`,
+    { headers },
+    { perPage: 100, maxPages: 30 },
+  );
+  return result.items;
+}
+
 async function fetchGitHubCheckRuns(
   owner: string,
   repo: string,
@@ -865,13 +844,7 @@ server.tool(
       merged.map(async (pr) => {
         let files: FileInfo[] = [];
         try {
-          const filesRes = await fetch(
-            `https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}/files?per_page=300`,
-            { headers },
-          );
-          if (filesRes.ok) {
-            files = (await filesRes.json()) as FileInfo[];
-          }
+          files = await fetchAllPrFiles(owner, repo, pr.number, headers);
         } catch {
           /* skip */
         }
@@ -1056,11 +1029,12 @@ server.tool(
       base: { ref: string };
     };
 
-    const filesRes = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=300`,
-      { headers },
-    );
-    const files: FileInfo[] = filesRes.ok ? ((await filesRes.json()) as FileInfo[]) : [];
+    let files: FileInfo[] = [];
+    try {
+      files = await fetchAllPrFiles(owner, repo, prNumber, headers);
+    } catch {
+      // Preserve the MCP tool's existing fail-open behavior for API outages.
+    }
     const { score: riskScore, factors: riskFactors } = computeRiskScore(files);
     const gateDecision = decideGate(riskScore, 100, riskThreshold, riskThreshold - 15);
 
@@ -1129,13 +1103,7 @@ server.tool(
     let files: FileInfo[] = [];
     if (prNumber) {
       try {
-        const filesRes = await fetch(
-          `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=300`,
-          { headers },
-        );
-        if (filesRes.ok) {
-          files = (await filesRes.json()) as FileInfo[];
-        }
+        files = await fetchAllPrFiles(owner, repo, prNumber, headers);
 
         if (files.length > 30) {
           try {
@@ -2030,6 +1998,9 @@ server.tool(
             skip_in_imports: z.boolean().optional(),
           })
           .optional(),
+        auth_route_allowlist: z.array(z.string()).optional(),
+        auth_route_helpers: z.array(z.string()).optional(),
+        retired_route_allowlist: z.array(z.string()).optional(),
         detectors: z
           .record(
             z.object({

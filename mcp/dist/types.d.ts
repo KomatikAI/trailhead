@@ -1733,6 +1733,10 @@ export declare const SubmissionConfig: z.ZodObject<{
     mode: z.ZodDefault<z.ZodEnum<["warn", "block"]>>;
     stale_terms: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     auth_route_allowlist: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    /** Additional function identifiers that prove an API route authenticated. */
+    auth_route_helpers: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    /** Side-effect-free tombstone routes; each body must still return HTTP 410. */
+    retired_route_allowlist: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     max_file_lines: z.ZodOptional<z.ZodNumber>;
     /** Path substrings to skip for context_freshness (e.g. archived suggestion dirs). */
     path_ignore: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
@@ -1848,6 +1852,8 @@ export declare const SubmissionConfig: z.ZodObject<{
     path_ignore?: string[] | undefined;
     stale_terms?: string[] | undefined;
     auth_route_allowlist?: string[] | undefined;
+    auth_route_helpers?: string[] | undefined;
+    retired_route_allowlist?: string[] | undefined;
     max_file_lines?: number | undefined;
     naming_allowlist?: {
         skip_extensions?: string[] | undefined;
@@ -1883,6 +1889,8 @@ export declare const SubmissionConfig: z.ZodObject<{
     path_ignore?: string[] | undefined;
     stale_terms?: string[] | undefined;
     auth_route_allowlist?: string[] | undefined;
+    auth_route_helpers?: string[] | undefined;
+    retired_route_allowlist?: string[] | undefined;
     max_file_lines?: number | undefined;
     naming_allowlist?: {
         skip_extensions?: string[] | undefined;
@@ -1984,6 +1992,10 @@ export declare const RepoConfig: z.ZodObject<{
         mode: z.ZodDefault<z.ZodEnum<["warn", "block"]>>;
         stale_terms: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
         auth_route_allowlist: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        /** Additional function identifiers that prove an API route authenticated. */
+        auth_route_helpers: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        /** Side-effect-free tombstone routes; each body must still return HTTP 410. */
+        retired_route_allowlist: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
         max_file_lines: z.ZodOptional<z.ZodNumber>;
         /** Path substrings to skip for context_freshness (e.g. archived suggestion dirs). */
         path_ignore: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
@@ -2099,6 +2111,8 @@ export declare const RepoConfig: z.ZodObject<{
         path_ignore?: string[] | undefined;
         stale_terms?: string[] | undefined;
         auth_route_allowlist?: string[] | undefined;
+        auth_route_helpers?: string[] | undefined;
+        retired_route_allowlist?: string[] | undefined;
         max_file_lines?: number | undefined;
         naming_allowlist?: {
             skip_extensions?: string[] | undefined;
@@ -2134,6 +2148,8 @@ export declare const RepoConfig: z.ZodObject<{
         path_ignore?: string[] | undefined;
         stale_terms?: string[] | undefined;
         auth_route_allowlist?: string[] | undefined;
+        auth_route_helpers?: string[] | undefined;
+        retired_route_allowlist?: string[] | undefined;
         max_file_lines?: number | undefined;
         naming_allowlist?: {
             skip_extensions?: string[] | undefined;
@@ -2930,6 +2946,8 @@ export declare const RepoConfig: z.ZodObject<{
         path_ignore?: string[] | undefined;
         stale_terms?: string[] | undefined;
         auth_route_allowlist?: string[] | undefined;
+        auth_route_helpers?: string[] | undefined;
+        retired_route_allowlist?: string[] | undefined;
         max_file_lines?: number | undefined;
         naming_allowlist?: {
             skip_extensions?: string[] | undefined;
@@ -3015,6 +3033,8 @@ export declare const RepoConfig: z.ZodObject<{
         path_ignore?: string[] | undefined;
         stale_terms?: string[] | undefined;
         auth_route_allowlist?: string[] | undefined;
+        auth_route_helpers?: string[] | undefined;
+        retired_route_allowlist?: string[] | undefined;
         max_file_lines?: number | undefined;
         naming_allowlist?: {
             skip_extensions?: string[] | undefined;

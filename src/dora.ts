@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
+import { collectGitHubPages } from "./github-pagination.js";
 
 // ---------------------------------------------------------------------------
 // DORA rating bands (per dora.dev benchmarks)
@@ -685,12 +686,19 @@ async function computeChangeReworkRate(
 
     for (const pr of mergedInWindow.slice(0, sampleSize)) {
       try {
-        const { data: files } = await octokit.rest.pulls.listFiles({
-          owner,
-          repo,
-          pull_number: pr.number,
-          per_page: 100,
-        });
+        const { items: files } = await collectGitHubPages(
+          async (page, perPage) => {
+            const { data } = await octokit.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: pr.number,
+              per_page: perPage,
+              page,
+            });
+            return data;
+          },
+          { perPage: 100, maxPages: 30 },
+        );
         prFiles.set(pr.number, new Set(files.map((f) => f.filename)));
       } catch {
         // skip PRs we can't fetch files for
@@ -774,12 +782,19 @@ async function filterPrsByServicePaths<T extends PrMinimal>(
 
   for (const pr of prs.slice(0, sampleSize)) {
     try {
-      const { data: files } = await octokit.rest.pulls.listFiles({
-        owner,
-        repo,
-        pull_number: pr.number,
-        per_page: 100,
-      });
+      const { items: files } = await collectGitHubPages(
+        async (page, perPage) => {
+          const { data } = await octokit.rest.pulls.listFiles({
+            owner,
+            repo,
+            pull_number: pr.number,
+            per_page: perPage,
+            page,
+          });
+          return data;
+        },
+        { perPage: 100, maxPages: 30 },
+      );
 
       const touchesService = files.some((f) =>
         pathPatterns.some((p) => p.test(f.filename)),

@@ -4,6 +4,11 @@ All notable changes to Trailhead will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **PR evaluation no longer truncates at 100 files** ([#344](https://github.com/KomatikAI/trailhead/issues/344)) — the Action, GitHub App, MCP policy tools, and DORA file scans now paginate GitHub's PR-files endpoint. Large PR risk, scope, and submission checks receive the complete available file set.
+- **Submission and CI-integrity false positives** ([#344](https://github.com/KomatikAI/trailhead/issues/344)) — CI bypass checks inspect added lines only; API-route auth uses full current route bodies plus configurable auth helpers and verified 410 tombstones; inert test/CI fixture labels and Stripe placeholders no longer masquerade as production mocks or credentials; PR-scope remediation reads the detector's actual camelCase counts.
+
 ### Security
 
 - **Legacy CodeQL high-severity backlog cleared** — replaces potentially super-linear diagnostic and package-diff regexes with bounded or string-based parsing, removes clear-text dashboard API-key persistence, and avoids incomplete dynamic-regex escaping in the v4.3 rollout helper.

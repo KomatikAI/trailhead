@@ -15,6 +15,8 @@ import { buildAutofixPlan, selectAutofixCommit } from "./fixer-core.js";
 import { assessColdStartFromMetrics } from "./agent-trust-metrics.js";
 import { computeAgentTrustScore } from "./trust-score.js";
 import { buildGateVerdict } from "./verdict.js";
+import { detectCiIntegrity as detectCiIntegrityShared } from "./ci-integrity.js";
+import { fetchGitHubJsonPages } from "./github-pagination.js";
 registerAllAdapters();
 const HEALTH_CHECK_TIMEOUT_MS = 10_000;
 const VERCEL_TIMEOUT_MS = 10_000;
@@ -62,37 +64,7 @@ function classifyProvenanceSignals(signals) {
     };
 }
 function detectCiIntegrity(files) {
-    const blockingPatterns = [];
-    const warningSignals = [];
-    let score = 0;
-    for (const file of files.filter((f) => f.filename.startsWith(".github/workflows/"))) {
-        const patch = file.patch ?? "";
-        if (/\|\|\s*true/.test(patch)) {
-            blockingPatterns.push(`${file.filename}: workflow bypass pattern "|| true"`);
-            score += 45;
-        }
-        if (/^\+\s*continue-on-error:\s*true\b/m.test(patch)) {
-            blockingPatterns.push(`${file.filename}: introduced "continue-on-error: true"`);
-            score += 45;
-        }
-        if (/^\+\s*if:\s*\$\{\{\s*always\(\)\s*\}\}/m.test(patch)) {
-            warningSignals.push(`${file.filename}: always() condition added to workflow gate`);
-            score += 20;
-        }
-    }
-    for (const file of files.filter((f) => /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/.test(f.filename))) {
-        const additions = file.additions ?? 0;
-        const deletions = file.deletions ?? 0;
-        if (deletions > additions * 2 && deletions >= 10) {
-            warningSignals.push(`${file.filename}: heavy test deletion (${deletions} deleted / ${additions} added)`);
-            score += 25;
-        }
-    }
-    return {
-        score: Math.min(100, score),
-        blockingPatterns,
-        warningSignals,
-    };
+    return detectCiIntegrityShared(files);
 }
 function detectSupplyChain(files) {
     const blockingPatterns = [];
@@ -451,6 +423,10 @@ const GITHUB_HEADERS = () => {
         "X-GitHub-Api-Version": "2022-11-28",
     };
 };
+async function fetchAllPrFiles(owner, repo, prNumber, headers) {
+    const result = await fetchGitHubJsonPages(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`, { headers }, { perPage: 100, maxPages: 30 });
+    return result.items;
+}
 async function fetchGitHubCheckRuns(owner, repo, ref, headers) {
     const runs = [];
     let page = 1;
@@ -596,10 +572,7 @@ server.tool("compare-risk-history", "Compare risk characteristics across recent 
     const results = await Promise.all(merged.map(async (pr) => {
         let files = [];
         try {
-            const filesRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}/files?per_page=300`, { headers });
-            if (filesRes.ok) {
-                files = (await filesRes.json());
-            }
+            files = await fetchAllPrFiles(owner, repo, pr.number, headers);
         }
         catch {
             /* skip */
@@ -726,8 +699,13 @@ server.tool("get-pr-release-status", "Return composite release readiness for a P
         });
     }
     const pr = (await prRes.json());
-    const filesRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=300`, { headers });
-    const files = filesRes.ok ? (await filesRes.json()) : [];
+    let files = [];
+    try {
+        files = await fetchAllPrFiles(owner, repo, prNumber, headers);
+    }
+    catch {
+        // Preserve the MCP tool's existing fail-open behavior for API outages.
+    }
     const { score: riskScore, factors: riskFactors } = computeRiskScore(files);
     const gateDecision = decideGate(riskScore, 100, riskThreshold, riskThreshold - 15);
     const rawChecks = await fetchGitHubCheckRuns(owner, repo, pr.head.sha, headers);
@@ -784,10 +762,7 @@ server.tool("evaluate-policy", "Run a full Trailhead policy evaluation for a PR 
     let files = [];
     if (prNumber) {
         try {
-            const filesRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=300`, { headers });
-            if (filesRes.ok) {
-                files = (await filesRes.json());
-            }
+            files = await fetchAllPrFiles(owner, repo, prNumber, headers);
             if (files.length > 30) {
                 try {
                     const commitsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/commits?per_page=250`, { headers });
@@ -1472,6 +1447,9 @@ server.tool("validate-submission", "Run Gate 1 submission checks (including Phas
             skip_in_imports: z.boolean().optional(),
         })
             .optional(),
+        auth_route_allowlist: z.array(z.string()).optional(),
+        auth_route_helpers: z.array(z.string()).optional(),
+        retired_route_allowlist: z.array(z.string()).optional(),
         detectors: z
             .record(z.object({
             enabled: z.boolean().optional(),

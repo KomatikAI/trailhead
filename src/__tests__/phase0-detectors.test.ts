@@ -29,6 +29,8 @@ function ctx(
     komatikInstance: true,
     staleTerms: [],
     authRouteAllowlist: [],
+    authRouteHelpers: [],
+    retiredRouteAllowlist: [],
     maxFileLines: 1000,
     declaredPackages: new Set(),
     namingAllowlist: {},

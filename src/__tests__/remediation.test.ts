@@ -189,6 +189,17 @@ describe("buildRemediation", () => {
   });
 
   describe("deduplication and ordering", () => {
+    it("renders the camelCase PR-scope detail emitted by the risk detector", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "warn",
+          riskFactors: [factor("pr_scope", 90, { fileCount: 214, totalChanges: 30306 })],
+        }),
+      });
+      const fix = remediation.fixes.find((entry) => entry.code === "policy.pr_scope");
+      expect(fix?.detail).toContain("214 files / 30306 lines");
+    });
+
     it("deduplicates by code keeping the highest severity", () => {
       const remediation = buildRemediation({
         evaluation: evaluationFixture({

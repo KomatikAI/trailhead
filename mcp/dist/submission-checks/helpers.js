@@ -63,7 +63,9 @@ export function prPathSet(files) {
     return new Set(files.map((f) => normalizePath(f.filename)));
 }
 export function isTestPath(filename) {
-    return /\/__tests__\/|\/test\/|\/fixtures\/|\.test\.|\.spec\./.test(filename);
+    const path = `/${normalizePath(filename).toLowerCase()}`;
+    return (/\/(?:__tests__|__fixtures__|tests?|test-fixtures|fixtures)\//.test(path) ||
+        /\.(?:test|spec)\.[^./]+$/.test(path));
 }
 /** Default archived/stale path segments skipped by context_freshness. */
 export const DEFAULT_STALE_PATH_IGNORE = ["/_stale/", "/_archive/", "/.archive/"];

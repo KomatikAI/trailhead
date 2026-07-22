@@ -35,6 +35,27 @@ const SECRET_PATTERNS = [
         pattern: /api[_-]?key\s*[:=]\s*['"][A-Za-z0-9_-]{32,}['"]/gi,
     },
 ];
+function isCiConfigurationPath(filename) {
+    return /^\.github\/(?:workflows|actions)\//.test(normalizePath(filename));
+}
+function isCredentialFixturePath(filename) {
+    return isTestPath(filename) || isCiConfigurationPath(filename);
+}
+function isObviouslyInertCiFixtureLine(line, filename) {
+    if (!isCiConfigurationPath(filename))
+        return false;
+    const assignment = /^\s*[\w.-]+\s*:\s*["']?([^"'#\s]+)["']?(?:\s*#.*)?$/.exec(line);
+    if (!assignment?.[1])
+        return false;
+    return /^(?:sk_(?:test|live)_)?(?:placeholder|example|dummy|fake|test|x{10,}|0{10,})$/i.test(assignment[1]);
+}
+function isObviouslyInertStripeFixture(patternName, match, filename) {
+    if (!isCredentialFixturePath(filename) || !patternName.startsWith("Stripe ")) {
+        return false;
+    }
+    const suffix = match.replace(/^sk_(?:test|live)_/i, "");
+    return /^(?:placeholder|example|dummy|fake|test|x{10,}|0{10,})$/i.test(suffix);
+}
 const HARDCODED_ENV_PATTERNS = [
     { name: "localhost with port", pattern: /(?:['"`])localhost:\d{2,5}(?:['"`])/g },
     {
@@ -75,6 +96,8 @@ export function detectMockPlaceholder(ctx) {
     const hits = scanAddedContent(ctx.files, (line, filename) => {
         if (isTestPath(filename))
             return false;
+        if (isObviouslyInertCiFixtureLine(line, filename))
+            return false;
         if (/\.(md|txt)$/i.test(filename))
             return false;
         return MOCK_PATTERNS.some((re) => {
@@ -94,9 +117,9 @@ export function detectMockPlaceholder(ctx) {
     });
 }
 export function detectSecrets(ctx) {
-    const hits = scanAddedContent(ctx.files, (line) => SECRET_PATTERNS.some((entry) => {
+    const hits = scanAddedContent(ctx.files, (line, filename) => SECRET_PATTERNS.some((entry) => {
         entry.pattern.lastIndex = 0;
-        return entry.pattern.test(line);
+        return [...line.matchAll(entry.pattern)].some((match) => !isObviouslyInertStripeFixture(entry.name, match[0] ?? "", filename));
     }));
     if (hits.length === 0)
         return null;
@@ -416,17 +439,31 @@ export function detectRlsNewTables(ctx) {
 function isRouteAllowlisted(path, allowlist) {
     return allowlist.some((entry) => path.includes(entry.replace(/^\//, "")));
 }
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function isRetiredRoute(path, content, allowlist) {
+    if (!isRouteAllowlisted(path, allowlist))
+        return false;
+    return /\bstatus\s*:\s*410\b/.test(content);
+}
 export function detectAuthRouteAuth(ctx) {
     const routePattern = /(?:^|\/)(?:app\/api\/.+\/route|pages\/api\/.+)\.(?:ts|tsx|js|jsx)$/;
-    const authPattern = /\b(getUser|getSession|getServerSession|auth|requireAuth|withAuth)\s*\(/;
+    const helpers = [...new Set(ctx.authRouteHelpers)].filter((helper) => /^[A-Za-z_$][\w$]*$/.test(helper));
+    const authPattern = new RegExp(`\\b(?:${helpers.map(escapeRegExp).join("|")})\\s*\\(`);
     const hits = [];
     for (const file of ctx.files) {
         const normalized = normalizePath(file.filename);
         if (!routePattern.test(normalized))
             continue;
+        if (file.status === "removed")
+            continue;
         if (isRouteAllowlisted(normalized, ctx.authRouteAllowlist))
             continue;
-        if (!authPattern.test(fileContent(file)))
+        const content = fileContent(file);
+        if (isRetiredRoute(normalized, content, ctx.retiredRouteAllowlist))
+            continue;
+        if (helpers.length === 0 || !authPattern.test(content))
             hits.push(normalized);
     }
     if (hits.length === 0)

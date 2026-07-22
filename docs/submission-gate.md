@@ -36,7 +36,7 @@ Phase 0 runs only on markdown under `agents/*/suggestions/**` (or any `**/sugges
 
 `artifact_integrity`, `mock_placeholder`, `context_freshness`, `destructive_sql`, `secrets`, `path_format`, `syntax_validity`, `import_resolution`, `rls_new_tables`, `auth_route_auth`, `hardcoded_env`, `external_package_deps`, `sql_syntax_basic`, `large_file`, `soul_integrity` (Komatik instance only).
 
-**`syntax_validity`** uses `@swc/core` (JS/TS), `JSON.parse` (`.json`), and `js-yaml` (`.yaml`/`.yml`/markdown frontmatter). It runs only when **`file.content`** holds the full file body — never on a partial diff hunk. Patch-only inputs (typical PR diff mode in the Action) are skipped; whole-file submission mode (`validate-submission`, suggestion bundles) is the supported path. The ncc Action bundle ships platform `@swc/core` native bindings in `dist/swc.*.node`.
+**`syntax_validity`** uses `@swc/core` (JS/TS), `JSON.parse` (`.json`), and `js-yaml` (`.yaml`/`.yml`/markdown frontmatter). It runs only when **`file.content`** holds the full file body — never on a partial diff hunk. The Action hydrates changed API route bodies for `auth_route_auth`; other patch-only inputs are skipped by whole-file-only checks. Whole-file submission mode (`validate-submission`, suggestion bundles) remains the supported path for full syntax analysis. The ncc Action bundle ships platform `@swc/core` native bindings in `dist/swc.*.node`.
 
 **`external_package_deps`** resolves declared packages from the submission's **`projectSlug` package.json`** (same lookup order as legacy: `{slug}/package.json`, `projects/{slug}/package.json`, root fallback). Callers must pass the matching `declaredPackages` list — see `declaredPackageNamesFromPackageJson()` and `npm run shadow-compare`.
 
@@ -51,12 +51,16 @@ submission:
   enabled: true
   mode: block
   stale_terms: [] # explicit only; omit for OLD_NAME_PATTERNS-only (legacy default)
+  auth_route_helpers: [getAcmeAuthUser] # merged with built-in auth helper names
+  retired_route_allowlist: [/api/legacy-checkout] # must still return status: 410
   path_ignore: ["/archive/"] # merged with default _stale/_archive skips
   naming_allowlist:
     skip_extensions: [".sql"]
     skip_path_patterns: ["migrations/", "schema/"]
     skip_comment_markers: ["historical:", "migration:", "deprecated:"]
 ```
+
+`auth_route_auth` evaluates the full current body of every changed API route, not reconstructed diff hunks. `auth_route_helpers` adds project-specific function identifiers. `retired_route_allowlist` is separate from public auth exemptions and only suppresses a finding when the current route body explicitly returns HTTP 410.
 
 ### Detector policy (#256)
 

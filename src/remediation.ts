@@ -153,8 +153,14 @@ const factorCues: Record<string, FactorCue> = {
     triggerScore: 50,
     advisoryScore: 20,
     build: (factor) => {
-      const files = (factor.detail?.file_count as number | undefined) ?? 0;
-      const changes = (factor.detail?.line_count as number | undefined) ?? 0;
+      const files =
+        (factor.detail?.fileCount as number | undefined) ??
+        (factor.detail?.file_count as number | undefined) ??
+        0;
+      const changes =
+        (factor.detail?.totalChanges as number | undefined) ??
+        (factor.detail?.line_count as number | undefined) ??
+        0;
       return {
         code: "policy.pr_scope",
         severity: "warn",
