@@ -382,6 +382,23 @@ export const CanaryConfig = z.object({
 });
 export type CanaryConfig = z.infer<typeof CanaryConfig>;
 
+/**
+ * A service-owned release attestation consumed by Trailhead. The endpoint is
+ * intentionally unauthenticated from the Action's perspective: it publishes
+ * only pass/fail evidence, while the service keeps database/provider
+ * credentials behind its own server boundary.
+ */
+export const ReleaseEvidenceConfig = z.object({
+  enabled: z.boolean().default(true),
+  url: z.string().url(),
+  environments: z.array(z.string().min(1)).default(["production"]),
+  mode: z.enum(["warn", "block"]).default("block"),
+  max_age_minutes: z.number().int().positive().default(60),
+  expected_subject: z.string().min(1).optional(),
+  required_checks: z.array(z.string().min(1)).min(1),
+});
+export type ReleaseEvidenceConfig = z.infer<typeof ReleaseEvidenceConfig>;
+
 export const RiskProfileMatch = z.object({
   files_include: z.array(z.string()).default([]),
   files_exclude: z.array(z.string()).default([]),
@@ -568,6 +585,7 @@ export const RepoConfig = z.object({
   consumer_registry: z.record(ServiceConsumerRef).default({}),
   security: SecurityConfig.default({}),
   canary: CanaryConfig.optional(),
+  release_evidence: ReleaseEvidenceConfig.optional(),
   escalation: z
     .object({
       targets: z.array(z.string()).default([]),

@@ -84,6 +84,7 @@ import { parseAgentTrustMetrics } from "./agent-trust-metrics.js";
 import { readTrustRuntime } from "./trust-runtime.js";
 import { detectCiIntegrity } from "./ci-integrity.js";
 import { collectGitHubPages } from "./github-pagination.js";
+import { evaluateReleaseEvidence } from "./release-evidence.js";
 
 export {
   isSensitiveFile,
@@ -1695,6 +1696,11 @@ export async function evaluateGate(
   const effectiveEnvironment =
     config.environment ?? matchedContext?.matched.environment ?? undefined;
 
+  const releaseEvidencePromise = evaluateReleaseEvidence(
+    repoConfig?.release_evidence,
+    effectiveEnvironment,
+  );
+
   const envConfig = effectiveEnvironment
     ? repoConfig?.environments?.[effectiveEnvironment]
     : undefined;
@@ -1982,10 +1988,16 @@ export async function evaluateGate(
     }
   }
 
+  const releaseEvidence = await releaseEvidencePromise;
+  if (releaseEvidence.findings.length > 0) {
+    policyFindings.push(...releaseEvidence.findings);
+  }
+
   const healthChecks: HealthCheckResult[] = [...httpHealthChecks];
   if (vercelCheck) healthChecks.push(vercelCheck);
   if (supabaseCheck) healthChecks.push(supabaseCheck);
   if (mcpCheck) healthChecks.push(mcpCheck);
+  healthChecks.push(...releaseEvidence.healthChecks);
 
   const healthScore = aggregateHealthScore(healthChecks);
   // GATE-3: Use riskScoreWithPenalties for gate decision
@@ -2024,6 +2036,7 @@ export async function evaluateGate(
       sessionCfg &&
       sessionCorrelation.burstCount >= sessionCfg.threshold &&
       sessionCfg.mode === "block") ||
+    releaseEvidence.shouldBlock ||
     (submissionChecks.length > 0 &&
       submissionGateShouldBlock(submissionChecks, submissionMode))
       ? ("block" as GateDecision)

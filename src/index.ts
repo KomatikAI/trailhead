@@ -91,6 +91,7 @@ export { playwrightHealer } from "./healers/playwright.js";
 export { cypressHealer } from "./healers/cypress.js";
 export { loadRepoConfig } from "./config.js";
 export { matchContext, resolveGateMode } from "./context-matcher.js";
+export { evaluateReleaseEvidence } from "./release-evidence.js";
 export {
   classifyCheck,
   evaluateRequiredChecks,
@@ -124,6 +125,7 @@ export type {
   ServiceMapping,
   SecurityConfig,
   CanaryConfig,
+  ReleaseEvidenceConfig,
   FreezeWindow,
   GateMode,
   TrailheadContext,

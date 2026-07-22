@@ -405,6 +405,20 @@ security:
 canary:
   webhook_type: vercel
 
+# Service-owned production evidence. Trailhead fetches this only in the named
+# environments and blocks once for every required condition that is not proven.
+release_evidence:
+  url: https://myapp.example.com/api/release-evidence
+  environments: [production]
+  mode: block
+  max_age_minutes: 60
+  expected_subject: myapp-production
+  required_checks:
+    - deployment.target
+    - billing.policy
+    - canary.charge
+    - canary.refund
+
 escalation:
   targets: ["slack:#release-ops", "email:oncall@example.com"]
   acknowledge_sla_minutes: 30
@@ -467,6 +481,9 @@ ignore:
 Trailhead first loads `.trailhead.yml` from the checked-out workspace, then falls back to
 the GitHub Contents API. Existing repositories can keep using the legacy v1 config filename;
 Trailhead will read it when `.trailhead.yml` is not present.
+
+See [Release evidence contracts](./docs/release-evidence.md) for the endpoint schema,
+freshness rules, evidence-link behavior, and a credits-only production example.
 
 This repository's own `.trailhead.yml` ignores generated MCP copy/artifact paths
 (`mcp/src/adapters/**`, `mcp/dist/adapters/**`, and `mcp/dist/risk-engine.*`) so the gate

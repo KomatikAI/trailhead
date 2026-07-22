@@ -422,6 +422,24 @@ submission:
     expect(parsed?.submission?.auth_route_helpers).toEqual(["getLodgeAuthUser"]);
     expect(parsed?.submission?.retired_route_allowlist).toEqual(["/api/lodge/checkout"]);
   });
+
+  it("parses a fail-closed production release evidence contract", () => {
+    const parsed = parseRepoConfigContent(`schema_version: 2
+release_evidence:
+  url: https://lodge.example.com/api/release-evidence
+  expected_subject: lodge-production
+  required_checks: [credits.policy, canary.refund]
+`);
+
+    expect(parsed?.release_evidence).toMatchObject({
+      url: "https://lodge.example.com/api/release-evidence",
+      expected_subject: "lodge-production",
+      environments: ["production"],
+      mode: "block",
+      max_age_minutes: 60,
+      required_checks: ["credits.policy", "canary.refund"],
+    });
+  });
 });
 
 describe("matchesGlobs (re-exported from risk-engine)", () => {

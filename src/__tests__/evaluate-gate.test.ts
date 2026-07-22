@@ -224,6 +224,64 @@ describe("evaluateGate (integration)", () => {
     ]);
   });
 
+  it("fails a production release on each missing release-evidence condition", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          schema_version: 1,
+          subject: "lodge-production",
+          generated_at: new Date().toISOString(),
+          checks: [
+            {
+              id: "deployment.target",
+              status: "fail",
+              summary: "wrong Vercel project",
+              evidence_url: "https://vercel.example.com/project",
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await withLocalTrailheadConfig(
+      `
+schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: production
+    match:
+      base_branch: [main]
+    environment: production
+release_evidence:
+  url: https://lodge.example.com/api/release-evidence
+  expected_subject: lodge-production
+  environments: [production]
+  mode: block
+  max_age_minutes: 60
+  required_checks:
+    - deployment.target
+    - credits.policy
+`,
+      () => evaluateGate(makeConfig({ githubToken: "ghp_test" }), "abc1234567890", 42),
+    );
+
+    expect(result.gateDecision).toBe("block");
+    expect(result.releaseReady).toBe(false);
+    expect(result.healthChecks.map((check) => check.target)).toEqual([
+      "release-evidence:deployment.target",
+      "release-evidence:credits.policy",
+    ]);
+    expect(result.policyFindings).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("wrong Vercel project"),
+        expect.stringContaining('"credits.policy"'),
+      ]),
+    );
+  });
+
   it("evaluates all 214 PR files across GitHub's 100-item pages", async () => {
     const files = Array.from({ length: 214 }, (_, index) => ({
       filename: `src/file-${index}.ts`,

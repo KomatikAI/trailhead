@@ -4,6 +4,10 @@ All notable changes to Trailhead will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Fail-closed release evidence contracts** ([#343](https://github.com/KomatikAI/trailhead/issues/343)) — production contexts can require a fresh service-owned attestation. Trailhead emits an actionable finding and evidence link for every failed, pending, or missing condition while leaving staging/shadow contexts unaffected.
+
 ### Fixed
 
 - **PR evaluation no longer truncates at 100 files** ([#344](https://github.com/KomatikAI/trailhead/issues/344)) — the Action, GitHub App, MCP policy tools, and DORA file scans now paginate GitHub's PR-files endpoint. Large PR risk, scope, and submission checks receive the complete available file set.

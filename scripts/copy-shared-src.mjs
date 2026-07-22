@@ -46,6 +46,7 @@ const sharedFiles = [
   "trailhead-events.ts",
   "ci-integrity.ts",
   "github-pagination.ts",
+  "release-evidence.ts",
   "autofix-executor.ts",
   "autofix-builders.ts",
   "github-git-writer.ts",
