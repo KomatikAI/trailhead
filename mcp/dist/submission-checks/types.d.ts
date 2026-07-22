@@ -27,6 +27,8 @@ export interface SubmissionCheckContext {
     staleTerms: string[];
     namingAllowlist: NamingAllowlistConfig;
     authRouteAllowlist: string[];
+    authRouteHelpers: string[];
+    retiredRouteAllowlist: string[];
     maxFileLines: number;
     declaredPackages: Set<string>;
     /** Extra path segments to skip for context_freshness (merged with defaults). */

@@ -411,6 +411,17 @@ contexts:
     expect(parsed.data.gate.mode).toBe("risk-only");
     expect(parsed.data.contexts).toEqual([]);
   });
+
+  it("parses custom auth helpers and explicit retired routes", () => {
+    const parsed = parseRepoConfigContent(`schema_version: 2
+submission:
+  enabled: true
+  auth_route_helpers: [getLodgeAuthUser]
+  retired_route_allowlist: [/api/lodge/checkout]
+`);
+    expect(parsed?.submission?.auth_route_helpers).toEqual(["getLodgeAuthUser"]);
+    expect(parsed?.submission?.retired_route_allowlist).toEqual(["/api/lodge/checkout"]);
+  });
 });
 
 describe("matchesGlobs (re-exported from risk-engine)", () => {

@@ -95,8 +95,12 @@ const factorCues = {
         triggerScore: 50,
         advisoryScore: 20,
         build: (factor) => {
-            const files = factor.detail?.file_count ?? 0;
-            const changes = factor.detail?.line_count ?? 0;
+            const files = factor.detail?.fileCount ??
+                factor.detail?.file_count ??
+                0;
+            const changes = factor.detail?.totalChanges ??
+                factor.detail?.line_count ??
+                0;
             return {
                 code: "policy.pr_scope",
                 severity: "warn",

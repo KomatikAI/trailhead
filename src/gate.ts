@@ -82,6 +82,8 @@ import type { SubmissionCheckResult } from "./types.js";
 import { computeAgentTrustScore, strictnessFromTrust } from "./trust-score.js";
 import { parseAgentTrustMetrics } from "./agent-trust-metrics.js";
 import { readTrustRuntime } from "./trust-runtime.js";
+import { detectCiIntegrity } from "./ci-integrity.js";
+import { collectGitHubPages } from "./github-pagination.js";
 
 export {
   isSensitiveFile,
@@ -125,6 +127,8 @@ interface PrFileInfo {
   deletions: number;
   changes: number;
   patch?: string;
+  status?: string;
+  content?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -137,25 +141,33 @@ async function fetchPrFilesFromApi(
   repo: string,
   prNumber: number,
 ): Promise<PrFileInfo[]> {
-  const { data: files } = await octokit.rest.pulls.listFiles({
-    owner,
-    repo,
-    pull_number: prNumber,
-    per_page: 300,
-  });
+  const result = await collectGitHubPages(
+    async (page, perPage) => {
+      const { data } = await octokit.rest.pulls.listFiles({
+        owner,
+        repo,
+        pull_number: prNumber,
+        per_page: perPage,
+        page,
+      });
+      return data;
+    },
+    { perPage: 100, maxPages: 30 },
+  );
 
-  if (files.length >= 300) {
+  if (!result.complete) {
     core.warning(
-      "PR has 300+ files — risk analysis may be incomplete (GitHub API pagination limit)",
+      "PR file enumeration reached GitHub's 3,000-file API ceiling; risk analysis is incomplete.",
     );
   }
 
-  return files.map((f) => ({
+  return result.items.map((f) => ({
     filename: f.filename,
     additions: f.additions,
     deletions: f.deletions,
     changes: f.changes,
     patch: f.patch,
+    status: f.status,
   }));
 }
 
@@ -165,12 +177,19 @@ async function fetchPrFilesFromCommits(
   repo: string,
   prNumber: number,
 ): Promise<PrFileInfo[]> {
-  const { data: commits } = await octokit.rest.pulls.listCommits({
-    owner,
-    repo,
-    pull_number: prNumber,
-    per_page: 250,
-  });
+  const { items: commits } = await collectGitHubPages(
+    async (page, perPage) => {
+      const { data } = await octokit.rest.pulls.listCommits({
+        owner,
+        repo,
+        pull_number: prNumber,
+        per_page: perPage,
+        page,
+      });
+      return data;
+    },
+    { perPage: 100, maxPages: 3 },
+  );
 
   const fileMap = new Map<string, PrFileInfo>();
 
@@ -208,6 +227,44 @@ const DRIFT_CHECK_FILE_THRESHOLD = 30;
 // the merge-base is stale and we use the commit-derived list instead.
 const MERGE_BASE_DRIFT_RATIO = 2.0;
 
+const API_ROUTE_FILE =
+  /(?:^|\/)(?:app\/api\/.+\/route|pages\/api\/.+)\.(?:ts|tsx|js|jsx)$/;
+
+async function hydrateChangedRouteContents(
+  octokit: ReturnType<typeof github.getOctokit>,
+  owner: string,
+  repo: string,
+  ref: string,
+  files: PrFileInfo[],
+): Promise<void> {
+  const routes = files.filter(
+    (file) =>
+      file.status !== "removed" && API_ROUTE_FILE.test(file.filename.replace(/\\/g, "/")),
+  );
+
+  // Keep the request fan-out bounded while still avoiding serial latency on
+  // route-heavy PRs. Route bodies are the source of truth for auth checks.
+  const batchSize = 8;
+  for (let start = 0; start < routes.length; start += batchSize) {
+    await Promise.all(
+      routes.slice(start, start + batchSize).map(async (file) => {
+        try {
+          const { data } = await octokit.rest.repos.getContent({
+            owner,
+            repo,
+            path: file.filename,
+            ref,
+          });
+          if (Array.isArray(data) || data.type !== "file" || !data.content) return;
+          file.content = Buffer.from(data.content, "base64").toString("utf8");
+        } catch (error) {
+          core.debug(`Could not fetch current route body for ${file.filename}: ${error}`);
+        }
+      }),
+    );
+  }
+}
+
 async function fetchPrFiles(prNumber: number, token?: string): Promise<PrFileInfo[]> {
   if (!token) return [];
 
@@ -217,40 +274,44 @@ async function fetchPrFiles(prNumber: number, token?: string): Promise<PrFileInf
 
     const apiFiles = await fetchPrFilesFromApi(octokit, owner, repo, prNumber);
 
-    if (apiFiles.length <= DRIFT_CHECK_FILE_THRESHOLD) {
-      return apiFiles;
-    }
+    let selectedFiles = apiFiles;
 
-    // GitHub's pulls.listFiles uses a merge-base diff that can include
-    // files from unrelated commits when the base branch has diverged
-    // from the PR branch point.  Cross-check against the files the PR's
-    // commits actually touch and fall back when inflation is detected.
-    core.info(
-      `PR reports ${apiFiles.length} files (>${DRIFT_CHECK_FILE_THRESHOLD}), ` +
-        `cross-checking against commit-level file list for merge-base drift.`,
-    );
-
-    let commitFiles: PrFileInfo[];
-    try {
-      commitFiles = await fetchPrFilesFromCommits(octokit, owner, repo, prNumber);
-    } catch (err) {
-      core.debug(`Commit-level file enumeration failed, using API list: ${err}`);
-      return apiFiles;
-    }
-
-    if (
-      commitFiles.length > 0 &&
-      apiFiles.length > commitFiles.length * MERGE_BASE_DRIFT_RATIO
-    ) {
-      core.warning(
-        `Merge-base drift: API reported ${apiFiles.length} files, ` +
-          `but PR commits only touch ${commitFiles.length}. ` +
-          `Using commit-derived file list to avoid inflated risk scores.`,
+    if (apiFiles.length > DRIFT_CHECK_FILE_THRESHOLD) {
+      // GitHub's pulls.listFiles uses a merge-base diff that can include
+      // files from unrelated commits when the base branch has diverged
+      // from the PR branch point. Cross-check against the files the PR's
+      // commits actually touch and fall back when inflation is detected.
+      core.info(
+        `PR reports ${apiFiles.length} files (>${DRIFT_CHECK_FILE_THRESHOLD}), ` +
+          `cross-checking against commit-level file list for merge-base drift.`,
       );
-      return commitFiles;
+
+      let commitFiles: PrFileInfo[] = [];
+      try {
+        commitFiles = await fetchPrFilesFromCommits(octokit, owner, repo, prNumber);
+      } catch (err) {
+        core.debug(`Commit-level file enumeration failed, using API list: ${err}`);
+      }
+
+      if (
+        commitFiles.length > 0 &&
+        apiFiles.length > commitFiles.length * MERGE_BASE_DRIFT_RATIO
+      ) {
+        core.warning(
+          `Merge-base drift: API reported ${apiFiles.length} files, ` +
+            `but PR commits only touch ${commitFiles.length}. ` +
+            `Using commit-derived file list to avoid inflated risk scores.`,
+        );
+        const apiByName = new Map(apiFiles.map((file) => [file.filename, file]));
+        selectedFiles = commitFiles.map((file) => ({
+          ...file,
+          patch: apiByName.get(file.filename)?.patch,
+          status: apiByName.get(file.filename)?.status,
+        }));
+      }
     }
 
-    return apiFiles;
+    return selectedFiles;
   } catch (error) {
     core.debug(`Failed to fetch PR files: ${error}`);
     return [];
@@ -569,51 +630,7 @@ interface CiIntegrityDetection {
 }
 
 function detectCiIntegrityRisk(files: PrFileInfo[]): CiIntegrityDetection {
-  const blockingPatterns: string[] = [];
-  const warningSignals: string[] = [];
-  let score = 0;
-
-  const workflowFiles = files.filter((f) => f.filename.startsWith(".github/workflows/"));
-  const testFiles = files.filter((f) =>
-    /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/.test(f.filename),
-  );
-
-  for (const file of workflowFiles) {
-    const patch = file.patch ?? "";
-    if (/\|\|\s*true/.test(patch)) {
-      blockingPatterns.push(`${file.filename}: workflow bypass pattern "|| true"`);
-      score += 45;
-    }
-    if (/^\+\s*continue-on-error:\s*true\b/m.test(patch)) {
-      blockingPatterns.push(`${file.filename}: introduced "continue-on-error: true"`);
-      score += 45;
-    }
-    if (/^\+\s*if:\s*\$\{\{\s*always\(\)\s*\}\}/m.test(patch)) {
-      warningSignals.push(`${file.filename}: always() condition added to workflow gate`);
-      score += 20;
-    }
-  }
-
-  for (const file of testFiles) {
-    if (file.deletions > file.additions * 2 && file.deletions >= 10) {
-      warningSignals.push(
-        `${file.filename}: heavy test deletion (${file.deletions} deleted / ${file.additions} added)`,
-      );
-      score += 25;
-    }
-  }
-
-  for (const file of files) {
-    const patch = file.patch ?? "";
-    if (!patch) continue;
-    if (
-      /^-\s*(branches|functions|lines|statements)\s*:\s*\d+/m.test(patch) &&
-      /^\+\s*(branches|functions|lines|statements)\s*:\s*\d+/m.test(patch)
-    ) {
-      warningSignals.push(`${file.filename}: coverage threshold definition changed`);
-      score += 20;
-    }
-  }
+  const { score, blockingPatterns, warningSignals } = detectCiIntegrity(files);
 
   if (score === 0) {
     return { factor: null, blockingPatterns: [] };
@@ -1616,6 +1633,14 @@ export async function evaluateGate(
     prNumber ? fetchPrFiles(prNumber, config.githubToken) : Promise.resolve([]),
     loadRepoConfig(config.githubToken),
   ]);
+  const submissionMode = repoConfig?.submission?.mode ?? "block";
+  const submissionEnabled =
+    config.submissionGate === true || repoConfig?.submission?.enabled === true;
+  if (submissionEnabled && config.githubToken) {
+    const octokit = github.getOctokit(config.githubToken);
+    const { owner, repo } = github.context.repo;
+    await hydrateChangedRouteContents(octokit, owner, repo, commitSha, files);
+  }
   const changedFiles = files.map((f) => f.filename);
 
   const [
@@ -1879,9 +1904,6 @@ export async function evaluateGate(
   }
 
   let submissionChecks: SubmissionCheckResult[] = [];
-  const submissionMode = repoConfig?.submission?.mode ?? "block";
-  const submissionEnabled =
-    config.submissionGate === true || repoConfig?.submission?.enabled === true;
   if (submissionEnabled && files.length > 0) {
     for (const warning of getSubmissionConfigWarnings(repoConfig?.submission)) {
       core.warning(warning);
@@ -1912,6 +1934,8 @@ export async function evaluateGate(
       files: files.map((f) => ({
         filename: f.filename,
         patch: f.patch,
+        status: f.status,
+        content: f.content,
         additions: f.additions,
       })),
       repoConfig,

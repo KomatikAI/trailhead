@@ -21,6 +21,28 @@ const githubMockState = vi.hoisted(() => ({
     details_url?: string;
   }>,
   checkRefs: [] as string[],
+  listFileCalls: [] as number[],
+  filePages: undefined as
+    | Record<
+        number,
+        Array<{
+          filename: string;
+          additions: number;
+          deletions: number;
+          changes: number;
+          patch?: string;
+          status?: string;
+        }>
+      >
+    | undefined,
+  commitFiles: [] as Array<{
+    filename: string;
+    additions: number;
+    deletions: number;
+    changes: number;
+  }>,
+  routeContents: {} as Record<string, string>,
+  contentRequests: [] as string[],
 }));
 
 vi.mock("@actions/core", () => ({
@@ -45,8 +67,9 @@ vi.mock("@actions/github", () => ({
   getOctokit: (_token: string) => ({
     rest: {
       pulls: {
-        listFiles: vi.fn().mockResolvedValue({
-          data: [
+        listFiles: vi.fn().mockImplementation(async ({ page = 1 }) => {
+          githubMockState.listFileCalls.push(page);
+          const fallback = [
             { filename: "src/app.ts", additions: 40, deletions: 10, changes: 50 },
             { filename: "src/utils.ts", additions: 20, deletions: 5, changes: 25 },
             {
@@ -55,7 +78,14 @@ vi.mock("@actions/github", () => ({
               deletions: 0,
               changes: 30,
             },
-          ],
+          ];
+          return {
+            data: githubMockState.filePages
+              ? (githubMockState.filePages[page] ?? [])
+              : page === 1
+                ? fallback
+                : [],
+          };
         }),
         listCommits: vi.fn().mockResolvedValue({
           data: [
@@ -83,6 +113,21 @@ vi.mock("@actions/github", () => ({
         }),
       },
       repos: {
+        getCommit: vi.fn().mockImplementation(async () => ({
+          data: { files: githubMockState.commitFiles },
+        })),
+        getContent: vi.fn().mockImplementation(async ({ path }: { path: string }) => {
+          githubMockState.contentRequests.push(path);
+          const content = githubMockState.routeContents[path];
+          if (content === undefined) throw new Error("not found");
+          return {
+            data: {
+              type: "file",
+              content: Buffer.from(content, "utf8").toString("base64"),
+              encoding: "base64",
+            },
+          };
+        }),
         listCommits: vi.fn().mockResolvedValue({
           data: Array.from({ length: 12 }, (_, i) => ({
             sha: `commit-${i}`,
@@ -143,6 +188,11 @@ describe("evaluateGate (integration)", () => {
     githubMockState.reviews = [];
     githubMockState.checkRuns = [];
     githubMockState.checkRefs = [];
+    githubMockState.listFileCalls = [];
+    githubMockState.filePages = undefined;
+    githubMockState.commitFiles = [];
+    githubMockState.routeContents = {};
+    githubMockState.contentRequests = [];
     // Avoid loading repo .trailhead.yml on CI (GITHUB_WORKSPACE is set there).
     vi.stubEnv("GITHUB_WORKSPACE", "");
   });
@@ -172,6 +222,73 @@ describe("evaluateGate (integration)", () => {
       "src/utils.ts",
       "src/__tests__/app.test.ts",
     ]);
+  });
+
+  it("evaluates all 214 PR files across GitHub's 100-item pages", async () => {
+    const files = Array.from({ length: 214 }, (_, index) => ({
+      filename: `src/file-${index}.ts`,
+      additions: 1,
+      deletions: 0,
+      changes: 1,
+    }));
+    githubMockState.filePages = {
+      1: files.slice(0, 100),
+      2: files.slice(100, 200),
+      3: files.slice(200),
+    };
+    githubMockState.commitFiles = files;
+
+    const result = await evaluateGate(
+      makeConfig({ githubToken: "ghp_test", securityGate: false }),
+      "pull-request-head-sha",
+      42,
+    );
+
+    expect(result.files).toHaveLength(214);
+    expect(githubMockState.listFileCalls).toEqual([1, 2, 3]);
+  });
+
+  it("hydrates the current route body before evaluating configured auth helpers", async () => {
+    const route = "apps/web/app/api/lodge/flow/route.ts";
+    githubMockState.filePages = {
+      1: [
+        {
+          filename: route,
+          additions: 2,
+          deletions: 0,
+          changes: 2,
+          status: "modified",
+          patch:
+            "@@ -20,1 +20,2 @@\n+export async function POST() {\n+  return Response.json({ ok: true });\n",
+        },
+      ],
+    };
+    githubMockState.routeContents[route] =
+      "export async function POST() { const user = await getLodgeAuthUser(); return Response.json({ user }); }";
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+submission:
+  enabled: true
+  mode: block
+  auth_route_helpers: [getLodgeAuthUser]
+`,
+      () =>
+        evaluateGate(
+          makeConfig({
+            githubToken: "ghp_test",
+            submissionGate: true,
+            securityGate: false,
+          }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(githubMockState.contentRequests).toContain(route);
+    expect(
+      (result.submissionChecks ?? []).some((check) => check.code === "auth_route_auth"),
+    ).toBe(false);
   });
 
   it("fails release readiness when a required check fails on the PR head SHA", async () => {

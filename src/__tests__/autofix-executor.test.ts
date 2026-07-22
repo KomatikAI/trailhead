@@ -21,6 +21,8 @@ function ctx(files: SubmissionFileInfo[]): SubmissionCheckContext {
     staleTerms: [],
     namingAllowlist: {},
     authRouteAllowlist: [],
+    authRouteHelpers: [],
+    retiredRouteAllowlist: [],
     maxFileLines: 1000,
     declaredPackages: new Set(),
     pathIgnorePatterns: [],

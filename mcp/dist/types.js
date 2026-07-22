@@ -397,6 +397,10 @@ export const SubmissionConfig = z.object({
     mode: z.enum(["warn", "block"]).default("block"),
     stale_terms: z.array(z.string()).optional(),
     auth_route_allowlist: z.array(z.string()).optional(),
+    /** Additional function identifiers that prove an API route authenticated. */
+    auth_route_helpers: z.array(z.string().min(1)).optional(),
+    /** Side-effect-free tombstone routes; each body must still return HTTP 410. */
+    retired_route_allowlist: z.array(z.string()).optional(),
     max_file_lines: z.number().int().positive().optional(),
     /** Path substrings to skip for context_freshness (e.g. archived suggestion dirs). */
     path_ignore: z.array(z.string()).optional(),
