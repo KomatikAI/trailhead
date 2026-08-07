@@ -30,7 +30,7 @@
     "@actions/core": "^3.0.1",
     "@actions/github": "^9.1.1",
     "@swc/core": "^1.15.40",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.2.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
