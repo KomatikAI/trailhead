@@ -70,7 +70,14 @@ jobs:
     needs: release
 
     steps:
+      # Re-resolve the tag instead of taking checkout's default (github.sha,
+      # frozen at the commit the tag pointed to when the run triggered): the
+      # release job above may have force-moved the tag onto the CI-built dist
+      # commit, and checkout@v7 fails the run when ref and expected sha
+      # disagree (v4.7.0's CLI publish died here, twice).
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-node@v7
         with:
