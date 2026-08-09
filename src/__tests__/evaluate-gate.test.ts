@@ -5,6 +5,7 @@ import path from "node:path";
 import * as core from "@actions/core";
 
 import { evaluateGate } from "../gate.js";
+import { DEFAULT_ADVISORY_REASON } from "../input-relevance.js";
 import { GateEvaluation } from "../types.js";
 import type { TrailheadConfig } from "../types.js";
 import * as evaluationHistory from "../evaluation-history.js";
@@ -1127,6 +1128,56 @@ contexts:
     );
   });
 
+  // trailhead#350 defect 3: the remediation JSON only tells the truth if the gate
+  // threads enumeratedFindings + riskScore/riskThreshold into buildRemediation.
+  // Both assertions discriminate the threaded path from the legacy fallback:
+  // risk.over_threshold cannot come from prose in risk-only mode (computeReleaseReady
+  // returns early), and the enumerated policy.finding detail lists per-finding
+  // titles where the legacy branch lists the count-strings.
+  it("threads enumerated findings and risk numbers into the remediation JSON", async () => {
+    githubMockState.filePages = {
+      1: [
+        {
+          filename: ".github/workflows/ci.yml",
+          additions: 2,
+          deletions: 0,
+          changes: 2,
+          status: "modified",
+          patch:
+            "@@ -1,1 +1,3 @@\n+      run: npm test || true\n+    continue-on-error: true\n",
+        },
+        ...Array.from({ length: 12 }, (_, i) => ({
+          filename: `src/module-${i}.ts`,
+          additions: 80,
+          deletions: 40,
+          changes: 120,
+          status: "modified" as const,
+        })),
+      ],
+    };
+
+    const result = await evaluateGate(
+      makeConfig({ githubToken: "ghp_test", securityGate: false, riskThreshold: 5 }),
+      "pull-request-head-sha",
+      43,
+    );
+
+    expect(result.gateDecision).toBe("block");
+    const fixes = result.remediation?.fixes ?? [];
+
+    const overThreshold = fixes.find((fix) => fix.code === "risk.over_threshold");
+    expect(overThreshold).toBeDefined();
+    expect(overThreshold?.severity).toBe("blocking");
+    expect(overThreshold?.title).toContain("threshold 5");
+    expect(overThreshold?.suggested_action).toContain("trailhead-override");
+
+    const policyFix = fixes.find((fix) => fix.code === "policy.finding");
+    expect(policyFix).toBeDefined();
+    expect(policyFix?.title).not.toMatch(/^\d+ policy finding/);
+    expect(policyFix?.detail).toContain('workflow bypass pattern "|| true"');
+    expect(policyFix?.detail).not.toContain("blocking patterns detected (");
+  });
+
   it("attaches a Release Brief to every evaluation, with no config present", async () => {
     githubMockState.checkRuns = [
       { name: "CI Gate", status: "completed", conclusion: "success" },
@@ -1182,10 +1233,14 @@ contexts:
     expect(result.ci?.failedCount).toBe(1);
     expect(result.ci?.pendingCount).toBe(0);
     expect(result.ci?.missingCount).toBe(0);
-    // The non-required red check is advisory by default and does not block.
+    // The non-required red check is advisory by default and does not block —
+    // and the default says so, so its brief row is never a bare "advisory / —".
     expect(
       result.ci?.checks.find((check) => check.name === "Vercel")?.disposition,
-    ).toEqual({ kind: "advisory", source: "default" });
+    ).toEqual({ kind: "advisory", reason: DEFAULT_ADVISORY_REASON, source: "default" });
+    expect(
+      result.releaseBrief?.inputs.every((input) => (input.reason ?? "").trim() !== ""),
+    ).toBe(true);
   });
 
   // -------------------------------------------------------------------------

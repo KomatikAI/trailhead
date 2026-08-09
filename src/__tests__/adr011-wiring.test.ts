@@ -7,6 +7,11 @@ import {
   formatGateReport,
 } from "../gate.js";
 import { computeReleaseReady, checkCountsTowardBlocking } from "../release-ready.js";
+import {
+  DEFAULT_ADVISORY_REASON,
+  DEFAULT_BLOCKING_REASON,
+  DEFAULT_SKIPPED_UPSTREAM_REASON,
+} from "../input-relevance.js";
 import { partitionOverrideReasons } from "../override.js";
 import { collectConfigWarnings } from "../config-core.js";
 import { parseRepoConfigContent } from "../config-core.js";
@@ -87,8 +92,68 @@ describe("applyInputRelevance", () => {
       [],
     );
 
-    expect(after.checks[0].disposition).toEqual({ kind: "blocking", source: "default" });
-    expect(after.checks[1].disposition).toEqual({ kind: "advisory", source: "default" });
+    expect(after.checks[0].disposition).toEqual({
+      kind: "blocking",
+      reason: DEFAULT_BLOCKING_REASON,
+      source: "default",
+    });
+    expect(after.checks[1].disposition).toEqual({
+      kind: "advisory",
+      reason: DEFAULT_ADVISORY_REASON,
+      source: "default",
+    });
+  });
+
+  // ADR-011 §2 — a default-source `skip` is the workflow classifying itself out
+  // (path filter, `if:` condition). Narration changes; the decision must not.
+  it("reclassifies a default-source skip to irrelevant with zero outcome change", () => {
+    const checks = [
+      check({ name: "CI Gate", status: "pass", required: true }),
+      check({ name: "web e2e", status: "skip", required: true }),
+      check({ name: "web lint", status: "skip", required: false }),
+    ];
+    const before = summary(checks);
+    const after = applyInputRelevance(before, []);
+
+    expect(after.allRequiredPassed).toBe(before.allRequiredPassed);
+    expect(after.failedCount).toBe(before.failedCount);
+    expect(after.pendingCount).toBe(before.pendingCount);
+    expect(after.missingCount).toBe(before.missingCount);
+    expect(after.checks[1].disposition).toEqual({
+      kind: "irrelevant",
+      reason: DEFAULT_SKIPPED_UPSTREAM_REASON,
+      source: "default",
+    });
+
+    const base = {
+      gateMode: "release-ready" as const,
+      gateDecision: "allow" as const,
+      riskScore: 30,
+      riskThreshold: 70,
+      healthScore: 100,
+      healthChecksConfigured: false,
+      freezeActive: false,
+    };
+    const readyBefore = computeReleaseReady({ ...base, ciSummary: before });
+    const readyAfter = computeReleaseReady({ ...base, ciSummary: after });
+    expect(readyAfter).toEqual(readyBefore);
+    expect(readyAfter.releaseReady).toBe(true);
+  });
+
+  // Promotion-zero correction (trailhead#350): a path-filtered check the seed
+  // table marks blocking must self-describe, not render "skip | blocking | —".
+  it("rewrites a policy-sourced blocking skip to irrelevant(skipped upstream)", () => {
+    const after = applyInputRelevance(
+      summary([check({ name: "web e2e", status: "skip", required: true })]),
+      [{ pattern: "web *", disposition: "blocking", reason: "required on this pair" }],
+    );
+
+    expect(after.checks[0].disposition).toEqual({
+      kind: "irrelevant",
+      reason: DEFAULT_SKIPPED_UPSTREAM_REASON,
+      source: "policy",
+    });
+    expect(after.allRequiredPassed).toBe(true);
   });
 
   it("derives missing_blocking for an absent required check", () => {
@@ -412,12 +477,13 @@ describe("buildReleaseBrief", () => {
     expect(brief.cannotEvaluateReason).toBe("evaluation store unreachable");
   });
 
-  it("lists every input, including the ones that did not count", () => {
+  it("lists every input, including the ones that did not count, each with a reason", () => {
     const ciSummary = applyInputRelevance(
       summary([
         check({ name: "CI Gate", status: "pass", required: true }),
         check({ name: "Deploy Edge Functions", status: "fail", required: true }),
         check({ name: "Vercel", status: "fail", required: false }),
+        check({ name: "web e2e", status: "skip", required: true }),
       ]),
       [
         {
@@ -431,14 +497,61 @@ describe("buildReleaseBrief", () => {
     const brief = buildReleaseBrief(evaluation({ ci: ciSummary }), 70);
 
     expect(brief.inputs).toEqual([
-      { checkName: "CI Gate", status: "pass", disposition: "blocking" },
+      {
+        checkName: "CI Gate",
+        status: "pass",
+        disposition: "blocking",
+        reason: DEFAULT_BLOCKING_REASON,
+      },
       {
         checkName: "Deploy Edge Functions",
         status: "fail",
         disposition: "irrelevant",
         reason: "staging target unconfigured by design",
       },
-      { checkName: "Vercel", status: "fail", disposition: "advisory" },
+      {
+        checkName: "Vercel",
+        status: "fail",
+        disposition: "advisory",
+        reason: DEFAULT_ADVISORY_REASON,
+      },
+      {
+        checkName: "web e2e",
+        status: "skip",
+        disposition: "irrelevant",
+        reason: DEFAULT_SKIPPED_UPSTREAM_REASON,
+      },
+    ]);
+    // The audited briefs rendered every row as "advisory / —".
+    expect(brief.inputs.every((input) => (input.reason ?? "").trim() !== "")).toBe(true);
+  });
+
+  it("fills the reason column for a summary that never met the disposition engine", () => {
+    // Pre-ADR-011 stored evaluations (and externally-built summaries) carry no
+    // disposition; re-rendering them must not reintroduce blank reason cells.
+    const brief = buildReleaseBrief(
+      evaluation({
+        ci: summary([
+          check({ name: "CI Gate", status: "fail", required: true }),
+          check({ name: "Vercel", status: "fail", required: false }),
+        ]),
+      }),
+      70,
+    );
+
+    expect(brief.inputs).toEqual([
+      {
+        checkName: "CI Gate",
+        status: "fail",
+        disposition: "blocking",
+        reason: DEFAULT_BLOCKING_REASON,
+      },
+      {
+        checkName: "Vercel",
+        status: "fail",
+        disposition: "advisory",
+        reason: DEFAULT_ADVISORY_REASON,
+      },
     ]);
   });
 
@@ -543,22 +656,37 @@ describe("buildReleaseBrief", () => {
 // ---------------------------------------------------------------------------
 
 describe("formatGateReport with a Release Brief", () => {
-  it("puts the brief first and keeps the existing report below it", () => {
+  function blockedEvaluation(riskThreshold: number): GateEvaluation {
     const evaluated = evaluation({
       releaseReady: false,
       gateDecision: "block",
-      riskScore: 90,
+      riskScore: 53,
+      sizeScore: 61,
+      healthChecks: [
+        { target: "https://api.example.com/health", status: "warn", latencyMs: 200 },
+      ],
+      ci: applyInputRelevance(
+        summary([
+          check({ name: "CI Gate", status: "pass", required: true }),
+          check({ name: "web e2e", status: "skip", required: true }),
+        ]),
+        [],
+      ),
       enumeratedFindings: [
         {
-          id: "ci_integrity/1",
-          title: 'workflow bypass pattern "|| true"',
-          severity: "blocking",
-          evidence: ".github/workflows/ci.yml",
+          id: "agent_policy/1",
+          title: "Agent PR risk threshold tightened from 70 to 50",
+          severity: "warn",
         },
       ],
-      policyFindings: ["CI integrity blocking patterns detected (1)."],
+      policyFindings: ["Agent PR risk threshold tightened from 70 to 50."],
     });
-    evaluated.releaseBrief = buildReleaseBrief(evaluated, 70);
+    evaluated.releaseBrief = buildReleaseBrief(evaluated, riskThreshold);
+    return evaluated;
+  }
+
+  it("puts the brief first and keeps the existing report below it", () => {
+    const evaluated = blockedEvaluation(70);
 
     const report = formatGateReport(evaluated, 70);
 
@@ -566,18 +694,71 @@ describe("formatGateReport with a Release Brief", () => {
     expect(report.indexOf("## Release Brief")).toBeLessThan(
       report.indexOf("Trailhead — NOT RELEASE READY"),
     );
-    // Case A: the pattern itself, not just the count.
-    expect(report).toContain('workflow bypass pattern "|| true"');
-    expect(report).toContain("`ci_integrity/1`");
-    // Existing consumers keep their count string.
-    expect(report).toContain("CI integrity blocking patterns detected (1).");
+    // Case A: the finding itself, not just the count.
+    expect(report).toContain("Agent PR risk threshold tightened from 70 to 50");
+    expect(report).toContain("`agent_policy/1`");
+    // Sections the brief does not carry stay put.
+    expect(report).toContain("| Size / blast radius | 61/100 (reported separately) |");
+    expect(report).toContain("| Health |");
+    expect(report).toContain("Health Checks");
+  });
+
+  // Audit item 2: one comment said "risk 53 (threshold 50)" in the brief and
+  // "Risk 53/100 (threshold 70)" in the legacy table below it.
+  it("never renders a threshold the brief did not judge against", () => {
+    // 50 = the effective threshold (agent-PR policy tightened it); 70 = the base
+    // action input the caller still passes.
+    const report = formatGateReport(blockedEvaluation(50), 70);
+
+    expect(report).toContain("risk 53 (threshold 50)");
+    expect(report).not.toMatch(/threshold:? 70\b/);
+  });
+
+  it("carries the effective threshold into the risk-only score bar", () => {
+    const evaluated = evaluation({
+      gateMode: "risk-only",
+      gateDecision: "block",
+      riskScore: 53,
+    });
+    evaluated.releaseBrief = buildReleaseBrief(evaluated, 50);
+
+    const report = formatGateReport(evaluated, 70);
+
+    expect(report).toContain("53/100 (threshold: 50)");
+    expect(report).not.toMatch(/threshold:? 70\b/);
+  });
+
+  it("retires the legacy sections the brief already states", () => {
+    const report = formatGateReport(blockedEvaluation(50), 70);
+
+    // Verdict + risk row: the brief's headline.
+    expect(report).not.toContain("| **Release Ready** |");
+    expect(report).not.toContain("| Risk |");
+    expect(report).not.toContain("| Gate |");
+    // Inputs: the brief's table.
+    expect(report).not.toContain("### CI Checks");
+    // Findings: the brief enumerates them; the legacy list only counts them.
+    expect(report).not.toContain("Policy Findings");
+    expect(report).not.toContain("Agent PR risk threshold tightened from 70 to 50.");
+    // Said exactly once, in the brief.
+    expect(report.split("web e2e")).toHaveLength(2);
   });
 
   it("renders the pre-ADR-011 report unchanged when no brief is attached", () => {
-    const evaluated = evaluation();
+    const evaluated = blockedEvaluation(50);
+    delete evaluated.releaseBrief;
+
     const report = formatGateReport(evaluated, 70);
-    expect(report.startsWith("## ✅ Trailhead — RELEASE READY")).toBe(true);
+
+    expect(report.startsWith("## 🚫 Trailhead — NOT RELEASE READY")).toBe(true);
     expect(report).not.toContain("## Release Brief");
+    // The full legacy report survives for older evaluations being re-rendered,
+    // threshold included — there is no brief to take it from.
+    expect(report).toContain("| **Release Ready** | **NO** |");
+    expect(report).toContain("| Risk | 53/100 (threshold 70) |");
+    expect(report).toContain("| Gate | BLOCK |");
+    expect(report).toContain("### CI Checks");
+    expect(report).toContain("Policy Findings");
   });
 });
 

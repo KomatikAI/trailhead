@@ -186,6 +186,212 @@ describe("buildRemediation", () => {
       expect(remediation.blocking_count).toBe(0);
       expect(remediation.release_ready).toBe(true);
     });
+
+    it("enumerates the findings in the aggregate title instead of counting them", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          policyFindings: ["Workflow uses unpinned action"],
+        }),
+      });
+      const fix = remediation.fixes.find((f) => f.code === "policy.finding");
+      expect(fix?.title).toBe("Policy finding: Workflow uses unpinned action");
+      expect(fix?.title).not.toMatch(/^\d+ policy finding/);
+    });
+  });
+
+  // ADR-011 §1 — the remediation block must not promote a warn-level finding to
+  // blocking just because the surrounding evaluation blocked (komatik#4041).
+  describe("enumerated policy findings", () => {
+    it("never surfaces a warn finding as blocking, even on a BLOCK evaluation", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          policyFindings: ["Agent PR risk threshold tightened from 70 to 50"],
+          enumeratedFindings: [
+            {
+              id: "agent_policy/1",
+              title: "Agent PR risk threshold tightened from 70 to 50",
+              severity: "warn",
+            },
+          ],
+        }),
+      });
+      const policyFixes = remediation.fixes.filter((f) => f.code.startsWith("policy."));
+      expect(policyFixes).toHaveLength(1);
+      expect(policyFixes[0].code).toBe("policy.finding");
+      expect(policyFixes[0].severity).toBe("warn");
+      expect(policyFixes[0].title).toContain(
+        "Agent PR risk threshold tightened from 70 to 50",
+      );
+      expect(policyFixes[0].detail).toContain("agent_policy/1");
+      expect(remediation.blocking_count).toBe(0);
+      expect(remediation.warn_count).toBe(1);
+    });
+
+    it("emits a blocking fix for a blocking enumerated finding", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          policyFindings: ["CI integrity blocking patterns detected (1)."],
+          enumeratedFindings: [
+            {
+              id: "ci_integrity/0",
+              title: "Test file deleted without replacement",
+              evidence: "src/__tests__/foo.test.ts",
+              severity: "blocking",
+            },
+          ],
+        }),
+      });
+      const fix = remediation.fixes.find((f) => f.code === "policy.finding");
+      expect(fix?.severity).toBe("blocking");
+      expect(fix?.detail).toContain("src/__tests__/foo.test.ts");
+      expect(remediation.blocking_count).toBe(1);
+    });
+
+    it("splits mixed severities into one fix per tier, each at its own severity", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          enumeratedFindings: [
+            {
+              id: "workflow_security/0",
+              title: "Unpinned third-party action",
+              severity: "blocking",
+            },
+            {
+              id: "agent_policy/1",
+              title: "Agent PR risk threshold tightened from 70 to 50",
+              severity: "warn",
+            },
+            { id: "pr_scope/0", title: "PR touches 3 subsystems", severity: "advisory" },
+          ],
+        }),
+      });
+      const byCode = new Map(remediation.fixes.map((f) => [f.code, f]));
+      expect(byCode.get("policy.finding")?.severity).toBe("blocking");
+      expect(byCode.get("policy.finding.warn")?.severity).toBe("warn");
+      expect(byCode.get("policy.finding.advisory")?.severity).toBe("advisory");
+      expect(byCode.get("policy.finding")?.detail).not.toContain("agent_policy/1");
+      expect(byCode.get("policy.finding.warn")?.detail).toContain("agent_policy/1");
+    });
+
+    it("ignores the gate decision when enumerated findings are present", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "allow",
+          releaseReady: true,
+          enumeratedFindings: [
+            {
+              id: "prompt_injection/0",
+              title: "Untrusted input reaches an LLM call",
+              severity: "blocking",
+            },
+          ],
+        }),
+      });
+      const fix = remediation.fixes.find((f) => f.code === "policy.finding");
+      expect(fix?.severity).toBe("blocking");
+      expect(remediation.release_ready).toBe(false);
+    });
+  });
+
+  // ADR-011 §1 — the actual block cause has to be in the fixes array, not only
+  // in the human-readable Actions list (komatik#4041).
+  describe("risk over threshold", () => {
+    it("emits risk.over_threshold with both levers when risk carries the BLOCK", () => {
+      const remediation = buildRemediation({
+        evaluation: evaluationFixture({
+          gateDecision: "block",
+          releaseReady: false,
+          riskScore: 53,
+          riskFactors: [factor("file_count", 95), factor("code_churn", 40)],
+          releaseReadyReasons: ["Risk score 53 exceeds threshold 50"],
+        }),
+      });
+      const fix = remediation.fixes.find((f) => f.code === "risk.over_threshold");
+      expect(fix).toBeDefined();
+      expect(fix?.severity).toBe("blocking");
+      expect(fix?.title).toBe("risk 53 exceeds threshold 50");
+      expect(fix?.detail).toContain("file_count 95/100");
+      expect(fix?.suggested_action).toContain("Reduce PR scope");
+      expect(fix?.suggested_action).toContain("`trailhead-override`");
+      expect(fix?.suggested_action).toContain("trailhead-override: <rationale>");
+      expect(fix?.autofix_eligible).toBe(false);
+    });
+
+    it("prefers the threaded risk numbers over the release-ready prose", () => {
+      const remediation = buildRemediation({
+        evaluation: {
+          ...evaluationFixture({
+            gateDecision: "block",
+            releaseReady: false,
+            releaseReadyReasons: ["Risk score 90 exceeds threshold 70"],
+          }),
+          riskScore: 53,
+          riskThreshold: 50,
+        },
+      });
+      const fix = remediation.fixes.find((f) => f.code === "risk.over_threshold");
+      expect(fix?.title).toBe("risk 53 exceeds threshold 50");
+    });
+
+    it("stays absent when risk is under the effective threshold", () => {
+      const remediation = buildRemediation({
+        evaluation: {
+          ...evaluationFixture({
+            gateDecision: "block",
+            releaseReady: false,
+            releaseReadyReasons: ["Required CI check Build is FAIL"],
+          }),
+          riskScore: 20,
+          riskThreshold: 50,
+        },
+      });
+      expect(
+        remediation.fixes.find((f) => f.code === "risk.over_threshold"),
+      ).toBeUndefined();
+    });
+
+    it("stays absent once an override has made the release ready", () => {
+      const remediation = buildRemediation({
+        evaluation: {
+          ...evaluationFixture({
+            gateDecision: "block",
+            releaseReady: true,
+            releaseReadyReasons: [],
+          }),
+          riskScore: 53,
+          riskThreshold: 50,
+        },
+      });
+      expect(
+        remediation.fixes.find((f) => f.code === "risk.over_threshold"),
+      ).toBeUndefined();
+      expect(remediation.release_ready).toBe(true);
+    });
+
+    it("stays absent when the gate did not block", () => {
+      const remediation = buildRemediation({
+        evaluation: {
+          ...evaluationFixture({
+            gateDecision: "warn",
+            releaseReady: false,
+            releaseReadyReasons: ["Risk score 53 exceeds threshold 50"],
+          }),
+          riskScore: 53,
+          riskThreshold: 50,
+        },
+      });
+      expect(
+        remediation.fixes.find((f) => f.code === "risk.over_threshold"),
+      ).toBeUndefined();
+    });
   });
 
   describe("deduplication and ordering", () => {
