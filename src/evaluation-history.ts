@@ -135,22 +135,30 @@ async function fetchFromKomatikStore(
   return fetchEvaluationList(listUrl, params);
 }
 
-async function fetchFromSupabase(
-  params: FetchPreviousEvaluationParams,
-): Promise<PreviousEvaluationSnapshot | null> {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) return null;
+/** Columns loop bookkeeping has always needed — guaranteed present in every store. */
+const SUPABASE_LOOP_SELECT =
+  "id,remediation,loop_round,previous_evaluation_id,fixes_resolved,fixes_introduced,created_at";
 
+/**
+ * ADR-011 §1 adds the delta fields. `release_brief`/`enumerated_findings` land with the
+ * ADR-011 store migration, so a store that has not run it 400s on this select — hence the
+ * narrow-select retry below rather than one wide select that would take loop bookkeeping
+ * down with it.
+ */
+const SUPABASE_DELTA_SELECT = `${SUPABASE_LOOP_SELECT},risk_score,gate_decision,release_ready,enumerated_findings,release_brief`;
+
+async function fetchSupabaseRows(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  params: FetchPreviousEvaluationParams,
+  select: string,
+): Promise<unknown[] | null> {
   const url = new URL(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`);
   url.searchParams.set("repo_id", `eq.${params.repoId}`);
   url.searchParams.set("pr_number", `eq.${params.prNumber}`);
   url.searchParams.set("order", "created_at.desc");
   url.searchParams.set("limit", "10");
-  url.searchParams.set(
-    "select",
-    "id,remediation,loop_round,previous_evaluation_id,fixes_resolved,fixes_introduced,created_at",
-  );
+  url.searchParams.set("select", select);
 
   const response = await fetch(url.toString(), {
     method: "GET",
@@ -164,7 +172,31 @@ async function fetchFromSupabase(
 
   if (!response.ok) return null;
   const rows = (await response.json()) as unknown[];
-  if (!Array.isArray(rows)) return null;
+  return Array.isArray(rows) ? rows : null;
+}
+
+async function fetchFromSupabase(
+  params: FetchPreviousEvaluationParams,
+): Promise<PreviousEvaluationSnapshot | null> {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) return null;
+
+  let rows = await fetchSupabaseRows(
+    supabaseUrl,
+    serviceRoleKey,
+    params,
+    SUPABASE_DELTA_SELECT,
+  );
+  if (rows === null) {
+    rows = await fetchSupabaseRows(
+      supabaseUrl,
+      serviceRoleKey,
+      params,
+      SUPABASE_LOOP_SELECT,
+    );
+  }
+  if (rows === null) return null;
   return pickPreviousFromRows(rows, params.excludeEvaluationId);
 }
 

@@ -278,6 +278,7 @@ Example:
 | [agents-submission-soak.md](./agents-submission-soak.md) | B4 agents dogfood — flip criterion + measurement |
 | [komatik-hosted-store.md](./komatik-hosted-store.md)     | Fleet warehouse at komatik.ai                    |
 | [agent-trust-metrics.md](./agent-trust-metrics.md)       | Trust loop implementers                          |
+| [release-brief.md](./release-brief.md)                   | Release owners — brief contract, input relevance |
 | [verdict.md](./verdict.md)                               | Collector integrators                            |
 | [migration-v3-to-v4.md](./migration-v3-to-v4.md)         | Upgrading from `@v3`                             |
 

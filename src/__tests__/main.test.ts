@@ -324,3 +324,146 @@ describe("run — cloud-upsell footer in the check summary", () => {
     expect(freshCore.setFailed).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * ADR-011 §4 — availability stance, and §1's "silence is a bug": a run that could
+ * not evaluate must still post a cannot-evaluate brief on the PR.
+ */
+describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
+  async function runFailedMain(options: {
+    inputs: Record<string, string>;
+    stance?: "fail_open" | "fail_closed" | null;
+  }): Promise<{
+    freshCore: typeof import("@actions/core");
+    postPrCommentSpy: ReturnType<typeof vi.spyOn>;
+  }> {
+    vi.resetModules();
+
+    const freshCore = await import("@actions/core");
+    const freshGithub = await import("@actions/github");
+    const freshGate = await import("../gate.js");
+    const freshHealers = await import("../healers/index.js");
+
+    vi.mocked(freshCore.getInput).mockImplementation(
+      (name: string) => options.inputs[name] ?? "",
+    );
+    (freshGithub.context as { payload: { pull_request?: { number: number } } }).payload =
+      {
+        pull_request: { number: 42 },
+      };
+
+    vi.spyOn(freshHealers, "registerHealer").mockImplementation(() => undefined);
+    vi.spyOn(freshGate, "evaluateGate").mockRejectedValue(
+      new Error("evaluation store unreachable"),
+    );
+    const postPrCommentSpy = vi.spyOn(freshGate, "postPrComment").mockResolvedValue();
+    freshGate.setResolvedAvailabilityStance(options.stance ?? null);
+
+    await import("../main.js");
+    await new Promise((r) => setTimeout(r, 0));
+
+    return { freshCore, postPrCommentSpy };
+  }
+
+  it("posts a cannot-evaluate brief and sets release-brief-json", async () => {
+    const { freshCore, postPrCommentSpy } = await runFailedMain({
+      inputs: { "github-token": "ghp_test", "fail-mode": "open" },
+    });
+
+    expect(postPrCommentSpy).toHaveBeenCalledTimes(1);
+    const body = postPrCommentSpy.mock.calls[0]?.[0] as string;
+    expect(body).toContain("CANNOT EVALUATE");
+    expect(body).toContain("evaluation store unreachable");
+    expect(freshCore.setOutput).toHaveBeenCalledWith(
+      "release-brief-json",
+      expect.stringContaining('"verdict":"cannot_evaluate"'),
+    );
+    expect(freshCore.setFailed).not.toHaveBeenCalled();
+  });
+
+  it("posts a cannot-evaluate brief when the policy override is unusable", async () => {
+    const { freshCore, postPrCommentSpy } = await runFailedMain({
+      // An override with no reason/owner/ticket/expiry throws PolicyOverrideError
+      // before evaluateGate is ever reached.
+      inputs: {
+        "github-token": "ghp_test",
+        "fail-mode": "open",
+        "override-risk-threshold": "90",
+      },
+    });
+
+    expect(postPrCommentSpy).toHaveBeenCalledTimes(1);
+    const body = postPrCommentSpy.mock.calls[0]?.[0] as string;
+    expect(body).toContain("CANNOT EVALUATE");
+    expect(body).toContain("Overrides require override-reason");
+    expect(freshCore.setOutput).toHaveBeenCalledWith(
+      "release-brief-json",
+      expect.stringContaining('"verdict":"cannot_evaluate"'),
+    );
+    // The distinct failure message survives the new brief-posting path.
+    expect(freshCore.setFailed).toHaveBeenCalledWith(
+      "Invalid policy override: Overrides require override-reason, override-owner, " +
+        "override-ticket, and override-expires-at",
+    );
+  });
+
+  it("a fail_closed context stance overrides a fail-open action input", async () => {
+    const { freshCore } = await runFailedMain({
+      inputs: { "github-token": "ghp_test", "fail-mode": "open" },
+      stance: "fail_closed",
+    });
+
+    expect(freshCore.setFailed).toHaveBeenCalledWith(
+      expect.stringContaining("fail-closed"),
+    );
+  });
+
+  it("a fail_open context stance overrides a fail-closed action input", async () => {
+    const { freshCore } = await runFailedMain({
+      inputs: { "github-token": "ghp_test", "fail-mode": "closed" },
+      stance: "fail_open",
+    });
+
+    expect(freshCore.setFailed).not.toHaveBeenCalled();
+    expect(freshCore.warning).toHaveBeenCalledWith(expect.stringContaining("fail-open"));
+  });
+
+  it("skips the PR comment in backfill mode but still sets the output", async () => {
+    const { freshCore, postPrCommentSpy } = await runFailedMain({
+      inputs: { "github-token": "ghp_test", "evaluate-pr": "99" },
+    });
+
+    expect(postPrCommentSpy).not.toHaveBeenCalled();
+    expect(freshCore.setOutput).toHaveBeenCalledWith(
+      "release-brief-json",
+      expect.stringContaining('"verdict":"cannot_evaluate"'),
+    );
+  });
+
+  it("never lets a comment-posting failure mask the original error", async () => {
+    vi.resetModules();
+    const freshCore = await import("@actions/core");
+    const freshGithub = await import("@actions/github");
+    const freshGate = await import("../gate.js");
+    const freshHealers = await import("../healers/index.js");
+
+    vi.mocked(freshCore.getInput).mockImplementation(
+      (name: string) =>
+        ({ "github-token": "ghp_test", "fail-mode": "closed" })[name] ?? "",
+    );
+    (freshGithub.context as { payload: { pull_request?: { number: number } } }).payload =
+      {
+        pull_request: { number: 42 },
+      };
+    vi.spyOn(freshHealers, "registerHealer").mockImplementation(() => undefined);
+    vi.spyOn(freshGate, "evaluateGate").mockRejectedValue(new Error("boom"));
+    vi.spyOn(freshGate, "postPrComment").mockRejectedValue(new Error("403 forbidden"));
+    freshGate.setResolvedAvailabilityStance(null);
+
+    await import("../main.js");
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(freshCore.setFailed).toHaveBeenCalledWith(expect.stringContaining("boom"));
+    expect(freshCore.setFailed).toHaveBeenCalledTimes(1);
+  });
+});

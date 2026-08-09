@@ -1,4 +1,17 @@
 /**
+ * ADR-011 §2: the disposition, once resolved, is the axis that decides whether a
+ * red input blocks the release. Checks with no disposition — no `input_relevance`
+ * config, an externally-built CiSummary, or a stored pre-ADR-011 evaluation —
+ * fall back to `required`, which is byte-for-byte the pre-ADR-011 behavior
+ * (the default mapping is required -> blocking, non-required -> advisory).
+ */
+export function checkCountsTowardBlocking(check) {
+    const kind = check.disposition?.kind;
+    if (kind === undefined)
+        return check.required;
+    return kind === "blocking" || kind === "missing_blocking";
+}
+/**
  * Composite release readiness decision (ADR-006).
  */
 export function computeReleaseReady(input) {
@@ -17,7 +30,7 @@ export function computeReleaseReady(input) {
     }
     if (input.ciSummary) {
         if (!input.ciSummary.allRequiredPassed) {
-            const failed = input.ciSummary.checks.filter((c) => c.required &&
+            const failed = input.ciSummary.checks.filter((c) => checkCountsTowardBlocking(c) &&
                 (c.status === "fail" || c.status === "missing" || c.status === "stale"));
             for (const check of failed) {
                 reasons.push(`Required CI check "${check.name}" is ${check.status.toUpperCase()}`);

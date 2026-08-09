@@ -1,8 +1,10 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import {
+  buildCannotEvaluateBrief,
   evaluateGate,
   formatGateReport,
+  getResolvedAvailabilityStance,
   postPrComment,
   createCheckRun,
   managePrLabels,
@@ -11,6 +13,7 @@ import {
   resolveCheckName,
   wrapCollapsibleSection,
 } from "./gate.js";
+import { renderReleaseBrief } from "./release-brief.js";
 import { deliverWebhooks, storeEvaluationDetailed } from "./notify.js";
 import { buildCloudFooterLine } from "./cloud-upsell.js";
 import {
@@ -193,6 +196,46 @@ async function runSelfHeal(
   }
 
   return results;
+}
+
+/**
+ * ADR-011 §4 — the matched context's availability stance wins over the action-input
+ * fail-mode. Absent a stance (no context matched, or the run failed before matching)
+ * behaviour is exactly what it was before ADR-011.
+ */
+function resolveEffectiveFailMode(environment: string | undefined): "open" | "closed" {
+  const stance = getResolvedAvailabilityStance();
+  if (stance === "fail_open") return "open";
+  if (stance === "fail_closed") return "closed";
+  return resolveFailMode(core.getInput("fail-mode"), environment);
+}
+
+/**
+ * Post (or edit in place) the cannot-evaluate Release Brief on the PR. Deliberately
+ * swallows every failure of its own: the caller is already reporting a real error and
+ * must not have it replaced by "could not post a comment".
+ */
+async function postCannotEvaluateBrief(
+  error: unknown,
+  failMode: "open" | "closed",
+): Promise<void> {
+  try {
+    const githubToken =
+      core.getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
+    // backfill/re-evaluation runs suppress PR comments (see evaluate-pr above).
+    const backfillMode = Boolean(core.getInput("evaluate-pr").trim());
+    const brief = buildCannotEvaluateBrief(
+      String(error instanceof Error ? error.message : error),
+      failMode === "open" ? "fail_open" : "fail_closed",
+    );
+    core.setOutput("release-brief-json", JSON.stringify(brief));
+
+    const { prNumber } = resolveEvaluationTarget(github.context);
+    if (!githubToken || !prNumber || backfillMode) return;
+    await postPrComment(renderReleaseBrief(brief), prNumber, githubToken);
+  } catch (postError) {
+    core.debug(`Cannot-evaluate brief could not be posted: ${postError}`);
+  }
 }
 
 async function run(): Promise<void> {
@@ -543,6 +586,9 @@ async function run(): Promise<void> {
       evaluation.releaseReady !== undefined ? String(evaluation.releaseReady) : "",
     );
     core.setOutput("evaluation-json", JSON.stringify(evaluation));
+    if (evaluation.releaseBrief) {
+      core.setOutput("release-brief-json", JSON.stringify(evaluation.releaseBrief));
+    }
     const verdict = buildGateVerdict(evaluation, {
       trustRuntime: readTrustRuntime(),
       agentId: resolveAgentProvenanceId(evaluation),
@@ -771,13 +817,21 @@ async function run(): Promise<void> {
           `risk=${evaluation.riskScore} (threshold: ${config.riskThreshold})`;
     core.setFailed(blockReason);
   } catch (error) {
+    const environment = core.getInput("environment") || undefined;
+    const failMode = resolveEffectiveFailMode(environment);
+
     if (error instanceof PolicyOverrideError) {
+      // An unusable override is still a run that could not evaluate — ADR-011 §1
+      // owes the PR a brief here too, with the validation message as the reason.
+      await postCannotEvaluateBrief(error, failMode);
       core.setFailed(`Invalid policy override: ${error.message}`);
       return;
     }
 
-    const environment = core.getInput("environment") || undefined;
-    const failMode = resolveFailMode(core.getInput("fail-mode"), environment);
+    // ADR-011 §1: "silence is a bug." A run that could not evaluate still owes the
+    // PR a brief. Best-effort — a posting failure must never mask the real error.
+    await postCannotEvaluateBrief(error, failMode);
+
     if (failMode === "open") {
       core.warning(
         `Trailhead evaluation failed — proceeding with deployment (fail-open). Error: ${error}`,

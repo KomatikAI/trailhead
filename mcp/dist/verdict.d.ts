@@ -182,13 +182,13 @@ export declare const TrailheadVerdictSchema: z.ZodObject<{
         releaseReadyReasons: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
         policyFindings: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     }, "strip", z.ZodTypeAny, {
-        healthScore: number;
         riskScore: number;
+        healthScore: number;
         policyFindings?: string[] | undefined;
         releaseReadyReasons?: string[] | undefined;
     }, {
-        healthScore: number;
         riskScore: number;
+        healthScore: number;
         policyFindings?: string[] | undefined;
         releaseReadyReasons?: string[] | undefined;
     }>>;
@@ -238,8 +238,8 @@ export declare const TrailheadVerdictSchema: z.ZodObject<{
     } | undefined;
     gate_mode?: "release-ready" | "advisory" | "risk-only" | undefined;
     _legacy?: {
-        healthScore: number;
         riskScore: number;
+        healthScore: number;
         policyFindings?: string[] | undefined;
         releaseReadyReasons?: string[] | undefined;
     } | undefined;
@@ -289,8 +289,8 @@ export declare const TrailheadVerdictSchema: z.ZodObject<{
     } | undefined;
     gate_mode?: "release-ready" | "advisory" | "risk-only" | undefined;
     _legacy?: {
-        healthScore: number;
         riskScore: number;
+        healthScore: number;
         policyFindings?: string[] | undefined;
         releaseReadyReasons?: string[] | undefined;
     } | undefined;

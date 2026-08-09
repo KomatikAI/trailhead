@@ -4,6 +4,15 @@ All notable changes to Trailhead will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Release Brief** ([ADR-011](docs/adr/011-release-brief-and-input-relevance.md)) — every evaluation now leads its PR comment, job summary, and check-run summary with a structured brief: verdict, risk with effective threshold and top movers, **enumerated** findings, one row per CI input with its disposition and reason, a one-line delta against the previous evaluation, next actions, and the override record. Findings are enumerated, never counted — `"CI integrity blocking patterns detected (4)"` is now four addressable findings with evidence. A run that cannot evaluate at all still posts a `cannot_evaluate` brief naming the failure ("silence is a bug"). See [docs/release-brief.md](docs/release-brief.md).
+- **Input relevance dispositions** ([ADR-011](docs/adr/011-release-brief-and-input-relevance.md) §2) — new `contexts[].input_relevance` config maps a check pattern to `blocking` / `advisory` / `irrelevant(reason)` per branch pair, extending ADR-009's status enum with what a check _means_ for this decision. `missing_blocking` is derived from ADR-009 `missing` on a blocking check. Repos with no `input_relevance` block are unaffected: the default mapping (required → blocking, non-required → advisory) reproduces the previous rollup exactly.
+- **`risk_only` override scope** ([ADR-011](docs/adr/011-release-brief-and-input-relevance.md) §3) — the `trailhead-override` label override now carries a scope. `risk_only` overrides the risk verdict and policy findings but never mechanical blocking inputs (red tests stay red), and records which blocking reasons it cleared versus which survived. Existing overrides keep their previous `full` behaviour.
+- **Per-context availability stance** ([ADR-011](docs/adr/011-release-brief-and-input-relevance.md) §4) — new `contexts[].availability: fail_open | fail_closed`. When the evaluation itself fails, the matched context's stance overrides the `fail-mode` action input; with no stance configured, behaviour is unchanged.
+- **`release-brief-json` Action output** — the Release Brief as JSON for downstream workflow steps. Also set, with verdict `cannot_evaluate`, when the evaluation fails.
+- **Evaluation store: `release_brief` + `enumerated_findings`** — new `jsonb` columns (`cloud/migrations/006_release_brief.sql`, Komatik copy in `docs/komatik-migrations/`), and `policy_override` now always records an explicit `scope`. Stores that have not applied the migration degrade gracefully rather than failing: the insert is retried without the new columns and the delta lookup falls back to its previous select.
+
 ### Fixed
 
 - **PR evaluation no longer truncates at 100 files** ([#344](https://github.com/KomatikAI/trailhead/issues/344)) — the Action, GitHub App, MCP policy tools, and DORA file scans now paginate GitHub's PR-files endpoint. Large PR risk, scope, and submission checks receive the complete available file set.

@@ -53,24 +53,65 @@ export declare const AgentBriefMode: z.ZodEnum<["off", "collapsed", "expanded"]>
 export type AgentBriefMode = z.infer<typeof AgentBriefMode>;
 export declare const CiCheckStatusEnum: z.ZodEnum<["pass", "fail", "skip", "pending", "stale", "missing"]>;
 export type CiCheckStatusEnum = z.infer<typeof CiCheckStatusEnum>;
+export declare const InputDispositionKind: z.ZodEnum<["blocking", "advisory", "irrelevant", "missing_blocking"]>;
+export type InputDispositionKind = z.infer<typeof InputDispositionKind>;
+export declare const InputDisposition: z.ZodObject<{
+    kind: z.ZodEnum<["blocking", "advisory", "irrelevant", "missing_blocking"]>;
+    reason: z.ZodOptional<z.ZodString>;
+    /** `policy` = an input_relevance entry matched; `default` = required/optional fallback. */
+    source: z.ZodEnum<["policy", "default"]>;
+}, "strip", z.ZodTypeAny, {
+    source: "policy" | "default";
+    kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+    reason?: string | undefined;
+}, {
+    source: "policy" | "default";
+    kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+    reason?: string | undefined;
+}>;
+export type InputDisposition = z.infer<typeof InputDisposition>;
 export declare const CiCheck: z.ZodObject<{
     name: z.ZodString;
     status: z.ZodEnum<["pass", "fail", "skip", "pending", "stale", "missing"]>;
     conclusion: z.ZodOptional<z.ZodString>;
     detailsUrl: z.ZodOptional<z.ZodString>;
     required: z.ZodBoolean;
+    disposition: z.ZodOptional<z.ZodObject<{
+        kind: z.ZodEnum<["blocking", "advisory", "irrelevant", "missing_blocking"]>;
+        reason: z.ZodOptional<z.ZodString>;
+        /** `policy` = an input_relevance entry matched; `default` = required/optional fallback. */
+        source: z.ZodEnum<["policy", "default"]>;
+    }, "strip", z.ZodTypeAny, {
+        source: "policy" | "default";
+        kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+        reason?: string | undefined;
+    }, {
+        source: "policy" | "default";
+        kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+        reason?: string | undefined;
+    }>>;
 }, "strip", z.ZodTypeAny, {
     status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
     name: string;
     required: boolean;
     conclusion?: string | undefined;
     detailsUrl?: string | undefined;
+    disposition?: {
+        source: "policy" | "default";
+        kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+        reason?: string | undefined;
+    } | undefined;
 }, {
     status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
     name: string;
     required: boolean;
     conclusion?: string | undefined;
     detailsUrl?: string | undefined;
+    disposition?: {
+        source: "policy" | "default";
+        kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+        reason?: string | undefined;
+    } | undefined;
 }>;
 export type CiCheck = z.infer<typeof CiCheck>;
 export declare const CiSummary: z.ZodObject<{
@@ -80,18 +121,42 @@ export declare const CiSummary: z.ZodObject<{
         conclusion: z.ZodOptional<z.ZodString>;
         detailsUrl: z.ZodOptional<z.ZodString>;
         required: z.ZodBoolean;
+        disposition: z.ZodOptional<z.ZodObject<{
+            kind: z.ZodEnum<["blocking", "advisory", "irrelevant", "missing_blocking"]>;
+            reason: z.ZodOptional<z.ZodString>;
+            /** `policy` = an input_relevance entry matched; `default` = required/optional fallback. */
+            source: z.ZodEnum<["policy", "default"]>;
+        }, "strip", z.ZodTypeAny, {
+            source: "policy" | "default";
+            kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+            reason?: string | undefined;
+        }, {
+            source: "policy" | "default";
+            kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+            reason?: string | undefined;
+        }>>;
     }, "strip", z.ZodTypeAny, {
         status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
         name: string;
         required: boolean;
         conclusion?: string | undefined;
         detailsUrl?: string | undefined;
+        disposition?: {
+            source: "policy" | "default";
+            kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+            reason?: string | undefined;
+        } | undefined;
     }, {
         status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
         name: string;
         required: boolean;
         conclusion?: string | undefined;
         detailsUrl?: string | undefined;
+        disposition?: {
+            source: "policy" | "default";
+            kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+            reason?: string | undefined;
+        } | undefined;
     }>, "many">;
     allRequiredPassed: z.ZodBoolean;
     pendingCount: z.ZodNumber;
@@ -104,6 +169,11 @@ export declare const CiSummary: z.ZodObject<{
         required: boolean;
         conclusion?: string | undefined;
         detailsUrl?: string | undefined;
+        disposition?: {
+            source: "policy" | "default";
+            kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+            reason?: string | undefined;
+        } | undefined;
     }[];
     allRequiredPassed: boolean;
     pendingCount: number;
@@ -116,6 +186,11 @@ export declare const CiSummary: z.ZodObject<{
         required: boolean;
         conclusion?: string | undefined;
         detailsUrl?: string | undefined;
+        disposition?: {
+            source: "policy" | "default";
+            kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+            reason?: string | undefined;
+        } | undefined;
     }[];
     allRequiredPassed: boolean;
     pendingCount: number;
@@ -319,6 +394,8 @@ export declare const PolicyOverrideChanges: z.ZodObject<{
     releaseReady?: true | undefined;
 }>;
 export type PolicyOverrideChanges = z.infer<typeof PolicyOverrideChanges>;
+export declare const OverrideScope: z.ZodEnum<["full", "risk_only"]>;
+export type OverrideScope = z.infer<typeof OverrideScope>;
 export declare const PolicyOverrideAudit: z.ZodObject<{
     source: z.ZodDefault<z.ZodEnum<["workflow", "label"]>>;
     owner: z.ZodString;
@@ -326,6 +403,7 @@ export declare const PolicyOverrideAudit: z.ZodObject<{
     linkedTicket: z.ZodString;
     expiresAt: z.ZodString;
     appliedAt: z.ZodString;
+    scope: z.ZodOptional<z.ZodEnum<["full", "risk_only"]>>;
     changes: z.ZodDefault<z.ZodObject<{
         failMode: z.ZodOptional<z.ZodEnum<["open", "closed"]>>;
         riskThreshold: z.ZodOptional<z.ZodNumber>;
@@ -345,6 +423,10 @@ export declare const PolicyOverrideAudit: z.ZodObject<{
     preOverrideDecision: z.ZodOptional<z.ZodEnum<["allow", "warn", "block"]>>;
     preOverrideReleaseReady: z.ZodOptional<z.ZodBoolean>;
     preOverrideReasons: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    /** Blocking reasons the override cleared (risk/policy driven). */
+    overriddenReasons: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    /** Blocking reasons that survived the override (mechanical CI, ADR-011 §3). */
+    retainedReasons: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
     reason: string;
     source: "workflow" | "label";
@@ -358,9 +440,12 @@ export declare const PolicyOverrideAudit: z.ZodObject<{
         warnThreshold?: number | undefined;
         releaseReady?: true | undefined;
     };
+    scope?: "full" | "risk_only" | undefined;
     preOverrideDecision?: "allow" | "warn" | "block" | undefined;
     preOverrideReleaseReady?: boolean | undefined;
     preOverrideReasons?: string[] | undefined;
+    overriddenReasons?: string[] | undefined;
+    retainedReasons?: string[] | undefined;
 }, {
     reason: string;
     owner: string;
@@ -368,6 +453,7 @@ export declare const PolicyOverrideAudit: z.ZodObject<{
     expiresAt: string;
     appliedAt: string;
     source?: "workflow" | "label" | undefined;
+    scope?: "full" | "risk_only" | undefined;
     changes?: {
         failMode?: "open" | "closed" | undefined;
         riskThreshold?: number | undefined;
@@ -377,8 +463,226 @@ export declare const PolicyOverrideAudit: z.ZodObject<{
     preOverrideDecision?: "allow" | "warn" | "block" | undefined;
     preOverrideReleaseReady?: boolean | undefined;
     preOverrideReasons?: string[] | undefined;
+    overriddenReasons?: string[] | undefined;
+    retainedReasons?: string[] | undefined;
 }>;
 export type PolicyOverrideAudit = z.infer<typeof PolicyOverrideAudit>;
+export declare const BriefVerdict: z.ZodEnum<["allow", "warn", "block", "cannot_evaluate"]>;
+export type BriefVerdict = z.infer<typeof BriefVerdict>;
+export declare const BriefFinding: z.ZodObject<{
+    id: z.ZodString;
+    title: z.ZodString;
+    evidence: z.ZodOptional<z.ZodString>;
+    severity: z.ZodEnum<["blocking", "warn", "advisory"]>;
+}, "strip", z.ZodTypeAny, {
+    severity: "warn" | "advisory" | "blocking";
+    title: string;
+    id: string;
+    evidence?: string | undefined;
+}, {
+    severity: "warn" | "advisory" | "blocking";
+    title: string;
+    id: string;
+    evidence?: string | undefined;
+}>;
+export type BriefFinding = z.infer<typeof BriefFinding>;
+export declare const BriefInput: z.ZodObject<{
+    checkName: z.ZodString;
+    /** ADR-009 status, carried as a string so the renderer stays policy-agnostic. */
+    status: z.ZodString;
+    /** ADR-011 §2 disposition kind. */
+    disposition: z.ZodString;
+    reason: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    status: string;
+    disposition: string;
+    checkName: string;
+    reason?: string | undefined;
+}, {
+    status: string;
+    disposition: string;
+    checkName: string;
+    reason?: string | undefined;
+}>;
+export type BriefInput = z.infer<typeof BriefInput>;
+export declare const BriefAction: z.ZodObject<{
+    kind: z.ZodEnum<["fix", "override", "wait"]>;
+    detail: z.ZodString;
+    link: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    detail: string;
+    kind: "fix" | "override" | "wait";
+    link?: string | undefined;
+}, {
+    detail: string;
+    kind: "fix" | "override" | "wait";
+    link?: string | undefined;
+}>;
+export type BriefAction = z.infer<typeof BriefAction>;
+export declare const BriefOverride: z.ZodObject<{
+    by: z.ZodString;
+    at: z.ZodString;
+    scope: z.ZodString;
+    rationale: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    at: string;
+    scope: string;
+    by: string;
+    rationale: string;
+}, {
+    at: string;
+    scope: string;
+    by: string;
+    rationale: string;
+}>;
+export type BriefOverride = z.infer<typeof BriefOverride>;
+export declare const ReleaseBrief: z.ZodObject<{
+    verdict: z.ZodEnum<["allow", "warn", "block", "cannot_evaluate"]>;
+    riskScore: z.ZodOptional<z.ZodNumber>;
+    riskThreshold: z.ZodOptional<z.ZodNumber>;
+    topMovers: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        factor: z.ZodString;
+        score: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        score: number;
+        factor: string;
+    }, {
+        score: number;
+        factor: string;
+    }>, "many">>;
+    findings: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        title: z.ZodString;
+        evidence: z.ZodOptional<z.ZodString>;
+        severity: z.ZodEnum<["blocking", "warn", "advisory"]>;
+    }, "strip", z.ZodTypeAny, {
+        severity: "warn" | "advisory" | "blocking";
+        title: string;
+        id: string;
+        evidence?: string | undefined;
+    }, {
+        severity: "warn" | "advisory" | "blocking";
+        title: string;
+        id: string;
+        evidence?: string | undefined;
+    }>, "many">;
+    inputs: z.ZodArray<z.ZodObject<{
+        checkName: z.ZodString;
+        /** ADR-009 status, carried as a string so the renderer stays policy-agnostic. */
+        status: z.ZodString;
+        /** ADR-011 §2 disposition kind. */
+        disposition: z.ZodString;
+        reason: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        status: string;
+        disposition: string;
+        checkName: string;
+        reason?: string | undefined;
+    }, {
+        status: string;
+        disposition: string;
+        checkName: string;
+        reason?: string | undefined;
+    }>, "many">;
+    delta: z.ZodOptional<z.ZodString>;
+    actions: z.ZodArray<z.ZodObject<{
+        kind: z.ZodEnum<["fix", "override", "wait"]>;
+        detail: z.ZodString;
+        link: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        detail: string;
+        kind: "fix" | "override" | "wait";
+        link?: string | undefined;
+    }, {
+        detail: string;
+        kind: "fix" | "override" | "wait";
+        link?: string | undefined;
+    }>, "many">;
+    override: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        by: z.ZodString;
+        at: z.ZodString;
+        scope: z.ZodString;
+        rationale: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        at: string;
+        scope: string;
+        by: string;
+        rationale: string;
+    }, {
+        at: string;
+        scope: string;
+        by: string;
+        rationale: string;
+    }>>>;
+    cannotEvaluateReason: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    verdict: "allow" | "warn" | "block" | "cannot_evaluate";
+    findings: {
+        severity: "warn" | "advisory" | "blocking";
+        title: string;
+        id: string;
+        evidence?: string | undefined;
+    }[];
+    inputs: {
+        status: string;
+        disposition: string;
+        checkName: string;
+        reason?: string | undefined;
+    }[];
+    actions: {
+        detail: string;
+        kind: "fix" | "override" | "wait";
+        link?: string | undefined;
+    }[];
+    riskThreshold?: number | undefined;
+    override?: {
+        at: string;
+        scope: string;
+        by: string;
+        rationale: string;
+    } | null | undefined;
+    riskScore?: number | undefined;
+    topMovers?: {
+        score: number;
+        factor: string;
+    }[] | undefined;
+    delta?: string | undefined;
+    cannotEvaluateReason?: string | undefined;
+}, {
+    verdict: "allow" | "warn" | "block" | "cannot_evaluate";
+    findings: {
+        severity: "warn" | "advisory" | "blocking";
+        title: string;
+        id: string;
+        evidence?: string | undefined;
+    }[];
+    inputs: {
+        status: string;
+        disposition: string;
+        checkName: string;
+        reason?: string | undefined;
+    }[];
+    actions: {
+        detail: string;
+        kind: "fix" | "override" | "wait";
+        link?: string | undefined;
+    }[];
+    riskThreshold?: number | undefined;
+    override?: {
+        at: string;
+        scope: string;
+        by: string;
+        rationale: string;
+    } | null | undefined;
+    riskScore?: number | undefined;
+    topMovers?: {
+        score: number;
+        factor: string;
+    }[] | undefined;
+    delta?: string | undefined;
+    cannotEvaluateReason?: string | undefined;
+}>;
+export type ReleaseBrief = z.infer<typeof ReleaseBrief>;
 export declare const CreditMeterResult: z.ZodObject<{
     metered: z.ZodBoolean;
     skipped: z.ZodOptional<z.ZodBoolean>;
@@ -468,6 +772,168 @@ export declare const GateEvaluation: z.ZodObject<{
     environment: z.ZodOptional<z.ZodString>;
     service: z.ZodOptional<z.ZodString>;
     policyFindings: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    enumeratedFindings: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        title: z.ZodString;
+        evidence: z.ZodOptional<z.ZodString>;
+        severity: z.ZodEnum<["blocking", "warn", "advisory"]>;
+    }, "strip", z.ZodTypeAny, {
+        severity: "warn" | "advisory" | "blocking";
+        title: string;
+        id: string;
+        evidence?: string | undefined;
+    }, {
+        severity: "warn" | "advisory" | "blocking";
+        title: string;
+        id: string;
+        evidence?: string | undefined;
+    }>, "many">>;
+    releaseBrief: z.ZodOptional<z.ZodObject<{
+        verdict: z.ZodEnum<["allow", "warn", "block", "cannot_evaluate"]>;
+        riskScore: z.ZodOptional<z.ZodNumber>;
+        riskThreshold: z.ZodOptional<z.ZodNumber>;
+        topMovers: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            factor: z.ZodString;
+            score: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            score: number;
+            factor: string;
+        }, {
+            score: number;
+            factor: string;
+        }>, "many">>;
+        findings: z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            title: z.ZodString;
+            evidence: z.ZodOptional<z.ZodString>;
+            severity: z.ZodEnum<["blocking", "warn", "advisory"]>;
+        }, "strip", z.ZodTypeAny, {
+            severity: "warn" | "advisory" | "blocking";
+            title: string;
+            id: string;
+            evidence?: string | undefined;
+        }, {
+            severity: "warn" | "advisory" | "blocking";
+            title: string;
+            id: string;
+            evidence?: string | undefined;
+        }>, "many">;
+        inputs: z.ZodArray<z.ZodObject<{
+            checkName: z.ZodString;
+            /** ADR-009 status, carried as a string so the renderer stays policy-agnostic. */
+            status: z.ZodString;
+            /** ADR-011 §2 disposition kind. */
+            disposition: z.ZodString;
+            reason: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            status: string;
+            disposition: string;
+            checkName: string;
+            reason?: string | undefined;
+        }, {
+            status: string;
+            disposition: string;
+            checkName: string;
+            reason?: string | undefined;
+        }>, "many">;
+        delta: z.ZodOptional<z.ZodString>;
+        actions: z.ZodArray<z.ZodObject<{
+            kind: z.ZodEnum<["fix", "override", "wait"]>;
+            detail: z.ZodString;
+            link: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            detail: string;
+            kind: "fix" | "override" | "wait";
+            link?: string | undefined;
+        }, {
+            detail: string;
+            kind: "fix" | "override" | "wait";
+            link?: string | undefined;
+        }>, "many">;
+        override: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            by: z.ZodString;
+            at: z.ZodString;
+            scope: z.ZodString;
+            rationale: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            at: string;
+            scope: string;
+            by: string;
+            rationale: string;
+        }, {
+            at: string;
+            scope: string;
+            by: string;
+            rationale: string;
+        }>>>;
+        cannotEvaluateReason: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        verdict: "allow" | "warn" | "block" | "cannot_evaluate";
+        findings: {
+            severity: "warn" | "advisory" | "blocking";
+            title: string;
+            id: string;
+            evidence?: string | undefined;
+        }[];
+        inputs: {
+            status: string;
+            disposition: string;
+            checkName: string;
+            reason?: string | undefined;
+        }[];
+        actions: {
+            detail: string;
+            kind: "fix" | "override" | "wait";
+            link?: string | undefined;
+        }[];
+        riskThreshold?: number | undefined;
+        override?: {
+            at: string;
+            scope: string;
+            by: string;
+            rationale: string;
+        } | null | undefined;
+        riskScore?: number | undefined;
+        topMovers?: {
+            score: number;
+            factor: string;
+        }[] | undefined;
+        delta?: string | undefined;
+        cannotEvaluateReason?: string | undefined;
+    }, {
+        verdict: "allow" | "warn" | "block" | "cannot_evaluate";
+        findings: {
+            severity: "warn" | "advisory" | "blocking";
+            title: string;
+            id: string;
+            evidence?: string | undefined;
+        }[];
+        inputs: {
+            status: string;
+            disposition: string;
+            checkName: string;
+            reason?: string | undefined;
+        }[];
+        actions: {
+            detail: string;
+            kind: "fix" | "override" | "wait";
+            link?: string | undefined;
+        }[];
+        riskThreshold?: number | undefined;
+        override?: {
+            at: string;
+            scope: string;
+            by: string;
+            rationale: string;
+        } | null | undefined;
+        riskScore?: number | undefined;
+        topMovers?: {
+            score: number;
+            factor: string;
+        }[] | undefined;
+        delta?: string | undefined;
+        cannotEvaluateReason?: string | undefined;
+    }>>;
     pr: z.ZodOptional<z.ZodObject<{
         provenance: z.ZodOptional<z.ZodObject<{
             type: z.ZodEnum<["human", "dependabot", "copilot", "codex", "claude", "custom-bot", "unknown"]>;
@@ -550,6 +1016,7 @@ export declare const GateEvaluation: z.ZodObject<{
         linkedTicket: z.ZodString;
         expiresAt: z.ZodString;
         appliedAt: z.ZodString;
+        scope: z.ZodOptional<z.ZodEnum<["full", "risk_only"]>>;
         changes: z.ZodDefault<z.ZodObject<{
             failMode: z.ZodOptional<z.ZodEnum<["open", "closed"]>>;
             riskThreshold: z.ZodOptional<z.ZodNumber>;
@@ -569,6 +1036,10 @@ export declare const GateEvaluation: z.ZodObject<{
         preOverrideDecision: z.ZodOptional<z.ZodEnum<["allow", "warn", "block"]>>;
         preOverrideReleaseReady: z.ZodOptional<z.ZodBoolean>;
         preOverrideReasons: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        /** Blocking reasons the override cleared (risk/policy driven). */
+        overriddenReasons: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        /** Blocking reasons that survived the override (mechanical CI, ADR-011 §3). */
+        retainedReasons: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     }, "strip", z.ZodTypeAny, {
         reason: string;
         source: "workflow" | "label";
@@ -582,9 +1053,12 @@ export declare const GateEvaluation: z.ZodObject<{
             warnThreshold?: number | undefined;
             releaseReady?: true | undefined;
         };
+        scope?: "full" | "risk_only" | undefined;
         preOverrideDecision?: "allow" | "warn" | "block" | undefined;
         preOverrideReleaseReady?: boolean | undefined;
         preOverrideReasons?: string[] | undefined;
+        overriddenReasons?: string[] | undefined;
+        retainedReasons?: string[] | undefined;
     }, {
         reason: string;
         owner: string;
@@ -592,6 +1066,7 @@ export declare const GateEvaluation: z.ZodObject<{
         expiresAt: string;
         appliedAt: string;
         source?: "workflow" | "label" | undefined;
+        scope?: "full" | "risk_only" | undefined;
         changes?: {
             failMode?: "open" | "closed" | undefined;
             riskThreshold?: number | undefined;
@@ -601,6 +1076,8 @@ export declare const GateEvaluation: z.ZodObject<{
         preOverrideDecision?: "allow" | "warn" | "block" | undefined;
         preOverrideReleaseReady?: boolean | undefined;
         preOverrideReasons?: string[] | undefined;
+        overriddenReasons?: string[] | undefined;
+        retainedReasons?: string[] | undefined;
     }>>;
     labelOverrideFeedback: z.ZodOptional<z.ZodObject<{
         status: z.ZodEnum<["applied", "rejected"]>;
@@ -621,18 +1098,42 @@ export declare const GateEvaluation: z.ZodObject<{
             conclusion: z.ZodOptional<z.ZodString>;
             detailsUrl: z.ZodOptional<z.ZodString>;
             required: z.ZodBoolean;
+            disposition: z.ZodOptional<z.ZodObject<{
+                kind: z.ZodEnum<["blocking", "advisory", "irrelevant", "missing_blocking"]>;
+                reason: z.ZodOptional<z.ZodString>;
+                /** `policy` = an input_relevance entry matched; `default` = required/optional fallback. */
+                source: z.ZodEnum<["policy", "default"]>;
+            }, "strip", z.ZodTypeAny, {
+                source: "policy" | "default";
+                kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+                reason?: string | undefined;
+            }, {
+                source: "policy" | "default";
+                kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+                reason?: string | undefined;
+            }>>;
         }, "strip", z.ZodTypeAny, {
             status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
             name: string;
             required: boolean;
             conclusion?: string | undefined;
             detailsUrl?: string | undefined;
+            disposition?: {
+                source: "policy" | "default";
+                kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+                reason?: string | undefined;
+            } | undefined;
         }, {
             status: "pending" | "pass" | "fail" | "skip" | "stale" | "missing";
             name: string;
             required: boolean;
             conclusion?: string | undefined;
             detailsUrl?: string | undefined;
+            disposition?: {
+                source: "policy" | "default";
+                kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+                reason?: string | undefined;
+            } | undefined;
         }>, "many">;
         allRequiredPassed: z.ZodBoolean;
         pendingCount: z.ZodNumber;
@@ -645,6 +1146,11 @@ export declare const GateEvaluation: z.ZodObject<{
             required: boolean;
             conclusion?: string | undefined;
             detailsUrl?: string | undefined;
+            disposition?: {
+                source: "policy" | "default";
+                kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+                reason?: string | undefined;
+            } | undefined;
         }[];
         allRequiredPassed: boolean;
         pendingCount: number;
@@ -657,6 +1163,11 @@ export declare const GateEvaluation: z.ZodObject<{
             required: boolean;
             conclusion?: string | undefined;
             detailsUrl?: string | undefined;
+            disposition?: {
+                source: "policy" | "default";
+                kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+                reason?: string | undefined;
+            } | undefined;
         }[];
         allRequiredPassed: boolean;
         pendingCount: number;
@@ -892,10 +1403,10 @@ export declare const GateEvaluation: z.ZodObject<{
     }>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
+    riskScore: number;
     repoId: string;
     commitSha: string;
     healthScore: number;
-    riskScore: number;
     gateDecision: "allow" | "warn" | "block";
     healthChecks: {
         status: "allow" | "warn" | "block";
@@ -934,6 +1445,46 @@ export declare const GateEvaluation: z.ZodObject<{
     reportUrl?: string | undefined;
     service?: string | undefined;
     policyFindings?: string[] | undefined;
+    enumeratedFindings?: {
+        severity: "warn" | "advisory" | "blocking";
+        title: string;
+        id: string;
+        evidence?: string | undefined;
+    }[] | undefined;
+    releaseBrief?: {
+        verdict: "allow" | "warn" | "block" | "cannot_evaluate";
+        findings: {
+            severity: "warn" | "advisory" | "blocking";
+            title: string;
+            id: string;
+            evidence?: string | undefined;
+        }[];
+        inputs: {
+            status: string;
+            disposition: string;
+            checkName: string;
+            reason?: string | undefined;
+        }[];
+        actions: {
+            detail: string;
+            kind: "fix" | "override" | "wait";
+            link?: string | undefined;
+        }[];
+        riskThreshold?: number | undefined;
+        override?: {
+            at: string;
+            scope: string;
+            by: string;
+            rationale: string;
+        } | null | undefined;
+        riskScore?: number | undefined;
+        topMovers?: {
+            score: number;
+            factor: string;
+        }[] | undefined;
+        delta?: string | undefined;
+        cannotEvaluateReason?: string | undefined;
+    } | undefined;
     pr?: {
         provenance?: {
             type: "unknown" | "human" | "dependabot" | "copilot" | "codex" | "claude" | "custom-bot";
@@ -972,9 +1523,12 @@ export declare const GateEvaluation: z.ZodObject<{
             warnThreshold?: number | undefined;
             releaseReady?: true | undefined;
         };
+        scope?: "full" | "risk_only" | undefined;
         preOverrideDecision?: "allow" | "warn" | "block" | undefined;
         preOverrideReleaseReady?: boolean | undefined;
         preOverrideReasons?: string[] | undefined;
+        overriddenReasons?: string[] | undefined;
+        retainedReasons?: string[] | undefined;
     } | undefined;
     labelOverrideFeedback?: {
         message: string;
@@ -988,6 +1542,11 @@ export declare const GateEvaluation: z.ZodObject<{
             required: boolean;
             conclusion?: string | undefined;
             detailsUrl?: string | undefined;
+            disposition?: {
+                source: "policy" | "default";
+                kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+                reason?: string | undefined;
+            } | undefined;
         }[];
         allRequiredPassed: boolean;
         pendingCount: number;
@@ -1049,10 +1608,10 @@ export declare const GateEvaluation: z.ZodObject<{
     }[] | undefined;
 }, {
     id: string;
+    riskScore: number;
     repoId: string;
     commitSha: string;
     healthScore: number;
-    riskScore: number;
     gateDecision: "allow" | "warn" | "block";
     healthChecks: {
         status: "allow" | "warn" | "block";
@@ -1091,6 +1650,46 @@ export declare const GateEvaluation: z.ZodObject<{
     reportUrl?: string | undefined;
     service?: string | undefined;
     policyFindings?: string[] | undefined;
+    enumeratedFindings?: {
+        severity: "warn" | "advisory" | "blocking";
+        title: string;
+        id: string;
+        evidence?: string | undefined;
+    }[] | undefined;
+    releaseBrief?: {
+        verdict: "allow" | "warn" | "block" | "cannot_evaluate";
+        findings: {
+            severity: "warn" | "advisory" | "blocking";
+            title: string;
+            id: string;
+            evidence?: string | undefined;
+        }[];
+        inputs: {
+            status: string;
+            disposition: string;
+            checkName: string;
+            reason?: string | undefined;
+        }[];
+        actions: {
+            detail: string;
+            kind: "fix" | "override" | "wait";
+            link?: string | undefined;
+        }[];
+        riskThreshold?: number | undefined;
+        override?: {
+            at: string;
+            scope: string;
+            by: string;
+            rationale: string;
+        } | null | undefined;
+        riskScore?: number | undefined;
+        topMovers?: {
+            score: number;
+            factor: string;
+        }[] | undefined;
+        delta?: string | undefined;
+        cannotEvaluateReason?: string | undefined;
+    } | undefined;
     pr?: {
         provenance?: {
             type: "unknown" | "human" | "dependabot" | "copilot" | "codex" | "claude" | "custom-bot";
@@ -1123,6 +1722,7 @@ export declare const GateEvaluation: z.ZodObject<{
         expiresAt: string;
         appliedAt: string;
         source?: "workflow" | "label" | undefined;
+        scope?: "full" | "risk_only" | undefined;
         changes?: {
             failMode?: "open" | "closed" | undefined;
             riskThreshold?: number | undefined;
@@ -1132,6 +1732,8 @@ export declare const GateEvaluation: z.ZodObject<{
         preOverrideDecision?: "allow" | "warn" | "block" | undefined;
         preOverrideReleaseReady?: boolean | undefined;
         preOverrideReasons?: string[] | undefined;
+        overriddenReasons?: string[] | undefined;
+        retainedReasons?: string[] | undefined;
     } | undefined;
     labelOverrideFeedback?: {
         message: string;
@@ -1145,6 +1747,11 @@ export declare const GateEvaluation: z.ZodObject<{
             required: boolean;
             conclusion?: string | undefined;
             detailsUrl?: string | undefined;
+            disposition?: {
+                source: "policy" | "default";
+                kind: "advisory" | "blocking" | "irrelevant" | "missing_blocking";
+                reason?: string | undefined;
+            } | undefined;
         }[];
         allRequiredPassed: boolean;
         pendingCount: number;
@@ -1257,8 +1864,8 @@ export declare const GateApiResponse: z.ZodObject<{
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     id?: string | undefined;
-    healthScore?: number | undefined;
     riskScore?: number | undefined;
+    healthScore?: number | undefined;
     sizeScore?: number | undefined;
     gateDecision?: "allow" | "warn" | "block" | undefined;
     healthChecks?: {
@@ -1280,8 +1887,8 @@ export declare const GateApiResponse: z.ZodObject<{
     reportUrl?: string | undefined;
 }, {
     id?: string | undefined;
-    healthScore?: number | undefined;
     riskScore?: number | undefined;
+    healthScore?: number | undefined;
     sizeScore?: number | undefined;
     gateDecision?: "allow" | "warn" | "block" | undefined;
     healthChecks?: {
@@ -1544,6 +2151,23 @@ export declare const ContextCiConfig: z.ZodObject<{
     missing_required?: "fail" | "skip" | undefined;
 }>;
 export type ContextCiConfig = z.infer<typeof ContextCiConfig>;
+export declare const InputRelevanceEntry: z.ZodObject<{
+    pattern: z.ZodString;
+    disposition: z.ZodEnum<["blocking", "advisory", "irrelevant"]>;
+    reason: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    disposition: "advisory" | "blocking" | "irrelevant";
+    pattern: string;
+    reason?: string | undefined;
+}, {
+    disposition: "advisory" | "blocking" | "irrelevant";
+    pattern: string;
+    reason?: string | undefined;
+}>;
+export type InputRelevanceEntry = z.infer<typeof InputRelevanceEntry>;
+/** ADR-011 §4 — per-branch-pair stance when the evaluation cannot run. */
+export declare const AvailabilityStance: z.ZodEnum<["fail_open", "fail_closed"]>;
+export type AvailabilityStance = z.infer<typeof AvailabilityStance>;
 export declare const TrailheadContext: z.ZodObject<{
     name: z.ZodString;
     match: z.ZodObject<{
@@ -1583,6 +2207,20 @@ export declare const TrailheadContext: z.ZodObject<{
         optional_checks?: string[] | undefined;
         missing_required?: "fail" | "skip" | undefined;
     }>>;
+    input_relevance: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        pattern: z.ZodString;
+        disposition: z.ZodEnum<["blocking", "advisory", "irrelevant"]>;
+        reason: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        disposition: "advisory" | "blocking" | "irrelevant";
+        pattern: string;
+        reason?: string | undefined;
+    }, {
+        disposition: "advisory" | "blocking" | "irrelevant";
+        pattern: string;
+        reason?: string | undefined;
+    }>, "many">>;
+    availability: z.ZodOptional<z.ZodEnum<["fail_open", "fail_closed"]>>;
 }, "strip", z.ZodTypeAny, {
     name: string;
     match: {
@@ -1599,7 +2237,13 @@ export declare const TrailheadContext: z.ZodObject<{
         warn?: number | undefined;
         risk?: number | undefined;
     };
+    input_relevance: {
+        disposition: "advisory" | "blocking" | "irrelevant";
+        pattern: string;
+        reason?: string | undefined;
+    }[];
     environment?: string | undefined;
+    availability?: "fail_open" | "fail_closed" | undefined;
 }, {
     name: string;
     match: {
@@ -1617,6 +2261,12 @@ export declare const TrailheadContext: z.ZodObject<{
         warn?: number | undefined;
         risk?: number | undefined;
     } | undefined;
+    input_relevance?: {
+        disposition: "advisory" | "blocking" | "irrelevant";
+        pattern: string;
+        reason?: string | undefined;
+    }[] | undefined;
+    availability?: "fail_open" | "fail_closed" | undefined;
 }>;
 export type TrailheadContext = z.infer<typeof TrailheadContext>;
 export declare const GateConfig: z.ZodObject<{
@@ -1675,10 +2325,13 @@ export type RiskPathProfileConfig = z.infer<typeof RiskPathProfileConfig>;
 export declare const OverrideConfig: z.ZodObject<{
     enabled: z.ZodDefault<z.ZodBoolean>;
     max_per_week: z.ZodDefault<z.ZodNumber>;
+    scope: z.ZodDefault<z.ZodEnum<["full", "risk_only"]>>;
 }, "strip", z.ZodTypeAny, {
+    scope: "full" | "risk_only";
     enabled: boolean;
     max_per_week: number;
 }, {
+    scope?: "full" | "risk_only" | undefined;
     enabled?: boolean | undefined;
     max_per_week?: number | undefined;
 }>;
@@ -1967,10 +2620,13 @@ export declare const RepoConfig: z.ZodObject<{
     override: z.ZodOptional<z.ZodObject<{
         enabled: z.ZodDefault<z.ZodBoolean>;
         max_per_week: z.ZodDefault<z.ZodNumber>;
+        scope: z.ZodDefault<z.ZodEnum<["full", "risk_only"]>>;
     }, "strip", z.ZodTypeAny, {
+        scope: "full" | "risk_only";
         enabled: boolean;
         max_per_week: number;
     }, {
+        scope?: "full" | "risk_only" | undefined;
         enabled?: boolean | undefined;
         max_per_week?: number | undefined;
     }>>;
@@ -2209,6 +2865,20 @@ export declare const RepoConfig: z.ZodObject<{
             optional_checks?: string[] | undefined;
             missing_required?: "fail" | "skip" | undefined;
         }>>;
+        input_relevance: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            pattern: z.ZodString;
+            disposition: z.ZodEnum<["blocking", "advisory", "irrelevant"]>;
+            reason: z.ZodOptional<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            disposition: "advisory" | "blocking" | "irrelevant";
+            pattern: string;
+            reason?: string | undefined;
+        }, {
+            disposition: "advisory" | "blocking" | "irrelevant";
+            pattern: string;
+            reason?: string | undefined;
+        }>, "many">>;
+        availability: z.ZodOptional<z.ZodEnum<["fail_open", "fail_closed"]>>;
     }, "strip", z.ZodTypeAny, {
         name: string;
         match: {
@@ -2225,7 +2895,13 @@ export declare const RepoConfig: z.ZodObject<{
             warn?: number | undefined;
             risk?: number | undefined;
         };
+        input_relevance: {
+            disposition: "advisory" | "blocking" | "irrelevant";
+            pattern: string;
+            reason?: string | undefined;
+        }[];
         environment?: string | undefined;
+        availability?: "fail_open" | "fail_closed" | undefined;
     }, {
         name: string;
         match: {
@@ -2243,6 +2919,12 @@ export declare const RepoConfig: z.ZodObject<{
             warn?: number | undefined;
             risk?: number | undefined;
         } | undefined;
+        input_relevance?: {
+            disposition: "advisory" | "blocking" | "irrelevant";
+            pattern: string;
+            reason?: string | undefined;
+        }[] | undefined;
+        availability?: "fail_open" | "fail_closed" | undefined;
     }>, "many">>;
     sensitivity: z.ZodDefault<z.ZodObject<{
         high: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -2796,7 +3478,13 @@ export declare const RepoConfig: z.ZodObject<{
             warn?: number | undefined;
             risk?: number | undefined;
         };
+        input_relevance: {
+            disposition: "advisory" | "blocking" | "irrelevant";
+            pattern: string;
+            reason?: string | undefined;
+        }[];
         environment?: string | undefined;
+        availability?: "fail_open" | "fail_closed" | undefined;
     }[];
     sensitivity: {
         high: string[];
@@ -2910,6 +3598,11 @@ export declare const RepoConfig: z.ZodObject<{
             critical?: number | undefined;
         } | undefined;
     };
+    override?: {
+        scope: "full" | "risk_only";
+        enabled: boolean;
+        max_per_week: number;
+    } | undefined;
     remediation?: {
         max_loop_rounds: number;
         enabled: boolean;
@@ -2920,10 +3613,6 @@ export declare const RepoConfig: z.ZodObject<{
             factors: ("code_churn" | "file_count")[];
             mode: "metadata" | "risk";
         };
-    } | undefined;
-    override?: {
-        enabled: boolean;
-        max_per_week: number;
     } | undefined;
     tuning?: {
         auto_downgrade: boolean;
@@ -2975,6 +3664,11 @@ export declare const RepoConfig: z.ZodObject<{
     } | undefined;
 }, {
     schema_version?: number | undefined;
+    override?: {
+        scope?: "full" | "risk_only" | undefined;
+        enabled?: boolean | undefined;
+        max_per_week?: number | undefined;
+    } | undefined;
     remediation?: {
         max_loop_rounds?: number | undefined;
         enabled?: boolean | undefined;
@@ -3007,10 +3701,6 @@ export declare const RepoConfig: z.ZodObject<{
         mode?: "release-ready" | "advisory" | "risk-only" | undefined;
         check_name?: string | undefined;
         agent_brief?: "off" | "collapsed" | "expanded" | undefined;
-    } | undefined;
-    override?: {
-        enabled?: boolean | undefined;
-        max_per_week?: number | undefined;
     } | undefined;
     tuning?: {
         auto_downgrade?: boolean | undefined;
@@ -3072,6 +3762,12 @@ export declare const RepoConfig: z.ZodObject<{
             warn?: number | undefined;
             risk?: number | undefined;
         } | undefined;
+        input_relevance?: {
+            disposition: "advisory" | "blocking" | "irrelevant";
+            pattern: string;
+            reason?: string | undefined;
+        }[] | undefined;
+        availability?: "fail_open" | "fail_closed" | undefined;
     }[] | undefined;
     sensitivity?: {
         high?: string[] | undefined;

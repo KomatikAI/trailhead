@@ -16,6 +16,8 @@ import {
   managePrLabels,
   requestHighRiskReviewers,
   formatGateReport,
+  buildReleaseBrief,
+  MAX_GATE_REPORT_CHARS,
 } from "../gate.js";
 import { buildRemediation } from "../remediation.js";
 import type { GateEvaluation } from "../types.js";
@@ -1440,6 +1442,104 @@ describe("postPrComment", () => {
   it("handles API errors gracefully without throwing", async () => {
     mockListComments.mockRejectedValue(new Error("GitHub API error"));
     await expect(postPrComment("## Report", 42, "ghp_test")).resolves.toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Report clamping (ADR-011 §1) — GitHub rejects an oversized body outright, so
+// the brief cap alone is not enough: the legacy report below it is unbounded.
+// ---------------------------------------------------------------------------
+
+describe("gate report clamping", () => {
+  beforeEach(() => {
+    mockListComments.mockReset().mockResolvedValue({ data: [] });
+    mockCreateComment.mockReset().mockResolvedValue({});
+    mockUpdateComment.mockReset().mockResolvedValue({});
+    mockChecksCreate.mockReset().mockResolvedValue({});
+  });
+
+  function oversizedReport(): string {
+    const evaluation: GateEvaluation = {
+      id: "dg-huge",
+      repoId: "test-owner/test-repo",
+      commitSha: "abc1234567890",
+      healthScore: 100,
+      riskScore: 90,
+      gateDecision: "block",
+      healthChecks: [],
+      riskFactors: [{ type: "sensitive_files", score: 100 }],
+      evaluationMs: 10,
+      gateMode: "release-ready",
+      releaseReady: false,
+      files: Array.from(
+        { length: 3000 },
+        (_, index) => `src/generated/module-${index}/index.ts`,
+      ),
+      enumeratedFindings: Array.from({ length: 40 }, (_, index) => ({
+        id: `ci_integrity/${index + 1}`,
+        title: `workflow bypass pattern #${index + 1}`,
+        evidence: ".github/workflows/ci.yml",
+        severity: "blocking" as const,
+      })),
+      policyFindings: ["CI integrity blocking patterns detected (40)."],
+    };
+    evaluation.releaseBrief = buildReleaseBrief(evaluation, 70);
+
+    const report = formatGateReport(evaluation, 70);
+    expect(report.length).toBeGreaterThan(MAX_GATE_REPORT_CHARS);
+    return report;
+  }
+
+  it("clamps a new PR comment under the limit, keeping the brief", async () => {
+    await postPrComment(oversizedReport(), 42, "ghp_test");
+
+    const body = mockCreateComment.mock.calls[0]?.[0]?.body as string;
+    expect(body.length).toBeLessThanOrEqual(MAX_GATE_REPORT_CHARS);
+    expect(body).toContain("## Release Brief");
+    expect(body).toContain("workflow bypass pattern #1");
+    expect(body).toContain("report truncated");
+    expect(body).toContain("full detail in the stored evaluation / job summary");
+    // The unbounded tail is what gave way, not the brief.
+    expect(body).not.toContain("src/generated/module-2999/index.ts");
+  });
+
+  it("clamps an edited PR comment on the same path", async () => {
+    mockListComments.mockResolvedValue({
+      data: [{ id: 999, body: "<!-- trailhead-gate-report -->\nold report" }],
+    });
+    await postPrComment(oversizedReport(), 42, "ghp_test");
+
+    const body = mockUpdateComment.mock.calls[0]?.[0]?.body as string;
+    expect(body.length).toBeLessThanOrEqual(MAX_GATE_REPORT_CHARS);
+    expect(body).toContain("## Release Brief");
+    expect(body).toContain("report truncated");
+  });
+
+  it("clamps the check-run summary GitHub caps at 65535", async () => {
+    const evaluation: GateEvaluation = {
+      id: "dg-huge",
+      repoId: "test-owner/test-repo",
+      commitSha: "abc1234567890",
+      healthScore: 100,
+      riskScore: 90,
+      gateDecision: "block",
+      healthChecks: [],
+      riskFactors: [],
+      evaluationMs: 10,
+    };
+    await createCheckRun(evaluation, oversizedReport(), "ghp_test");
+
+    const summary = mockChecksCreate.mock.calls[0]?.[0]?.output?.summary as string;
+    expect(summary.length).toBeLessThanOrEqual(MAX_GATE_REPORT_CHARS);
+    expect(summary).toContain("## Release Brief");
+    expect(summary).toContain("report truncated");
+  });
+
+  it("leaves a report that already fits completely untouched", async () => {
+    await postPrComment("## Release Brief\n\nsmall", 42, "ghp_test");
+
+    const body = mockCreateComment.mock.calls[0]?.[0]?.body as string;
+    expect(body).toBe("<!-- trailhead-gate-report -->\n## Release Brief\n\nsmall");
   });
 });
 

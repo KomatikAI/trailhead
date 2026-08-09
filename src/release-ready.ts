@@ -1,4 +1,23 @@
-import type { CiSummary, GateDecision, GateEvaluation, GateMode } from "./types.js";
+import type {
+  CiCheck,
+  CiSummary,
+  GateDecision,
+  GateEvaluation,
+  GateMode,
+} from "./types.js";
+
+/**
+ * ADR-011 §2: the disposition, once resolved, is the axis that decides whether a
+ * red input blocks the release. Checks with no disposition — no `input_relevance`
+ * config, an externally-built CiSummary, or a stored pre-ADR-011 evaluation —
+ * fall back to `required`, which is byte-for-byte the pre-ADR-011 behavior
+ * (the default mapping is required -> blocking, non-required -> advisory).
+ */
+export function checkCountsTowardBlocking(check: CiCheck): boolean {
+  const kind = check.disposition?.kind;
+  if (kind === undefined) return check.required;
+  return kind === "blocking" || kind === "missing_blocking";
+}
 
 export interface ReleaseReadyInput {
   gateMode: GateMode;
@@ -42,7 +61,7 @@ export function computeReleaseReady(input: ReleaseReadyInput): ReleaseReadyResul
     if (!input.ciSummary.allRequiredPassed) {
       const failed = input.ciSummary.checks.filter(
         (c) =>
-          c.required &&
+          checkCountsTowardBlocking(c) &&
           (c.status === "fail" || c.status === "missing" || c.status === "stale"),
       );
       for (const check of failed) {
