@@ -117,6 +117,31 @@ export function parseYaml(input) {
     }
     return root;
 }
+/**
+ * Non-fatal config warnings, emitted by the loader after a successful parse.
+ *
+ * ADR-011 §2 makes `reason` mandatory for `disposition: irrelevant`, but this is
+ * deliberately NOT a Zod refine: `parseRepoConfigContent` returns null for ANY
+ * schema violation, which drops the entire repo config back to hardcoded
+ * defaults. Degrading a whole config over one missing reason string is worse
+ * than narrating it, so the entry still parses and the Release Brief prints a
+ * placeholder reason (see MISSING_IRRELEVANT_REASON in input-relevance.ts).
+ */
+export function collectConfigWarnings(config) {
+    const warnings = [];
+    for (const context of config.contexts) {
+        for (const entry of context.input_relevance) {
+            if (entry.disposition !== "irrelevant")
+                continue;
+            if (entry.reason !== undefined && entry.reason.trim() !== "")
+                continue;
+            warnings.push(`contexts."${context.name}".input_relevance: pattern "${entry.pattern}" is ` +
+                `"disposition: irrelevant" with no reason. ADR-011 requires a reason for ` +
+                `irrelevant inputs; the Release Brief will show a placeholder until one is set.`);
+        }
+    }
+    return warnings;
+}
 export function parseRepoConfigContent(content) {
     const raw = parseYaml(content);
     const parsed = RepoConfig.safeParse(raw);

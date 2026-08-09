@@ -3,11 +3,18 @@ import * as github from "@actions/github";
 import { GateApiResponse as GateApiResponseSchema } from "./types.js";
 import type {
   TrailheadConfig,
+  AvailabilityStance,
+  BriefAction,
+  BriefFinding,
+  BriefVerdict,
   GateApiResponse,
   GateDecision,
   GateEvaluation,
   HealthCheckResult,
+  InputRelevanceEntry,
   PrProvenance,
+  ReleaseBrief,
+  RemediationSeverity,
   RepoConfig,
   RiskFactor,
   GateMode,
@@ -32,10 +39,16 @@ import {
 import {
   applyReleaseReadyToEvaluation,
   checkConclusionForEvaluation,
+  checkCountsTowardBlocking,
   computeReleaseReady,
   resolveCheckName,
   shouldBlockMerge,
 } from "./release-ready.js";
+import {
+  dispositionCountsTowardBlocking,
+  resolveDispositions,
+} from "./input-relevance.js";
+import { formatEvaluationDelta, renderReleaseBrief } from "./release-brief.js";
 import {
   computeRiskScore as computeRiskScoreShared,
   weightedAverageScores,
@@ -67,9 +80,11 @@ import {
   fetchPreviousEvaluationForPr,
   countRecentLabelOverrides,
 } from "./evaluation-history.js";
+import type { PreviousEvaluationSnapshot } from "./loop-bookkeeping.js";
 import {
   applyLabelOverrideToEvaluation,
   hasOverrideLabel,
+  OVERRIDE_LABEL,
   resolveLabelOverride,
 } from "./override.js";
 import {
@@ -627,13 +642,15 @@ async function detectPrProvenance(
 interface CiIntegrityDetection {
   factor: RiskFactor | null;
   blockingPatterns: string[];
+  /** Surfaced (not only buried in factor.detail) so ADR-011 can enumerate them. */
+  warningSignals: string[];
 }
 
 function detectCiIntegrityRisk(files: PrFileInfo[]): CiIntegrityDetection {
   const { score, blockingPatterns, warningSignals } = detectCiIntegrity(files);
 
   if (score === 0) {
-    return { factor: null, blockingPatterns: [] };
+    return { factor: null, blockingPatterns: [], warningSignals: [] };
   }
 
   const factor: RiskFactor = {
@@ -646,7 +663,7 @@ function detectCiIntegrityRisk(files: PrFileInfo[]): CiIntegrityDetection {
     },
   };
 
-  return { factor, blockingPatterns };
+  return { factor, blockingPatterns, warningSignals };
 }
 
 // ---------------------------------------------------------------------------
@@ -1548,6 +1565,7 @@ async function applyLabelOverrideIfNeeded(input: {
   const overrideSettings = input.repoConfig?.override ?? {
     enabled: true,
     max_per_week: 5,
+    scope: "full" as const,
   };
 
   const comments = await fetchPrCommentsForOverride(input.prNumber, input.githubToken);
@@ -1568,22 +1586,33 @@ async function applyLabelOverrideIfNeeded(input: {
     config: {
       enabled: overrideSettings.enabled,
       maxPerWeek: overrideSettings.max_per_week,
+      scope: overrideSettings.scope,
     },
     recentOverrideCount,
     releaseResult: input.releaseResult,
     gateDecision: input.gateDecision,
     prNumber: input.prNumber,
+    ci: input.evaluation.ci,
   });
 
   if (outcome.kind === "applied") {
+    const applied = applyLabelOverrideToEvaluation(input.evaluation, outcome.audit);
+    const retained = applied.policyOverride?.retainedReasons ?? [];
+    // ADR-011 §3: a risk_only override never clears mechanical blocking inputs —
+    // say so, otherwise the warning reads as a full bypass that it is not.
+    const retainedNote =
+      retained.length > 0
+        ? ` — ${retained.length} mechanical CI reason(s) still blocking`
+        : "";
     core.warning(
-      `Label override applied by ${outcome.audit.owner}: ${outcome.audit.reason}`,
+      `Label override applied by ${outcome.audit.owner} (scope ${outcome.audit.scope ?? "full"}): ` +
+        `${outcome.audit.reason}${retainedNote}`,
     );
     return {
-      ...applyLabelOverrideToEvaluation(input.evaluation, outcome.audit),
+      ...applied,
       labelOverrideFeedback: {
         status: "applied",
-        message: `Release override applied by \`${outcome.audit.owner}\`.`,
+        message: `Release override applied by \`${outcome.audit.owner}\`${retainedNote}.`,
       },
     };
   }
@@ -1609,6 +1638,324 @@ async function applyLabelOverrideIfNeeded(input: {
 }
 
 // ---------------------------------------------------------------------------
+// ADR-011 — input relevance, enumerated findings, Release Brief
+// ---------------------------------------------------------------------------
+
+/**
+ * Annotate every CI input with its ADR-011 §2 disposition and re-roll the
+ * summary counts against the *blocking* set rather than the `required` flag.
+ *
+ * With no `input_relevance` entries the default mapping is required -> blocking
+ * and non-required -> advisory, so the blocking set is exactly the required set
+ * and every count below reproduces `evaluateRequiredChecks` verbatim. Semantics
+ * only move when a policy entry matches.
+ */
+/** Budget for the brief inside a report that also becomes a check-run summary. */
+const BRIEF_MAX_CHARS = 20000;
+
+export function applyInputRelevance(
+  summary: CiSummary,
+  entries: InputRelevanceEntry[],
+): CiSummary {
+  const resolved = resolveDispositions(summary.checks, entries);
+  const checks: CiCheck[] = summary.checks.map((check) => {
+    const disposition = resolved.get(check.name);
+    return disposition ? { ...check, disposition } : check;
+  });
+  const blocking = checks.filter(
+    (check) =>
+      check.disposition !== undefined &&
+      dispositionCountsTowardBlocking(check.disposition),
+  );
+
+  return {
+    checks,
+    allRequiredPassed: blocking.every(
+      (check) => check.status === "pass" || check.status === "skip",
+    ),
+    pendingCount: blocking.filter((check) => check.status === "pending").length,
+    failedCount: blocking.filter(
+      (check) =>
+        check.status === "fail" || check.status === "missing" || check.status === "stale",
+    ).length,
+    missingCount: blocking.filter((check) => check.status === "missing").length,
+  };
+}
+
+/**
+ * Detector messages are authored as `<file>: <message>`. Split them so the brief
+ * can carry the file as evidence; anything that does not look like a path prefix
+ * stays a whole title (never guess evidence that is not there).
+ */
+function splitDetectorMessage(message: string): { title: string; evidence?: string } {
+  const separator = message.indexOf(": ");
+  if (separator > 0) {
+    const head = message.slice(0, separator);
+    if (/[/.]/.test(head) && !/\s/.test(head)) {
+      return { title: message.slice(separator + 2).trim(), evidence: head };
+    }
+  }
+  return { title: message };
+}
+
+/**
+ * ADR-011 §1: "findings are enumerated, never counted" — the Case A fix. Every
+ * detector already returns its patterns as strings; this turns them into
+ * addressable findings instead of a `.length`.
+ */
+export function enumerateDetectorFindings(
+  idPrefix: string,
+  messages: string[],
+  severity: RemediationSeverity,
+): BriefFinding[] {
+  return messages.map((message, index) => {
+    const { title, evidence } = splitDetectorMessage(message);
+    return {
+      id: `${idPrefix}/${index + 1}`,
+      title,
+      severity,
+      ...(evidence ? { evidence } : {}),
+    };
+  });
+}
+
+function briefVerdict(evaluation: GateEvaluation): BriefVerdict {
+  const mode = evaluation.gateMode ?? "risk-only";
+  if (mode === "release-ready" || mode === "advisory") {
+    if (evaluation.releaseReady === false) return "block";
+    return evaluation.gateDecision === "warn" ? "warn" : "allow";
+  }
+  return evaluation.gateDecision;
+}
+
+function briefTopMovers(
+  factors: RiskFactor[],
+): Array<{ factor: string; score: number }> | undefined {
+  const movers = [...factors]
+    .filter((factor) => factor.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map((factor) => ({ factor: factor.type, score: factor.score }));
+  return movers.length > 0 ? movers : undefined;
+}
+
+/**
+ * ADR-011 §1's `delta`. Two independent sources, either of which may be absent:
+ * the id-diff against the previous stored evaluation (verdict/risk/findings), and
+ * the remediation loop's own fix bookkeeping. A missing or unreachable previous
+ * evaluation omits the delta — it never errors.
+ */
+function briefDelta(
+  evaluation: GateEvaluation,
+  previous?: PreviousEvaluationSnapshot | null,
+): string | undefined {
+  const parts = [
+    previous
+      ? formatEvaluationDelta(
+          {
+            ...(previous.gateDecision !== undefined
+              ? { verdict: previous.gateDecision }
+              : {}),
+            ...(previous.riskScore !== undefined
+              ? { riskScore: previous.riskScore }
+              : {}),
+            ...(previous.findingIds !== undefined
+              ? { findingIds: previous.findingIds }
+              : {}),
+          },
+          {
+            verdict: evaluation.gateDecision,
+            riskScore: evaluation.riskScore,
+            ...(evaluation.enumeratedFindings !== undefined
+              ? { findingIds: evaluation.enumeratedFindings.map((f) => f.id) }
+              : {}),
+          },
+        )
+      : undefined,
+    briefRemediationDelta(evaluation),
+  ].filter((part): part is string => part !== undefined);
+
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function briefRemediationDelta(evaluation: GateEvaluation): string | undefined {
+  const remediation = evaluation.remediation;
+  if (!remediation?.previous_evaluation_id) return undefined;
+  const parts: string[] = [];
+  if (remediation.fixes_resolved.length > 0) {
+    parts.push(`resolved: ${remediation.fixes_resolved.join(", ")}`);
+  }
+  if (remediation.fixes_introduced.length > 0) {
+    parts.push(`introduced: ${remediation.fixes_introduced.join(", ")}`);
+  }
+  if (parts.length === 0) parts.push("no change in findings");
+  return `round ${remediation.loop_round} vs previous evaluation — ${parts.join("; ")}`;
+}
+
+function briefActions(
+  evaluation: GateEvaluation,
+  findings: BriefFinding[],
+  riskThreshold?: number,
+): BriefAction[] {
+  const actions: BriefAction[] = [];
+
+  for (const check of evaluation.ci?.checks ?? []) {
+    if (!checkCountsTowardBlocking(check)) continue;
+    if (
+      check.status !== "fail" &&
+      check.status !== "missing" &&
+      check.status !== "stale"
+    ) {
+      continue;
+    }
+    actions.push({
+      kind: "fix",
+      detail:
+        `CI input "${check.name}" is ${check.status.toUpperCase()} — fix it, or ` +
+        `classify it under \`contexts[].input_relevance\` if it is irrelevant to this branch pair.`,
+      ...(check.detailsUrl ? { link: check.detailsUrl } : {}),
+    });
+  }
+
+  for (const finding of findings) {
+    if (finding.severity !== "blocking") continue;
+    actions.push({ kind: "fix", detail: `${finding.title} (\`${finding.id}\`)` });
+  }
+
+  const pending = evaluation.ci?.pendingCount ?? 0;
+  if (pending > 0) {
+    actions.push({
+      kind: "wait",
+      detail: `${pending} blocking CI check(s) still pending — the gate re-evaluates when they finish.`,
+    });
+  }
+
+  if (
+    riskThreshold !== undefined &&
+    evaluation.riskScore > riskThreshold &&
+    !evaluation.policyOverride
+  ) {
+    actions.push({
+      kind: "override",
+      detail:
+        `Risk ${evaluation.riskScore} exceeds threshold ${riskThreshold}. To accept it on ` +
+        `the record, add the \`${OVERRIDE_LABEL}\` label and comment ` +
+        `\`${OVERRIDE_LABEL}: <rationale>\` on this PR.`,
+    });
+  }
+
+  return actions;
+}
+
+/**
+ * Project a GateEvaluation onto ADR-011 §1's Release Brief. Pure — no I/O, no
+ * mutation — so it can be rebuilt from any stored evaluation.
+ */
+export function buildReleaseBrief(
+  evaluation: GateEvaluation,
+  riskThreshold?: number,
+  cannotEvaluateReason?: string,
+  previous?: PreviousEvaluationSnapshot | null,
+): ReleaseBrief {
+  const findings = evaluation.enumeratedFindings ?? [];
+  const override = evaluation.policyOverride;
+  const delta = briefDelta(evaluation, previous);
+
+  return {
+    verdict: cannotEvaluateReason ? "cannot_evaluate" : briefVerdict(evaluation),
+    riskScore: evaluation.riskScore,
+    ...(riskThreshold !== undefined ? { riskThreshold } : {}),
+    ...(briefTopMovers(evaluation.riskFactors)
+      ? { topMovers: briefTopMovers(evaluation.riskFactors) }
+      : {}),
+    findings,
+    // Every input gets a row, including the ones that did not count (ADR-011 §1).
+    inputs: (evaluation.ci?.checks ?? []).map((check) => ({
+      checkName: check.name,
+      status: check.status,
+      disposition: check.disposition?.kind ?? (check.required ? "blocking" : "advisory"),
+      ...(check.disposition?.reason ? { reason: check.disposition.reason } : {}),
+    })),
+    ...(delta ? { delta } : {}),
+    actions: briefActions(evaluation, findings, riskThreshold),
+    // ADR-011 §3 maps the audit's {owner, appliedAt, reason} onto {by, at, rationale}.
+    override: override
+      ? {
+          by: override.owner,
+          at: override.appliedAt,
+          scope: override.scope ?? "full",
+          rationale: override.reason,
+        }
+      : null,
+    ...(cannotEvaluateReason ? { cannotEvaluateReason } : {}),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// ADR-011 §4 — availability stance
+// ---------------------------------------------------------------------------
+
+// The stance belongs to the matched context, which is only known *inside*
+// evaluateGate — but it has to be readable by main.ts's top-level catch, i.e.
+// after evaluateGate has already thrown. Stashing it here avoids loading and
+// re-matching the repo config a second time just to answer "open or closed?".
+let lastAvailabilityStance: AvailabilityStance | null = null;
+
+/**
+ * The availability stance of the context the most recent evaluation matched, or
+ * null when no context matched (or the run failed before matching). Null means
+ * "no per-context stance" — the caller keeps its action-input fail-mode.
+ */
+export function getResolvedAvailabilityStance(): AvailabilityStance | null {
+  return lastAvailabilityStance;
+}
+
+/** Test seam, and the reset evaluateGate performs on entry. */
+export function setResolvedAvailabilityStance(stance: AvailabilityStance | null): void {
+  lastAvailabilityStance = stance;
+}
+
+/**
+ * ADR-011 §1: "silence is a bug." When the evaluation could not run at all there is
+ * no GateEvaluation to project, so the brief is built from the failure itself.
+ */
+export function buildCannotEvaluateBrief(
+  reason: string,
+  stance: AvailabilityStance,
+): ReleaseBrief {
+  const actions: BriefAction[] = [
+    {
+      kind: "fix",
+      detail:
+        "Resolve the failure above and re-run the Trailhead job. Until it runs, no " +
+        "risk score, no input dispositions and no findings exist for this commit.",
+    },
+    stance === "fail_closed"
+      ? {
+          kind: "wait",
+          detail:
+            "Availability stance is fail_closed: no verdict means no merge. Break-glass " +
+            "is a GitHub admin merge — visible and extraordinary, and it records nothing.",
+        }
+      : {
+          kind: "wait",
+          detail:
+            "Availability stance is fail_open: this run did not block the merge, but no " +
+            "Trailhead verdict was recorded for this commit.",
+        },
+  ];
+
+  return {
+    verdict: "cannot_evaluate",
+    findings: [],
+    inputs: [],
+    actions,
+    override: null,
+    cannotEvaluateReason: reason,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Main evaluation entry point
 // ---------------------------------------------------------------------------
 
@@ -1618,6 +1965,8 @@ export async function evaluateGate(
   prNumber?: number,
 ): Promise<GateEvaluation> {
   const start = Date.now();
+  // Nothing is known about this run's availability stance until a context matches.
+  setResolvedAvailabilityStance(null);
 
   const isMergeQueue =
     github.context.eventName === "merge_group" ||
@@ -1692,6 +2041,15 @@ export async function evaluateGate(
     );
   }
 
+  // ADR-011 §4 — a per-branch-pair stance overrides the action-input fail-mode.
+  const availabilityStance = matchedContext?.context.availability ?? null;
+  setResolvedAvailabilityStance(availabilityStance);
+  if (availabilityStance) {
+    core.info(
+      `Availability stance: ${availabilityStance} (context "${matchedContext?.matched.name}")`,
+    );
+  }
+
   const effectiveEnvironment =
     config.environment ?? matchedContext?.matched.environment ?? undefined;
 
@@ -1758,7 +2116,7 @@ export async function evaluateGate(
   const ciIntegrityConfig = repoConfig?.policies?.ci_integrity;
   const ciIntegrity =
     ciIntegrityConfig?.enabled === false
-      ? { factor: null, blockingPatterns: [] }
+      ? { factor: null, blockingPatterns: [], warningSignals: [] }
       : detectCiIntegrityRisk(files);
   if (ciIntegrity.factor) {
     riskFactors.push(ciIntegrity.factor);
@@ -1970,15 +2328,21 @@ export async function evaluateGate(
     repoConfig,
   });
   const sessionCfg = repoConfig?.policies?.session_correlation;
+  // Kept as its own list so ADR-011 §1 can enumerate the burst instead of
+  // burying it in the undifferentiated policyFindings prose.
+  const sessionCorrelationFindings: string[] = [];
   if (sessionCorrelation && sessionCfg) {
     const threshold = sessionCfg.threshold;
     if (sessionCorrelation.burstCount >= threshold) {
-      policyFindings.push(
+      sessionCorrelationFindings.push(
         `Rapid-fire merge burst detected: ${sessionCorrelation.burstCount} merged PRs in ${sessionCorrelation.windowMinutes} minutes.`,
       );
       if (sessionCfg.mode === "block") {
-        policyFindings.push("Session correlation policy is configured to block.");
+        sessionCorrelationFindings.push(
+          "Session correlation policy is configured to block.",
+        );
       }
+      policyFindings.push(...sessionCorrelationFindings);
     }
   }
 
@@ -2004,6 +2368,15 @@ export async function evaluateGate(
   );
   if (sensitiveEscalation.reason) policyFindings.push(sensitiveEscalation.reason);
 
+  const sessionCorrelationBlocks =
+    sessionCorrelation !== null &&
+    sessionCfg !== undefined &&
+    sessionCorrelation.burstCount >= sessionCfg.threshold &&
+    sessionCfg.mode === "block";
+  const submissionBlocks =
+    submissionChecks.length > 0 &&
+    submissionGateShouldBlock(submissionChecks, submissionMode);
+
   const gateDecision =
     agentPolicy?.forceBlock === true ||
     sensitiveEscalation.block ||
@@ -2020,16 +2393,95 @@ export async function evaluateGate(
       (duplicateLogicConfig?.mode ?? "warn") === "block") ||
     ((crossRepoImpact.factor?.score ?? 0) >= 60 &&
       (repoConfig?.policies?.cross_repo_impact?.mode ?? "warn") === "block") ||
-    (sessionCorrelation &&
-      sessionCfg &&
-      sessionCorrelation.burstCount >= sessionCfg.threshold &&
-      sessionCfg.mode === "block") ||
-    (submissionChecks.length > 0 &&
-      submissionGateShouldBlock(submissionChecks, submissionMode))
+    sessionCorrelationBlocks ||
+    submissionBlocks
       ? ("block" as GateDecision)
       : sensitiveEscalation.warn && baselineDecision === "allow"
         ? ("warn" as GateDecision)
         : baselineDecision;
+
+  // ADR-011 §1 (Case A): the count-strings below stay for existing consumers, but
+  // the individual patterns are now carried through to the evaluation so the
+  // Release Brief can enumerate them instead of printing a bare number.
+  const enumeratedFindings: BriefFinding[] = [
+    ...enumerateDetectorFindings(
+      "ci_integrity",
+      ciIntegrity.blockingPatterns,
+      "blocking",
+    ),
+    ...enumerateDetectorFindings(
+      "ci_integrity_warning",
+      ciIntegrity.warningSignals,
+      "warn",
+    ),
+    ...enumerateDetectorFindings(
+      "workflow_security",
+      workflowSecurity.blockingPatterns,
+      "blocking",
+    ),
+    ...enumerateDetectorFindings(
+      "workflow_security_warning",
+      workflowSecurity.warnings,
+      "warn",
+    ),
+    ...enumerateDetectorFindings(
+      "prompt_injection",
+      promptInjection.blockingPatterns,
+      "blocking",
+    ),
+    ...enumerateDetectorFindings(
+      "prompt_injection_warning",
+      promptInjection.warnings,
+      "warn",
+    ),
+    ...enumerateDetectorFindings(
+      "supply_chain",
+      supplyChain.blockingPatterns,
+      "blocking",
+    ),
+    ...enumerateDetectorFindings("supply_chain_warning", supplyChain.warnings, "warn"),
+    ...enumerateDetectorFindings("pr_scope", prScope.findings, "advisory"),
+    ...enumerateDetectorFindings("duplicate_logic", duplicateLogic.findings, "advisory"),
+    ...enumerateDetectorFindings(
+      "cross_repo_impact",
+      crossRepoImpact.findings,
+      "advisory",
+    ),
+    // The four block-capable sources below are not detector pattern lists, so
+    // they used to reach the evaluation as prose in `policyFindings` only. A
+    // BLOCK caused by any of them would then render as "No findings." — the
+    // exact silence ADR-011 §1 forbids.
+    ...enumerateDetectorFindings(
+      "agent_policy",
+      agentPolicy?.findings ?? [],
+      agentPolicy?.forceBlock === true ? "blocking" : "warn",
+    ),
+    // A single escalation verdict, so its id is fixed rather than enumerated.
+    ...(sensitiveEscalation.reason
+      ? [
+          {
+            id: "sensitive_files/0",
+            title: sensitiveEscalation.reason,
+            severity: sensitiveEscalation.block
+              ? ("blocking" as const)
+              : ("warn" as const),
+          },
+        ]
+      : []),
+    ...enumerateDetectorFindings(
+      "session_correlation",
+      sessionCorrelationFindings,
+      sessionCorrelationBlocks ? "blocking" : "warn",
+    ),
+    // `policyFindings` only ever carried the submission count; the per-check
+    // code/title/detail/severity is what a human actually needs.
+    ...submissionChecks.map((check, index) => ({
+      id: `submission/${check.code}/${index + 1}`,
+      title: check.title,
+      evidence: check.detail,
+      severity: check.severity,
+    })),
+  ];
 
   if (ciIntegrity.blockingPatterns.length > 0) {
     policyFindings.push(
@@ -2149,6 +2601,7 @@ export async function evaluateGate(
     evaluationMs: Date.now() - start,
     environment: effectiveEnvironment,
     policyFindings: policyFindings.length > 0 ? policyFindings : undefined,
+    enumeratedFindings: enumeratedFindings.length > 0 ? enumeratedFindings : undefined,
     pr: prNumber
       ? {
           provenance:
@@ -2227,6 +2680,12 @@ export async function evaluateGate(
         });
         ciSummary = evaluateRequiredChecks(checks, ciConfig, ciManifest);
       }
+      // ADR-011 §2 — resolve each input's disposition before anything reads the
+      // summary. With no input_relevance config this is a pure annotation pass.
+      ciSummary = applyInputRelevance(
+        ciSummary,
+        matchedContext?.context.input_relevance ?? [],
+      );
       localEvaluation.ci = ciSummary;
     } catch (error) {
       core.warning(`CI orchestration failed (non-blocking): ${error}`);
@@ -2300,23 +2759,25 @@ export async function evaluateGate(
   });
   localEvaluation.agentBriefMode = agentBriefMode;
 
+  // Fetched once, outside the remediation branch: ADR-011 §1's delta needs the
+  // previous evaluation even in repos that have remediation turned off.
+  let previousEvaluation: PreviousEvaluationSnapshot | null = null;
+  if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
+    try {
+      previousEvaluation = await fetchPreviousEvaluationForPr({
+        repoId: localEvaluation.repoId,
+        prNumber,
+        excludeEvaluationId: localEvaluation.id,
+        storeUrl: config.evaluationStoreUrl,
+        apiKey: config.trailheadApiKey,
+      });
+    } catch (error) {
+      core.debug(`Previous evaluation lookup failed: ${error}`);
+    }
+  }
+
   const remediationEnabled = remediationSettings?.enabled !== false;
   if (remediationEnabled) {
-    let previousEvaluation = null;
-    if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
-      try {
-        previousEvaluation = await fetchPreviousEvaluationForPr({
-          repoId: localEvaluation.repoId,
-          prNumber,
-          excludeEvaluationId: localEvaluation.id,
-          storeUrl: config.evaluationStoreUrl,
-          apiKey: config.trailheadApiKey,
-        });
-      } catch (error) {
-        core.debug(`Previous evaluation lookup failed: ${error}`);
-      }
-    }
-
     localEvaluation.remediation = buildRemediation({
       evaluation: {
         id: localEvaluation.id,
@@ -2336,12 +2797,73 @@ export async function evaluateGate(
     });
   }
 
+  // ADR-011 §1 — built last so it sees release-readiness, the override outcome
+  // and the remediation delta.
+  localEvaluation.releaseBrief = buildReleaseBrief(
+    localEvaluation,
+    adjustedRiskThreshold,
+    undefined,
+    previousEvaluation,
+  );
+
   return localEvaluation;
 }
 
 // ---------------------------------------------------------------------------
 // PR comment posting
 // ---------------------------------------------------------------------------
+
+/**
+ * Safety bound for anything handed to GitHub as a report body. Issue comments
+ * cap at 65536 characters and a check run's `output.summary` at 65535; one
+ * number under both leaves room for the comment marker.
+ */
+export const MAX_GATE_REPORT_CHARS = 65000;
+
+const BRIEF_HEADING = "## Release Brief";
+const BRIEF_SEPARATOR = "\n\n---\n\n";
+
+/** Cut points that leave the surviving markdown structurally intact. */
+const SECTION_BOUNDARIES = ["\n\n#", "\n\n<details>", "\n\n"];
+
+/**
+ * Clamp a gate report to what GitHub will actually accept.
+ *
+ * `renderReleaseBrief` already caps the brief itself, but the legacy report
+ * appended below it is unbounded (the files-changed list alone grows with the
+ * PR). Only that tail is trimmed — the brief is the decision, so it survives
+ * intact — and the reader is told where the full detail still lives.
+ */
+export function clampGateReport(
+  report: string,
+  maxChars: number = MAX_GATE_REPORT_CHARS,
+): string {
+  if (report.length <= maxChars) return report;
+
+  const notice =
+    `\n\n_…report truncated (${report.length - maxChars} chars over GitHub's ` +
+    `comment limit) — full detail in the stored evaluation / job summary._`;
+  const budget = maxChars - notice.length;
+  if (budget <= 0) return report.slice(0, maxChars);
+
+  // Never cut into the brief: keep everything up to its trailing separator.
+  const briefStart = report.indexOf(BRIEF_HEADING);
+  const separator = briefStart >= 0 ? report.indexOf(BRIEF_SEPARATOR, briefStart) : -1;
+  const floor = separator >= 0 ? separator + BRIEF_SEPARATOR.length : 0;
+  if (floor >= budget) return `${report.slice(0, budget)}${notice}`;
+
+  const head = report.slice(0, budget);
+  let cut = budget;
+  for (const boundary of SECTION_BOUNDARIES) {
+    const index = head.lastIndexOf(boundary);
+    if (index > floor) {
+      cut = index;
+      break;
+    }
+  }
+
+  return `${report.slice(0, cut).trimEnd()}${notice}`;
+}
 
 export async function postOverrideRejectionComment(
   prNumber: number,
@@ -2403,7 +2925,7 @@ export async function postPrComment(
       per_page: 100,
     });
     const MARKER = "<!-- trailhead-gate-report -->";
-    const body = `${MARKER}\n${report}`;
+    const body = clampGateReport(`${MARKER}\n${report}`);
 
     const existing = comments.find((c) => c.body?.includes(MARKER));
 
@@ -2423,7 +2945,9 @@ export async function postPrComment(
       });
     }
   } catch (error) {
-    core.debug(`Failed to post PR comment: ${error}`);
+    // Fail-soft, but never silent: a missing gate comment is a visible gap in
+    // the record, so it belongs in the run log rather than in debug output.
+    core.warning(`Failed to post PR comment: ${error}`);
   }
 }
 
@@ -2461,14 +2985,15 @@ export async function createCheckRun(
       conclusion,
       output: {
         title: `${name}: ${titleSuffix}`,
-        summary: report,
+        summary: clampGateReport(report),
         ...(evaluation.storePersisted === false
           ? { text: "Evaluation not persisted — dashboard incomplete." }
           : {}),
       },
     });
   } catch (error) {
-    core.debug(`Failed to create check run: ${error}`);
+    // Fail-soft, but never silent — see postPrComment.
+    core.warning(`Failed to create check run: ${error}`);
   }
 }
 
@@ -2899,10 +3424,25 @@ export function formatGateReport(
         : "NOT RELEASE READY"
       : evaluation.gateDecision.toUpperCase();
 
-  const lines: string[] = [
-    `## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`,
-    ``,
-  ];
+  const lines: string[] = [];
+
+  // ADR-011 §1 — the brief leads; the pre-existing report stays below it so the
+  // same `<!-- trailhead-gate-report -->` comment upgrades in place.
+  if (evaluation.releaseBrief) {
+    lines.push(
+      renderReleaseBrief(evaluation.releaseBrief, {
+        // The same markdown becomes a check run's output.summary, which GitHub
+        // caps at 65535 characters; leave room for the report below.
+        maxChars: BRIEF_MAX_CHARS,
+        ...(evaluation.reportUrl ? { storedEvaluationUrl: evaluation.reportUrl } : {}),
+      }),
+      ``,
+      `---`,
+      ``,
+    );
+  }
+
+  lines.push(`## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`, ``);
 
   if (mode === "release-ready" || mode === "advisory") {
     lines.push(

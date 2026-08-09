@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { evaluateGate } from "../gate.js";
+import { GateEvaluation } from "../types.js";
 import type { TrailheadConfig } from "../types.js";
 import * as evaluationHistory from "../evaluation-history.js";
 
@@ -43,6 +44,10 @@ const githubMockState = vi.hoisted(() => ({
   }>,
   routeContents: {} as Record<string, string>,
   contentRequests: [] as string[],
+  closedPrs: [] as Array<{
+    merged_at: string | null;
+    user?: { login?: string };
+  }>,
 }));
 
 vi.mock("@actions/core", () => ({
@@ -104,6 +109,9 @@ vi.mock("@actions/github", () => ({
         })),
         listReviews: vi.fn().mockImplementation(async () => ({
           data: githubMockState.reviews,
+        })),
+        list: vi.fn().mockImplementation(async () => ({
+          data: githubMockState.closedPrs,
         })),
       },
       checks: {
@@ -193,6 +201,7 @@ describe("evaluateGate (integration)", () => {
     githubMockState.commitFiles = [];
     githubMockState.routeContents = {};
     githubMockState.contentRequests = [];
+    githubMockState.closedPrs = [];
     // Avoid loading repo .trailhead.yml on CI (GITHUB_WORKSPACE is set there).
     vi.stubEnv("GITHUB_WORKSPACE", "");
   });
@@ -574,5 +583,417 @@ policies:
 
     expect(result.remediation?.loop_round).toBe(2);
     expect(result.remediation?.previous_evaluation_id).toBe("eval-prev");
+  });
+
+  // -------------------------------------------------------------------------
+  // ADR-011 — Release Brief and input relevance
+  // -------------------------------------------------------------------------
+
+  it("Case B replay: an irrelevant required failure no longer blocks the release", async () => {
+    githubMockState.checkRuns = [
+      {
+        name: "Deploy Edge Functions",
+        status: "completed",
+        conclusion: "failure",
+        html_url: "https://example.com/checks/deploy-edge",
+      },
+      { name: "CI Gate", status: "completed", conclusion: "success" },
+    ];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [CI Gate, Deploy Edge Functions]
+      optional_checks: []
+      missing_required: skip
+    input_relevance:
+      - pattern: "Deploy Edge Functions"
+        disposition: irrelevant
+        reason: "staging target unconfigured by design; see supabase-migrations.yml guard"`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", securityGate: false }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.releaseReady).toBe(true);
+    expect(result.releaseReadyReasons).toBeUndefined();
+    expect(result.ci?.failedCount).toBe(0);
+
+    const deployInput = result.releaseBrief?.inputs.find(
+      (input) => input.checkName === "Deploy Edge Functions",
+    );
+    expect(deployInput).toEqual({
+      checkName: "Deploy Edge Functions",
+      status: "fail",
+      disposition: "irrelevant",
+      reason: "staging target unconfigured by design; see supabase-migrations.yml guard",
+    });
+  });
+
+  it("blocks the same check when no input_relevance entry matches", async () => {
+    githubMockState.checkRuns = [
+      { name: "Deploy Edge Functions", status: "completed", conclusion: "failure" },
+    ];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [Deploy Edge Functions]
+      optional_checks: []
+      missing_required: skip`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", securityGate: false }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.releaseReady).toBe(false);
+    expect(result.releaseReadyReasons).toContain(
+      'Required CI check "Deploy Edge Functions" is FAIL',
+    );
+    expect(result.releaseBrief?.verdict).toBe("block");
+  });
+
+  it("missing_blocking: an absent required check still blocks and is labelled", async () => {
+    githubMockState.checkRuns = [];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [Playwright]
+      optional_checks: []
+      missing_required: fail`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", securityGate: false }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.releaseReady).toBe(false);
+    expect(result.releaseReadyReasons).toContain(
+      'Required CI check "Playwright" is MISSING',
+    );
+    expect(result.ci?.checks[0].disposition?.kind).toBe("missing_blocking");
+    expect(result.releaseBrief?.inputs[0].disposition).toBe("missing_blocking");
+  });
+
+  it("Case A replay: ci-integrity patterns are enumerated, not just counted", async () => {
+    githubMockState.filePages = {
+      1: [
+        {
+          filename: ".github/workflows/ci.yml",
+          additions: 2,
+          deletions: 0,
+          changes: 2,
+          status: "modified",
+          patch:
+            "@@ -1,1 +1,3 @@\n+      run: npm test || true\n+    continue-on-error: true\n",
+        },
+      ],
+    };
+
+    const result = await evaluateGate(
+      makeConfig({ githubToken: "ghp_test", securityGate: false }),
+      "pull-request-head-sha",
+      42,
+    );
+
+    expect(result.policyFindings).toContain(
+      "CI integrity blocking patterns detected (2).",
+    );
+
+    const enumerated = (result.enumeratedFindings ?? []).filter((finding) =>
+      finding.id.startsWith("ci_integrity/"),
+    );
+    expect(enumerated.map((finding) => finding.id)).toEqual([
+      "ci_integrity/1",
+      "ci_integrity/2",
+    ]);
+    expect(enumerated.every((finding) => finding.severity === "blocking")).toBe(true);
+    expect(
+      enumerated.every((finding) => finding.evidence === ".github/workflows/ci.yml"),
+    ).toBe(true);
+    expect(enumerated.map((finding) => finding.title)).toEqual([
+      'workflow bypass pattern "|| true"',
+      'introduced "continue-on-error: true"',
+    ]);
+
+    const briefFindings = result.releaseBrief?.findings ?? [];
+    expect(briefFindings.map((finding) => finding.id)).toEqual(
+      expect.arrayContaining(["ci_integrity/1", "ci_integrity/2"]),
+    );
+  });
+
+  it("attaches a Release Brief to every evaluation, with no config present", async () => {
+    githubMockState.checkRuns = [
+      { name: "CI Gate", status: "completed", conclusion: "success" },
+    ];
+
+    const result = await evaluateGate(
+      makeConfig({ githubToken: "ghp_test", securityGate: false }),
+      "pull-request-head-sha",
+      42,
+    );
+
+    const brief = result.releaseBrief;
+    expect(brief).toBeDefined();
+    expect(["allow", "warn", "block"]).toContain(brief!.verdict);
+    expect(brief!.riskScore).toBe(result.riskScore);
+    expect(Array.isArray(brief!.findings)).toBe(true);
+    expect(Array.isArray(brief!.inputs)).toBe(true);
+    expect(Array.isArray(brief!.actions)).toBe(true);
+    expect(brief!.override).toBeNull();
+    // Survives the GateEvaluation Zod schema (the store persists this object).
+    expect(GateEvaluation.safeParse(result).success).toBe(true);
+  });
+
+  it("no-config runs keep their pre-ADR-011 decisions and CI rollup", async () => {
+    githubMockState.checkRuns = [
+      { name: "CI Gate", status: "completed", conclusion: "failure" },
+      { name: "Vercel", status: "completed", conclusion: "failure" },
+    ];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [CI Gate]
+      optional_checks: []
+      missing_required: skip`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", securityGate: false }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.releaseReady).toBe(false);
+    expect(result.releaseReadyReasons).toEqual(['Required CI check "CI Gate" is FAIL']);
+    expect(result.ci?.allRequiredPassed).toBe(false);
+    expect(result.ci?.failedCount).toBe(1);
+    expect(result.ci?.pendingCount).toBe(0);
+    expect(result.ci?.missingCount).toBe(0);
+    // The non-required red check is advisory by default and does not block.
+    expect(
+      result.ci?.checks.find((check) => check.name === "Vercel")?.disposition,
+    ).toEqual({ kind: "advisory", source: "default" });
+  });
+
+  // -------------------------------------------------------------------------
+  // ADR-011 §1 — a BLOCK never renders as "No findings."
+  //
+  // Four block-capable sources are not detector pattern lists, so each needs
+  // its own proof that the verdict it produced is also *named* in the brief.
+  // -------------------------------------------------------------------------
+
+  describe("every block-capable source reaches the Release Brief", () => {
+    function agentPr(): void {
+      githubMockState.pullRequest = {
+        user: { login: "test-author" },
+        base: { ref: "main" },
+        head: { ref: "claude/add-auth", sha: "pull-request-head-sha" },
+      };
+      githubMockState.payload = { pull_request: githubMockState.pullRequest };
+    }
+
+    it("names the agent PR policy that forced the block", async () => {
+      agentPr();
+      githubMockState.filePages = {
+        1: [
+          {
+            filename: "src/auth/session.ts",
+            additions: 10,
+            deletions: 0,
+            changes: 10,
+            status: "modified",
+          },
+        ],
+      };
+
+      const result = await withLocalTrailheadConfig(
+        `schema_version: 2
+policies:
+  agent_prs:
+    enabled: true
+    mode: block
+    required_approvals: 2
+`,
+        () =>
+          evaluateGate(
+            makeConfig({ githubToken: "ghp_test", securityGate: false }),
+            "pull-request-head-sha",
+            42,
+          ),
+      );
+
+      expect(result.gateDecision).toBe("block");
+      const findings = result.releaseBrief?.findings ?? [];
+      expect(findings.length).toBeGreaterThan(0);
+      const agentFindings = findings.filter((finding) =>
+        finding.id.startsWith("agent_policy/"),
+      );
+      expect(agentFindings.length).toBeGreaterThan(0);
+      expect(agentFindings.some((finding) => finding.severity === "blocking")).toBe(true);
+      expect(agentFindings.some((finding) => /approval/i.test(finding.title))).toBe(true);
+    });
+
+    it("names the sensitive-file escalation that forced the block", async () => {
+      githubMockState.filePages = {
+        1: [
+          {
+            filename: "supabase/migrations/0001_init.sql",
+            additions: 5,
+            deletions: 0,
+            changes: 5,
+            status: "added",
+          },
+        ],
+      };
+
+      const result = await withLocalTrailheadConfig(
+        `schema_version: 2
+policies:
+  sensitive_files:
+    enabled: true
+    mode: block
+    threshold: 25
+`,
+        () =>
+          evaluateGate(
+            makeConfig({ githubToken: "ghp_test", securityGate: false }),
+            "pull-request-head-sha",
+            42,
+          ),
+      );
+
+      expect(result.gateDecision).toBe("block");
+      const findings = result.releaseBrief?.findings ?? [];
+      expect(findings.length).toBeGreaterThan(0);
+      const escalation = findings.find((finding) => finding.id === "sensitive_files/0");
+      expect(escalation).toBeDefined();
+      expect(escalation!.severity).toBe("blocking");
+      expect(escalation!.title).toContain("sensitive_files score");
+    });
+
+    it("names the merge burst that forced the block", async () => {
+      agentPr();
+      const mergedAt = new Date().toISOString();
+      githubMockState.closedPrs = Array.from({ length: 3 }, () => ({
+        merged_at: mergedAt,
+        user: { login: "test-author" },
+      }));
+
+      const result = await withLocalTrailheadConfig(
+        `schema_version: 2
+policies:
+  session_correlation:
+    enabled: true
+    threshold: 3
+    window_minutes: 60
+    mode: block
+`,
+        () =>
+          evaluateGate(
+            makeConfig({ githubToken: "ghp_test", securityGate: false }),
+            "pull-request-head-sha",
+            42,
+          ),
+      );
+
+      expect(result.gateDecision).toBe("block");
+      const findings = result.releaseBrief?.findings ?? [];
+      expect(findings.length).toBeGreaterThan(0);
+      const burst = findings.filter((finding) =>
+        finding.id.startsWith("session_correlation/"),
+      );
+      expect(burst.map((finding) => finding.id)).toEqual([
+        "session_correlation/1",
+        "session_correlation/2",
+      ]);
+      expect(burst.every((finding) => finding.severity === "blocking")).toBe(true);
+      expect(burst[0].title).toContain("Rapid-fire merge burst detected: 3 merged PRs");
+    });
+
+    it("names each submission check instead of counting them", async () => {
+      githubMockState.filePages = {
+        1: [
+          {
+            filename: "src/rollout.ts",
+            additions: 2,
+            deletions: 0,
+            changes: 2,
+            status: "modified",
+            patch: "@@ -1,1 +1,3 @@\n+// TODO: implement rollout\n+export const x = 1;\n",
+          },
+        ],
+      };
+
+      const result = await withLocalTrailheadConfig(
+        `schema_version: 2
+submission:
+  enabled: true
+  mode: block
+`,
+        () =>
+          evaluateGate(
+            makeConfig({
+              githubToken: "ghp_test",
+              submissionGate: true,
+              securityGate: false,
+            }),
+            "pull-request-head-sha",
+            42,
+          ),
+      );
+
+      expect(result.gateDecision).toBe("block");
+      // The count string stays for existing consumers…
+      expect(result.policyFindings).toContain("Submission gate: 1 finding(s).");
+      // …but the brief names the check, its detail and its severity.
+      const findings = result.releaseBrief?.findings ?? [];
+      expect(findings.length).toBeGreaterThan(0);
+      const submission = findings.filter((finding) =>
+        finding.id.startsWith("submission/"),
+      );
+      expect(submission).toEqual([
+        {
+          id: "submission/mock_placeholder/1",
+          title: "Mock placeholder in production path",
+          evidence: expect.stringContaining("src/rollout.ts"),
+          severity: "blocking",
+        },
+      ]);
+    });
   });
 });

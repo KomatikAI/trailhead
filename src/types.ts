@@ -68,12 +68,34 @@ export const CiCheckStatusEnum = z.enum([
 ]);
 export type CiCheckStatusEnum = z.infer<typeof CiCheckStatusEnum>;
 
+// ADR-011 §2 — input relevance. ADR-009's status says what a check DID; the
+// disposition says what it MEANS for this release decision. `missing_blocking`
+// is derived (ADR-009 `missing` on a blocking input), never configured.
+export const InputDispositionKind = z.enum([
+  "blocking",
+  "advisory",
+  "irrelevant",
+  "missing_blocking",
+]);
+export type InputDispositionKind = z.infer<typeof InputDispositionKind>;
+
+export const InputDisposition = z.object({
+  kind: InputDispositionKind,
+  reason: z.string().optional(),
+  /** `policy` = an input_relevance entry matched; `default` = required/optional fallback. */
+  source: z.enum(["policy", "default"]),
+});
+export type InputDisposition = z.infer<typeof InputDisposition>;
+
 export const CiCheck = z.object({
   name: z.string(),
   status: CiCheckStatusEnum,
   conclusion: z.string().optional(),
   detailsUrl: z.string().url().optional(),
   required: z.boolean(),
+  // Optional: summaries produced before dispositions are applied (and every
+  // pre-ADR-011 stored evaluation) carry none, and fall back to `required`.
+  disposition: InputDisposition.optional(),
 });
 export type CiCheck = z.infer<typeof CiCheck>;
 
@@ -205,6 +227,11 @@ export const PolicyOverrideChanges = z.object({
 });
 export type PolicyOverrideChanges = z.infer<typeof PolicyOverrideChanges>;
 
+export const OverrideScope = z.enum(["full", "risk_only"]);
+export type OverrideScope = z.infer<typeof OverrideScope>;
+
+// ADR-011 §3 renders the override record as {by, at, scope, rationale};
+// this schema carries by=owner, at=appliedAt, rationale=reason, plus scope.
 export const PolicyOverrideAudit = z.object({
   source: z.enum(["workflow", "label"]).default("workflow"),
   owner: z.string(),
@@ -212,12 +239,73 @@ export const PolicyOverrideAudit = z.object({
   linkedTicket: z.string(),
   expiresAt: z.string(),
   appliedAt: z.string(),
+  // Optional, not defaulted: audits stored before ADR-011 carry no scope and
+  // must keep parsing as the pre-ADR-011 (full) override they actually were.
+  scope: OverrideScope.optional(),
   changes: PolicyOverrideChanges.default({}),
   preOverrideDecision: GateDecision.optional(),
   preOverrideReleaseReady: z.boolean().optional(),
   preOverrideReasons: z.array(z.string()).optional(),
+  /** Blocking reasons the override cleared (risk/policy driven). */
+  overriddenReasons: z.array(z.string()).optional(),
+  /** Blocking reasons that survived the override (mechanical CI, ADR-011 §3). */
+  retainedReasons: z.array(z.string()).optional(),
 });
 export type PolicyOverrideAudit = z.infer<typeof PolicyOverrideAudit>;
+
+// ---------------------------------------------------------------------------
+// ADR-011 §1 — the Release Brief
+// ---------------------------------------------------------------------------
+
+export const BriefVerdict = z.enum(["allow", "warn", "block", "cannot_evaluate"]);
+export type BriefVerdict = z.infer<typeof BriefVerdict>;
+
+export const BriefFinding = z.object({
+  id: z.string(),
+  title: z.string(),
+  evidence: z.string().optional(),
+  severity: RemediationSeverity,
+});
+export type BriefFinding = z.infer<typeof BriefFinding>;
+
+export const BriefInput = z.object({
+  checkName: z.string(),
+  /** ADR-009 status, carried as a string so the renderer stays policy-agnostic. */
+  status: z.string(),
+  /** ADR-011 §2 disposition kind. */
+  disposition: z.string(),
+  reason: z.string().optional(),
+});
+export type BriefInput = z.infer<typeof BriefInput>;
+
+export const BriefAction = z.object({
+  kind: z.enum(["fix", "override", "wait"]),
+  detail: z.string(),
+  link: z.string().optional(),
+});
+export type BriefAction = z.infer<typeof BriefAction>;
+
+export const BriefOverride = z.object({
+  by: z.string(),
+  at: z.string(),
+  scope: z.string(),
+  rationale: z.string(),
+});
+export type BriefOverride = z.infer<typeof BriefOverride>;
+
+export const ReleaseBrief = z.object({
+  verdict: BriefVerdict,
+  riskScore: z.number().optional(),
+  riskThreshold: z.number().optional(),
+  topMovers: z.array(z.object({ factor: z.string(), score: z.number() })).optional(),
+  findings: z.array(BriefFinding),
+  inputs: z.array(BriefInput),
+  delta: z.string().optional(),
+  actions: z.array(BriefAction),
+  override: BriefOverride.nullish(),
+  cannotEvaluateReason: z.string().optional(),
+});
+export type ReleaseBrief = z.infer<typeof ReleaseBrief>;
 
 export const CreditMeterResult = z.object({
   metered: z.boolean(),
@@ -250,6 +338,10 @@ export const GateEvaluation = z.object({
   environment: z.string().optional(),
   service: z.string().optional(),
   policyFindings: z.array(z.string()).optional(),
+  // ADR-011 §1: "findings are enumerated, never counted". policyFindings keeps
+  // its count-strings for existing consumers; this is the enumeration.
+  enumeratedFindings: z.array(BriefFinding).optional(),
+  releaseBrief: ReleaseBrief.optional(),
   pr: z
     .object({
       provenance: PrProvenance.optional(),
@@ -411,6 +503,22 @@ export const ContextCiConfig = z.object({
 });
 export type ContextCiConfig = z.infer<typeof ContextCiConfig>;
 
+// ADR-011 §2 — one row of the branch-pair relevance table. `reason` is mandatory
+// for `irrelevant`, but that is enforced as a config *warning* (see
+// collectConfigWarnings in config-core.ts), not a parse failure: a hard refine
+// here would drop the whole repo config to defaults over one typo, which is how
+// parseRepoConfigContent degrades today.
+export const InputRelevanceEntry = z.object({
+  pattern: z.string(),
+  disposition: z.enum(["blocking", "advisory", "irrelevant"]),
+  reason: z.string().optional(),
+});
+export type InputRelevanceEntry = z.infer<typeof InputRelevanceEntry>;
+
+/** ADR-011 §4 — per-branch-pair stance when the evaluation cannot run. */
+export const AvailabilityStance = z.enum(["fail_open", "fail_closed"]);
+export type AvailabilityStance = z.infer<typeof AvailabilityStance>;
+
 export const TrailheadContext = z.object({
   name: z.string(),
   match: ContextMatch,
@@ -422,6 +530,8 @@ export const TrailheadContext = z.object({
     })
     .default({}),
   ci: ContextCiConfig.default({}),
+  input_relevance: z.array(InputRelevanceEntry).default([]),
+  availability: AvailabilityStance.optional(),
 });
 export type TrailheadContext = z.infer<typeof TrailheadContext>;
 
@@ -456,6 +566,8 @@ export type RiskPathProfileConfig = z.infer<typeof RiskPathProfileConfig>;
 export const OverrideConfig = z.object({
   enabled: z.boolean().default(true),
   max_per_week: z.number().int().min(1).default(5),
+  // Defaults to "full" so repos that never set it keep pre-ADR-011 behavior.
+  scope: OverrideScope.default("full"),
 });
 export type OverrideConfig = z.infer<typeof OverrideConfig>;
 

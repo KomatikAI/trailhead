@@ -1,14 +1,14 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 3465:
+/***/ 8066:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
 
 /***/ }),
 
-/***/ 4866:
+/***/ 4844:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -62,9 +62,9 @@ exports.getProxyUrl = getProxyUrl;
 exports.isHttps = isHttps;
 const http = __importStar(__nccwpck_require__(8611));
 const https = __importStar(__nccwpck_require__(5692));
-const pm = __importStar(__nccwpck_require__(3390));
-const tunnel = __importStar(__nccwpck_require__(6628));
-const undici_1 = __nccwpck_require__(4258);
+const pm = __importStar(__nccwpck_require__(4988));
+const tunnel = __importStar(__nccwpck_require__(770));
+const undici_1 = __nccwpck_require__(6752);
 var HttpCodes;
 (function (HttpCodes) {
     HttpCodes[HttpCodes["OK"] = 200] = "OK";
@@ -752,7 +752,7 @@ const lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCa
 
 /***/ }),
 
-/***/ 3390:
+/***/ 4988:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -853,7 +853,7 @@ class DecodedURL extends URL {
 
 /***/ }),
 
-/***/ 4680:
+/***/ 898:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 // prettier-ignore
@@ -918,24 +918,24 @@ function requireNative() {
   if (process.platform === 'android') {
     if (process.arch === 'arm64') {
       try {
-        return __nccwpck_require__(4528)
+        return __nccwpck_require__(8685)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6212)
+        return __nccwpck_require__(607)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'arm') {
       try {
-        return __nccwpck_require__(430)
+        return __nccwpck_require__(9665)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(694)
+        return __nccwpck_require__(727)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -946,36 +946,36 @@ function requireNative() {
   } else if (process.platform === 'win32') {
     if (process.arch === 'x64') {
       try {
-        return __nccwpck_require__(802)
+        return __nccwpck_require__(2665)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(3465)
+        return __nccwpck_require__(8066)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'ia32') {
       try {
-        return __nccwpck_require__(5017)
+        return __nccwpck_require__(8152)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(7411)
+        return __nccwpck_require__(1612)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'arm64') {
       try {
-        return __nccwpck_require__(6640)
+        return __nccwpck_require__(3535)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6200)
+        return __nccwpck_require__(293)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -985,36 +985,36 @@ function requireNative() {
     }
   } else if (process.platform === 'darwin') {
     try {
-        return __nccwpck_require__(8533)
+        return __nccwpck_require__(8818)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(9963)
+        return __nccwpck_require__(3890)
       } catch (e) {
         loadErrors.push(e)
       }
 
     if (process.arch === 'x64') {
       try {
-        return __nccwpck_require__(3530)
+        return __nccwpck_require__(8009)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(2766)
+        return __nccwpck_require__(8139)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'arm64') {
       try {
-        return __nccwpck_require__(4000)
+        return __nccwpck_require__(475)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(2560)
+        return __nccwpck_require__(5049)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1025,24 +1025,24 @@ function requireNative() {
   } else if (process.platform === 'freebsd') {
     if (process.arch === 'x64') {
       try {
-        return __nccwpck_require__(9638)
+        return __nccwpck_require__(3291)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(3242)
+        return __nccwpck_require__(6229)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'arm64') {
       try {
-        return __nccwpck_require__(3588)
+        return __nccwpck_require__(3873)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(7860)
+        return __nccwpck_require__(5367)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1054,24 +1054,24 @@ function requireNative() {
     if (process.arch === 'x64') {
       if (isMusl()) {
         try {
-        return __nccwpck_require__(3795)
+        return __nccwpck_require__(2356)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(5169)
+        return __nccwpck_require__(6900)
       } catch (e) {
         loadErrors.push(e)
       }
 
       } else {
         try {
-        return __nccwpck_require__(5146)
+        return __nccwpck_require__(4675)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(746)
+        return __nccwpck_require__(7793)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1080,24 +1080,24 @@ function requireNative() {
     } else if (process.arch === 'arm64') {
       if (isMusl()) {
         try {
-        return __nccwpck_require__(4073)
+        return __nccwpck_require__(7602)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(7915)
+        return __nccwpck_require__(5254)
       } catch (e) {
         loadErrors.push(e)
       }
 
       } else {
         try {
-        return __nccwpck_require__(1464)
+        return __nccwpck_require__(8337)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6244)
+        return __nccwpck_require__(6571)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1105,12 +1105,12 @@ function requireNative() {
       }
     } else if (process.arch === 'arm') {
       try {
-        return __nccwpck_require__(91)
+        return __nccwpck_require__(7222)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(1225)
+        return __nccwpck_require__(1638)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1118,24 +1118,24 @@ function requireNative() {
     } else if (process.arch === 'riscv64') {
       if (isMusl()) {
         try {
-        return __nccwpck_require__(6786)
+        return __nccwpck_require__(8593)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(5930)
+        return __nccwpck_require__(8879)
       } catch (e) {
         loadErrors.push(e)
       }
 
       } else {
         try {
-        return __nccwpck_require__(1553)
+        return __nccwpck_require__(9312)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8199)
+        return __nccwpck_require__(9008)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1143,24 +1143,24 @@ function requireNative() {
       }
     } else if (process.arch === 'ppc64') {
       try {
-        return __nccwpck_require__(1887)
+        return __nccwpck_require__(1446)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(1329)
+        return __nccwpck_require__(3586)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 's390x') {
       try {
-        return __nccwpck_require__(5217)
+        return __nccwpck_require__(2644)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6635)
+        return __nccwpck_require__(8600)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1177,7 +1177,7 @@ nativeBinding = requireNative()
 
 if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
   try {
-    nativeBinding = __nccwpck_require__(300)
+    nativeBinding = __nccwpck_require__(6681)
   } catch (err) {
     if (process.env.NAPI_RS_FORCE_WASI) {
       console.error(err)
@@ -1185,7 +1185,7 @@ if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
   }
   if (!nativeBinding) {
     try {
-      nativeBinding = __nccwpck_require__(7722)
+      nativeBinding = __nccwpck_require__(9301)
     } catch (err) {
       if (process.env.NAPI_RS_FORCE_WASI) {
         console.error(err)
@@ -1228,7 +1228,7 @@ module.exports.transformSync = nativeBinding.transformSync
 
 /***/ }),
 
-/***/ 5229:
+/***/ 5971:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1297,9 +1297,9 @@ exports.__experimental_registerGlobalTraceConfig = __experimental_registerGlobal
 exports.getBinaryMetadata = getBinaryMetadata;
 const path_1 = __nccwpck_require__(6928);
 // @ts-ignore
-var binding_1 = __nccwpck_require__(4680);
+var binding_1 = __nccwpck_require__(898);
 Object.defineProperty(exports, "experimental_newMangleNameCache", ({ enumerable: true, get: function () { return binding_1.newMangleNameCache; } }));
-const spack_1 = __nccwpck_require__(8501);
+const spack_1 = __nccwpck_require__(8579);
 const assert = __importStar(__nccwpck_require__(2613));
 // Allow overrides to the location of the .node binding file
 const bindingsOverride = process.env["SWC_BINARY_PATH"];
@@ -1311,7 +1311,7 @@ const bindings = (() => {
     try {
         binding = !!bindingsOverride
             ? require((0, path_1.resolve)(bindingsOverride))
-            : __nccwpck_require__(4680);
+            : __nccwpck_require__(898);
         // If native binding loaded successfully, it should return proper target triple constant.
         const triple = binding.getTargetTriple();
         assert.ok(triple, "Failed to read target triple from native binary.");
@@ -1319,7 +1319,7 @@ const bindings = (() => {
     }
     catch (_) {
         // postinstall supposed to install `@swc/wasm` already
-        fallbackBindings = __nccwpck_require__(4196);
+        fallbackBindings = __nccwpck_require__(5855);
     }
     finally {
         return binding;
@@ -1328,7 +1328,7 @@ const bindings = (() => {
 /**
  * Version of the swc binding.
  */
-exports.version = __nccwpck_require__(6662).version;
+exports.version = __nccwpck_require__(155).version;
 /**
  * @deprecated JavaScript API is deprecated. Please use Wasm plugin instead.
  */
@@ -1679,7 +1679,7 @@ function toBuffer(t) {
 
 /***/ }),
 
-/***/ 8501:
+/***/ 8579:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1774,15 +1774,15 @@ function config(c) {
 
 /***/ }),
 
-/***/ 6628:
+/***/ 770:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = __nccwpck_require__(3188);
+module.exports = __nccwpck_require__(218);
 
 
 /***/ }),
 
-/***/ 3188:
+/***/ 218:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2054,34 +2054,34 @@ exports.debug = debug; // for test
 
 /***/ }),
 
-/***/ 4258:
+/***/ 6752:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const Client = __nccwpck_require__(2539)
-const Dispatcher = __nccwpck_require__(8989)
-const Pool = __nccwpck_require__(2690)
-const BalancedPool = __nccwpck_require__(1115)
-const Agent = __nccwpck_require__(8103)
-const ProxyAgent = __nccwpck_require__(114)
-const EnvHttpProxyAgent = __nccwpck_require__(3535)
-const RetryAgent = __nccwpck_require__(2148)
-const errors = __nccwpck_require__(7013)
-const util = __nccwpck_require__(4742)
+const Client = __nccwpck_require__(3701)
+const Dispatcher = __nccwpck_require__(883)
+const Pool = __nccwpck_require__(628)
+const BalancedPool = __nccwpck_require__(837)
+const Agent = __nccwpck_require__(7405)
+const ProxyAgent = __nccwpck_require__(6672)
+const EnvHttpProxyAgent = __nccwpck_require__(3137)
+const RetryAgent = __nccwpck_require__(50)
+const errors = __nccwpck_require__(8707)
+const util = __nccwpck_require__(3440)
 const { InvalidArgumentError } = errors
-const api = __nccwpck_require__(477)
-const buildConnector = __nccwpck_require__(4278)
-const MockClient = __nccwpck_require__(8747)
-const MockAgent = __nccwpck_require__(7319)
-const MockPool = __nccwpck_require__(706)
-const mockErrors = __nccwpck_require__(3559)
-const RetryHandler = __nccwpck_require__(9586)
-const { getGlobalDispatcher, setGlobalDispatcher } = __nccwpck_require__(3723)
-const DecoratorHandler = __nccwpck_require__(1881)
-const RedirectHandler = __nccwpck_require__(8276)
-const createRedirectInterceptor = __nccwpck_require__(5038)
+const api = __nccwpck_require__(6615)
+const buildConnector = __nccwpck_require__(9136)
+const MockClient = __nccwpck_require__(7365)
+const MockAgent = __nccwpck_require__(7501)
+const MockPool = __nccwpck_require__(4004)
+const mockErrors = __nccwpck_require__(2429)
+const RetryHandler = __nccwpck_require__(7816)
+const { getGlobalDispatcher, setGlobalDispatcher } = __nccwpck_require__(2581)
+const DecoratorHandler = __nccwpck_require__(8155)
+const RedirectHandler = __nccwpck_require__(8754)
+const createRedirectInterceptor = __nccwpck_require__(5092)
 
 Object.assign(Dispatcher.prototype, api)
 
@@ -2099,10 +2099,10 @@ module.exports.DecoratorHandler = DecoratorHandler
 module.exports.RedirectHandler = RedirectHandler
 module.exports.createRedirectInterceptor = createRedirectInterceptor
 module.exports.interceptors = {
-  redirect: __nccwpck_require__(9704),
-  retry: __nccwpck_require__(7400),
-  dump: __nccwpck_require__(7278),
-  dns: __nccwpck_require__(3241)
+  redirect: __nccwpck_require__(1514),
+  retry: __nccwpck_require__(2026),
+  dump: __nccwpck_require__(8060),
+  dns: __nccwpck_require__(379)
 }
 
 module.exports.buildConnector = buildConnector
@@ -2164,7 +2164,7 @@ function makeDispatcher (fn) {
 module.exports.setGlobalDispatcher = setGlobalDispatcher
 module.exports.getGlobalDispatcher = getGlobalDispatcher
 
-const fetchImpl = (__nccwpck_require__(2104).fetch)
+const fetchImpl = (__nccwpck_require__(4398).fetch)
 module.exports.fetch = async function fetch (init, options = undefined) {
   try {
     return await fetchImpl(init, options)
@@ -2176,39 +2176,39 @@ module.exports.fetch = async function fetch (init, options = undefined) {
     throw err
   }
 }
-module.exports.Headers = __nccwpck_require__(7386).Headers
-module.exports.Response = __nccwpck_require__(2929).Response
-module.exports.Request = __nccwpck_require__(4309).Request
-module.exports.FormData = __nccwpck_require__(6124).FormData
+module.exports.Headers = __nccwpck_require__(660).Headers
+module.exports.Response = __nccwpck_require__(9051).Response
+module.exports.Request = __nccwpck_require__(9967).Request
+module.exports.FormData = __nccwpck_require__(5910).FormData
 module.exports.File = globalThis.File ?? (__nccwpck_require__(4573).File)
-module.exports.FileReader = __nccwpck_require__(6413).FileReader
+module.exports.FileReader = __nccwpck_require__(8355).FileReader
 
-const { setGlobalOrigin, getGlobalOrigin } = __nccwpck_require__(9553)
+const { setGlobalOrigin, getGlobalOrigin } = __nccwpck_require__(1059)
 
 module.exports.setGlobalOrigin = setGlobalOrigin
 module.exports.getGlobalOrigin = getGlobalOrigin
 
-const { CacheStorage } = __nccwpck_require__(1823)
-const { kConstruct } = __nccwpck_require__(6123)
+const { CacheStorage } = __nccwpck_require__(3245)
+const { kConstruct } = __nccwpck_require__(109)
 
 // Cache & CacheStorage are tightly coupled with fetch. Even if it may run
 // in an older version of Node, it doesn't have any use without fetch.
 module.exports.caches = new CacheStorage(kConstruct)
 
-const { deleteCookie, getCookies, getSetCookies, setCookie } = __nccwpck_require__(107)
+const { deleteCookie, getCookies, getSetCookies, setCookie } = __nccwpck_require__(9061)
 
 module.exports.deleteCookie = deleteCookie
 module.exports.getCookies = getCookies
 module.exports.getSetCookies = getSetCookies
 module.exports.setCookie = setCookie
 
-const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(9634)
+const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(1900)
 
 module.exports.parseMIMEType = parseMIMEType
 module.exports.serializeAMimeType = serializeAMimeType
 
-const { CloseEvent, ErrorEvent, MessageEvent } = __nccwpck_require__(4194)
-module.exports.WebSocket = __nccwpck_require__(564).WebSocket
+const { CloseEvent, ErrorEvent, MessageEvent } = __nccwpck_require__(5188)
+module.exports.WebSocket = __nccwpck_require__(3726).WebSocket
 module.exports.CloseEvent = CloseEvent
 module.exports.ErrorEvent = ErrorEvent
 module.exports.MessageEvent = MessageEvent
@@ -2224,18 +2224,18 @@ module.exports.MockPool = MockPool
 module.exports.MockAgent = MockAgent
 module.exports.mockErrors = mockErrors
 
-const { EventSource } = __nccwpck_require__(5108)
+const { EventSource } = __nccwpck_require__(1238)
 
 module.exports.EventSource = EventSource
 
 
 /***/ }),
 
-/***/ 5532:
+/***/ 158:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { addAbortListener } = __nccwpck_require__(4742)
-const { RequestAbortedError } = __nccwpck_require__(7013)
+const { addAbortListener } = __nccwpck_require__(3440)
+const { RequestAbortedError } = __nccwpck_require__(8707)
 
 const kListener = Symbol('kListener')
 const kSignal = Symbol('kSignal')
@@ -2295,7 +2295,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9826:
+/***/ 2279:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2303,9 +2303,9 @@ module.exports = {
 
 const assert = __nccwpck_require__(4589)
 const { AsyncResource } = __nccwpck_require__(6698)
-const { InvalidArgumentError, SocketError } = __nccwpck_require__(7013)
-const util = __nccwpck_require__(4742)
-const { addSignal, removeSignal } = __nccwpck_require__(5532)
+const { InvalidArgumentError, SocketError } = __nccwpck_require__(8707)
+const util = __nccwpck_require__(3440)
+const { addSignal, removeSignal } = __nccwpck_require__(158)
 
 class ConnectHandler extends AsyncResource {
   constructor (opts, callback) {
@@ -2411,7 +2411,7 @@ module.exports = connect
 
 /***/ }),
 
-/***/ 4280:
+/***/ 6862:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2426,10 +2426,10 @@ const {
   InvalidArgumentError,
   InvalidReturnValueError,
   RequestAbortedError
-} = __nccwpck_require__(7013)
-const util = __nccwpck_require__(4742)
+} = __nccwpck_require__(8707)
+const util = __nccwpck_require__(3440)
 const { AsyncResource } = __nccwpck_require__(6698)
-const { addSignal, removeSignal } = __nccwpck_require__(5532)
+const { addSignal, removeSignal } = __nccwpck_require__(158)
 const assert = __nccwpck_require__(4589)
 
 const kResume = Symbol('resume')
@@ -2670,17 +2670,17 @@ module.exports = pipeline
 
 /***/ }),
 
-/***/ 1725:
+/***/ 4043:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const assert = __nccwpck_require__(4589)
-const { Readable } = __nccwpck_require__(4501)
-const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(7013)
-const util = __nccwpck_require__(4742)
-const { getResolveErrorBodyCallback } = __nccwpck_require__(6253)
+const { Readable } = __nccwpck_require__(9927)
+const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(8707)
+const util = __nccwpck_require__(3440)
+const { getResolveErrorBodyCallback } = __nccwpck_require__(7655)
 const { AsyncResource } = __nccwpck_require__(6698)
 
 class RequestHandler extends AsyncResource {
@@ -2892,7 +2892,7 @@ module.exports.RequestHandler = RequestHandler
 
 /***/ }),
 
-/***/ 4318:
+/***/ 3560:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2900,11 +2900,11 @@ module.exports.RequestHandler = RequestHandler
 
 const assert = __nccwpck_require__(4589)
 const { finished, PassThrough } = __nccwpck_require__(7075)
-const { InvalidArgumentError, InvalidReturnValueError } = __nccwpck_require__(7013)
-const util = __nccwpck_require__(4742)
-const { getResolveErrorBodyCallback } = __nccwpck_require__(6253)
+const { InvalidArgumentError, InvalidReturnValueError } = __nccwpck_require__(8707)
+const util = __nccwpck_require__(3440)
+const { getResolveErrorBodyCallback } = __nccwpck_require__(7655)
 const { AsyncResource } = __nccwpck_require__(6698)
-const { addSignal, removeSignal } = __nccwpck_require__(5532)
+const { addSignal, removeSignal } = __nccwpck_require__(158)
 
 class StreamHandler extends AsyncResource {
   constructor (opts, factory, callback) {
@@ -3120,16 +3120,16 @@ module.exports = stream
 
 /***/ }),
 
-/***/ 8892:
+/***/ 1882:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { InvalidArgumentError, SocketError } = __nccwpck_require__(7013)
+const { InvalidArgumentError, SocketError } = __nccwpck_require__(8707)
 const { AsyncResource } = __nccwpck_require__(6698)
-const util = __nccwpck_require__(4742)
-const { addSignal, removeSignal } = __nccwpck_require__(5532)
+const util = __nccwpck_require__(3440)
+const { addSignal, removeSignal } = __nccwpck_require__(158)
 const assert = __nccwpck_require__(4589)
 
 class UpgradeHandler extends AsyncResource {
@@ -3236,22 +3236,22 @@ module.exports = upgrade
 
 /***/ }),
 
-/***/ 477:
+/***/ 6615:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-module.exports.request = __nccwpck_require__(1725)
-module.exports.stream = __nccwpck_require__(4318)
-module.exports.pipeline = __nccwpck_require__(4280)
-module.exports.upgrade = __nccwpck_require__(8892)
-module.exports.connect = __nccwpck_require__(9826)
+module.exports.request = __nccwpck_require__(4043)
+module.exports.stream = __nccwpck_require__(3560)
+module.exports.pipeline = __nccwpck_require__(6862)
+module.exports.upgrade = __nccwpck_require__(1882)
+module.exports.connect = __nccwpck_require__(2279)
 
 
 /***/ }),
 
-/***/ 4501:
+/***/ 9927:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -3261,9 +3261,9 @@ module.exports.connect = __nccwpck_require__(9826)
 
 const assert = __nccwpck_require__(4589)
 const { Readable } = __nccwpck_require__(7075)
-const { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError } = __nccwpck_require__(7013)
-const util = __nccwpck_require__(4742)
-const { ReadableStreamFrom } = __nccwpck_require__(4742)
+const { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError } = __nccwpck_require__(8707)
+const util = __nccwpck_require__(3440)
+const { ReadableStreamFrom } = __nccwpck_require__(3440)
 
 const kConsume = Symbol('kConsume')
 const kReading = Symbol('kReading')
@@ -3644,15 +3644,15 @@ module.exports = { Readable: BodyReadable, chunksDecode }
 
 /***/ }),
 
-/***/ 6253:
+/***/ 7655:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const assert = __nccwpck_require__(4589)
 const {
   ResponseStatusCodeError
-} = __nccwpck_require__(7013)
+} = __nccwpck_require__(8707)
 
-const { chunksDecode } = __nccwpck_require__(4501)
+const { chunksDecode } = __nccwpck_require__(9927)
 const CHUNK_LIMIT = 128 * 1024
 
 async function getResolveErrorBodyCallback ({ callback, body, contentType, statusCode, statusMessage, headers }) {
@@ -3744,7 +3744,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4278:
+/***/ 9136:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -3752,9 +3752,9 @@ module.exports = {
 
 const net = __nccwpck_require__(7030)
 const assert = __nccwpck_require__(4589)
-const util = __nccwpck_require__(4742)
-const { InvalidArgumentError, ConnectTimeoutError } = __nccwpck_require__(7013)
-const timers = __nccwpck_require__(3325)
+const util = __nccwpck_require__(3440)
+const { InvalidArgumentError, ConnectTimeoutError } = __nccwpck_require__(8707)
+const timers = __nccwpck_require__(6603)
 
 function noop () {}
 
@@ -3992,7 +3992,7 @@ module.exports = buildConnector
 
 /***/ }),
 
-/***/ 2041:
+/***/ 735:
 /***/ ((module) => {
 
 "use strict";
@@ -4118,7 +4118,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8664:
+/***/ 2414:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -4328,7 +4328,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7013:
+/***/ 8707:
 /***/ ((module) => {
 
 "use strict";
@@ -4761,7 +4761,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1241:
+/***/ 4655:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -4770,7 +4770,7 @@ module.exports = {
 const {
   InvalidArgumentError,
   NotSupportedError
-} = __nccwpck_require__(7013)
+} = __nccwpck_require__(8707)
 const assert = __nccwpck_require__(4589)
 const {
   isValidHTTPToken,
@@ -4785,9 +4785,9 @@ const {
   validateHandler,
   getServerName,
   normalizedMethodRecords
-} = __nccwpck_require__(4742)
-const { channels } = __nccwpck_require__(8664)
-const { headerNameLowerCasedRecord } = __nccwpck_require__(2041)
+} = __nccwpck_require__(3440)
+const { channels } = __nccwpck_require__(2414)
+const { headerNameLowerCasedRecord } = __nccwpck_require__(735)
 
 // Verifies that a given path is valid does not contain control chars \x00 to \x20
 const invalidPathRegex = /[^\u0021-\u00ff]/
@@ -5174,7 +5174,7 @@ module.exports = Request
 
 /***/ }),
 
-/***/ 7573:
+/***/ 6443:
 /***/ ((module) => {
 
 module.exports = {
@@ -5248,7 +5248,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5322:
+/***/ 7752:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -5257,7 +5257,7 @@ module.exports = {
 const {
   wellknownHeaderNames,
   headerNameLowerCasedRecord
-} = __nccwpck_require__(2041)
+} = __nccwpck_require__(735)
 
 class TstNode {
   /** @type {any} */
@@ -5408,14 +5408,14 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4742:
+/***/ 3440:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const assert = __nccwpck_require__(4589)
-const { kDestroyed, kBodyUsed, kListeners, kBody } = __nccwpck_require__(7573)
+const { kDestroyed, kBodyUsed, kListeners, kBody } = __nccwpck_require__(6443)
 const { IncomingMessage } = __nccwpck_require__(7067)
 const stream = __nccwpck_require__(7075)
 const net = __nccwpck_require__(7030)
@@ -5423,9 +5423,9 @@ const { Blob } = __nccwpck_require__(4573)
 const nodeUtil = __nccwpck_require__(7975)
 const { stringify } = __nccwpck_require__(1792)
 const { EventEmitter: EE } = __nccwpck_require__(8474)
-const { InvalidArgumentError } = __nccwpck_require__(7013)
-const { headerNameLowerCasedRecord } = __nccwpck_require__(2041)
-const { tree } = __nccwpck_require__(5322)
+const { InvalidArgumentError } = __nccwpck_require__(8707)
+const { headerNameLowerCasedRecord } = __nccwpck_require__(735)
+const { tree } = __nccwpck_require__(7752)
 
 const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(v => Number(v))
 
@@ -6135,19 +6135,19 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8103:
+/***/ 7405:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { InvalidArgumentError } = __nccwpck_require__(7013)
-const { kClients, kRunning, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(7573)
-const DispatcherBase = __nccwpck_require__(9199)
-const Pool = __nccwpck_require__(2690)
-const Client = __nccwpck_require__(2539)
-const util = __nccwpck_require__(4742)
-const createRedirectInterceptor = __nccwpck_require__(5038)
+const { InvalidArgumentError } = __nccwpck_require__(8707)
+const { kClients, kRunning, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(6443)
+const DispatcherBase = __nccwpck_require__(1841)
+const Pool = __nccwpck_require__(628)
+const Client = __nccwpck_require__(3701)
+const util = __nccwpck_require__(3440)
+const createRedirectInterceptor = __nccwpck_require__(5092)
 
 const kOnConnect = Symbol('onConnect')
 const kOnDisconnect = Symbol('onDisconnect')
@@ -6272,7 +6272,7 @@ module.exports = Agent
 
 /***/ }),
 
-/***/ 1115:
+/***/ 837:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -6281,7 +6281,7 @@ module.exports = Agent
 const {
   BalancedPoolMissingUpstreamError,
   InvalidArgumentError
-} = __nccwpck_require__(7013)
+} = __nccwpck_require__(8707)
 const {
   PoolBase,
   kClients,
@@ -6289,10 +6289,10 @@ const {
   kAddClient,
   kRemoveClient,
   kGetDispatcher
-} = __nccwpck_require__(8122)
-const Pool = __nccwpck_require__(2690)
-const { kUrl, kInterceptors } = __nccwpck_require__(7573)
-const { parseOrigin } = __nccwpck_require__(4742)
+} = __nccwpck_require__(2128)
+const Pool = __nccwpck_require__(628)
+const { kUrl, kInterceptors } = __nccwpck_require__(6443)
+const { parseOrigin } = __nccwpck_require__(3440)
 const kFactory = Symbol('factory')
 
 const kOptions = Symbol('options')
@@ -6489,7 +6489,7 @@ module.exports = BalancedPool
 
 /***/ }),
 
-/***/ 3335:
+/***/ 637:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -6498,9 +6498,9 @@ module.exports = BalancedPool
 /* global WebAssembly */
 
 const assert = __nccwpck_require__(4589)
-const util = __nccwpck_require__(4742)
-const { channels } = __nccwpck_require__(8664)
-const timers = __nccwpck_require__(3325)
+const util = __nccwpck_require__(3440)
+const { channels } = __nccwpck_require__(2414)
+const timers = __nccwpck_require__(6603)
 const {
   RequestContentLengthMismatchError,
   ResponseContentLengthMismatchError,
@@ -6512,7 +6512,7 @@ const {
   BodyTimeoutError,
   HTTPParserError,
   ResponseExceededMaxSizeError
-} = __nccwpck_require__(7013)
+} = __nccwpck_require__(8707)
 const {
   kUrl,
   kReset,
@@ -6545,9 +6545,9 @@ const {
   kOnError,
   kResume,
   kHTTPContext
-} = __nccwpck_require__(7573)
+} = __nccwpck_require__(6443)
 
-const constants = __nccwpck_require__(4998)
+const constants = __nccwpck_require__(2824)
 const EMPTY_BUF = Buffer.alloc(0)
 const FastBuffer = Buffer[Symbol.species]
 const addListener = util.addListener
@@ -6556,11 +6556,11 @@ const removeAllListeners = util.removeAllListeners
 let extractBody
 
 async function lazyllhttp () {
-  const llhttpWasmData = process.env.JEST_WORKER_ID ? __nccwpck_require__(7724) : undefined
+  const llhttpWasmData = process.env.JEST_WORKER_ID ? __nccwpck_require__(3870) : undefined
 
   let mod
   try {
-    mod = await WebAssembly.compile(__nccwpck_require__(8772))
+    mod = await WebAssembly.compile(__nccwpck_require__(3434))
   } catch (e) {
     /* istanbul ignore next */
 
@@ -6568,7 +6568,7 @@ async function lazyllhttp () {
     // being enabled, but the occurring of this other error
     // * https://github.com/emscripten-core/emscripten/issues/11495
     // got me to remove that check to avoid breaking Node 12.
-    mod = await WebAssembly.compile(llhttpWasmData || __nccwpck_require__(7724))
+    mod = await WebAssembly.compile(llhttpWasmData || __nccwpck_require__(3870))
   }
 
   return await WebAssembly.instantiate(mod, {
@@ -7363,7 +7363,7 @@ function writeH1 (client, request) {
 
   if (util.isFormDataLike(body)) {
     if (!extractBody) {
-      extractBody = (__nccwpck_require__(1294).extractBody)
+      extractBody = (__nccwpck_require__(4492).extractBody)
     }
 
     const [bodyStream, contentType] = extractBody(body)
@@ -7867,7 +7867,7 @@ module.exports = connectH1
 
 /***/ }),
 
-/***/ 9610:
+/***/ 8788:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -7875,13 +7875,13 @@ module.exports = connectH1
 
 const assert = __nccwpck_require__(4589)
 const { pipeline } = __nccwpck_require__(7075)
-const util = __nccwpck_require__(4742)
+const util = __nccwpck_require__(3440)
 const {
   RequestContentLengthMismatchError,
   RequestAbortedError,
   SocketError,
   InformationalError
-} = __nccwpck_require__(7013)
+} = __nccwpck_require__(8707)
 const {
   kUrl,
   kReset,
@@ -7900,7 +7900,7 @@ const {
   kResume,
   kSize,
   kHTTPContext
-} = __nccwpck_require__(7573)
+} = __nccwpck_require__(6443)
 
 const kOpenStreams = Symbol('open streams')
 
@@ -8259,7 +8259,7 @@ function writeH2 (client, request) {
   let contentLength = util.bodyLength(body)
 
   if (util.isFormDataLike(body)) {
-    extractBody ??= (__nccwpck_require__(1294).extractBody)
+    extractBody ??= (__nccwpck_require__(4492).extractBody)
 
     const [bodyStream, contentType] = extractBody(body)
     headers['content-type'] = contentType
@@ -8619,7 +8619,7 @@ module.exports = connectH2
 
 /***/ }),
 
-/***/ 2539:
+/***/ 3701:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -8630,16 +8630,16 @@ module.exports = connectH2
 const assert = __nccwpck_require__(4589)
 const net = __nccwpck_require__(7030)
 const http = __nccwpck_require__(7067)
-const util = __nccwpck_require__(4742)
-const { channels } = __nccwpck_require__(8664)
-const Request = __nccwpck_require__(1241)
-const DispatcherBase = __nccwpck_require__(9199)
+const util = __nccwpck_require__(3440)
+const { channels } = __nccwpck_require__(2414)
+const Request = __nccwpck_require__(4655)
+const DispatcherBase = __nccwpck_require__(1841)
 const {
   InvalidArgumentError,
   InformationalError,
   ClientDestroyedError
-} = __nccwpck_require__(7013)
-const buildConnector = __nccwpck_require__(4278)
+} = __nccwpck_require__(8707)
+const buildConnector = __nccwpck_require__(9136)
 const {
   kUrl,
   kServerName,
@@ -8681,9 +8681,9 @@ const {
   kHTTPContext,
   kMaxConcurrentStreams,
   kResume
-} = __nccwpck_require__(7573)
-const connectH1 = __nccwpck_require__(3335)
-const connectH2 = __nccwpck_require__(9610)
+} = __nccwpck_require__(6443)
+const connectH1 = __nccwpck_require__(637)
+const connectH2 = __nccwpck_require__(8788)
 let deprecatedInterceptorWarned = false
 
 const kClosedResolve = Symbol('kClosedResolve')
@@ -8989,7 +8989,7 @@ class Client extends DispatcherBase {
   }
 }
 
-const createRedirectInterceptor = __nccwpck_require__(5038)
+const createRedirectInterceptor = __nccwpck_require__(5092)
 
 function onError (client, err) {
   if (
@@ -9249,19 +9249,19 @@ module.exports = Client
 
 /***/ }),
 
-/***/ 9199:
+/***/ 1841:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const Dispatcher = __nccwpck_require__(8989)
+const Dispatcher = __nccwpck_require__(883)
 const {
   ClientDestroyedError,
   ClientClosedError,
   InvalidArgumentError
-} = __nccwpck_require__(7013)
-const { kDestroy, kClose, kClosed, kDestroyed, kDispatch, kInterceptors } = __nccwpck_require__(7573)
+} = __nccwpck_require__(8707)
+const { kDestroy, kClose, kClosed, kDestroyed, kDispatch, kInterceptors } = __nccwpck_require__(6443)
 
 const kOnDestroyed = Symbol('onDestroyed')
 const kOnClosed = Symbol('onClosed')
@@ -9447,7 +9447,7 @@ module.exports = DispatcherBase
 
 /***/ }),
 
-/***/ 8989:
+/***/ 883:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -9520,16 +9520,16 @@ module.exports = Dispatcher
 
 /***/ }),
 
-/***/ 3535:
+/***/ 3137:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const DispatcherBase = __nccwpck_require__(9199)
-const { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = __nccwpck_require__(7573)
-const ProxyAgent = __nccwpck_require__(114)
-const Agent = __nccwpck_require__(8103)
+const DispatcherBase = __nccwpck_require__(1841)
+const { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = __nccwpck_require__(6443)
+const ProxyAgent = __nccwpck_require__(6672)
+const Agent = __nccwpck_require__(7405)
 
 const DEFAULT_PORTS = {
   'http:': 80,
@@ -9688,7 +9688,7 @@ module.exports = EnvHttpProxyAgent
 
 /***/ }),
 
-/***/ 7842:
+/***/ 4660:
 /***/ ((module) => {
 
 "use strict";
@@ -9813,16 +9813,16 @@ module.exports = class FixedQueue {
 
 /***/ }),
 
-/***/ 8122:
+/***/ 2128:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const DispatcherBase = __nccwpck_require__(9199)
-const FixedQueue = __nccwpck_require__(7842)
-const { kConnected, kSize, kRunning, kPending, kQueued, kBusy, kFree, kUrl, kClose, kDestroy, kDispatch } = __nccwpck_require__(7573)
-const PoolStats = __nccwpck_require__(7404)
+const DispatcherBase = __nccwpck_require__(1841)
+const FixedQueue = __nccwpck_require__(4660)
+const { kConnected, kSize, kRunning, kPending, kQueued, kBusy, kFree, kUrl, kClose, kDestroy, kDispatch } = __nccwpck_require__(6443)
+const PoolStats = __nccwpck_require__(3246)
 
 const kClients = Symbol('clients')
 const kNeedDrain = Symbol('needDrain')
@@ -10015,10 +10015,10 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7404:
+/***/ 3246:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { kFree, kConnected, kPending, kQueued, kRunning, kSize } = __nccwpck_require__(7573)
+const { kFree, kConnected, kPending, kQueued, kRunning, kSize } = __nccwpck_require__(6443)
 const kPool = Symbol('pool')
 
 class PoolStats {
@@ -10056,7 +10056,7 @@ module.exports = PoolStats
 
 /***/ }),
 
-/***/ 2690:
+/***/ 628:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -10068,14 +10068,14 @@ const {
   kNeedDrain,
   kAddClient,
   kGetDispatcher
-} = __nccwpck_require__(8122)
-const Client = __nccwpck_require__(2539)
+} = __nccwpck_require__(2128)
+const Client = __nccwpck_require__(3701)
 const {
   InvalidArgumentError
-} = __nccwpck_require__(7013)
-const util = __nccwpck_require__(4742)
-const { kUrl, kInterceptors } = __nccwpck_require__(7573)
-const buildConnector = __nccwpck_require__(4278)
+} = __nccwpck_require__(8707)
+const util = __nccwpck_require__(3440)
+const { kUrl, kInterceptors } = __nccwpck_require__(6443)
+const buildConnector = __nccwpck_require__(9136)
 
 const kOptions = Symbol('options')
 const kConnections = Symbol('connections')
@@ -10171,20 +10171,20 @@ module.exports = Pool
 
 /***/ }),
 
-/***/ 114:
+/***/ 6672:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kProxy, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(7573)
+const { kProxy, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(6443)
 const { URL } = __nccwpck_require__(3136)
-const Agent = __nccwpck_require__(8103)
-const Pool = __nccwpck_require__(2690)
-const DispatcherBase = __nccwpck_require__(9199)
-const { InvalidArgumentError, RequestAbortedError, SecureProxyConnectionError } = __nccwpck_require__(7013)
-const buildConnector = __nccwpck_require__(4278)
-const Client = __nccwpck_require__(2539)
+const Agent = __nccwpck_require__(7405)
+const Pool = __nccwpck_require__(628)
+const DispatcherBase = __nccwpck_require__(1841)
+const { InvalidArgumentError, RequestAbortedError, SecureProxyConnectionError } = __nccwpck_require__(8707)
+const buildConnector = __nccwpck_require__(9136)
+const Client = __nccwpck_require__(3701)
 
 const kAgent = Symbol('proxy agent')
 const kClient = Symbol('proxy client')
@@ -10453,14 +10453,14 @@ module.exports = ProxyAgent
 
 /***/ }),
 
-/***/ 2148:
+/***/ 50:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const Dispatcher = __nccwpck_require__(8989)
-const RetryHandler = __nccwpck_require__(9586)
+const Dispatcher = __nccwpck_require__(883)
+const RetryHandler = __nccwpck_require__(7816)
 
 class RetryAgent extends Dispatcher {
   #agent = null
@@ -10496,7 +10496,7 @@ module.exports = RetryAgent
 
 /***/ }),
 
-/***/ 3723:
+/***/ 2581:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -10505,8 +10505,8 @@ module.exports = RetryAgent
 // We include a version number for the Dispatcher API. In case of breaking changes,
 // this version number must be increased to avoid conflicts.
 const globalDispatcher = Symbol.for('undici.globalDispatcher.1')
-const { InvalidArgumentError } = __nccwpck_require__(7013)
-const Agent = __nccwpck_require__(8103)
+const { InvalidArgumentError } = __nccwpck_require__(8707)
+const Agent = __nccwpck_require__(7405)
 
 if (getGlobalDispatcher() === undefined) {
   setGlobalDispatcher(new Agent())
@@ -10536,7 +10536,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1881:
+/***/ 8155:
 /***/ ((module) => {
 
 "use strict";
@@ -10588,16 +10588,16 @@ module.exports = class DecoratorHandler {
 
 /***/ }),
 
-/***/ 8276:
+/***/ 8754:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const util = __nccwpck_require__(4742)
-const { kBodyUsed } = __nccwpck_require__(7573)
+const util = __nccwpck_require__(3440)
+const { kBodyUsed } = __nccwpck_require__(6443)
 const assert = __nccwpck_require__(4589)
-const { InvalidArgumentError } = __nccwpck_require__(7013)
+const { InvalidArgumentError } = __nccwpck_require__(8707)
 const EE = __nccwpck_require__(8474)
 
 const redirectableStatusCodes = [300, 301, 302, 303, 307, 308]
@@ -10828,21 +10828,21 @@ module.exports = RedirectHandler
 
 /***/ }),
 
-/***/ 9586:
+/***/ 7816:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 const assert = __nccwpck_require__(4589)
 
-const { kRetryHandlerDefaultRetry } = __nccwpck_require__(7573)
-const { RequestRetryError } = __nccwpck_require__(7013)
+const { kRetryHandlerDefaultRetry } = __nccwpck_require__(6443)
+const { RequestRetryError } = __nccwpck_require__(8707)
 const {
   isDisturbed,
   parseHeaders,
   parseRangeHeader,
   wrapRequestBody
-} = __nccwpck_require__(4742)
+} = __nccwpck_require__(3440)
 
 function calculateRetryAfterHeader (retryAfter) {
   const current = Date.now()
@@ -11210,15 +11210,15 @@ module.exports = RetryHandler
 
 /***/ }),
 
-/***/ 3241:
+/***/ 379:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 const { isIP } = __nccwpck_require__(7030)
 const { lookup } = __nccwpck_require__(610)
-const DecoratorHandler = __nccwpck_require__(1881)
-const { InvalidArgumentError, InformationalError } = __nccwpck_require__(7013)
+const DecoratorHandler = __nccwpck_require__(8155)
+const { InvalidArgumentError, InformationalError } = __nccwpck_require__(8707)
 const maxInt = Math.pow(2, 31) - 1
 
 class DNSInstance {
@@ -11593,15 +11593,15 @@ module.exports = interceptorOpts => {
 
 /***/ }),
 
-/***/ 7278:
+/***/ 8060:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const util = __nccwpck_require__(4742)
-const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(7013)
-const DecoratorHandler = __nccwpck_require__(1881)
+const util = __nccwpck_require__(3440)
+const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(8707)
+const DecoratorHandler = __nccwpck_require__(8155)
 
 class DumpHandler extends DecoratorHandler {
   #maxSize = 1024 * 1024
@@ -11724,13 +11724,13 @@ module.exports = createDumpInterceptor
 
 /***/ }),
 
-/***/ 5038:
+/***/ 5092:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const RedirectHandler = __nccwpck_require__(8276)
+const RedirectHandler = __nccwpck_require__(8754)
 
 function createRedirectInterceptor ({ maxRedirections: defaultMaxRedirections }) {
   return (dispatch) => {
@@ -11753,12 +11753,12 @@ module.exports = createRedirectInterceptor
 
 /***/ }),
 
-/***/ 9704:
+/***/ 1514:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
-const RedirectHandler = __nccwpck_require__(8276)
+const RedirectHandler = __nccwpck_require__(8754)
 
 module.exports = opts => {
   const globalMaxRedirections = opts?.maxRedirections
@@ -11785,12 +11785,12 @@ module.exports = opts => {
 
 /***/ }),
 
-/***/ 7400:
+/***/ 2026:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
-const RetryHandler = __nccwpck_require__(9586)
+const RetryHandler = __nccwpck_require__(7816)
 
 module.exports = globalOpts => {
   return dispatch => {
@@ -11812,14 +11812,14 @@ module.exports = globalOpts => {
 
 /***/ }),
 
-/***/ 4998:
+/***/ 2824:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SPECIAL_HEADERS = exports.HEADER_STATE = exports.MINOR = exports.MAJOR = exports.CONNECTION_TOKEN_CHARS = exports.HEADER_CHARS = exports.TOKEN = exports.STRICT_TOKEN = exports.HEX = exports.URL_CHAR = exports.STRICT_URL_CHAR = exports.USERINFO_CHARS = exports.MARK = exports.ALPHANUM = exports.NUM = exports.HEX_MAP = exports.NUM_MAP = exports.ALPHA = exports.FINISH = exports.H_METHOD_MAP = exports.METHOD_MAP = exports.METHODS_RTSP = exports.METHODS_ICE = exports.METHODS_HTTP = exports.METHODS = exports.LENIENT_FLAGS = exports.FLAGS = exports.TYPE = exports.ERROR = void 0;
-const utils_1 = __nccwpck_require__(4094);
+const utils_1 = __nccwpck_require__(172);
 // C headers
 var ERROR;
 (function (ERROR) {
@@ -12097,7 +12097,7 @@ exports.SPECIAL_HEADERS = {
 
 /***/ }),
 
-/***/ 7724:
+/***/ 3870:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -12110,7 +12110,7 @@ module.exports = Buffer.from('AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAX8AYAJ/fwBgBH9/f3
 
 /***/ }),
 
-/***/ 8772:
+/***/ 3434:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -12123,7 +12123,7 @@ module.exports = Buffer.from('AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAX8AYAJ/fwBgBH9/f3
 
 /***/ }),
 
-/***/ 4094:
+/***/ 172:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -12145,14 +12145,14 @@ exports.enumToMap = enumToMap;
 
 /***/ }),
 
-/***/ 7319:
+/***/ 7501:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kClients } = __nccwpck_require__(7573)
-const Agent = __nccwpck_require__(8103)
+const { kClients } = __nccwpck_require__(6443)
+const Agent = __nccwpck_require__(7405)
 const {
   kAgent,
   kMockAgentSet,
@@ -12163,14 +12163,14 @@ const {
   kGetNetConnect,
   kOptions,
   kFactory
-} = __nccwpck_require__(4847)
-const MockClient = __nccwpck_require__(8747)
-const MockPool = __nccwpck_require__(706)
-const { matchValue, buildMockOptions } = __nccwpck_require__(9763)
-const { InvalidArgumentError, UndiciError } = __nccwpck_require__(7013)
-const Dispatcher = __nccwpck_require__(8989)
-const Pluralizer = __nccwpck_require__(5403)
-const PendingInterceptorsFormatter = __nccwpck_require__(7456)
+} = __nccwpck_require__(1117)
+const MockClient = __nccwpck_require__(7365)
+const MockPool = __nccwpck_require__(4004)
+const { matchValue, buildMockOptions } = __nccwpck_require__(3397)
+const { InvalidArgumentError, UndiciError } = __nccwpck_require__(8707)
+const Dispatcher = __nccwpck_require__(883)
+const Pluralizer = __nccwpck_require__(1529)
+const PendingInterceptorsFormatter = __nccwpck_require__(6142)
 
 class MockAgent extends Dispatcher {
   constructor (opts) {
@@ -12313,15 +12313,15 @@ module.exports = MockAgent
 
 /***/ }),
 
-/***/ 8747:
+/***/ 7365:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { promisify } = __nccwpck_require__(7975)
-const Client = __nccwpck_require__(2539)
-const { buildMockDispatch } = __nccwpck_require__(9763)
+const Client = __nccwpck_require__(3701)
+const { buildMockDispatch } = __nccwpck_require__(3397)
 const {
   kDispatches,
   kMockAgent,
@@ -12330,10 +12330,10 @@ const {
   kOrigin,
   kOriginalDispatch,
   kConnected
-} = __nccwpck_require__(4847)
-const { MockInterceptor } = __nccwpck_require__(5437)
-const Symbols = __nccwpck_require__(7573)
-const { InvalidArgumentError } = __nccwpck_require__(7013)
+} = __nccwpck_require__(1117)
+const { MockInterceptor } = __nccwpck_require__(1511)
+const Symbols = __nccwpck_require__(6443)
+const { InvalidArgumentError } = __nccwpck_require__(8707)
 
 /**
  * MockClient provides an API that extends the Client to influence the mockDispatches.
@@ -12380,13 +12380,13 @@ module.exports = MockClient
 
 /***/ }),
 
-/***/ 3559:
+/***/ 2429:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { UndiciError } = __nccwpck_require__(7013)
+const { UndiciError } = __nccwpck_require__(8707)
 
 const kMockNotMatchedError = Symbol.for('undici.error.UND_MOCK_ERR_MOCK_NOT_MATCHED')
 
@@ -12416,13 +12416,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5437:
+/***/ 1511:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { getResponseData, buildKey, addMockDispatch } = __nccwpck_require__(9763)
+const { getResponseData, buildKey, addMockDispatch } = __nccwpck_require__(3397)
 const {
   kDispatches,
   kDispatchKey,
@@ -12430,9 +12430,9 @@ const {
   kDefaultTrailers,
   kContentLength,
   kMockDispatch
-} = __nccwpck_require__(4847)
-const { InvalidArgumentError } = __nccwpck_require__(7013)
-const { buildURL } = __nccwpck_require__(4742)
+} = __nccwpck_require__(1117)
+const { InvalidArgumentError } = __nccwpck_require__(8707)
+const { buildURL } = __nccwpck_require__(3440)
 
 /**
  * Defines the scope API for an interceptor reply
@@ -12631,15 +12631,15 @@ module.exports.MockScope = MockScope
 
 /***/ }),
 
-/***/ 706:
+/***/ 4004:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { promisify } = __nccwpck_require__(7975)
-const Pool = __nccwpck_require__(2690)
-const { buildMockDispatch } = __nccwpck_require__(9763)
+const Pool = __nccwpck_require__(628)
+const { buildMockDispatch } = __nccwpck_require__(3397)
 const {
   kDispatches,
   kMockAgent,
@@ -12648,10 +12648,10 @@ const {
   kOrigin,
   kOriginalDispatch,
   kConnected
-} = __nccwpck_require__(4847)
-const { MockInterceptor } = __nccwpck_require__(5437)
-const Symbols = __nccwpck_require__(7573)
-const { InvalidArgumentError } = __nccwpck_require__(7013)
+} = __nccwpck_require__(1117)
+const { MockInterceptor } = __nccwpck_require__(1511)
+const Symbols = __nccwpck_require__(6443)
+const { InvalidArgumentError } = __nccwpck_require__(8707)
 
 /**
  * MockPool provides an API that extends the Pool to influence the mockDispatches.
@@ -12698,7 +12698,7 @@ module.exports = MockPool
 
 /***/ }),
 
-/***/ 4847:
+/***/ 1117:
 /***/ ((module) => {
 
 "use strict";
@@ -12729,21 +12729,21 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9763:
+/***/ 3397:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { MockNotMatchedError } = __nccwpck_require__(3559)
+const { MockNotMatchedError } = __nccwpck_require__(2429)
 const {
   kDispatches,
   kMockAgent,
   kOriginalDispatch,
   kOrigin,
   kGetNetConnect
-} = __nccwpck_require__(4847)
-const { buildURL } = __nccwpck_require__(4742)
+} = __nccwpck_require__(1117)
+const { buildURL } = __nccwpck_require__(3440)
 const { STATUS_CODES } = __nccwpck_require__(7067)
 const {
   types: {
@@ -13104,7 +13104,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7456:
+/***/ 6142:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -13155,7 +13155,7 @@ module.exports = class PendingInterceptorsFormatter {
 
 /***/ }),
 
-/***/ 5403:
+/***/ 1529:
 /***/ ((module) => {
 
 "use strict";
@@ -13192,7 +13192,7 @@ module.exports = class Pluralizer {
 
 /***/ }),
 
-/***/ 3325:
+/***/ 6603:
 /***/ ((module) => {
 
 "use strict";
@@ -13623,21 +13623,21 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1440:
+/***/ 9634:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kConstruct } = __nccwpck_require__(6123)
-const { urlEquals, getFieldValues } = __nccwpck_require__(8848)
-const { kEnumerableProperty, isDisturbed } = __nccwpck_require__(4742)
-const { webidl } = __nccwpck_require__(735)
-const { Response, cloneResponse, fromInnerResponse } = __nccwpck_require__(2929)
-const { Request, fromInnerRequest } = __nccwpck_require__(4309)
-const { kState } = __nccwpck_require__(5785)
-const { fetching } = __nccwpck_require__(2104)
-const { urlIsHttpHttpsScheme, createDeferredPromise, readAllBytes } = __nccwpck_require__(18)
+const { kConstruct } = __nccwpck_require__(109)
+const { urlEquals, getFieldValues } = __nccwpck_require__(6798)
+const { kEnumerableProperty, isDisturbed } = __nccwpck_require__(3440)
+const { webidl } = __nccwpck_require__(5893)
+const { Response, cloneResponse, fromInnerResponse } = __nccwpck_require__(9051)
+const { Request, fromInnerRequest } = __nccwpck_require__(9967)
+const { kState } = __nccwpck_require__(3627)
+const { fetching } = __nccwpck_require__(4398)
+const { urlIsHttpHttpsScheme, createDeferredPromise, readAllBytes } = __nccwpck_require__(3168)
 const assert = __nccwpck_require__(4589)
 
 /**
@@ -14490,16 +14490,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1823:
+/***/ 3245:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kConstruct } = __nccwpck_require__(6123)
-const { Cache } = __nccwpck_require__(1440)
-const { webidl } = __nccwpck_require__(735)
-const { kEnumerableProperty } = __nccwpck_require__(4742)
+const { kConstruct } = __nccwpck_require__(109)
+const { Cache } = __nccwpck_require__(9634)
+const { webidl } = __nccwpck_require__(5893)
+const { kEnumerableProperty } = __nccwpck_require__(3440)
 
 class CacheStorage {
   /**
@@ -14650,28 +14650,28 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6123:
+/***/ 109:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 module.exports = {
-  kConstruct: (__nccwpck_require__(7573).kConstruct)
+  kConstruct: (__nccwpck_require__(6443).kConstruct)
 }
 
 
 /***/ }),
 
-/***/ 8848:
+/***/ 6798:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const assert = __nccwpck_require__(4589)
-const { URLSerializer } = __nccwpck_require__(9634)
-const { isValidHeaderName } = __nccwpck_require__(18)
+const { URLSerializer } = __nccwpck_require__(1900)
+const { isValidHeaderName } = __nccwpck_require__(3168)
 
 /**
  * @see https://url.spec.whatwg.org/#concept-url-equals
@@ -14716,7 +14716,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8542:
+/***/ 1276:
 /***/ ((module) => {
 
 "use strict";
@@ -14736,16 +14736,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 107:
+/***/ 9061:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { parseSetCookie } = __nccwpck_require__(916)
-const { stringify } = __nccwpck_require__(3667)
-const { webidl } = __nccwpck_require__(735)
-const { Headers } = __nccwpck_require__(7386)
+const { parseSetCookie } = __nccwpck_require__(1978)
+const { stringify } = __nccwpck_require__(7797)
+const { webidl } = __nccwpck_require__(5893)
+const { Headers } = __nccwpck_require__(660)
 
 /**
  * @typedef {Object} Cookie
@@ -14928,15 +14928,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 916:
+/***/ 1978:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { maxNameValuePairSize, maxAttributeValueSize } = __nccwpck_require__(8542)
-const { isCTLExcludingHtab } = __nccwpck_require__(3667)
-const { collectASequenceOfCodePointsFast } = __nccwpck_require__(9634)
+const { maxNameValuePairSize, maxAttributeValueSize } = __nccwpck_require__(1276)
+const { isCTLExcludingHtab } = __nccwpck_require__(7797)
+const { collectASequenceOfCodePointsFast } = __nccwpck_require__(1900)
 const assert = __nccwpck_require__(4589)
 
 /**
@@ -15253,7 +15253,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3667:
+/***/ 7797:
 /***/ ((module) => {
 
 "use strict";
@@ -15543,13 +15543,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1009:
+/***/ 4031:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 const { Transform } = __nccwpck_require__(7075)
-const { isASCIINumber, isValidLastEventId } = __nccwpck_require__(2893)
+const { isASCIINumber, isValidLastEventId } = __nccwpck_require__(4811)
 
 /**
  * @type {number[]} BOM
@@ -15949,23 +15949,23 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5108:
+/***/ 1238:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { pipeline } = __nccwpck_require__(7075)
-const { fetching } = __nccwpck_require__(2104)
-const { makeRequest } = __nccwpck_require__(4309)
-const { webidl } = __nccwpck_require__(735)
-const { EventSourceStream } = __nccwpck_require__(1009)
-const { parseMIMEType } = __nccwpck_require__(9634)
-const { createFastMessageEvent } = __nccwpck_require__(4194)
-const { isNetworkError } = __nccwpck_require__(2929)
-const { delay } = __nccwpck_require__(2893)
-const { kEnumerableProperty } = __nccwpck_require__(4742)
-const { environmentSettingsObject } = __nccwpck_require__(18)
+const { fetching } = __nccwpck_require__(4398)
+const { makeRequest } = __nccwpck_require__(9967)
+const { webidl } = __nccwpck_require__(5893)
+const { EventSourceStream } = __nccwpck_require__(4031)
+const { parseMIMEType } = __nccwpck_require__(1900)
+const { createFastMessageEvent } = __nccwpck_require__(5188)
+const { isNetworkError } = __nccwpck_require__(9051)
+const { delay } = __nccwpck_require__(4811)
+const { kEnumerableProperty } = __nccwpck_require__(3440)
+const { environmentSettingsObject } = __nccwpck_require__(3168)
 
 let experimentalWarned = false
 
@@ -16437,7 +16437,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2893:
+/***/ 4811:
 /***/ ((module) => {
 
 "use strict";
@@ -16482,13 +16482,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1294:
+/***/ 4492:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const util = __nccwpck_require__(4742)
+const util = __nccwpck_require__(3440)
 const {
   ReadableStreamFrom,
   isBlobLike,
@@ -16498,16 +16498,16 @@ const {
   fullyReadBody,
   extractMimeType,
   utf8DecodeBytes
-} = __nccwpck_require__(18)
-const { FormData } = __nccwpck_require__(6124)
-const { kState } = __nccwpck_require__(5785)
-const { webidl } = __nccwpck_require__(735)
+} = __nccwpck_require__(3168)
+const { FormData } = __nccwpck_require__(5910)
+const { kState } = __nccwpck_require__(3627)
+const { webidl } = __nccwpck_require__(5893)
 const { Blob } = __nccwpck_require__(4573)
 const assert = __nccwpck_require__(4589)
 const { isErrored, isDisturbed } = __nccwpck_require__(7075)
 const { isArrayBuffer } = __nccwpck_require__(3429)
-const { serializeAMimeType } = __nccwpck_require__(9634)
-const { multipartFormDataParser } = __nccwpck_require__(8850)
+const { serializeAMimeType } = __nccwpck_require__(1900)
+const { multipartFormDataParser } = __nccwpck_require__(116)
 let random
 
 try {
@@ -17019,7 +17019,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7997:
+/***/ 4495:
 /***/ ((module) => {
 
 "use strict";
@@ -17151,7 +17151,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9634:
+/***/ 1900:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -17903,13 +17903,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6547:
+/***/ 6653:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kConnected, kSize } = __nccwpck_require__(7573)
+const { kConnected, kSize } = __nccwpck_require__(6443)
 
 class CompatWeakRef {
   constructor (value) {
@@ -17957,15 +17957,15 @@ module.exports = function () {
 
 /***/ }),
 
-/***/ 5336:
+/***/ 7114:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { Blob, File } = __nccwpck_require__(4573)
-const { kState } = __nccwpck_require__(5785)
-const { webidl } = __nccwpck_require__(735)
+const { kState } = __nccwpck_require__(3627)
+const { webidl } = __nccwpck_require__(5893)
 
 // TODO(@KhafraDev): remove
 class FileLike {
@@ -18091,17 +18091,17 @@ module.exports = { FileLike, isFileLike }
 
 /***/ }),
 
-/***/ 8850:
+/***/ 116:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { isUSVString, bufferToLowerCasedHeaderName } = __nccwpck_require__(4742)
-const { utf8DecodeBytes } = __nccwpck_require__(18)
-const { HTTP_TOKEN_CODEPOINTS, isomorphicDecode } = __nccwpck_require__(9634)
-const { isFileLike } = __nccwpck_require__(5336)
-const { makeEntry } = __nccwpck_require__(6124)
+const { isUSVString, bufferToLowerCasedHeaderName } = __nccwpck_require__(3440)
+const { utf8DecodeBytes } = __nccwpck_require__(3168)
+const { HTTP_TOKEN_CODEPOINTS, isomorphicDecode } = __nccwpck_require__(1900)
+const { isFileLike } = __nccwpck_require__(7114)
+const { makeEntry } = __nccwpck_require__(5910)
 const assert = __nccwpck_require__(4589)
 const { File: NodeFile } = __nccwpck_require__(4573)
 
@@ -18573,17 +18573,17 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6124:
+/***/ 5910:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { isBlobLike, iteratorMixin } = __nccwpck_require__(18)
-const { kState } = __nccwpck_require__(5785)
-const { kEnumerableProperty } = __nccwpck_require__(4742)
-const { FileLike, isFileLike } = __nccwpck_require__(5336)
-const { webidl } = __nccwpck_require__(735)
+const { isBlobLike, iteratorMixin } = __nccwpck_require__(3168)
+const { kState } = __nccwpck_require__(3627)
+const { kEnumerableProperty } = __nccwpck_require__(3440)
+const { FileLike, isFileLike } = __nccwpck_require__(7114)
+const { webidl } = __nccwpck_require__(5893)
 const { File: NativeFile } = __nccwpck_require__(4573)
 const nodeUtil = __nccwpck_require__(7975)
 
@@ -18833,7 +18833,7 @@ module.exports = { FormData, makeEntry }
 
 /***/ }),
 
-/***/ 9553:
+/***/ 1059:
 /***/ ((module) => {
 
 "use strict";
@@ -18881,7 +18881,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7386:
+/***/ 660:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -18889,14 +18889,14 @@ module.exports = {
 
 
 
-const { kConstruct } = __nccwpck_require__(7573)
-const { kEnumerableProperty } = __nccwpck_require__(4742)
+const { kConstruct } = __nccwpck_require__(6443)
+const { kEnumerableProperty } = __nccwpck_require__(3440)
 const {
   iteratorMixin,
   isValidHeaderName,
   isValidHeaderValue
-} = __nccwpck_require__(18)
-const { webidl } = __nccwpck_require__(735)
+} = __nccwpck_require__(3168)
+const { webidl } = __nccwpck_require__(5893)
 const assert = __nccwpck_require__(4589)
 const util = __nccwpck_require__(7975)
 
@@ -19576,7 +19576,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2104:
+/***/ 4398:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -19590,9 +19590,9 @@ const {
   filterResponse,
   makeResponse,
   fromInnerResponse
-} = __nccwpck_require__(2929)
-const { HeadersList } = __nccwpck_require__(7386)
-const { Request, cloneRequest } = __nccwpck_require__(4309)
+} = __nccwpck_require__(9051)
+const { HeadersList } = __nccwpck_require__(660)
+const { Request, cloneRequest } = __nccwpck_require__(9967)
 const zlib = __nccwpck_require__(8522)
 const {
   bytesMatch,
@@ -19628,23 +19628,23 @@ const {
   buildContentRange,
   createInflate,
   extractMimeType
-} = __nccwpck_require__(18)
-const { kState, kDispatcher } = __nccwpck_require__(5785)
+} = __nccwpck_require__(3168)
+const { kState, kDispatcher } = __nccwpck_require__(3627)
 const assert = __nccwpck_require__(4589)
-const { safelyExtractBody, extractBody } = __nccwpck_require__(1294)
+const { safelyExtractBody, extractBody } = __nccwpck_require__(4492)
 const {
   redirectStatusSet,
   nullBodyStatus,
   safeMethodsSet,
   requestBodyHeader,
   subresourceSet
-} = __nccwpck_require__(7997)
+} = __nccwpck_require__(4495)
 const EE = __nccwpck_require__(8474)
 const { Readable, pipeline, finished } = __nccwpck_require__(7075)
-const { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = __nccwpck_require__(4742)
-const { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = __nccwpck_require__(9634)
-const { getGlobalDispatcher } = __nccwpck_require__(3723)
-const { webidl } = __nccwpck_require__(735)
+const { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = __nccwpck_require__(3440)
+const { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = __nccwpck_require__(1900)
+const { getGlobalDispatcher } = __nccwpck_require__(2581)
+const { webidl } = __nccwpck_require__(5893)
 const { STATUS_CODES } = __nccwpck_require__(7067)
 const GET_OR_HEAD = ['GET', 'HEAD']
 
@@ -21856,7 +21856,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4309:
+/***/ 9967:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -21864,16 +21864,16 @@ module.exports = {
 
 
 
-const { extractBody, mixinBody, cloneBody, bodyUnusable } = __nccwpck_require__(1294)
-const { Headers, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = __nccwpck_require__(7386)
-const { FinalizationRegistry } = __nccwpck_require__(6547)()
-const util = __nccwpck_require__(4742)
+const { extractBody, mixinBody, cloneBody, bodyUnusable } = __nccwpck_require__(4492)
+const { Headers, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = __nccwpck_require__(660)
+const { FinalizationRegistry } = __nccwpck_require__(6653)()
+const util = __nccwpck_require__(3440)
 const nodeUtil = __nccwpck_require__(7975)
 const {
   isValidHTTPToken,
   sameOrigin,
   environmentSettingsObject
-} = __nccwpck_require__(18)
+} = __nccwpck_require__(3168)
 const {
   forbiddenMethodsSet,
   corsSafeListedMethodsSet,
@@ -21883,12 +21883,12 @@ const {
   requestCredentials,
   requestCache,
   requestDuplex
-} = __nccwpck_require__(7997)
+} = __nccwpck_require__(4495)
 const { kEnumerableProperty, normalizedMethodRecordsBase, normalizedMethodRecords } = util
-const { kHeaders, kSignal, kState, kDispatcher } = __nccwpck_require__(5785)
-const { webidl } = __nccwpck_require__(735)
-const { URLSerializer } = __nccwpck_require__(9634)
-const { kConstruct } = __nccwpck_require__(7573)
+const { kHeaders, kSignal, kState, kDispatcher } = __nccwpck_require__(3627)
+const { webidl } = __nccwpck_require__(5893)
+const { URLSerializer } = __nccwpck_require__(1900)
+const { kConstruct } = __nccwpck_require__(6443)
 const assert = __nccwpck_require__(4589)
 const { getMaxListeners, setMaxListeners, getEventListeners, defaultMaxListeners } = __nccwpck_require__(8474)
 
@@ -22901,15 +22901,15 @@ module.exports = { Request, makeRequest, fromInnerRequest, cloneRequest }
 
 /***/ }),
 
-/***/ 2929:
+/***/ 9051:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { Headers, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = __nccwpck_require__(7386)
-const { extractBody, cloneBody, mixinBody, hasFinalizationRegistry, streamRegistry, bodyUnusable } = __nccwpck_require__(1294)
-const util = __nccwpck_require__(4742)
+const { Headers, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = __nccwpck_require__(660)
+const { extractBody, cloneBody, mixinBody, hasFinalizationRegistry, streamRegistry, bodyUnusable } = __nccwpck_require__(4492)
+const util = __nccwpck_require__(3440)
 const nodeUtil = __nccwpck_require__(7975)
 const { kEnumerableProperty } = util
 const {
@@ -22921,16 +22921,16 @@ const {
   isErrorLike,
   isomorphicEncode,
   environmentSettingsObject: relevantRealm
-} = __nccwpck_require__(18)
+} = __nccwpck_require__(3168)
 const {
   redirectStatusSet,
   nullBodyStatus
-} = __nccwpck_require__(7997)
-const { kState, kHeaders } = __nccwpck_require__(5785)
-const { webidl } = __nccwpck_require__(735)
-const { FormData } = __nccwpck_require__(6124)
-const { URLSerializer } = __nccwpck_require__(9634)
-const { kConstruct } = __nccwpck_require__(7573)
+} = __nccwpck_require__(4495)
+const { kState, kHeaders } = __nccwpck_require__(3627)
+const { webidl } = __nccwpck_require__(5893)
+const { FormData } = __nccwpck_require__(5910)
+const { URLSerializer } = __nccwpck_require__(1900)
+const { kConstruct } = __nccwpck_require__(6443)
 const assert = __nccwpck_require__(4589)
 const { types } = __nccwpck_require__(7975)
 
@@ -23519,7 +23519,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5785:
+/***/ 3627:
 /***/ ((module) => {
 
 "use strict";
@@ -23536,7 +23536,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 18:
+/***/ 3168:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -23544,14 +23544,14 @@ module.exports = {
 
 const { Transform } = __nccwpck_require__(7075)
 const zlib = __nccwpck_require__(8522)
-const { redirectStatusSet, referrerPolicySet: referrerPolicyTokens, badPortsSet } = __nccwpck_require__(7997)
-const { getGlobalOrigin } = __nccwpck_require__(9553)
-const { collectASequenceOfCodePoints, collectAnHTTPQuotedString, removeChars, parseMIMEType } = __nccwpck_require__(9634)
+const { redirectStatusSet, referrerPolicySet: referrerPolicyTokens, badPortsSet } = __nccwpck_require__(4495)
+const { getGlobalOrigin } = __nccwpck_require__(1059)
+const { collectASequenceOfCodePoints, collectAnHTTPQuotedString, removeChars, parseMIMEType } = __nccwpck_require__(1900)
 const { performance } = __nccwpck_require__(643)
-const { isBlobLike, ReadableStreamFrom, isValidHTTPToken, normalizedMethodRecordsBase } = __nccwpck_require__(4742)
+const { isBlobLike, ReadableStreamFrom, isValidHTTPToken, normalizedMethodRecordsBase } = __nccwpck_require__(3440)
 const assert = __nccwpck_require__(4589)
 const { isUint8Array } = __nccwpck_require__(3429)
-const { webidl } = __nccwpck_require__(735)
+const { webidl } = __nccwpck_require__(5893)
 
 let supportedHashes = []
 
@@ -25176,7 +25176,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 735:
+/***/ 5893:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -25184,7 +25184,7 @@ module.exports = {
 
 const { types, inspect } = __nccwpck_require__(7975)
 const { markAsUncloneable } = __nccwpck_require__(5919)
-const { toUSVString } = __nccwpck_require__(4742)
+const { toUSVString } = __nccwpck_require__(3440)
 
 /** @type {import('../../../types/webidl').Webidl} */
 const webidl = {}
@@ -25879,7 +25879,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4281:
+/***/ 2607:
 /***/ ((module) => {
 
 "use strict";
@@ -26177,7 +26177,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6413:
+/***/ 8355:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -26187,16 +26187,16 @@ const {
   staticPropertyDescriptors,
   readOperation,
   fireAProgressEvent
-} = __nccwpck_require__(4968)
+} = __nccwpck_require__(3610)
 const {
   kState,
   kError,
   kResult,
   kEvents,
   kAborted
-} = __nccwpck_require__(227)
-const { webidl } = __nccwpck_require__(735)
-const { kEnumerableProperty } = __nccwpck_require__(4742)
+} = __nccwpck_require__(961)
+const { webidl } = __nccwpck_require__(5893)
+const { kEnumerableProperty } = __nccwpck_require__(3440)
 
 class FileReader extends EventTarget {
   constructor () {
@@ -26529,13 +26529,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1519:
+/***/ 8573:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { webidl } = __nccwpck_require__(735)
+const { webidl } = __nccwpck_require__(5893)
 
 const kState = Symbol('ProgressEvent state')
 
@@ -26615,7 +26615,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 227:
+/***/ 961:
 /***/ ((module) => {
 
 "use strict";
@@ -26633,7 +26633,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4968:
+/***/ 3610:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -26645,10 +26645,10 @@ const {
   kResult,
   kAborted,
   kLastProgressEventFired
-} = __nccwpck_require__(227)
-const { ProgressEvent } = __nccwpck_require__(1519)
-const { getEncoding } = __nccwpck_require__(4281)
-const { serializeAMimeType, parseMIMEType } = __nccwpck_require__(9634)
+} = __nccwpck_require__(961)
+const { ProgressEvent } = __nccwpck_require__(8573)
+const { getEncoding } = __nccwpck_require__(2607)
+const { serializeAMimeType, parseMIMEType } = __nccwpck_require__(1900)
 const { types } = __nccwpck_require__(7975)
 const { StringDecoder } = __nccwpck_require__(3193)
 const { btoa } = __nccwpck_require__(4573)
@@ -27032,28 +27032,28 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8863:
+/***/ 6897:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { uid, states, sentCloseFrameState, emptyBuffer, opcodes } = __nccwpck_require__(8742)
+const { uid, states, sentCloseFrameState, emptyBuffer, opcodes } = __nccwpck_require__(736)
 const {
   kReadyState,
   kSentClose,
   kByteParser,
   kReceivedClose,
   kResponse
-} = __nccwpck_require__(358)
-const { fireEvent, failWebsocketConnection, isClosing, isClosed, isEstablished, parseExtensions } = __nccwpck_require__(5259)
-const { channels } = __nccwpck_require__(8664)
-const { CloseEvent } = __nccwpck_require__(4194)
-const { makeRequest } = __nccwpck_require__(4309)
-const { fetching } = __nccwpck_require__(2104)
-const { Headers, getHeadersList } = __nccwpck_require__(7386)
-const { getDecodeSplit } = __nccwpck_require__(18)
-const { WebsocketFrameSend } = __nccwpck_require__(6062)
+} = __nccwpck_require__(1216)
+const { fireEvent, failWebsocketConnection, isClosing, isClosed, isEstablished, parseExtensions } = __nccwpck_require__(8625)
+const { channels } = __nccwpck_require__(2414)
+const { CloseEvent } = __nccwpck_require__(5188)
+const { makeRequest } = __nccwpck_require__(9967)
+const { fetching } = __nccwpck_require__(4398)
+const { Headers, getHeadersList } = __nccwpck_require__(660)
+const { getDecodeSplit } = __nccwpck_require__(3168)
+const { WebsocketFrameSend } = __nccwpck_require__(3264)
 
 /** @type {import('crypto')} */
 let crypto
@@ -27411,7 +27411,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8742:
+/***/ 736:
 /***/ ((module) => {
 
 "use strict";
@@ -27485,15 +27485,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4194:
+/***/ 5188:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { webidl } = __nccwpck_require__(735)
-const { kEnumerableProperty } = __nccwpck_require__(4742)
-const { kConstruct } = __nccwpck_require__(7573)
+const { webidl } = __nccwpck_require__(5893)
+const { kEnumerableProperty } = __nccwpck_require__(3440)
+const { kConstruct } = __nccwpck_require__(6443)
 const { MessagePort } = __nccwpck_require__(5919)
 
 /**
@@ -27822,13 +27822,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6062:
+/***/ 3264:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { maxUnsigned16Bit } = __nccwpck_require__(8742)
+const { maxUnsigned16Bit } = __nccwpck_require__(736)
 
 const BUFFER_SIZE = 16386
 
@@ -27926,15 +27926,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5275:
+/***/ 9469:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { createInflateRaw, Z_DEFAULT_WINDOWBITS } = __nccwpck_require__(8522)
-const { isValidClientWindowBits } = __nccwpck_require__(5259)
-const { MessageSizeExceededError } = __nccwpck_require__(7013)
+const { isValidClientWindowBits } = __nccwpck_require__(8625)
+const { MessageSizeExceededError } = __nccwpck_require__(8707)
 
 const tail = Buffer.from([0x00, 0x00, 0xff, 0xff])
 const kBuffer = Symbol('kBuffer')
@@ -28052,7 +28052,7 @@ module.exports = { PerMessageDeflate }
 
 /***/ }),
 
-/***/ 9646:
+/***/ 1652:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -28060,9 +28060,9 @@ module.exports = { PerMessageDeflate }
 
 const { Writable } = __nccwpck_require__(7075)
 const assert = __nccwpck_require__(4589)
-const { parserStates, opcodes, states, emptyBuffer, sentCloseFrameState } = __nccwpck_require__(8742)
-const { kReadyState, kSentClose, kResponse, kReceivedClose } = __nccwpck_require__(358)
-const { channels } = __nccwpck_require__(8664)
+const { parserStates, opcodes, states, emptyBuffer, sentCloseFrameState } = __nccwpck_require__(736)
+const { kReadyState, kSentClose, kResponse, kReceivedClose } = __nccwpck_require__(1216)
+const { channels } = __nccwpck_require__(2414)
 const {
   isValidStatusCode,
   isValidOpcode,
@@ -28072,10 +28072,10 @@ const {
   isControlFrame,
   isTextBinaryFrame,
   isContinuationFrame
-} = __nccwpck_require__(5259)
-const { WebsocketFrameSend } = __nccwpck_require__(6062)
-const { closeWebSocketConnection } = __nccwpck_require__(8863)
-const { PerMessageDeflate } = __nccwpck_require__(5275)
+} = __nccwpck_require__(8625)
+const { WebsocketFrameSend } = __nccwpck_require__(3264)
+const { closeWebSocketConnection } = __nccwpck_require__(6897)
+const { PerMessageDeflate } = __nccwpck_require__(9469)
 
 // This code was influenced by ws released under the MIT license.
 // Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com>
@@ -28487,15 +28487,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8002:
+/***/ 3900:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { WebsocketFrameSend } = __nccwpck_require__(6062)
-const { opcodes, sendHints } = __nccwpck_require__(8742)
-const FixedQueue = __nccwpck_require__(7842)
+const { WebsocketFrameSend } = __nccwpck_require__(3264)
+const { opcodes, sendHints } = __nccwpck_require__(736)
+const FixedQueue = __nccwpck_require__(4660)
 
 /** @type {typeof Uint8Array} */
 const FastBuffer = Buffer[Symbol.species]
@@ -28599,7 +28599,7 @@ module.exports = { SendQueue }
 
 /***/ }),
 
-/***/ 358:
+/***/ 1216:
 /***/ ((module) => {
 
 "use strict";
@@ -28619,17 +28619,17 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5259:
+/***/ 8625:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kReadyState, kController, kResponse, kBinaryType, kWebSocketURL } = __nccwpck_require__(358)
-const { states, opcodes } = __nccwpck_require__(8742)
-const { ErrorEvent, createFastMessageEvent } = __nccwpck_require__(4194)
+const { kReadyState, kController, kResponse, kBinaryType, kWebSocketURL } = __nccwpck_require__(1216)
+const { states, opcodes } = __nccwpck_require__(736)
+const { ErrorEvent, createFastMessageEvent } = __nccwpck_require__(5188)
 const { isUtf8 } = __nccwpck_require__(4573)
-const { collectASequenceOfCodePointsFast, removeHTTPWhitespace } = __nccwpck_require__(9634)
+const { collectASequenceOfCodePointsFast, removeHTTPWhitespace } = __nccwpck_require__(1900)
 
 /* globals Blob */
 
@@ -28949,16 +28949,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 564:
+/***/ 3726:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { webidl } = __nccwpck_require__(735)
-const { URLSerializer } = __nccwpck_require__(9634)
-const { environmentSettingsObject } = __nccwpck_require__(18)
-const { staticPropertyDescriptors, states, sentCloseFrameState, sendHints } = __nccwpck_require__(8742)
+const { webidl } = __nccwpck_require__(5893)
+const { URLSerializer } = __nccwpck_require__(1900)
+const { environmentSettingsObject } = __nccwpck_require__(3168)
+const { staticPropertyDescriptors, states, sentCloseFrameState, sendHints } = __nccwpck_require__(736)
 const {
   kWebSocketURL,
   kReadyState,
@@ -28967,21 +28967,21 @@ const {
   kResponse,
   kSentClose,
   kByteParser
-} = __nccwpck_require__(358)
+} = __nccwpck_require__(1216)
 const {
   isConnecting,
   isEstablished,
   isClosing,
   isValidSubprotocol,
   fireEvent
-} = __nccwpck_require__(5259)
-const { establishWebSocketConnection, closeWebSocketConnection } = __nccwpck_require__(8863)
-const { ByteParser } = __nccwpck_require__(9646)
-const { kEnumerableProperty, isBlobLike } = __nccwpck_require__(4742)
-const { getGlobalDispatcher } = __nccwpck_require__(3723)
+} = __nccwpck_require__(8625)
+const { establishWebSocketConnection, closeWebSocketConnection } = __nccwpck_require__(6897)
+const { ByteParser } = __nccwpck_require__(1652)
+const { kEnumerableProperty, isBlobLike } = __nccwpck_require__(3440)
+const { getGlobalDispatcher } = __nccwpck_require__(2581)
 const { types } = __nccwpck_require__(7975)
-const { ErrorEvent, CloseEvent } = __nccwpck_require__(4194)
-const { SendQueue } = __nccwpck_require__(8002)
+const { ErrorEvent, CloseEvent } = __nccwpck_require__(5188)
+const { SendQueue } = __nccwpck_require__(3900)
 
 // https://websockets.spec.whatwg.org/#interface-definition
 class WebSocket extends EventTarget {
@@ -29545,7 +29545,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 430:
+/***/ 9665:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.android-arm-eabi.node");
@@ -29553,7 +29553,7 @@ module.exports = eval("require")("./swc.android-arm-eabi.node");
 
 /***/ }),
 
-/***/ 4528:
+/***/ 8685:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.android-arm64.node");
@@ -29561,7 +29561,7 @@ module.exports = eval("require")("./swc.android-arm64.node");
 
 /***/ }),
 
-/***/ 4000:
+/***/ 475:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.darwin-arm64.node");
@@ -29569,7 +29569,7 @@ module.exports = eval("require")("./swc.darwin-arm64.node");
 
 /***/ }),
 
-/***/ 8533:
+/***/ 8818:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.darwin-universal.node");
@@ -29577,7 +29577,7 @@ module.exports = eval("require")("./swc.darwin-universal.node");
 
 /***/ }),
 
-/***/ 3530:
+/***/ 8009:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.darwin-x64.node");
@@ -29585,7 +29585,7 @@ module.exports = eval("require")("./swc.darwin-x64.node");
 
 /***/ }),
 
-/***/ 3588:
+/***/ 3873:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.freebsd-arm64.node");
@@ -29593,7 +29593,7 @@ module.exports = eval("require")("./swc.freebsd-arm64.node");
 
 /***/ }),
 
-/***/ 9638:
+/***/ 3291:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.freebsd-x64.node");
@@ -29601,7 +29601,7 @@ module.exports = eval("require")("./swc.freebsd-x64.node");
 
 /***/ }),
 
-/***/ 91:
+/***/ 7222:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-arm-gnueabihf.node");
@@ -29609,7 +29609,7 @@ module.exports = eval("require")("./swc.linux-arm-gnueabihf.node");
 
 /***/ }),
 
-/***/ 1464:
+/***/ 8337:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-arm64-gnu.node");
@@ -29617,7 +29617,7 @@ module.exports = eval("require")("./swc.linux-arm64-gnu.node");
 
 /***/ }),
 
-/***/ 4073:
+/***/ 7602:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-arm64-musl.node");
@@ -29625,7 +29625,7 @@ module.exports = eval("require")("./swc.linux-arm64-musl.node");
 
 /***/ }),
 
-/***/ 1887:
+/***/ 1446:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-ppc64-gnu.node");
@@ -29633,7 +29633,7 @@ module.exports = eval("require")("./swc.linux-ppc64-gnu.node");
 
 /***/ }),
 
-/***/ 1553:
+/***/ 9312:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-riscv64-gnu.node");
@@ -29641,7 +29641,7 @@ module.exports = eval("require")("./swc.linux-riscv64-gnu.node");
 
 /***/ }),
 
-/***/ 6786:
+/***/ 8593:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-riscv64-musl.node");
@@ -29649,7 +29649,7 @@ module.exports = eval("require")("./swc.linux-riscv64-musl.node");
 
 /***/ }),
 
-/***/ 5217:
+/***/ 2644:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-s390x-gnu.node");
@@ -29657,7 +29657,7 @@ module.exports = eval("require")("./swc.linux-s390x-gnu.node");
 
 /***/ }),
 
-/***/ 5146:
+/***/ 4675:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-x64-gnu.node");
@@ -29665,7 +29665,7 @@ module.exports = eval("require")("./swc.linux-x64-gnu.node");
 
 /***/ }),
 
-/***/ 3795:
+/***/ 2356:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-x64-musl.node");
@@ -29673,7 +29673,7 @@ module.exports = eval("require")("./swc.linux-x64-musl.node");
 
 /***/ }),
 
-/***/ 300:
+/***/ 6681:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.wasi.cjs");
@@ -29681,7 +29681,7 @@ module.exports = eval("require")("./swc.wasi.cjs");
 
 /***/ }),
 
-/***/ 6640:
+/***/ 3535:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.win32-arm64-msvc.node");
@@ -29689,7 +29689,7 @@ module.exports = eval("require")("./swc.win32-arm64-msvc.node");
 
 /***/ }),
 
-/***/ 5017:
+/***/ 8152:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.win32-ia32-msvc.node");
@@ -29697,7 +29697,7 @@ module.exports = eval("require")("./swc.win32-ia32-msvc.node");
 
 /***/ }),
 
-/***/ 802:
+/***/ 2665:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.win32-x64-msvc.node");
@@ -29705,7 +29705,7 @@ module.exports = eval("require")("./swc.win32-x64-msvc.node");
 
 /***/ }),
 
-/***/ 694:
+/***/ 727:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-android-arm-eabi");
@@ -29713,7 +29713,7 @@ module.exports = eval("require")("@swc/core-android-arm-eabi");
 
 /***/ }),
 
-/***/ 6212:
+/***/ 607:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-android-arm64");
@@ -29721,7 +29721,7 @@ module.exports = eval("require")("@swc/core-android-arm64");
 
 /***/ }),
 
-/***/ 2560:
+/***/ 5049:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-darwin-arm64");
@@ -29729,7 +29729,7 @@ module.exports = eval("require")("@swc/core-darwin-arm64");
 
 /***/ }),
 
-/***/ 9963:
+/***/ 3890:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-darwin-universal");
@@ -29737,7 +29737,7 @@ module.exports = eval("require")("@swc/core-darwin-universal");
 
 /***/ }),
 
-/***/ 2766:
+/***/ 8139:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-darwin-x64");
@@ -29745,7 +29745,7 @@ module.exports = eval("require")("@swc/core-darwin-x64");
 
 /***/ }),
 
-/***/ 7860:
+/***/ 5367:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-freebsd-arm64");
@@ -29753,7 +29753,7 @@ module.exports = eval("require")("@swc/core-freebsd-arm64");
 
 /***/ }),
 
-/***/ 3242:
+/***/ 6229:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-freebsd-x64");
@@ -29761,7 +29761,7 @@ module.exports = eval("require")("@swc/core-freebsd-x64");
 
 /***/ }),
 
-/***/ 1225:
+/***/ 1638:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
@@ -29769,7 +29769,7 @@ module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
 
 /***/ }),
 
-/***/ 6244:
+/***/ 6571:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-arm64-gnu");
@@ -29777,7 +29777,7 @@ module.exports = eval("require")("@swc/core-linux-arm64-gnu");
 
 /***/ }),
 
-/***/ 7915:
+/***/ 5254:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-arm64-musl");
@@ -29785,7 +29785,7 @@ module.exports = eval("require")("@swc/core-linux-arm64-musl");
 
 /***/ }),
 
-/***/ 1329:
+/***/ 3586:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-ppc64-gnu");
@@ -29793,7 +29793,7 @@ module.exports = eval("require")("@swc/core-linux-ppc64-gnu");
 
 /***/ }),
 
-/***/ 8199:
+/***/ 9008:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-riscv64-gnu");
@@ -29801,7 +29801,7 @@ module.exports = eval("require")("@swc/core-linux-riscv64-gnu");
 
 /***/ }),
 
-/***/ 5930:
+/***/ 8879:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-riscv64-musl");
@@ -29809,7 +29809,7 @@ module.exports = eval("require")("@swc/core-linux-riscv64-musl");
 
 /***/ }),
 
-/***/ 6635:
+/***/ 8600:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-s390x-gnu");
@@ -29817,7 +29817,7 @@ module.exports = eval("require")("@swc/core-linux-s390x-gnu");
 
 /***/ }),
 
-/***/ 746:
+/***/ 7793:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-x64-gnu");
@@ -29825,7 +29825,7 @@ module.exports = eval("require")("@swc/core-linux-x64-gnu");
 
 /***/ }),
 
-/***/ 5169:
+/***/ 6900:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-x64-musl");
@@ -29833,7 +29833,7 @@ module.exports = eval("require")("@swc/core-linux-x64-musl");
 
 /***/ }),
 
-/***/ 7722:
+/***/ 9301:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-wasm32-wasi");
@@ -29841,7 +29841,7 @@ module.exports = eval("require")("@swc/core-wasm32-wasi");
 
 /***/ }),
 
-/***/ 6200:
+/***/ 293:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-arm64-msvc");
@@ -29849,7 +29849,7 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 
 /***/ }),
 
-/***/ 7411:
+/***/ 1612:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
@@ -29857,7 +29857,7 @@ module.exports = eval("require")("@swc/core-win32-ia32-msvc");
 
 /***/ }),
 
-/***/ 4196:
+/***/ 5855:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/wasm");
@@ -30113,7 +30113,7 @@ module.exports = require("util");
 
 /***/ }),
 
-/***/ 2602:
+/***/ 1120:
 /***/ ((module) => {
 
 "use strict";
@@ -30291,7 +30291,7 @@ __webpack_unused_export__ = defaultContentType
 
 /***/ }),
 
-/***/ 6662:
+/***/ 155:
 /***/ ((module) => {
 
 "use strict";
@@ -30373,7 +30373,7 @@ var __webpack_exports__ = {};
 
 ;// CONCATENATED MODULE: external "os"
 const external_os_namespaceObject = require("os");
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/lib/utils.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/utils.js
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
@@ -30409,7 +30409,7 @@ function utils_toCommandProperties(annotationProperties) {
     };
 }
 //# sourceMappingURL=utils.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/lib/command.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/command.js
 
 
 /**
@@ -30505,7 +30505,7 @@ function escapeProperty(s) {
 const external_crypto_namespaceObject = require("crypto");
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(9896);
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/lib/file-command.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/file-command.js
 // For internal use, subject to change.
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -30546,7 +30546,7 @@ var external_path_ = __nccwpck_require__(6928);
 var external_http_ = __nccwpck_require__(8611);
 // EXTERNAL MODULE: external "https"
 var external_https_ = __nccwpck_require__(5692);
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/node_modules/@actions/http-client/lib/proxy.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/http-client/lib/proxy.js
 function getProxyUrl(reqUrl) {
     const usingSsl = reqUrl.protocol === 'https:';
     if (checkBypass(reqUrl)) {
@@ -30637,11 +30637,11 @@ class DecodedURL extends URL {
     }
 }
 //# sourceMappingURL=proxy.js.map
-// EXTERNAL MODULE: ../../Users/david/Projects/trailhead/node_modules/tunnel/index.js
-var node_modules_tunnel = __nccwpck_require__(6628);
-// EXTERNAL MODULE: ../../Users/david/Projects/trailhead/node_modules/undici/index.js
-var undici = __nccwpck_require__(4258);
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/node_modules/@actions/http-client/lib/index.js
+// EXTERNAL MODULE: ./node_modules/tunnel/index.js
+var node_modules_tunnel = __nccwpck_require__(770);
+// EXTERNAL MODULE: ./node_modules/undici/index.js
+var undici = __nccwpck_require__(6752);
+;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/http-client/lib/index.js
 /* eslint-disable @typescript-eslint/no-explicit-any */
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -31338,7 +31338,7 @@ class lib_HttpClient {
 }
 const lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
 //# sourceMappingURL=index.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/node_modules/@actions/http-client/lib/auth.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/http-client/lib/auth.js
 var auth_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31414,7 +31414,7 @@ class PersonalAccessTokenCredentialHandler {
     }
 }
 //# sourceMappingURL=auth.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/lib/oidc-utils.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/oidc-utils.js
 var oidc_utils_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31488,7 +31488,7 @@ class oidc_utils_OidcClient {
     }
 }
 //# sourceMappingURL=oidc-utils.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/lib/summary.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/summary.js
 var summary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31769,7 +31769,7 @@ const _summary = new Summary();
 const markdownSummary = (/* unused pure expression or super */ null && (_summary));
 const summary = _summary;
 //# sourceMappingURL=summary.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/lib/path-utils.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/path-utils.js
 
 /**
  * toPosixPath converts the given path to the posix form. On Windows, \\ will be
@@ -31811,7 +31811,7 @@ var external_events_ = __nccwpck_require__(4434);
 var external_child_process_ = __nccwpck_require__(5317);
 // EXTERNAL MODULE: external "assert"
 var external_assert_ = __nccwpck_require__(2613);
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/io/lib/io-util.js
+;// CONCATENATED MODULE: ./node_modules/@actions/io/lib/io-util.js
 var io_util_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31991,7 +31991,7 @@ function getCmdPath() {
     return (_a = process.env['COMSPEC']) !== null && _a !== void 0 ? _a : `cmd.exe`;
 }
 //# sourceMappingURL=io-util.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/io/lib/io.js
+;// CONCATENATED MODULE: ./node_modules/@actions/io/lib/io.js
 var io_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32265,7 +32265,7 @@ function io_copyFile(srcFile, destFile, force) {
 //# sourceMappingURL=io.js.map
 ;// CONCATENATED MODULE: external "timers"
 const external_timers_namespaceObject = require("timers");
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/exec/lib/toolrunner.js
+;// CONCATENATED MODULE: ./node_modules/@actions/exec/lib/toolrunner.js
 var toolrunner_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32853,7 +32853,7 @@ class ExecState extends external_events_.EventEmitter {
     }
 }
 //# sourceMappingURL=toolrunner.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/exec/lib/exec.js
+;// CONCATENATED MODULE: ./node_modules/@actions/exec/lib/exec.js
 var exec_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32933,7 +32933,7 @@ function getExecOutput(commandLine, args, options) {
     });
 }
 //# sourceMappingURL=exec.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/lib/platform.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/platform.js
 var platform_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32998,7 +32998,7 @@ function getDetails() {
     });
 }
 //# sourceMappingURL=platform.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/core/lib/core.js
+;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/core.js
 var core_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -33316,7 +33316,7 @@ function getIDToken(aud) {
  */
 
 //# sourceMappingURL=core.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/github/lib/context.js
+;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/context.js
 
 
 class Context {
@@ -33369,9 +33369,9 @@ class Context {
     }
 }
 //# sourceMappingURL=context.js.map
-// EXTERNAL MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/http-client/lib/index.js
-var lib = __nccwpck_require__(4866);
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/github/lib/internal/utils.js
+// EXTERNAL MODULE: ./node_modules/@actions/http-client/lib/index.js
+var lib = __nccwpck_require__(4844);
+;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/internal/utils.js
 var utils_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -33424,7 +33424,7 @@ function getUserAgentWithOrchestrationId(baseUserAgent) {
     return baseUserAgent;
 }
 //# sourceMappingURL=utils.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/universal-user-agent/index.js
+;// CONCATENATED MODULE: ./node_modules/universal-user-agent/index.js
 function getUserAgent() {
   if (typeof navigator === "object" && "userAgent" in navigator) {
     return navigator.userAgent;
@@ -33439,7 +33439,7 @@ function getUserAgent() {
   return "<environment undetectable>";
 }
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/before-after-hook/lib/register.js
+;// CONCATENATED MODULE: ./node_modules/before-after-hook/lib/register.js
 // @ts-check
 
 function register(state, name, method, options) {
@@ -33468,7 +33468,7 @@ function register(state, name, method, options) {
   });
 }
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/before-after-hook/lib/add.js
+;// CONCATENATED MODULE: ./node_modules/before-after-hook/lib/add.js
 // @ts-check
 
 function addHook(state, kind, name, hook) {
@@ -33516,7 +33516,7 @@ function addHook(state, kind, name, hook) {
   });
 }
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/before-after-hook/lib/remove.js
+;// CONCATENATED MODULE: ./node_modules/before-after-hook/lib/remove.js
 // @ts-check
 
 function removeHook(state, name, method) {
@@ -33537,7 +33537,7 @@ function removeHook(state, name, method) {
   state.registry[name].splice(index, 1);
 }
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/before-after-hook/index.js
+;// CONCATENATED MODULE: ./node_modules/before-after-hook/index.js
 // @ts-check
 
 
@@ -33584,7 +33584,7 @@ function Collection() {
 
 /* harmony default export */ const before_after_hook = ({ Singular, Collection });
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/endpoint/dist-bundle/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/endpoint/dist-bundle/index.js
 // pkg/dist-src/defaults.js
 
 
@@ -33930,9 +33930,9 @@ function withDefaults(oldDefaults, newDefaults) {
 var endpoint = withDefaults(null, DEFAULTS);
 
 
-// EXTERNAL MODULE: ../../Users/david/Projects/trailhead/node_modules/fast-content-type-parse/index.js
-var fast_content_type_parse = __nccwpck_require__(2602);
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/json-with-bigint/json-with-bigint.js
+// EXTERNAL MODULE: ./node_modules/fast-content-type-parse/index.js
+var fast_content_type_parse = __nccwpck_require__(1120);
+;// CONCATENATED MODULE: ./node_modules/json-with-bigint/json-with-bigint.js
 const intRegex = /^-?\d+$/;
 const noiseValue = /^-?\d+n+$/; // Noise - strings that match the custom format before being converted to it
 const originalStringify = JSON.stringify;
@@ -34149,7 +34149,7 @@ const JSONParse = (text, reviver) => {
 
 
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/request-error/dist-src/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/request-error/dist-src/index.js
 class RequestError extends Error {
   name;
   /**
@@ -34190,7 +34190,7 @@ class RequestError extends Error {
 }
 
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/request/dist-bundle/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/request/dist-bundle/index.js
 // pkg/dist-src/index.js
 
 
@@ -34393,7 +34393,7 @@ var request = dist_bundle_withDefaults(endpoint, defaults_default);
 /* v8 ignore next -- @preserve */
 /* v8 ignore else -- @preserve */
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/graphql/dist-bundle/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/graphql/dist-bundle/index.js
 // pkg/dist-src/index.js
 
 
@@ -34520,7 +34520,7 @@ function withCustomRequest(customRequest) {
 }
 
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/auth-token/dist-bundle/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/auth-token/dist-bundle/index.js
 // pkg/dist-src/is-jwt.js
 var b64url = "(?:[a-zA-Z0-9_-]+)";
 var sep = "\\.";
@@ -34575,11 +34575,11 @@ var createTokenAuth = function createTokenAuth2(token) {
 };
 
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/core/dist-src/version.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/core/dist-src/version.js
 const version_VERSION = "7.0.6";
 
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/core/dist-src/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/core/dist-src/index.js
 
 
 
@@ -34720,12 +34720,12 @@ class Octokit {
 }
 
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/version.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/version.js
 const dist_src_version_VERSION = "17.0.0";
 
 //# sourceMappingURL=version.js.map
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/generated/endpoints.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/generated/endpoints.js
 const Endpoints = {
   actions: {
     addCustomLabelsToSelfHostedRunnerForOrg: [
@@ -37019,7 +37019,7 @@ var endpoints_default = Endpoints;
 
 //# sourceMappingURL=endpoints.js.map
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/endpoints-to-methods.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/endpoints-to-methods.js
 
 const endpointMethodsMap = /* @__PURE__ */ new Map();
 for (const [scope, endpoints] of Object.entries(endpoints_default)) {
@@ -37145,7 +37145,7 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
 
 //# sourceMappingURL=endpoints-to-methods.js.map
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/index.js
 
 
 function restEndpointMethods(octokit) {
@@ -37166,7 +37166,7 @@ legacyRestEndpointMethods.VERSION = dist_src_version_VERSION;
 
 //# sourceMappingURL=index.js.map
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@octokit/plugin-paginate-rest/dist-bundle/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-paginate-rest/dist-bundle/index.js
 // pkg/dist-src/version.js
 var plugin_paginate_rest_dist_bundle_VERSION = "0.0.0-development";
 
@@ -37578,7 +37578,7 @@ function paginateRest(octokit) {
 paginateRest.VERSION = plugin_paginate_rest_dist_bundle_VERSION;
 
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/github/lib/utils.js
+;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/utils.js
 
 
 // octokit + plugins
@@ -37617,7 +37617,7 @@ function getOctokitOptions(token, options) {
     return opts;
 }
 //# sourceMappingURL=utils.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/@actions/github/lib/github.js
+;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/github.js
 
 
 const github_context = new Context();
@@ -37632,7 +37632,7 @@ function getOctokit(token, options, ...additionalPlugins) {
     return new GitHubWithPlugins(getOctokitOptions(token, options));
 }
 //# sourceMappingURL=github.js.map
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/zod/v3/helpers/util.js
+;// CONCATENATED MODULE: ./node_modules/zod/v3/helpers/util.js
 var util;
 (function (util) {
     util.assertEqual = (_) => { };
@@ -37767,7 +37767,7 @@ const getParsedType = (data) => {
     }
 };
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/zod/v3/ZodError.js
+;// CONCATENATED MODULE: ./node_modules/zod/v3/ZodError.js
 
 const ZodIssueCode = util.arrayToEnum([
     "invalid_type",
@@ -37902,7 +37902,7 @@ ZodError.create = (issues) => {
     return error;
 };
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/zod/v3/locales/en.js
+;// CONCATENATED MODULE: ./node_modules/zod/v3/locales/en.js
 
 
 const errorMap = (issue, _ctx) => {
@@ -38013,7 +38013,7 @@ const errorMap = (issue, _ctx) => {
 };
 /* harmony default export */ const en = (errorMap);
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/zod/v3/errors.js
+;// CONCATENATED MODULE: ./node_modules/zod/v3/errors.js
 
 let overrideErrorMap = en;
 
@@ -38024,7 +38024,7 @@ function getErrorMap() {
     return overrideErrorMap;
 }
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/zod/v3/helpers/errorUtil.js
+;// CONCATENATED MODULE: ./node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
 (function (errorUtil) {
     errorUtil.errToObj = (message) => typeof message === "string" ? { message } : message || {};
@@ -38032,7 +38032,7 @@ var errorUtil;
     errorUtil.toString = (message) => typeof message === "string" ? message : message?.message;
 })(errorUtil || (errorUtil = {}));
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/zod/v3/helpers/parseUtil.js
+;// CONCATENATED MODULE: ./node_modules/zod/v3/helpers/parseUtil.js
 
 
 const makeIssue = (params) => {
@@ -38143,7 +38143,7 @@ const isDirty = (x) => x.status === "dirty";
 const isValid = (x) => x.status === "valid";
 const isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/zod/v3/types.js
+;// CONCATENATED MODULE: ./node_modules/zod/v3/types.js
 
 
 
@@ -41893,12 +41893,30 @@ const CiCheckStatusEnum = enumType([
     "stale",
     "missing",
 ]);
+// ADR-011 §2 — input relevance. ADR-009's status says what a check DID; the
+// disposition says what it MEANS for this release decision. `missing_blocking`
+// is derived (ADR-009 `missing` on a blocking input), never configured.
+const InputDispositionKind = enumType([
+    "blocking",
+    "advisory",
+    "irrelevant",
+    "missing_blocking",
+]);
+const InputDisposition = objectType({
+    kind: InputDispositionKind,
+    reason: stringType().optional(),
+    /** `policy` = an input_relevance entry matched; `default` = required/optional fallback. */
+    source: enumType(["policy", "default"]),
+});
 const CiCheck = objectType({
     name: stringType(),
     status: CiCheckStatusEnum,
     conclusion: stringType().optional(),
     detailsUrl: stringType().url().optional(),
     required: booleanType(),
+    // Optional: summaries produced before dispositions are applied (and every
+    // pre-ADR-011 stored evaluation) carry none, and fall back to `required`.
+    disposition: InputDisposition.optional(),
 });
 const CiSummary = objectType({
     checks: arrayType(CiCheck),
@@ -42008,6 +42026,9 @@ const PolicyOverrideChanges = objectType({
     warnThreshold: numberType().min(0).max(100).optional(),
     releaseReady: literalType(true).optional(),
 });
+const OverrideScope = enumType(["full", "risk_only"]);
+// ADR-011 §3 renders the override record as {by, at, scope, rationale};
+// this schema carries by=owner, at=appliedAt, rationale=reason, plus scope.
 const PolicyOverrideAudit = objectType({
     source: enumType(["workflow", "label"]).default("workflow"),
     owner: stringType(),
@@ -42015,10 +42036,58 @@ const PolicyOverrideAudit = objectType({
     linkedTicket: stringType(),
     expiresAt: stringType(),
     appliedAt: stringType(),
+    // Optional, not defaulted: audits stored before ADR-011 carry no scope and
+    // must keep parsing as the pre-ADR-011 (full) override they actually were.
+    scope: OverrideScope.optional(),
     changes: PolicyOverrideChanges.default({}),
     preOverrideDecision: GateDecision.optional(),
     preOverrideReleaseReady: booleanType().optional(),
     preOverrideReasons: arrayType(stringType()).optional(),
+    /** Blocking reasons the override cleared (risk/policy driven). */
+    overriddenReasons: arrayType(stringType()).optional(),
+    /** Blocking reasons that survived the override (mechanical CI, ADR-011 §3). */
+    retainedReasons: arrayType(stringType()).optional(),
+});
+// ---------------------------------------------------------------------------
+// ADR-011 §1 — the Release Brief
+// ---------------------------------------------------------------------------
+const BriefVerdict = enumType(["allow", "warn", "block", "cannot_evaluate"]);
+const BriefFinding = objectType({
+    id: stringType(),
+    title: stringType(),
+    evidence: stringType().optional(),
+    severity: RemediationSeverity,
+});
+const BriefInput = objectType({
+    checkName: stringType(),
+    /** ADR-009 status, carried as a string so the renderer stays policy-agnostic. */
+    status: stringType(),
+    /** ADR-011 §2 disposition kind. */
+    disposition: stringType(),
+    reason: stringType().optional(),
+});
+const BriefAction = objectType({
+    kind: enumType(["fix", "override", "wait"]),
+    detail: stringType(),
+    link: stringType().optional(),
+});
+const BriefOverride = objectType({
+    by: stringType(),
+    at: stringType(),
+    scope: stringType(),
+    rationale: stringType(),
+});
+const ReleaseBrief = objectType({
+    verdict: BriefVerdict,
+    riskScore: numberType().optional(),
+    riskThreshold: numberType().optional(),
+    topMovers: arrayType(objectType({ factor: stringType(), score: numberType() })).optional(),
+    findings: arrayType(BriefFinding),
+    inputs: arrayType(BriefInput),
+    delta: stringType().optional(),
+    actions: arrayType(BriefAction),
+    override: BriefOverride.nullish(),
+    cannotEvaluateReason: stringType().optional(),
 });
 const CreditMeterResult = objectType({
     metered: booleanType(),
@@ -42049,6 +42118,10 @@ const GateEvaluation = objectType({
     environment: stringType().optional(),
     service: stringType().optional(),
     policyFindings: arrayType(stringType()).optional(),
+    // ADR-011 §1: "findings are enumerated, never counted". policyFindings keeps
+    // its count-strings for existing consumers; this is the enumeration.
+    enumeratedFindings: arrayType(BriefFinding).optional(),
+    releaseBrief: ReleaseBrief.optional(),
     pr: objectType({
         provenance: PrProvenance.optional(),
         headRef: stringType().optional(),
@@ -42173,6 +42246,18 @@ const ContextCiConfig = objectType({
     optional_checks: arrayType(stringType()).default([]),
     missing_required: enumType(["fail", "skip"]).default("fail"),
 });
+// ADR-011 §2 — one row of the branch-pair relevance table. `reason` is mandatory
+// for `irrelevant`, but that is enforced as a config *warning* (see
+// collectConfigWarnings in config-core.ts), not a parse failure: a hard refine
+// here would drop the whole repo config to defaults over one typo, which is how
+// parseRepoConfigContent degrades today.
+const InputRelevanceEntry = objectType({
+    pattern: stringType(),
+    disposition: enumType(["blocking", "advisory", "irrelevant"]),
+    reason: stringType().optional(),
+});
+/** ADR-011 §4 — per-branch-pair stance when the evaluation cannot run. */
+const AvailabilityStance = enumType(["fail_open", "fail_closed"]);
 const TrailheadContext = objectType({
     name: stringType(),
     match: ContextMatch,
@@ -42183,6 +42268,8 @@ const TrailheadContext = objectType({
     })
         .default({}),
     ci: ContextCiConfig.default({}),
+    input_relevance: arrayType(InputRelevanceEntry).default([]),
+    availability: AvailabilityStance.optional(),
 });
 const GateConfig = objectType({
     mode: GateMode.default("risk-only"),
@@ -42207,6 +42294,8 @@ const RiskPathProfileConfig = objectType({
 const OverrideConfig = objectType({
     enabled: booleanType().default(true),
     max_per_week: numberType().int().min(1).default(5),
+    // Defaults to "full" so repos that never set it keep pre-ADR-011 behavior.
+    scope: OverrideScope.default("full"),
 });
 const TuningConfig = objectType({
     auto_downgrade: booleanType().default(true),
@@ -42527,6 +42616,31 @@ function parseYaml(input) {
         stack.push({ indent, value: child });
     }
     return root;
+}
+/**
+ * Non-fatal config warnings, emitted by the loader after a successful parse.
+ *
+ * ADR-011 §2 makes `reason` mandatory for `disposition: irrelevant`, but this is
+ * deliberately NOT a Zod refine: `parseRepoConfigContent` returns null for ANY
+ * schema violation, which drops the entire repo config back to hardcoded
+ * defaults. Degrading a whole config over one missing reason string is worse
+ * than narrating it, so the entry still parses and the Release Brief prints a
+ * placeholder reason (see MISSING_IRRELEVANT_REASON in input-relevance.ts).
+ */
+function collectConfigWarnings(config) {
+    const warnings = [];
+    for (const context of config.contexts) {
+        for (const entry of context.input_relevance) {
+            if (entry.disposition !== "irrelevant")
+                continue;
+            if (entry.reason !== undefined && entry.reason.trim() !== "")
+                continue;
+            warnings.push(`contexts."${context.name}".input_relevance: pattern "${entry.pattern}" is ` +
+                `"disposition: irrelevant" with no reason. ADR-011 requires a reason for ` +
+                `irrelevant inputs; the Release Brief will show a placeholder until one is set.`);
+        }
+    }
+    return warnings;
 }
 function parseRepoConfigContent(content) {
     const raw = parseYaml(content);
@@ -43105,6 +43219,9 @@ function validateSchemaVersion(parsedConfig, configPath) {
     if (parsedConfig.schema_version > CURRENT_CONFIG_SCHEMA_VERSION) {
         core_warning(`${configPath}: schema_version=${parsedConfig.schema_version} is newer than ` +
             `supported ${CURRENT_CONFIG_SCHEMA_VERSION}. Some features may be ignored.`);
+    }
+    for (const warning of collectConfigWarnings(parsedConfig)) {
+        core_warning(`${configPath}: ${warning}`);
     }
     return parsedConfig;
 }
@@ -43718,6 +43835,19 @@ async function waitForChecks(options) {
 
 ;// CONCATENATED MODULE: ./src/release-ready.ts
 /**
+ * ADR-011 §2: the disposition, once resolved, is the axis that decides whether a
+ * red input blocks the release. Checks with no disposition — no `input_relevance`
+ * config, an externally-built CiSummary, or a stored pre-ADR-011 evaluation —
+ * fall back to `required`, which is byte-for-byte the pre-ADR-011 behavior
+ * (the default mapping is required -> blocking, non-required -> advisory).
+ */
+function checkCountsTowardBlocking(check) {
+    const kind = check.disposition?.kind;
+    if (kind === undefined)
+        return check.required;
+    return kind === "blocking" || kind === "missing_blocking";
+}
+/**
  * Composite release readiness decision (ADR-006).
  */
 function computeReleaseReady(input) {
@@ -43736,7 +43866,7 @@ function computeReleaseReady(input) {
     }
     if (input.ciSummary) {
         if (!input.ciSummary.allRequiredPassed) {
-            const failed = input.ciSummary.checks.filter((c) => c.required &&
+            const failed = input.ciSummary.checks.filter((c) => checkCountsTowardBlocking(c) &&
                 (c.status === "fail" || c.status === "missing" || c.status === "stale"));
             for (const check of failed) {
                 reasons.push(`Required CI check "${check.name}" is ${check.status.toUpperCase()}`);
@@ -43815,6 +43945,291 @@ function resolveCheckName(gateMode, configuredName) {
     if (gateMode === "risk-only")
         return "Trailhead";
     return configuredName ?? "Trailhead — Release Ready";
+}
+
+;// CONCATENATED MODULE: ./src/input-relevance.ts
+// ADR-011 §2 — input relevance policy (disposition engine).
+//
+// ADR-009's status enum (`pass|fail|skip|pending|stale|missing`) says what a check DID.
+// A disposition says what that MEANS for this release decision. This module is pure:
+// no octokit, no config loading, no I/O — callers resolve the policy entries for the
+// matched branch pair and hand them in.
+
+
+/**
+ * Reason substituted when config declares `irrelevant` without a reason. ADR-011 §2 makes the
+ * reason mandatory ("reason mandatory and shown in the brief"); the config schema layer rejects
+ * it too, so this is defense in depth for configs that reached us unvalidated.
+ */
+const MISSING_IRRELEVANT_REASON = "(no reason configured — reason is mandatory for irrelevant; fix .trailhead.yml)";
+/**
+ * Pattern matching precedence, per entry:
+ *   1. exact name match                      (checkNameMatches)
+ *   2. case-insensitive name match           (checkNameMatches)
+ *   3. configured-value-as-prefix match      (checkNameMatches)
+ *   4. glob match, case-insensitive          (matchesGlobs — lets "Deploy *" work)
+ * These are a union, not a ranking: an entry matches if ANY of them matches. Ranking between
+ * entries is positional only — entries are evaluated in declaration order and the FIRST
+ * matching entry wins, exactly like `contexts[]` resolution in context-matcher.ts.
+ */
+function entryMatches(entry, checkName) {
+    // A blank pattern would prefix-match every check name; treat it as matching nothing so a
+    // config typo cannot silently reclassify the whole input set.
+    if (entry.pattern.trim() === "")
+        return false;
+    if (checkNameMatches(entry.pattern, checkName))
+        return true;
+    return matchesGlobs(checkName, [entry.pattern]);
+}
+function hasText(value) {
+    return value !== undefined && value.trim() !== "";
+}
+/**
+ * Resolve one check to a disposition.
+ *
+ * - First matching entry wins; no match falls back to `required ? blocking : advisory`
+ *   with source `default`.
+ * - `missing_blocking` is DERIVED: ADR-009 status `missing` on a check that would otherwise
+ *   resolve to `blocking`. It is never configurable.
+ */
+function resolveDisposition(check, entries) {
+    const matched = entries.find((entry) => entryMatches(entry, check.name));
+    let kind;
+    let reason;
+    let source;
+    if (matched) {
+        kind = matched.disposition;
+        reason = hasText(matched.reason) ? matched.reason : undefined;
+        source = "policy";
+        if (kind === "irrelevant" && reason === undefined) {
+            reason = MISSING_IRRELEVANT_REASON;
+        }
+    }
+    else {
+        kind = check.required ? "blocking" : "advisory";
+        source = "default";
+    }
+    if (check.status === "missing" && kind === "blocking") {
+        kind = "missing_blocking";
+    }
+    return reason === undefined ? { kind, source } : { kind, reason, source };
+}
+/**
+ * Resolve a whole CI input set, keyed by check name. On duplicate check names the first
+ * occurrence wins, so the map is stable regardless of how many times a name appears.
+ */
+function resolveDispositions(checks, entries) {
+    const resolved = new Map();
+    for (const check of checks) {
+        if (resolved.has(check.name))
+            continue;
+        resolved.set(check.name, resolveDisposition(check, entries));
+    }
+    return resolved;
+}
+/** Only `blocking` and `missing_blocking` count against release readiness (ADR-011 §2 table). */
+function dispositionCountsTowardBlocking(d) {
+    return d.kind === "blocking" || d.kind === "missing_blocking";
+}
+
+;// CONCATENATED MODULE: ./src/release-brief.ts
+/**
+ * ADR-011 §1 — the Release Brief: the structured statement a human reads at the
+ * moment of a release decision, and its markdown renderer.
+ *
+ * This module is pure by design: no octokit, no GateEvaluation import, no
+ * dependency on the input-relevance policy. The integrator maps whatever it has
+ * onto `ReleaseBrief` and posts `renderReleaseBrief()`'s output.
+ */
+function countDiff(previous, current) {
+    const before = new Set(previous);
+    const after = new Set(current);
+    let resolved = 0;
+    for (const id of before)
+        if (!after.has(id))
+            resolved += 1;
+    let added = 0;
+    for (const id of after)
+        if (!before.has(id))
+            added += 1;
+    return { resolved, added };
+}
+function plural(count, noun) {
+    return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+/**
+ * Render the one-line "vs previous" delta, e.g.
+ * `vs previous: block -> allow, risk 90 -> 42, 3 findings resolved, 1 new`.
+ *
+ * Returns undefined when the two snapshots share no comparable field — a missing
+ * or unreachable previous evaluation must omit the delta, never error (ADR-011 §1).
+ */
+function formatEvaluationDelta(previous, current) {
+    const parts = [];
+    let comparable = false;
+    if (previous.verdict !== undefined && current.verdict !== undefined) {
+        comparable = true;
+        if (previous.verdict !== current.verdict) {
+            parts.push(`${previous.verdict} -> ${current.verdict}`);
+        }
+    }
+    if (previous.riskScore !== undefined && current.riskScore !== undefined) {
+        comparable = true;
+        if (previous.riskScore !== current.riskScore) {
+            parts.push(`risk ${previous.riskScore} -> ${current.riskScore}`);
+        }
+    }
+    if (previous.findingIds !== undefined && current.findingIds !== undefined) {
+        comparable = true;
+        const { resolved, added } = countDiff(previous.findingIds, current.findingIds);
+        if (resolved > 0)
+            parts.push(`${plural(resolved, "finding")} resolved`);
+        if (added > 0)
+            parts.push(`${added} new`);
+    }
+    if (!comparable)
+        return undefined;
+    return `vs previous: ${parts.length > 0 ? parts.join(", ") : "no change"}`;
+}
+const DEFAULT_MAX_CHARS = 60000;
+const EVIDENCE_CAP_CHARS = 300;
+const EMPTY_CELL = "—";
+function escapePipes(value) {
+    return value.replace(/\|/g, "\\|");
+}
+/** Table cells must be single-line and must not break the column structure. */
+function cell(value) {
+    const flattened = value.replace(/\r?\n/g, " ").trim();
+    if (flattened.length === 0)
+        return EMPTY_CELL;
+    return escapePipes(flattened);
+}
+function verdictLabel(verdict) {
+    return verdict.replace(/_/g, " ").toUpperCase();
+}
+function verdictLine(brief) {
+    const segments = [];
+    if (brief.riskScore !== undefined) {
+        segments.push(brief.riskThreshold !== undefined
+            ? `risk ${brief.riskScore} (threshold ${brief.riskThreshold})`
+            : `risk ${brief.riskScore}`);
+    }
+    else if (brief.riskThreshold !== undefined) {
+        segments.push(`threshold ${brief.riskThreshold}`);
+    }
+    if (brief.topMovers && brief.topMovers.length > 0) {
+        const movers = brief.topMovers
+            .map((mover) => `${mover.factor} ${mover.score}`)
+            .join(", ");
+        segments.push(`top movers: ${movers}`);
+    }
+    const badge = `**${verdictLabel(brief.verdict)}**`;
+    return segments.length > 0 ? `${badge} — ${segments.join(" · ")}` : badge;
+}
+function capEvidence(evidence, cap) {
+    if (cap === undefined || evidence.length <= cap)
+        return evidence;
+    // Ellipsis included, so the capped evidence is exactly `cap` characters.
+    return `${evidence.slice(0, cap - 1)}…`;
+}
+function findingLines(finding, index, evidenceCap) {
+    const lines = [
+        `${index + 1}. **${escapePipes(finding.title)}** \`${finding.id}\` _(${finding.severity})_`,
+    ];
+    const evidence = finding.evidence?.trim();
+    if (evidence) {
+        for (const line of capEvidence(evidence, evidenceCap).split(/\r?\n/)) {
+            lines.push(`   > ${escapePipes(line)}`);
+        }
+    }
+    return lines;
+}
+function buildBrief(brief, keepFindings, evidenceCap, storedEvaluationUrl) {
+    const lines = ["## Release Brief", "", verdictLine(brief), ""];
+    // ADR-011 §1: "silence is a bug" — a cannot-evaluate brief must say why, up top.
+    if (brief.verdict === "cannot_evaluate" || brief.cannotEvaluateReason) {
+        const reason = brief.cannotEvaluateReason?.trim();
+        lines.push(`> ⚠️ **Cannot evaluate:** ${reason && reason.length > 0 ? reason : "no reason recorded"}`, "");
+    }
+    lines.push("### Findings", "");
+    if (brief.findings.length === 0) {
+        lines.push("No findings.", "");
+    }
+    else {
+        // ADR-011 §1: findings are enumerated, never counted.
+        const shown = brief.findings.slice(0, Math.max(0, keepFindings));
+        shown.forEach((finding, index) => {
+            lines.push(...findingLines(finding, index, evidenceCap));
+        });
+        const hidden = brief.findings.length - shown.length;
+        if (hidden > 0) {
+            const target = storedEvaluationUrl
+                ? `[stored evaluation](${storedEvaluationUrl})`
+                : "stored evaluation";
+            lines.push(`_…${hidden} more findings not shown inline — see the ${target}_`);
+        }
+        lines.push("");
+    }
+    lines.push("### Inputs", "");
+    if (brief.inputs.length === 0) {
+        lines.push("No inputs evaluated.", "");
+    }
+    else {
+        lines.push(`| Check | Status | Disposition | Reason |`, `|-------|--------|-------------|--------|`);
+        for (const input of brief.inputs) {
+            lines.push(`| ${cell(input.checkName)} | ${cell(input.status)} | ${cell(input.disposition)} | ${cell(input.reason ?? "")} |`);
+        }
+        lines.push("");
+    }
+    const delta = brief.delta?.trim();
+    if (delta) {
+        lines.push(`**Delta:** ${delta}`, "");
+    }
+    lines.push("### Actions", "");
+    if (brief.actions.length === 0) {
+        lines.push("No actions.", "");
+    }
+    else {
+        for (const action of brief.actions) {
+            const link = action.link ? ` ([link](${action.link}))` : "";
+            lines.push(`- **${action.kind}:** ${action.detail}${link}`);
+        }
+        lines.push("");
+    }
+    if (brief.override) {
+        const owner = brief.override.by.replace(/^@+/, "");
+        lines.push("### Override", "", `> Overridden by @${owner} at ${brief.override.at}, scope ${brief.override.scope} — ${brief.override.rationale}`, "");
+    }
+    return lines.join("\n").trimEnd();
+}
+/**
+ * Render a Release Brief as markdown suitable for a PR comment section.
+ *
+ * Truncation order (ADR-011 §1): drop findings from the end first (always
+ * keeping at least one plus a pointer to the stored evaluation), then cap
+ * evidence, and only then hard-clip. The result never exceeds `maxChars`.
+ */
+function renderReleaseBrief(brief, opts) {
+    const requested = opts?.maxChars ?? DEFAULT_MAX_CHARS;
+    const maxChars = Number.isFinite(requested) ? Math.floor(requested) : DEFAULT_MAX_CHARS;
+    if (maxChars <= 0)
+        return "";
+    const storedEvaluationUrl = opts?.storedEvaluationUrl;
+    const total = brief.findings.length;
+    let rendered = buildBrief(brief, total, undefined, storedEvaluationUrl);
+    if (rendered.length <= maxChars)
+        return rendered;
+    for (let keep = total - 1; keep >= 1; keep--) {
+        rendered = buildBrief(brief, keep, undefined, storedEvaluationUrl);
+        if (rendered.length <= maxChars)
+            return rendered;
+    }
+    const minKeep = total > 0 ? 1 : 0;
+    rendered = buildBrief(brief, minKeep, EVIDENCE_CAP_CHARS, storedEvaluationUrl);
+    if (rendered.length <= maxChars)
+        return rendered;
+    // Last resort: the length contract outranks markdown well-formedness.
+    return rendered.slice(0, maxChars);
 }
 
 ;// CONCATENATED MODULE: ./src/security.ts
@@ -44028,6 +44443,33 @@ function parseAgentIdFromHeadRef(headRef) {
     const match = headRef.match(/^agent\/([a-z0-9-]+)\//);
     return match?.[1] ?? null;
 }
+function pick(record, ...keys) {
+    for (const key of keys) {
+        const value = record[key];
+        if (value !== undefined && value !== null)
+            return value;
+    }
+    return undefined;
+}
+function readFindingIds(record) {
+    const direct = pick(record, "enumerated_findings", "enumeratedFindings");
+    const brief = pick(record, "release_brief", "releaseBrief");
+    const raw = direct ??
+        (brief && typeof brief === "object"
+            ? brief.findings
+            : undefined);
+    if (!Array.isArray(raw))
+        return undefined;
+    const ids = [];
+    for (const entry of raw) {
+        if (!entry || typeof entry !== "object")
+            continue;
+        const id = entry.id;
+        if (typeof id === "string")
+            ids.push(id);
+    }
+    return ids;
+}
 function parsePreviousEvaluationRow(row) {
     if (!row || typeof row !== "object")
         return null;
@@ -44039,7 +44481,24 @@ function parsePreviousEvaluationRow(row) {
     if (record.remediation && typeof record.remediation === "object") {
         remediation = record.remediation;
     }
-    return { id, remediation };
+    const snapshot = { id, remediation };
+    const riskScore = pick(record, "risk_score", "riskScore");
+    if (typeof riskScore === "number" && Number.isFinite(riskScore)) {
+        snapshot.riskScore = riskScore;
+    }
+    const gateDecision = pick(record, "gate_decision", "gateDecision");
+    if (gateDecision === "allow" || gateDecision === "warn" || gateDecision === "block") {
+        snapshot.gateDecision = gateDecision;
+    }
+    const releaseReady = pick(record, "release_ready", "releaseReady");
+    if (typeof releaseReady === "boolean") {
+        snapshot.releaseReady = releaseReady;
+    }
+    const findingIds = readFindingIds(record);
+    if (findingIds !== undefined) {
+        snapshot.findingIds = findingIds;
+    }
+    return snapshot;
 }
 function pickLatestPreviousEvaluation(rows, excludeEvaluationId) {
     for (const row of rows) {
@@ -44605,7 +45064,7 @@ function runPhase0Detectors(ctx) {
         .filter((check) => check !== null);
 }
 
-;// CONCATENATED MODULE: ../../Users/david/Projects/trailhead/node_modules/js-yaml/dist/js-yaml.mjs
+;// CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
 
 /*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
 function isNothing(subject) {
@@ -48972,8 +49431,8 @@ function detectPromotionCoherence(ctx) {
     };
 }
 
-// EXTERNAL MODULE: ../../Users/david/Projects/trailhead/node_modules/@swc/core/index.js
-var _swc_core = __nccwpck_require__(5229);
+// EXTERNAL MODULE: ./node_modules/@swc/core/index.js
+var _swc_core = __nccwpck_require__(5971);
 ;// CONCATENATED MODULE: ./src/submission-checks/syntax-validity.ts
 // Real parse-based syntax validation for Gate 1 (no bracket-count fallback).
 // Parses full file content only — never a partial diff hunk (see submission-gate.md).
@@ -50391,17 +50850,22 @@ async function fetchFromKomatikStore(params) {
         return null;
     return fetchEvaluationList(listUrl, params);
 }
-async function fetchFromSupabase(params) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey)
-        return null;
+/** Columns loop bookkeeping has always needed — guaranteed present in every store. */
+const SUPABASE_LOOP_SELECT = "id,remediation,loop_round,previous_evaluation_id,fixes_resolved,fixes_introduced,created_at";
+/**
+ * ADR-011 §1 adds the delta fields. `release_brief`/`enumerated_findings` land with the
+ * ADR-011 store migration, so a store that has not run it 400s on this select — hence the
+ * narrow-select retry below rather than one wide select that would take loop bookkeeping
+ * down with it.
+ */
+const SUPABASE_DELTA_SELECT = `${SUPABASE_LOOP_SELECT},risk_score,gate_decision,release_ready,enumerated_findings,release_brief`;
+async function fetchSupabaseRows(supabaseUrl, serviceRoleKey, params, select) {
     const url = new URL(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`);
     url.searchParams.set("repo_id", `eq.${params.repoId}`);
     url.searchParams.set("pr_number", `eq.${params.prNumber}`);
     url.searchParams.set("order", "created_at.desc");
     url.searchParams.set("limit", "10");
-    url.searchParams.set("select", "id,remediation,loop_round,previous_evaluation_id,fixes_resolved,fixes_introduced,created_at");
+    url.searchParams.set("select", select);
     const response = await fetch(url.toString(), {
         method: "GET",
         headers: {
@@ -50414,7 +50878,18 @@ async function fetchFromSupabase(params) {
     if (!response.ok)
         return null;
     const rows = (await response.json());
-    if (!Array.isArray(rows))
+    return Array.isArray(rows) ? rows : null;
+}
+async function fetchFromSupabase(params) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey)
+        return null;
+    let rows = await fetchSupabaseRows(supabaseUrl, serviceRoleKey, params, SUPABASE_DELTA_SELECT);
+    if (rows === null) {
+        rows = await fetchSupabaseRows(supabaseUrl, serviceRoleKey, params, SUPABASE_LOOP_SELECT);
+    }
+    if (rows === null)
         return null;
     return pickPreviousFromRows(rows, params.excludeEvaluationId);
 }
@@ -50506,6 +50981,7 @@ async function countRecentLabelOverrides(params) {
 }
 
 ;// CONCATENATED MODULE: ./src/override.ts
+
 const OVERRIDE_LABEL = "trailhead-override";
 const OVERRIDE_COMMENT_PATTERN = /^trailhead-override:\s*(.+)/im;
 function hasOverrideLabel(labels) {
@@ -50524,9 +51000,53 @@ function parseOverrideComment(comments) {
     }
     return null;
 }
+const CI_FAILING_STATUSES = new Set(["fail", "missing", "stale"]);
+const CI_REQUIRED_CHECK_REASON = /^Required CI check "/;
+const CI_PENDING_REASON = /required CI check\(s\) still pending$/i;
+/**
+ * True when a computeReleaseReady() reason came from mechanical CI rather than
+ * risk/policy. ADR-011 §3: a `risk_only` override never clears these — getting
+ * past a red required check stays an admin-merge.
+ *
+ * Structural first: a reason naming a blocking check that CiSummary reports as
+ * fail/missing/stale is mechanical regardless of phrasing. The phrasing fallback
+ * fails closed — a reason that still reads as a CI reason but cannot be matched
+ * to a check (no CiSummary, renamed check, external CI manifest) keeps blocking.
+ *
+ * ADR-011 §2 composition: "blocking" is the check's disposition, not its
+ * `required` flag, so an input dispositioned `irrelevant`/`advisory` never
+ * produces a reason to retain, and a non-required input dispositioned `blocking`
+ * survives a risk_only override.
+ */
+function isMechanicalCiReason(reason, ci) {
+    const structural = ci?.checks.some((check) => checkCountsTowardBlocking(check) &&
+        CI_FAILING_STATUSES.has(check.status) &&
+        reason.includes(`"${check.name}"`));
+    if (structural)
+        return true;
+    if (ci && ci.pendingCount > 0 && CI_PENDING_REASON.test(reason))
+        return true;
+    return CI_REQUIRED_CHECK_REASON.test(reason) || CI_PENDING_REASON.test(reason);
+}
+function partitionOverrideReasons(reasons, ci) {
+    const overridden = [];
+    const retained = [];
+    for (const reason of reasons) {
+        if (isMechanicalCiReason(reason, ci))
+            retained.push(reason);
+        else
+            overridden.push(reason);
+    }
+    return { overridden, retained };
+}
 function buildLabelOverrideAudit(input) {
     const appliedAt = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const scope = input.scope ?? "full";
+    const reasons = [...input.releaseResult.reasons];
+    const { overridden, retained } = scope === "risk_only"
+        ? partitionOverrideReasons(reasons, input.ci)
+        : { overridden: reasons, retained: [] };
     return {
         source: "label",
         owner: input.parsed.author,
@@ -50534,12 +51054,13 @@ function buildLabelOverrideAudit(input) {
         linkedTicket: `override:pr#${input.prNumber}`,
         expiresAt,
         appliedAt,
-        changes: { releaseReady: true },
+        scope,
+        changes: retained.length === 0 ? { releaseReady: true } : {},
         preOverrideDecision: input.gateDecision,
         preOverrideReleaseReady: input.releaseResult.releaseReady,
-        preOverrideReasons: input.releaseResult.reasons.length > 0
-            ? [...input.releaseResult.reasons]
-            : undefined,
+        preOverrideReasons: reasons.length > 0 ? reasons : undefined,
+        overriddenReasons: overridden.length > 0 ? overridden : undefined,
+        retainedReasons: retained.length > 0 ? retained : undefined,
     };
 }
 function formatOverrideRejectionMessage(code) {
@@ -50601,15 +51122,38 @@ function resolveLabelOverride(input) {
             prNumber: input.prNumber,
             releaseResult: input.releaseResult,
             gateDecision: input.gateDecision,
+            scope: input.config.scope,
+            ci: input.ci,
         }),
     };
 }
 function applyLabelOverrideToEvaluation(evaluation, audit) {
+    if ((audit.scope ?? "full") !== "risk_only") {
+        return {
+            ...evaluation,
+            releaseReady: true,
+            releaseReadyReasons: undefined,
+            policyOverride: audit,
+        };
+    }
+    // Re-partition against the evaluation's own CiSummary: it is the authoritative
+    // structural signal, and the audit may have been built without one.
+    const reasons = evaluation.releaseReadyReasons ?? audit.preOverrideReasons ?? [];
+    const { overridden, retained } = partitionOverrideReasons(reasons, evaluation.ci);
+    const releaseReady = retained.length === 0;
+    const { releaseReady: _clearedFlag, ...changesWithoutReleaseReady } = audit.changes;
     return {
         ...evaluation,
-        releaseReady: true,
-        releaseReadyReasons: undefined,
-        policyOverride: audit,
+        releaseReady,
+        releaseReadyReasons: retained.length > 0 ? retained : undefined,
+        policyOverride: {
+            ...audit,
+            changes: releaseReady
+                ? { ...audit.changes, releaseReady: true }
+                : changesWithoutReleaseReady,
+            overriddenReasons: overridden.length > 0 ? overridden : undefined,
+            retainedReasons: retained.length > 0 ? retained : undefined,
+        },
     };
 }
 
@@ -51064,6 +51608,8 @@ async function fetchGitHubJsonPages(url, init, options = {}) {
 
 
 
+
+
 // Re-export sensitivityWeight with the RepoConfig-compatible signature
 function gate_sensitivityWeight(filename, repoConfig) {
     return sensitivityWeightShared(filename, repoConfig ?? null);
@@ -51490,7 +52036,7 @@ async function detectPrProvenance(prNumber, token) {
 function detectCiIntegrityRisk(files) {
     const { score, blockingPatterns, warningSignals } = detectCiIntegrity(files);
     if (score === 0) {
-        return { factor: null, blockingPatterns: [] };
+        return { factor: null, blockingPatterns: [], warningSignals: [] };
     }
     const factor = {
         type: "ci_integrity",
@@ -51501,7 +52047,7 @@ function detectCiIntegrityRisk(files) {
             description: "CI confidence and workflow integrity signals",
         },
     };
-    return { factor, blockingPatterns };
+    return { factor, blockingPatterns, warningSignals };
 }
 function detectWorkflowSecurityRisk(files, allowUnpinnedActions) {
     const blockingPatterns = [];
@@ -52158,6 +52704,7 @@ async function applyLabelOverrideIfNeeded(input) {
     const overrideSettings = input.repoConfig?.override ?? {
         enabled: true,
         max_per_week: 5,
+        scope: "full",
     };
     const comments = await fetchPrCommentsForOverride(input.prNumber, input.githubToken);
     const recentOverrideCount = await countRecentLabelOverrides({
@@ -52174,19 +52721,29 @@ async function applyLabelOverrideIfNeeded(input) {
         config: {
             enabled: overrideSettings.enabled,
             maxPerWeek: overrideSettings.max_per_week,
+            scope: overrideSettings.scope,
         },
         recentOverrideCount,
         releaseResult: input.releaseResult,
         gateDecision: input.gateDecision,
         prNumber: input.prNumber,
+        ci: input.evaluation.ci,
     });
     if (outcome.kind === "applied") {
-        core_warning(`Label override applied by ${outcome.audit.owner}: ${outcome.audit.reason}`);
+        const applied = applyLabelOverrideToEvaluation(input.evaluation, outcome.audit);
+        const retained = applied.policyOverride?.retainedReasons ?? [];
+        // ADR-011 §3: a risk_only override never clears mechanical blocking inputs —
+        // say so, otherwise the warning reads as a full bypass that it is not.
+        const retainedNote = retained.length > 0
+            ? ` — ${retained.length} mechanical CI reason(s) still blocking`
+            : "";
+        core_warning(`Label override applied by ${outcome.audit.owner} (scope ${outcome.audit.scope ?? "full"}): ` +
+            `${outcome.audit.reason}${retainedNote}`);
         return {
-            ...applyLabelOverrideToEvaluation(input.evaluation, outcome.audit),
+            ...applied,
             labelOverrideFeedback: {
                 status: "applied",
-                message: `Release override applied by \`${outcome.audit.owner}\`.`,
+                message: `Release override applied by \`${outcome.audit.owner}\`${retainedNote}.`,
             },
         };
     }
@@ -52205,10 +52762,266 @@ async function applyLabelOverrideIfNeeded(input) {
     return input.evaluation;
 }
 // ---------------------------------------------------------------------------
+// ADR-011 — input relevance, enumerated findings, Release Brief
+// ---------------------------------------------------------------------------
+/**
+ * Annotate every CI input with its ADR-011 §2 disposition and re-roll the
+ * summary counts against the *blocking* set rather than the `required` flag.
+ *
+ * With no `input_relevance` entries the default mapping is required -> blocking
+ * and non-required -> advisory, so the blocking set is exactly the required set
+ * and every count below reproduces `evaluateRequiredChecks` verbatim. Semantics
+ * only move when a policy entry matches.
+ */
+/** Budget for the brief inside a report that also becomes a check-run summary. */
+const BRIEF_MAX_CHARS = 20000;
+function applyInputRelevance(summary, entries) {
+    const resolved = resolveDispositions(summary.checks, entries);
+    const checks = summary.checks.map((check) => {
+        const disposition = resolved.get(check.name);
+        return disposition ? { ...check, disposition } : check;
+    });
+    const blocking = checks.filter((check) => check.disposition !== undefined &&
+        dispositionCountsTowardBlocking(check.disposition));
+    return {
+        checks,
+        allRequiredPassed: blocking.every((check) => check.status === "pass" || check.status === "skip"),
+        pendingCount: blocking.filter((check) => check.status === "pending").length,
+        failedCount: blocking.filter((check) => check.status === "fail" || check.status === "missing" || check.status === "stale").length,
+        missingCount: blocking.filter((check) => check.status === "missing").length,
+    };
+}
+/**
+ * Detector messages are authored as `<file>: <message>`. Split them so the brief
+ * can carry the file as evidence; anything that does not look like a path prefix
+ * stays a whole title (never guess evidence that is not there).
+ */
+function splitDetectorMessage(message) {
+    const separator = message.indexOf(": ");
+    if (separator > 0) {
+        const head = message.slice(0, separator);
+        if (/[/.]/.test(head) && !/\s/.test(head)) {
+            return { title: message.slice(separator + 2).trim(), evidence: head };
+        }
+    }
+    return { title: message };
+}
+/**
+ * ADR-011 §1: "findings are enumerated, never counted" — the Case A fix. Every
+ * detector already returns its patterns as strings; this turns them into
+ * addressable findings instead of a `.length`.
+ */
+function enumerateDetectorFindings(idPrefix, messages, severity) {
+    return messages.map((message, index) => {
+        const { title, evidence } = splitDetectorMessage(message);
+        return {
+            id: `${idPrefix}/${index + 1}`,
+            title,
+            severity,
+            ...(evidence ? { evidence } : {}),
+        };
+    });
+}
+function briefVerdict(evaluation) {
+    const mode = evaluation.gateMode ?? "risk-only";
+    if (mode === "release-ready" || mode === "advisory") {
+        if (evaluation.releaseReady === false)
+            return "block";
+        return evaluation.gateDecision === "warn" ? "warn" : "allow";
+    }
+    return evaluation.gateDecision;
+}
+function briefTopMovers(factors) {
+    const movers = [...factors]
+        .filter((factor) => factor.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map((factor) => ({ factor: factor.type, score: factor.score }));
+    return movers.length > 0 ? movers : undefined;
+}
+/**
+ * ADR-011 §1's `delta`. Two independent sources, either of which may be absent:
+ * the id-diff against the previous stored evaluation (verdict/risk/findings), and
+ * the remediation loop's own fix bookkeeping. A missing or unreachable previous
+ * evaluation omits the delta — it never errors.
+ */
+function briefDelta(evaluation, previous) {
+    const parts = [
+        previous
+            ? formatEvaluationDelta({
+                ...(previous.gateDecision !== undefined
+                    ? { verdict: previous.gateDecision }
+                    : {}),
+                ...(previous.riskScore !== undefined
+                    ? { riskScore: previous.riskScore }
+                    : {}),
+                ...(previous.findingIds !== undefined
+                    ? { findingIds: previous.findingIds }
+                    : {}),
+            }, {
+                verdict: evaluation.gateDecision,
+                riskScore: evaluation.riskScore,
+                ...(evaluation.enumeratedFindings !== undefined
+                    ? { findingIds: evaluation.enumeratedFindings.map((f) => f.id) }
+                    : {}),
+            })
+            : undefined,
+        briefRemediationDelta(evaluation),
+    ].filter((part) => part !== undefined);
+    return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+function briefRemediationDelta(evaluation) {
+    const remediation = evaluation.remediation;
+    if (!remediation?.previous_evaluation_id)
+        return undefined;
+    const parts = [];
+    if (remediation.fixes_resolved.length > 0) {
+        parts.push(`resolved: ${remediation.fixes_resolved.join(", ")}`);
+    }
+    if (remediation.fixes_introduced.length > 0) {
+        parts.push(`introduced: ${remediation.fixes_introduced.join(", ")}`);
+    }
+    if (parts.length === 0)
+        parts.push("no change in findings");
+    return `round ${remediation.loop_round} vs previous evaluation — ${parts.join("; ")}`;
+}
+function briefActions(evaluation, findings, riskThreshold) {
+    const actions = [];
+    for (const check of evaluation.ci?.checks ?? []) {
+        if (!checkCountsTowardBlocking(check))
+            continue;
+        if (check.status !== "fail" &&
+            check.status !== "missing" &&
+            check.status !== "stale") {
+            continue;
+        }
+        actions.push({
+            kind: "fix",
+            detail: `CI input "${check.name}" is ${check.status.toUpperCase()} — fix it, or ` +
+                `classify it under \`contexts[].input_relevance\` if it is irrelevant to this branch pair.`,
+            ...(check.detailsUrl ? { link: check.detailsUrl } : {}),
+        });
+    }
+    for (const finding of findings) {
+        if (finding.severity !== "blocking")
+            continue;
+        actions.push({ kind: "fix", detail: `${finding.title} (\`${finding.id}\`)` });
+    }
+    const pending = evaluation.ci?.pendingCount ?? 0;
+    if (pending > 0) {
+        actions.push({
+            kind: "wait",
+            detail: `${pending} blocking CI check(s) still pending — the gate re-evaluates when they finish.`,
+        });
+    }
+    if (riskThreshold !== undefined &&
+        evaluation.riskScore > riskThreshold &&
+        !evaluation.policyOverride) {
+        actions.push({
+            kind: "override",
+            detail: `Risk ${evaluation.riskScore} exceeds threshold ${riskThreshold}. To accept it on ` +
+                `the record, add the \`${OVERRIDE_LABEL}\` label and comment ` +
+                `\`${OVERRIDE_LABEL}: <rationale>\` on this PR.`,
+        });
+    }
+    return actions;
+}
+/**
+ * Project a GateEvaluation onto ADR-011 §1's Release Brief. Pure — no I/O, no
+ * mutation — so it can be rebuilt from any stored evaluation.
+ */
+function buildReleaseBrief(evaluation, riskThreshold, cannotEvaluateReason, previous) {
+    const findings = evaluation.enumeratedFindings ?? [];
+    const override = evaluation.policyOverride;
+    const delta = briefDelta(evaluation, previous);
+    return {
+        verdict: cannotEvaluateReason ? "cannot_evaluate" : briefVerdict(evaluation),
+        riskScore: evaluation.riskScore,
+        ...(riskThreshold !== undefined ? { riskThreshold } : {}),
+        ...(briefTopMovers(evaluation.riskFactors)
+            ? { topMovers: briefTopMovers(evaluation.riskFactors) }
+            : {}),
+        findings,
+        // Every input gets a row, including the ones that did not count (ADR-011 §1).
+        inputs: (evaluation.ci?.checks ?? []).map((check) => ({
+            checkName: check.name,
+            status: check.status,
+            disposition: check.disposition?.kind ?? (check.required ? "blocking" : "advisory"),
+            ...(check.disposition?.reason ? { reason: check.disposition.reason } : {}),
+        })),
+        ...(delta ? { delta } : {}),
+        actions: briefActions(evaluation, findings, riskThreshold),
+        // ADR-011 §3 maps the audit's {owner, appliedAt, reason} onto {by, at, rationale}.
+        override: override
+            ? {
+                by: override.owner,
+                at: override.appliedAt,
+                scope: override.scope ?? "full",
+                rationale: override.reason,
+            }
+            : null,
+        ...(cannotEvaluateReason ? { cannotEvaluateReason } : {}),
+    };
+}
+// ---------------------------------------------------------------------------
+// ADR-011 §4 — availability stance
+// ---------------------------------------------------------------------------
+// The stance belongs to the matched context, which is only known *inside*
+// evaluateGate — but it has to be readable by main.ts's top-level catch, i.e.
+// after evaluateGate has already thrown. Stashing it here avoids loading and
+// re-matching the repo config a second time just to answer "open or closed?".
+let lastAvailabilityStance = null;
+/**
+ * The availability stance of the context the most recent evaluation matched, or
+ * null when no context matched (or the run failed before matching). Null means
+ * "no per-context stance" — the caller keeps its action-input fail-mode.
+ */
+function getResolvedAvailabilityStance() {
+    return lastAvailabilityStance;
+}
+/** Test seam, and the reset evaluateGate performs on entry. */
+function setResolvedAvailabilityStance(stance) {
+    lastAvailabilityStance = stance;
+}
+/**
+ * ADR-011 §1: "silence is a bug." When the evaluation could not run at all there is
+ * no GateEvaluation to project, so the brief is built from the failure itself.
+ */
+function buildCannotEvaluateBrief(reason, stance) {
+    const actions = [
+        {
+            kind: "fix",
+            detail: "Resolve the failure above and re-run the Trailhead job. Until it runs, no " +
+                "risk score, no input dispositions and no findings exist for this commit.",
+        },
+        stance === "fail_closed"
+            ? {
+                kind: "wait",
+                detail: "Availability stance is fail_closed: no verdict means no merge. Break-glass " +
+                    "is a GitHub admin merge — visible and extraordinary, and it records nothing.",
+            }
+            : {
+                kind: "wait",
+                detail: "Availability stance is fail_open: this run did not block the merge, but no " +
+                    "Trailhead verdict was recorded for this commit.",
+            },
+    ];
+    return {
+        verdict: "cannot_evaluate",
+        findings: [],
+        inputs: [],
+        actions,
+        override: null,
+        cannotEvaluateReason: reason,
+    };
+}
+// ---------------------------------------------------------------------------
 // Main evaluation entry point
 // ---------------------------------------------------------------------------
 async function evaluateGate(config, commitSha, prNumber) {
     const start = Date.now();
+    // Nothing is known about this run's availability stance until a context matches.
+    setResolvedAvailabilityStance(null);
     const isMergeQueue = github_context.eventName === "merge_group" ||
         github_context.payload?.pull_request?.labels?.some((l) => l.name === "queue" || l.name.includes("merge-queue")) === true;
     if (isMergeQueue) {
@@ -52255,6 +53068,12 @@ async function evaluateGate(config, commitSha, prNumber) {
         : null;
     if (matchedContext) {
         info(`Matched context "${matchedContext.matched.name}" for base=${prMatchCtx.baseRef}`);
+    }
+    // ADR-011 §4 — a per-branch-pair stance overrides the action-input fail-mode.
+    const availabilityStance = matchedContext?.context.availability ?? null;
+    setResolvedAvailabilityStance(availabilityStance);
+    if (availabilityStance) {
+        info(`Availability stance: ${availabilityStance} (context "${matchedContext?.matched.name}")`);
     }
     const effectiveEnvironment = config.environment ?? matchedContext?.matched.environment ?? undefined;
     const envConfig = effectiveEnvironment
@@ -52304,7 +53123,7 @@ async function evaluateGate(config, commitSha, prNumber) {
     }
     const ciIntegrityConfig = repoConfig?.policies?.ci_integrity;
     const ciIntegrity = ciIntegrityConfig?.enabled === false
-        ? { factor: null, blockingPatterns: [] }
+        ? { factor: null, blockingPatterns: [], warningSignals: [] }
         : detectCiIntegrityRisk(files);
     if (ciIntegrity.factor) {
         riskFactors.push(ciIntegrity.factor);
@@ -52480,13 +53299,17 @@ async function evaluateGate(config, commitSha, prNumber) {
         repoConfig,
     });
     const sessionCfg = repoConfig?.policies?.session_correlation;
+    // Kept as its own list so ADR-011 §1 can enumerate the burst instead of
+    // burying it in the undifferentiated policyFindings prose.
+    const sessionCorrelationFindings = [];
     if (sessionCorrelation && sessionCfg) {
         const threshold = sessionCfg.threshold;
         if (sessionCorrelation.burstCount >= threshold) {
-            policyFindings.push(`Rapid-fire merge burst detected: ${sessionCorrelation.burstCount} merged PRs in ${sessionCorrelation.windowMinutes} minutes.`);
+            sessionCorrelationFindings.push(`Rapid-fire merge burst detected: ${sessionCorrelation.burstCount} merged PRs in ${sessionCorrelation.windowMinutes} minutes.`);
             if (sessionCfg.mode === "block") {
-                policyFindings.push("Session correlation policy is configured to block.");
+                sessionCorrelationFindings.push("Session correlation policy is configured to block.");
             }
+            policyFindings.push(...sessionCorrelationFindings);
         }
     }
     const healthChecks = [...httpHealthChecks];
@@ -52505,6 +53328,12 @@ async function evaluateGate(config, commitSha, prNumber) {
     const sensitiveEscalation = decideSensitiveFilesEscalation(riskFactors, repoConfig?.policies?.sensitive_files);
     if (sensitiveEscalation.reason)
         policyFindings.push(sensitiveEscalation.reason);
+    const sessionCorrelationBlocks = sessionCorrelation !== null &&
+        sessionCfg !== undefined &&
+        sessionCorrelation.burstCount >= sessionCfg.threshold &&
+        sessionCfg.mode === "block";
+    const submissionBlocks = submissionChecks.length > 0 &&
+        submissionGateShouldBlock(submissionChecks, submissionMode);
     const gateDecision = agentPolicy?.forceBlock === true ||
         sensitiveEscalation.block ||
         (ciIntegrity.blockingPatterns.length > 0 &&
@@ -52520,16 +53349,54 @@ async function evaluateGate(config, commitSha, prNumber) {
             (duplicateLogicConfig?.mode ?? "warn") === "block") ||
         ((crossRepoImpact.factor?.score ?? 0) >= 60 &&
             (repoConfig?.policies?.cross_repo_impact?.mode ?? "warn") === "block") ||
-        (sessionCorrelation &&
-            sessionCfg &&
-            sessionCorrelation.burstCount >= sessionCfg.threshold &&
-            sessionCfg.mode === "block") ||
-        (submissionChecks.length > 0 &&
-            submissionGateShouldBlock(submissionChecks, submissionMode))
+        sessionCorrelationBlocks ||
+        submissionBlocks
         ? "block"
         : sensitiveEscalation.warn && baselineDecision === "allow"
             ? "warn"
             : baselineDecision;
+    // ADR-011 §1 (Case A): the count-strings below stay for existing consumers, but
+    // the individual patterns are now carried through to the evaluation so the
+    // Release Brief can enumerate them instead of printing a bare number.
+    const enumeratedFindings = [
+        ...enumerateDetectorFindings("ci_integrity", ciIntegrity.blockingPatterns, "blocking"),
+        ...enumerateDetectorFindings("ci_integrity_warning", ciIntegrity.warningSignals, "warn"),
+        ...enumerateDetectorFindings("workflow_security", workflowSecurity.blockingPatterns, "blocking"),
+        ...enumerateDetectorFindings("workflow_security_warning", workflowSecurity.warnings, "warn"),
+        ...enumerateDetectorFindings("prompt_injection", promptInjection.blockingPatterns, "blocking"),
+        ...enumerateDetectorFindings("prompt_injection_warning", promptInjection.warnings, "warn"),
+        ...enumerateDetectorFindings("supply_chain", supplyChain.blockingPatterns, "blocking"),
+        ...enumerateDetectorFindings("supply_chain_warning", supplyChain.warnings, "warn"),
+        ...enumerateDetectorFindings("pr_scope", prScope.findings, "advisory"),
+        ...enumerateDetectorFindings("duplicate_logic", duplicateLogic.findings, "advisory"),
+        ...enumerateDetectorFindings("cross_repo_impact", crossRepoImpact.findings, "advisory"),
+        // The four block-capable sources below are not detector pattern lists, so
+        // they used to reach the evaluation as prose in `policyFindings` only. A
+        // BLOCK caused by any of them would then render as "No findings." — the
+        // exact silence ADR-011 §1 forbids.
+        ...enumerateDetectorFindings("agent_policy", agentPolicy?.findings ?? [], agentPolicy?.forceBlock === true ? "blocking" : "warn"),
+        // A single escalation verdict, so its id is fixed rather than enumerated.
+        ...(sensitiveEscalation.reason
+            ? [
+                {
+                    id: "sensitive_files/0",
+                    title: sensitiveEscalation.reason,
+                    severity: sensitiveEscalation.block
+                        ? "blocking"
+                        : "warn",
+                },
+            ]
+            : []),
+        ...enumerateDetectorFindings("session_correlation", sessionCorrelationFindings, sessionCorrelationBlocks ? "blocking" : "warn"),
+        // `policyFindings` only ever carried the submission count; the per-check
+        // code/title/detail/severity is what a human actually needs.
+        ...submissionChecks.map((check, index) => ({
+            id: `submission/${check.code}/${index + 1}`,
+            title: check.title,
+            evidence: check.detail,
+            severity: check.severity,
+        })),
+    ];
     if (ciIntegrity.blockingPatterns.length > 0) {
         policyFindings.push(`CI integrity blocking patterns detected (${ciIntegrity.blockingPatterns.length}).`);
     }
@@ -52616,6 +53483,7 @@ async function evaluateGate(config, commitSha, prNumber) {
         evaluationMs: Date.now() - start,
         environment: effectiveEnvironment,
         policyFindings: policyFindings.length > 0 ? policyFindings : undefined,
+        enumeratedFindings: enumeratedFindings.length > 0 ? enumeratedFindings : undefined,
         pr: prNumber
             ? {
                 provenance: provenance ??
@@ -52690,6 +53558,9 @@ async function evaluateGate(config, commitSha, prNumber) {
                 });
                 ciSummary = evaluateRequiredChecks(checks, ciConfig, ciManifest);
             }
+            // ADR-011 §2 — resolve each input's disposition before anything reads the
+            // summary. With no input_relevance config this is a pure annotation pass.
+            ciSummary = applyInputRelevance(ciSummary, matchedContext?.context.input_relevance ?? []);
             localEvaluation.ci = ciSummary;
         }
         catch (error) {
@@ -52753,23 +53624,25 @@ async function evaluateGate(config, commitSha, prNumber) {
         provenanceType: localEvaluation.pr?.provenance?.type,
     });
     localEvaluation.agentBriefMode = agentBriefMode;
+    // Fetched once, outside the remediation branch: ADR-011 §1's delta needs the
+    // previous evaluation even in repos that have remediation turned off.
+    let previousEvaluation = null;
+    if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
+        try {
+            previousEvaluation = await fetchPreviousEvaluationForPr({
+                repoId: localEvaluation.repoId,
+                prNumber,
+                excludeEvaluationId: localEvaluation.id,
+                storeUrl: config.evaluationStoreUrl,
+                apiKey: config.trailheadApiKey,
+            });
+        }
+        catch (error) {
+            core_debug(`Previous evaluation lookup failed: ${error}`);
+        }
+    }
     const remediationEnabled = remediationSettings?.enabled !== false;
     if (remediationEnabled) {
-        let previousEvaluation = null;
-        if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
-            try {
-                previousEvaluation = await fetchPreviousEvaluationForPr({
-                    repoId: localEvaluation.repoId,
-                    prNumber,
-                    excludeEvaluationId: localEvaluation.id,
-                    storeUrl: config.evaluationStoreUrl,
-                    apiKey: config.trailheadApiKey,
-                });
-            }
-            catch (error) {
-                core_debug(`Previous evaluation lookup failed: ${error}`);
-            }
-        }
         localEvaluation.remediation = buildRemediation({
             evaluation: {
                 id: localEvaluation.id,
@@ -52786,11 +53659,57 @@ async function evaluateGate(config, commitSha, prNumber) {
             submissionChecks,
         });
     }
+    // ADR-011 §1 — built last so it sees release-readiness, the override outcome
+    // and the remediation delta.
+    localEvaluation.releaseBrief = buildReleaseBrief(localEvaluation, adjustedRiskThreshold, undefined, previousEvaluation);
     return localEvaluation;
 }
 // ---------------------------------------------------------------------------
 // PR comment posting
 // ---------------------------------------------------------------------------
+/**
+ * Safety bound for anything handed to GitHub as a report body. Issue comments
+ * cap at 65536 characters and a check run's `output.summary` at 65535; one
+ * number under both leaves room for the comment marker.
+ */
+const MAX_GATE_REPORT_CHARS = 65000;
+const BRIEF_HEADING = "## Release Brief";
+const BRIEF_SEPARATOR = "\n\n---\n\n";
+/** Cut points that leave the surviving markdown structurally intact. */
+const SECTION_BOUNDARIES = ["\n\n#", "\n\n<details>", "\n\n"];
+/**
+ * Clamp a gate report to what GitHub will actually accept.
+ *
+ * `renderReleaseBrief` already caps the brief itself, but the legacy report
+ * appended below it is unbounded (the files-changed list alone grows with the
+ * PR). Only that tail is trimmed — the brief is the decision, so it survives
+ * intact — and the reader is told where the full detail still lives.
+ */
+function clampGateReport(report, maxChars = MAX_GATE_REPORT_CHARS) {
+    if (report.length <= maxChars)
+        return report;
+    const notice = `\n\n_…report truncated (${report.length - maxChars} chars over GitHub's ` +
+        `comment limit) — full detail in the stored evaluation / job summary._`;
+    const budget = maxChars - notice.length;
+    if (budget <= 0)
+        return report.slice(0, maxChars);
+    // Never cut into the brief: keep everything up to its trailing separator.
+    const briefStart = report.indexOf(BRIEF_HEADING);
+    const separator = briefStart >= 0 ? report.indexOf(BRIEF_SEPARATOR, briefStart) : -1;
+    const floor = separator >= 0 ? separator + BRIEF_SEPARATOR.length : 0;
+    if (floor >= budget)
+        return `${report.slice(0, budget)}${notice}`;
+    const head = report.slice(0, budget);
+    let cut = budget;
+    for (const boundary of SECTION_BOUNDARIES) {
+        const index = head.lastIndexOf(boundary);
+        if (index > floor) {
+            cut = index;
+            break;
+        }
+    }
+    return `${report.slice(0, cut).trimEnd()}${notice}`;
+}
 async function postOverrideRejectionComment(prNumber, message, token) {
     try {
         const octokit = getOctokit(token);
@@ -52838,7 +53757,7 @@ async function postPrComment(report, prNumber, token) {
             per_page: 100,
         });
         const MARKER = "<!-- trailhead-gate-report -->";
-        const body = `${MARKER}\n${report}`;
+        const body = clampGateReport(`${MARKER}\n${report}`);
         const existing = comments.find((c) => c.body?.includes(MARKER));
         if (existing) {
             await octokit.rest.issues.updateComment({
@@ -52858,7 +53777,9 @@ async function postPrComment(report, prNumber, token) {
         }
     }
     catch (error) {
-        core_debug(`Failed to post PR comment: ${error}`);
+        // Fail-soft, but never silent: a missing gate comment is a visible gap in
+        // the record, so it belongs in the run log rather than in debug output.
+        core_warning(`Failed to post PR comment: ${error}`);
     }
 }
 // ---------------------------------------------------------------------------
@@ -52885,7 +53806,7 @@ async function createCheckRun(evaluation, report, token, checkName) {
             conclusion,
             output: {
                 title: `${name}: ${titleSuffix}`,
-                summary: report,
+                summary: clampGateReport(report),
                 ...(evaluation.storePersisted === false
                     ? { text: "Evaluation not persisted — dashboard incomplete." }
                     : {}),
@@ -52893,7 +53814,8 @@ async function createCheckRun(evaluation, report, token, checkName) {
         });
     }
     catch (error) {
-        core_debug(`Failed to create check run: ${error}`);
+        // Fail-soft, but never silent — see postPrComment.
+        core_warning(`Failed to create check run: ${error}`);
     }
 }
 // ---------------------------------------------------------------------------
@@ -53226,10 +54148,18 @@ function formatGateReport(evaluation, riskThreshold) {
             ? "RELEASE READY"
             : "NOT RELEASE READY"
         : evaluation.gateDecision.toUpperCase();
-    const lines = [
-        `## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`,
-        ``,
-    ];
+    const lines = [];
+    // ADR-011 §1 — the brief leads; the pre-existing report stays below it so the
+    // same `<!-- trailhead-gate-report -->` comment upgrades in place.
+    if (evaluation.releaseBrief) {
+        lines.push(renderReleaseBrief(evaluation.releaseBrief, {
+            // The same markdown becomes a check run's output.summary, which GitHub
+            // caps at 65535 characters; leave room for the report below.
+            maxChars: BRIEF_MAX_CHARS,
+            ...(evaluation.reportUrl ? { storedEvaluationUrl: evaluation.reportUrl } : {}),
+        }), ``, `---`, ``);
+    }
+    lines.push(`## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`, ``);
     if (mode === "release-ready" || mode === "advisory") {
         lines.push(`| Dimension | Status |`, `|-----------|--------|`, `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`, `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`, ...(evaluation.sizeScore !== undefined
             ? [`| Size / blast radius | ${evaluation.sizeScore}/100 (reported separately) |`]
@@ -53922,15 +54852,50 @@ async function storeViaApi(url, evaluation, maxRetries = 3) {
     }
     return notStored;
 }
-async function storeViaSupabase(evaluation) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey) {
-        return false;
+/**
+ * Columns introduced by the ADR-011 store migration. A store that has not run it
+ * rejects the whole insert, so `storeViaSupabase` strips these and retries once
+ * rather than losing the evaluation over a narration-only column.
+ */
+const ADR011_STORE_COLUMNS = ["release_brief", "enumerated_findings"];
+/** PostgREST's schema-cache miss: `{"code":"PGRST204","message":"Could not find …"}`. */
+const UNKNOWN_COLUMN_CODE = "PGRST204";
+const UNKNOWN_COLUMN_MESSAGE = /could not find the '([^']+)' column/i;
+/**
+ * True only for PostgREST's column-not-found signature naming an ADR-011 column.
+ *
+ * A bare substring match would strip-and-retry on any 400 that happened to
+ * mention `release_brief` — a permission error, a constraint violation, a
+ * validation message — turning an unrelated failure into a silent data loss.
+ */
+function mentionsUnknownAdr011Column(body) {
+    const columns = ADR011_STORE_COLUMNS;
+    let code;
+    let message = body;
+    try {
+        const parsed = JSON.parse(body);
+        if (parsed !== null && typeof parsed === "object") {
+            const record = parsed;
+            if (typeof record.code === "string")
+                code = record.code;
+            if (typeof record.message === "string")
+                message = record.message;
+        }
     }
-    const restUrl = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`;
-    const row = buildEvaluationStoreRow(evaluation);
-    const response = await fetch(restUrl, {
+    catch {
+        // Not JSON — the textual signature below is all there is to go on.
+    }
+    // A different PostgREST code is a different failure, whatever it mentions.
+    if (code !== undefined && code !== UNKNOWN_COLUMN_CODE)
+        return false;
+    const named = UNKNOWN_COLUMN_MESSAGE.exec(message)?.[1];
+    if (named !== undefined)
+        return columns.includes(named);
+    // No recognisable message shape: only a bare PGRST204 naming a column counts.
+    return code === UNKNOWN_COLUMN_CODE && columns.some((column) => body.includes(column));
+}
+async function insertSupabaseRow(restUrl, serviceRoleKey, row) {
+    return fetch(restUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -53941,11 +54906,33 @@ async function storeViaSupabase(evaluation) {
         body: JSON.stringify(row),
         signal: AbortSignal.timeout(STORE_TIMEOUT_MS),
     });
+}
+async function storeViaSupabase(evaluation) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+        return false;
+    }
+    const restUrl = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`;
+    const row = buildEvaluationStoreRow(evaluation);
+    let response = await insertSupabaseRow(restUrl, serviceRoleKey, row);
     if (response.ok || response.status === 201) {
         info("Evaluation stored via direct Supabase insert");
         return true;
     }
-    const body = await response.text().catch(() => "");
+    let body = await response.text().catch(() => "");
+    if (response.status === 400 && mentionsUnknownAdr011Column(body)) {
+        const legacyRow = Object.fromEntries(Object.entries(row).filter(([key]) => !ADR011_STORE_COLUMNS.includes(key)));
+        core_warning("Evaluation store is missing the ADR-011 columns " +
+            `(${ADR011_STORE_COLUMNS.join(", ")}) — storing without the release brief. ` +
+            "Apply cloud/migrations/006_release_brief.sql to persist it.");
+        response = await insertSupabaseRow(restUrl, serviceRoleKey, legacyRow);
+        if (response.ok || response.status === 201) {
+            info("Evaluation stored via direct Supabase insert");
+            return true;
+        }
+        body = await response.text().catch(() => "");
+    }
     core_warning(`Supabase direct insert failed (HTTP ${response.status}): ${body}`);
     return false;
 }
@@ -53979,7 +54966,16 @@ function buildEvaluationStoreRow(evaluation) {
         fixes_resolved: remediation?.fixes_resolved ?? [],
         fixes_introduced: remediation?.fixes_introduced ?? [],
         pr: evaluation.pr ?? null,
-        policy_override: evaluation.policyOverride ?? null,
+        // ADR-011 §3 — an audit written before the scope field existed WAS a full
+        // override; store that explicitly so consumers never have to infer it.
+        policy_override: evaluation.policyOverride
+            ? { ...evaluation.policyOverride, scope: evaluation.policyOverride.scope ?? "full" }
+            : null,
+        // ADR-011 §1. The Cloud/Komatik path POSTs the whole GateEvaluation, so these
+        // ride along there for free; the direct-Supabase path is column-explicit and
+        // needs them named. See cloud/migrations/006_release_brief.sql.
+        release_brief: evaluation.releaseBrief ?? null,
+        enumerated_findings: evaluation.enumeratedFindings ?? null,
         gate_mode: evaluation.gateMode ?? null,
         submission_checks: evaluation.submissionChecks ?? null,
         policy_findings: evaluation.policyFindings ?? null,
@@ -56528,6 +57524,7 @@ function resolveEvaluationTarget(context) {
 
 
 
+
 class PolicyOverrideError extends Error {
     constructor(message) {
         super(message);
@@ -56656,6 +57653,40 @@ async function runSelfHeal(config, prNumber) {
         }
     }
     return results;
+}
+/**
+ * ADR-011 §4 — the matched context's availability stance wins over the action-input
+ * fail-mode. Absent a stance (no context matched, or the run failed before matching)
+ * behaviour is exactly what it was before ADR-011.
+ */
+function resolveEffectiveFailMode(environment) {
+    const stance = getResolvedAvailabilityStance();
+    if (stance === "fail_open")
+        return "open";
+    if (stance === "fail_closed")
+        return "closed";
+    return resolveFailMode(getInput("fail-mode"), environment);
+}
+/**
+ * Post (or edit in place) the cannot-evaluate Release Brief on the PR. Deliberately
+ * swallows every failure of its own: the caller is already reporting a real error and
+ * must not have it replaced by "could not post a comment".
+ */
+async function postCannotEvaluateBrief(error, failMode) {
+    try {
+        const githubToken = getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
+        // backfill/re-evaluation runs suppress PR comments (see evaluate-pr above).
+        const backfillMode = Boolean(getInput("evaluate-pr").trim());
+        const brief = buildCannotEvaluateBrief(String(error instanceof Error ? error.message : error), failMode === "open" ? "fail_open" : "fail_closed");
+        setOutput("release-brief-json", JSON.stringify(brief));
+        const { prNumber } = resolveEvaluationTarget(github_context);
+        if (!githubToken || !prNumber || backfillMode)
+            return;
+        await postPrComment(renderReleaseBrief(brief), prNumber, githubToken);
+    }
+    catch (postError) {
+        core_debug(`Cannot-evaluate brief could not be posted: ${postError}`);
+    }
 }
 async function run() {
     try {
@@ -56943,6 +57974,9 @@ async function run() {
         setOutput("gate-decision", evaluation.gateDecision);
         setOutput("release-ready", evaluation.releaseReady !== undefined ? String(evaluation.releaseReady) : "");
         setOutput("evaluation-json", JSON.stringify(evaluation));
+        if (evaluation.releaseBrief) {
+            setOutput("release-brief-json", JSON.stringify(evaluation.releaseBrief));
+        }
         const verdict = buildGateVerdict(evaluation, {
             trustRuntime: readTrustRuntime(),
             agentId: resolveAgentProvenanceId(evaluation),
@@ -57115,12 +58149,18 @@ async function run() {
         setFailed(blockReason);
     }
     catch (error) {
+        const environment = getInput("environment") || undefined;
+        const failMode = resolveEffectiveFailMode(environment);
         if (error instanceof PolicyOverrideError) {
+            // An unusable override is still a run that could not evaluate — ADR-011 §1
+            // owes the PR a brief here too, with the validation message as the reason.
+            await postCannotEvaluateBrief(error, failMode);
             setFailed(`Invalid policy override: ${error.message}`);
             return;
         }
-        const environment = getInput("environment") || undefined;
-        const failMode = resolveFailMode(getInput("fail-mode"), environment);
+        // ADR-011 §1: "silence is a bug." A run that could not evaluate still owes the
+        // PR a brief. Best-effort — a posting failure must never mask the real error.
+        await postCannotEvaluateBrief(error, failMode);
         if (failMode === "open") {
             core_warning(`Trailhead evaluation failed — proceeding with deployment (fail-open). Error: ${error}`);
         }

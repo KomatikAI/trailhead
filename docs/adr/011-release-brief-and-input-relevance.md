@@ -1,6 +1,6 @@
 # ADR-011: Release Brief and Input Relevance Policy — closing the communication gap
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-09
 **Author:** Fable (Komatik keystone), from the 2026-08-09 Komatik promotion-train post-mortem
 **Builds on:** ADR-006 (Release Ready composite gate), ADR-008 (gate modes), ADR-009 (CI check classification)
@@ -27,7 +27,7 @@ was reviewed and accepted. The gate reasoned correctly and communicated a number
 **Case B — the input model has no concept of "failed but irrelevant."** On the staging→master PR (komatik
 #4034), GitHub's required-check bag blocked the merge on a red `Deploy Edge Functions` check. That red was a
 **staging-push infra failure** — `supabase link` on `SUPABASE_STAGING_PROJECT_REF`, a secret that
-*deliberately does not exist* (no staging Supabase project is provisioned; the sibling migrations workflow
+_deliberately does not exist_ (no staging Supabase project is provisioned; the sibling migrations workflow
 has carried a skip-guard comment saying exactly this since 2026-07-26). Under ADR-009's enum this is simply
 `fail`. There is no vocabulary for what it actually was: **a failed check that is irrelevant to THIS
 promotion decision, for a stateable reason**. Diagnosis and repair took a human an hour of log-spelunking
@@ -65,7 +65,7 @@ Contract rules:
 - **Every input gets a disposition with a reason** (see §2) — including the ones that did NOT count.
   Case B's line would have read:
   `Deploy Edge Functions: fail → irrelevant (staging target unconfigured by design; see
-  supabase-migrations.yml guard, 2026-07-26)`.
+supabase-migrations.yml guard, 2026-07-26)`.
 - **Silence is a bug.** If the evaluation cannot run (store unreachable, token missing), the brief says so
   and applies the availability stance (§4). A gate that fails to evaluate must still communicate.
 
@@ -74,12 +74,12 @@ Contract rules:
 ADR-009's status enum (`pass/fail/skip/pending/stale/missing`) describes what a check DID. This ADR adds a
 per-target-branch **disposition** describing what it MEANS for this decision:
 
-| Disposition | Meaning |
-| --- | --- |
-| `blocking` | red ⇒ release not ready |
-| `advisory` | feeds risk/warn, never blocks alone |
+| Disposition          | Meaning                                                                      |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `blocking`           | red ⇒ release not ready                                                      |
+| `advisory`           | feeds risk/warn, never blocks alone                                          |
 | `irrelevant(reason)` | classified out for THIS branch pair, reason mandatory and shown in the brief |
-| `missing_blocking` | ADR-009 `missing` on a check policy requires |
+| `missing_blocking`   | ADR-009 `missing` on a check policy requires                                 |
 
 Policy lives in repo config (the ADR-007 config schema is the natural home) as a
 `branch-pair → check-pattern → disposition` table. Seed table for komatik (the dogfood consumer):
@@ -94,7 +94,7 @@ evaluation store `{by, at, scope, rationale}` and rendered in the brief. **Scope
 overrides the risk verdict and policy findings, never mechanical `blocking` inputs (red tests stay red).
 Getting past a red mechanical input remains a GitHub admin-merge — restored to what it should be: visible
 and extraordinary, not the routine override path. (Komatik's `BRANCHING.md` solo-maintainer section
-currently *instructs* configuring the bypass list for routine promotions — the exact pattern this replaces.)
+currently _instructs_ configuring the bypass list for routine promotions — the exact pattern this replaces.)
 
 ### 4. Availability stance (per branch pair, written down)
 
@@ -109,6 +109,16 @@ Risk 90 on a train that was keystone-verified, corpus-validated, and 100%-review
 needs a promotion-shaped calibration analog to the branch-pair exemption the scope rule already applies
 (`pr_scope: branch pair dev -> staging matches an exempt rule — scope limits skipped`). Stage 1 below
 measures this before any consumer flips enforcement.
+
+## Implementation
+
+Stage 0 landed in `src/release-brief.ts` (brief data model, markdown renderer, delta
+formatter) and `src/input-relevance.ts` (disposition engine), wired through
+`src/gate.ts` (`applyInputRelevance`, `enumerateDetectorFindings`, `buildReleaseBrief`,
+`buildCannotEvaluateBrief`), `src/release-ready.ts` (`checkCountsTowardBlocking`),
+`src/override.ts` (`risk_only` scope), and `src/main.ts` (availability stance in the
+top-level catch, `release-brief-json` output). Config surface — `contexts[].input_relevance`
+and `contexts[].availability` — is documented in [docs/release-brief.md](../release-brief.md).
 
 ## Rollout
 
