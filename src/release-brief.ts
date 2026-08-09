@@ -123,7 +123,9 @@ const EVIDENCE_CAP_CHARS = 300;
 const EMPTY_CELL = "—";
 
 function escapePipes(value: string): string {
-  return value.replace(/\|/g, "\\|");
+  // Backslashes first, or a pre-existing "\" would neutralize the pipe escape
+  // and break the cell structure (CodeQL js/incomplete-sanitization).
+  return value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 }
 
 /** Table cells must be single-line and must not break the column structure. */

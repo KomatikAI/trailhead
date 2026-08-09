@@ -369,6 +369,28 @@ describe("renderReleaseBrief — escaping", () => {
     expect(row?.replace(/\\\|/g, "")?.split("|").length).toBe(6);
   });
 
+  it("escapes backslashes so a trailing \\ cannot neutralize a pipe escape", () => {
+    const output = renderReleaseBrief(
+      brief({
+        inputs: [
+          input({
+            checkName: "build \\| windows",
+            status: "fail",
+            disposition: "blocking",
+            reason: "path C:\\ci\\logs|latest",
+          }),
+        ],
+      }),
+    );
+
+    const row = output.split("\n").find((line) => line.startsWith("| build"));
+    expect(row).toContain("build \\\\\\| windows");
+    expect(row).toContain("C:\\\\ci\\\\logs\\|latest");
+    // With backslashes escaped, no raw "\|" can survive to swallow a delimiter:
+    // 4 cells => 5 unescaped delimiters.
+    expect(row?.replace(/\\./g, "")?.split("|").length).toBe(6);
+  });
+
   it("escapes pipes in finding titles and evidence", () => {
     const output = renderReleaseBrief(
       brief({
