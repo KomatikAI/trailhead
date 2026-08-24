@@ -12,7 +12,13 @@ vi.mock("../evaluation-history.js");
 
 const githubMockState = vi.hoisted(() => ({
   pullRequest: {} as Record<string, unknown>,
-  reviews: [] as Array<{ state: string; user?: { login?: string } }>,
+  reviews: [] as Array<{
+    id: number;
+    state: string;
+    submitted_at?: string | null;
+    commit_id?: string | null;
+    user?: { login?: string };
+  }>,
   payload: {} as Record<string, unknown>,
   checkRuns: [] as Array<{
     name: string;
@@ -465,6 +471,377 @@ policies:
     expect(result.gateDecision).toBe("allow");
     expect(result.policyFindings).toContain(
       "Agent PR risk threshold would tighten from 99 to 5 (warn mode; not applied).",
+    );
+  });
+
+  it("retains an exempt promotion context threshold while still requiring approval", async () => {
+    githubMockState.pullRequest = {
+      user: { login: "komatik-bot[bot]" },
+      base: { ref: "master" },
+      head: { ref: "promotion/train-28", sha: "pull-request-head-sha" },
+    };
+    githubMockState.payload = { pull_request: githubMockState.pullRequest };
+    githubMockState.filePages = {
+      1: [
+        {
+          filename: "supabase/migrations/20260824000000_release.sql",
+          additions: 10,
+          deletions: 0,
+          changes: 10,
+          status: "added",
+        },
+      ],
+    };
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+contexts:
+  - name: master-promotion
+    match:
+      head_branch: ["promotion/train-*"]
+      base_branch: ["master"]
+    thresholds:
+      risk: 95
+policies:
+  agent_prs:
+    enabled: true
+    mode: block
+    risk_threshold: 50
+    risk_threshold_exempt_contexts: ["master-promotion"]
+    required_approvals: 1
+`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", riskThreshold: 70, securityGate: false }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.releaseBrief?.riskThreshold).toBe(95);
+    expect(result.gateDecision).toBe("block");
+    expect(result.policyFindings).toContain(
+      "Sensitive-path agent PR requires 1 current-head approval(s) from reviewer(s) other than the PR author; found 0.",
+    );
+    expect(result.policyFindings).not.toContain(
+      "Agent PR risk threshold tightened from 95 to 50.",
+    );
+    expect(result.releaseBrief?.findings).toContainEqual(
+      expect.objectContaining({
+        id: "agent_policy_notice/1",
+        severity: "advisory",
+        title:
+          'Agent PR risk threshold exemption matched context "master-promotion"; retaining context threshold 95.',
+      }),
+    );
+  });
+
+  it("uses explicit backfill PR metadata instead of the triggering payload", async () => {
+    githubMockState.pullRequest = {
+      user: { login: "train-opener[bot]" },
+      base: { ref: "master" },
+      head: { ref: "promotion/train-28", sha: "pull-request-head-sha" },
+    };
+    githubMockState.payload = {
+      pull_request: {
+        user: { login: "workflow-operator" },
+        base: { ref: "dev" },
+        head: { ref: "feature/unrelated", sha: "workflow-dispatch-sha" },
+        labels: [{ name: "unrelated" }],
+      },
+    };
+    githubMockState.filePages = {
+      1: [
+        {
+          filename: "supabase/migrations/20260824000000_release.sql",
+          additions: 10,
+          deletions: 0,
+          changes: 10,
+          status: "added",
+        },
+      ],
+    };
+    githubMockState.reviews = [
+      {
+        id: 1,
+        state: "APPROVED",
+        submitted_at: "2026-08-24T10:00:00Z",
+        commit_id: "pull-request-head-sha",
+        user: { login: "train-opener[bot]" },
+      },
+    ];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+contexts:
+  - name: master-promotion
+    match:
+      head_branch: ["promotion/train-*"]
+      base_branch: ["master"]
+      labels: ["release-train"]
+    thresholds:
+      risk: 95
+policies:
+  agent_prs:
+    enabled: true
+    mode: block
+    risk_threshold: 50
+    risk_threshold_exempt_contexts: ["master-promotion"]
+    required_approvals: 1
+  pr_scope:
+    enabled: true
+    mode: block
+    max_files: 1
+    max_changes: 1
+    exempt:
+      - head_branch: ["promotion/train-*"]
+        base_branch: ["master"]
+`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", riskThreshold: 70, securityGate: false }),
+          "pull-request-head-sha",
+          42,
+          {
+            baseRef: "master",
+            headRef: "promotion/train-28",
+            labels: ["release-train"],
+            authorLogin: "train-opener[bot]",
+          },
+        ),
+    );
+
+    expect(result.releaseBrief?.riskThreshold).toBe(95);
+    expect(result.gateDecision).toBe("block");
+    expect(result.policyFindings).not.toContainEqual(
+      expect.stringContaining("PR scope exceeds"),
+    );
+    expect(result.policyFindings).toContain(
+      "Sensitive-path agent PR requires 1 current-head approval(s) from reviewer(s) other than the PR author; found 0.",
+    );
+  });
+
+  it("still tightens the agent threshold when the matched context is not exempt", async () => {
+    githubMockState.pullRequest = {
+      user: { login: "komatik-bot[bot]" },
+      base: { ref: "master" },
+      head: { ref: "promotion/train-28", sha: "pull-request-head-sha" },
+    };
+    githubMockState.payload = { pull_request: githubMockState.pullRequest };
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+contexts:
+  - name: master-promotion
+    match:
+      head_branch: ["promotion/train-*"]
+      base_branch: ["master"]
+    thresholds:
+      risk: 95
+policies:
+  agent_prs:
+    enabled: true
+    mode: block
+    risk_threshold: 50
+    risk_threshold_exempt_contexts: ["staging-promotion"]
+    required_approvals: 0
+`,
+      () =>
+        evaluateGate(
+          makeConfig({ githubToken: "ghp_test", securityGate: false }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.releaseBrief?.riskThreshold).toBe(50);
+    expect(result.policyFindings).toContain(
+      "Agent PR risk threshold tightened from 95 to 50.",
+    );
+  });
+
+  it("counts only each reviewer's latest decisive current-head approval", async () => {
+    githubMockState.pullRequest = {
+      user: { login: "komatik-bot[bot]" },
+      base: { ref: "master" },
+      head: { ref: "promotion/train-28", sha: "pull-request-head-sha" },
+    };
+    githubMockState.payload = { pull_request: githubMockState.pullRequest };
+    githubMockState.filePages = {
+      1: [
+        {
+          filename: "supabase/migrations/20260824000000_release.sql",
+          additions: 10,
+          deletions: 0,
+          changes: 10,
+          status: "added",
+        },
+      ],
+    };
+    githubMockState.reviews = [
+      {
+        id: 1,
+        state: "APPROVED",
+        submitted_at: "2026-08-24T10:00:00Z",
+        commit_id: "pull-request-head-sha",
+        user: { login: "cross-model-reviewer" },
+      },
+      {
+        id: 2,
+        state: "CHANGES_REQUESTED",
+        submitted_at: "2026-08-24T10:05:00Z",
+        commit_id: "pull-request-head-sha",
+        user: { login: "cross-model-reviewer" },
+      },
+    ];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+policies:
+  agent_prs:
+    enabled: true
+    mode: block
+    required_approvals: 1
+`,
+      () =>
+        evaluateGate(
+          makeConfig({
+            githubToken: "ghp_test",
+            riskThreshold: 100,
+            securityGate: false,
+          }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.policyFindings).toContain(
+      "Sensitive-path agent PR requires 1 current-head approval(s) from reviewer(s) other than the PR author; found 0.",
+    );
+  });
+
+  it("rejects dismissed, stale-head, and author approvals", async () => {
+    githubMockState.pullRequest = {
+      user: { login: "komatik-bot[bot]" },
+      base: { ref: "master" },
+      head: { ref: "promotion/train-28", sha: "pull-request-head-sha" },
+    };
+    githubMockState.payload = { pull_request: githubMockState.pullRequest };
+    githubMockState.filePages = {
+      1: [
+        {
+          filename: "supabase/migrations/20260824000000_release.sql",
+          additions: 10,
+          deletions: 0,
+          changes: 10,
+          status: "added",
+        },
+      ],
+    };
+    githubMockState.reviews = [
+      {
+        id: 1,
+        state: "DISMISSED",
+        submitted_at: "2026-08-24T10:00:00Z",
+        commit_id: "pull-request-head-sha",
+        user: { login: "dismissed-reviewer" },
+      },
+      {
+        id: 2,
+        state: "APPROVED",
+        submitted_at: "2026-08-24T10:01:00Z",
+        commit_id: "old-head-sha",
+        user: { login: "stale-reviewer" },
+      },
+      {
+        id: 3,
+        state: "APPROVED",
+        submitted_at: "2026-08-24T10:02:00Z",
+        commit_id: "pull-request-head-sha",
+        user: { login: "Komatik-Bot[bot]" },
+      },
+    ];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+policies:
+  agent_prs:
+    enabled: true
+    mode: block
+    required_approvals: 1
+`,
+      () =>
+        evaluateGate(
+          makeConfig({
+            githubToken: "ghp_test",
+            riskThreshold: 100,
+            securityGate: false,
+          }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.policyFindings).toContain(
+      "Sensitive-path agent PR requires 1 current-head approval(s) from reviewer(s) other than the PR author; found 0.",
+    );
+  });
+
+  it("accepts a distinct reviewer's approval on the current head", async () => {
+    githubMockState.pullRequest = {
+      user: { login: "komatik-bot[bot]" },
+      base: { ref: "master" },
+      head: { ref: "promotion/train-28", sha: "pull-request-head-sha" },
+    };
+    githubMockState.payload = { pull_request: githubMockState.pullRequest };
+    githubMockState.filePages = {
+      1: [
+        {
+          filename: "supabase/migrations/20260824000000_release.sql",
+          additions: 10,
+          deletions: 0,
+          changes: 10,
+          status: "added",
+        },
+      ],
+    };
+    githubMockState.reviews = [
+      {
+        id: 1,
+        state: "APPROVED",
+        submitted_at: "2026-08-24T10:00:00Z",
+        commit_id: "pull-request-head-sha",
+        user: { login: "Cross-Model-Reviewer" },
+      },
+    ];
+
+    const result = await withLocalTrailheadConfig(
+      `schema_version: 2
+policies:
+  agent_prs:
+    enabled: true
+    mode: block
+    required_approvals: 1
+    require_code_owner_approval: true
+    code_owner_reviewers: ["cross-model-reviewer"]
+`,
+      () =>
+        evaluateGate(
+          makeConfig({
+            githubToken: "ghp_test",
+            riskThreshold: 100,
+            securityGate: false,
+          }),
+          "pull-request-head-sha",
+          42,
+        ),
+    );
+
+    expect(result.policyFindings ?? []).not.toContainEqual(
+      expect.stringContaining("current-head approval"),
+    );
+    expect(result.policyFindings ?? []).not.toContainEqual(
+      expect.stringContaining("code-owner approval"),
     );
   });
 

@@ -43,6 +43,9 @@ cp presets/solo.yml .trailhead.yml
 name: Trailhead
 on:
   pull_request:
+  # Required when agent PR approval or code-owner approval policy is enabled.
+  pull_request_review:
+    types: [submitted, dismissed]
 
 permissions:
   contents: read
@@ -416,6 +419,11 @@ policies:
     # "block" preserves legacy enforcement; "warn" reports would-block findings only.
     mode: block
     risk_threshold: 60
+    # Exact context names where the context threshold remains authoritative.
+    # Approval and sensitive-path requirements still apply.
+    risk_threshold_exempt_contexts: ["master-promotion"]
+    # Counts each reviewer's latest decisive state on the current PR head;
+    # approvals from the PR author, stale heads, or dismissed reviews do not count.
     required_approvals: 2
     require_code_owner_approval: true
     code_owner_reviewers: ["platform-owner"]
@@ -446,6 +454,12 @@ policies:
     max_changes: 2000
     mode: warn
     require_plan_for_agent_prs: true
+    # Branch pairs use anchored, case-insensitive globs. A single * does not
+    # cross '/', so this matches promotion/train-28 but not nested train paths.
+    # Specify both sides: an empty head_branch or base_branch list is a wildcard.
+    exempt:
+      - head_branch: ["promotion/train-*"]
+        base_branch: ["master"]
   duplicate_logic:
     enabled: true
     mode: warn
@@ -537,6 +551,8 @@ name: Trailhead
 on:
   pull_request:
     branches: [main, staging]
+  pull_request_review:
+    types: [submitted, dismissed]
 
 permissions:
   contents: read
@@ -550,6 +566,8 @@ concurrency:
 
 jobs:
   gate:
+    # pull_request_review does not inherit pull_request's branches filter.
+    if: github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'staging'
     runs-on: ubuntu-latest
     steps:
       - uses: KomatikAI/trailhead@v4

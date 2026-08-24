@@ -935,7 +935,6 @@ export async function detectPrScopeRisk(params: {
     core.info(
       `pr_scope: branch pair ${params.headRef ?? "?"} -> ${params.baseRef ?? "?"} matches an exempt rule — scope limits skipped`,
     );
-    return { factor: null, findings: [], forceBlock: false };
   }
 
   const fileCount = params.files.length;
@@ -943,11 +942,11 @@ export async function detectPrScopeRisk(params: {
   const findings: string[] = [];
   let score = 0;
 
-  if (fileCount > cfg.max_files) {
+  if (!exempt && fileCount > cfg.max_files) {
     findings.push(`PR scope exceeds max_files (${fileCount} > ${cfg.max_files}).`);
     score += 45;
   }
-  if (totalChanges > cfg.max_changes) {
+  if (!exempt && totalChanges > cfg.max_changes) {
     findings.push(`PR scope exceeds max_changes (${totalChanges} > ${cfg.max_changes}).`);
     score += 45;
   }
@@ -1108,6 +1107,7 @@ interface AgentPolicyEnforcementResult {
   adjustedRiskThreshold?: number;
   forceBlock: boolean;
   findings: string[];
+  notices: string[];
 }
 
 async function enforceAgentPrPolicies(params: {
@@ -1117,9 +1117,13 @@ async function enforceAgentPrPolicies(params: {
   repoConfig: RepoConfig | null;
   provenance: PrProvenance | null;
   currentRiskThreshold: number;
+  matchedContextName?: string;
+  headSha?: string;
+  prAuthorLogin?: string;
 }): Promise<AgentPolicyEnforcementResult | null> {
   const policy = params.repoConfig?.policies?.agent_prs;
   if (!policy?.enabled || !params.prNumber || !params.token) return null;
+  const prNumber = params.prNumber;
 
   const provenanceType = params.provenance?.type ?? "unknown";
   const isUnknownStrict =
@@ -1128,6 +1132,7 @@ async function enforceAgentPrPolicies(params: {
   if (!shouldTreatAsAgent) return null;
 
   const findings: string[] = [];
+  const notices: string[] = [];
   let adjustedRiskThreshold: number | undefined;
   let forceBlock = false;
   const mode = policy.mode ?? "block";
@@ -1143,7 +1148,16 @@ async function enforceAgentPrPolicies(params: {
     policy.risk_threshold !== undefined &&
     policy.risk_threshold < params.currentRiskThreshold
   ) {
-    if (enforce) {
+    const exemptContext = params.matchedContextName
+      ? policy.risk_threshold_exempt_contexts.includes(params.matchedContextName)
+      : false;
+    if (exemptContext) {
+      const notice =
+        `Agent PR risk threshold exemption matched context "${params.matchedContextName}"; ` +
+        `retaining context threshold ${params.currentRiskThreshold}.`;
+      notices.push(notice);
+      core.info(notice);
+    } else if (enforce) {
       adjustedRiskThreshold = policy.risk_threshold;
       findings.push(
         `Agent PR risk threshold tightened from ${params.currentRiskThreshold} to ${policy.risk_threshold}.`,
@@ -1168,32 +1182,64 @@ async function enforceAgentPrPolicies(params: {
     ) || params.files.some((f) => isSensitiveFile(f.filename, riskConfig));
 
   if (!touchesSensitivePaths) {
-    return { adjustedRiskThreshold, forceBlock, findings };
+    return { adjustedRiskThreshold, forceBlock, findings, notices };
   }
 
   try {
     const octokit = github.getOctokit(params.token);
     const { owner, repo } = github.context.repo;
-    const { data: reviews } = await octokit.rest.pulls.listReviews({
-      owner,
-      repo,
-      pull_number: params.prNumber,
-      per_page: 100,
+    const reviewResult = await collectGitHubPages(async (page, perPage) => {
+      const { data } = await octokit.rest.pulls.listReviews({
+        owner,
+        repo,
+        pull_number: prNumber,
+        page,
+        per_page: perPage,
+      });
+      return data;
     });
+    if (!reviewResult.complete) {
+      core.warning(
+        "Agent PR approval check skipped because GitHub returned an incomplete review history.",
+      );
+      return { adjustedRiskThreshold, forceBlock, findings, notices };
+    }
 
+    const decisiveStates = new Set(["APPROVED", "CHANGES_REQUESTED", "DISMISSED"]);
+    const orderedReviews = [...reviewResult.items].sort((left, right) => {
+      const leftTime = Date.parse(left.submitted_at ?? "");
+      const rightTime = Date.parse(right.submitted_at ?? "");
+      const normalizedLeftTime = Number.isNaN(leftTime) ? 0 : leftTime;
+      const normalizedRightTime = Number.isNaN(rightTime) ? 0 : rightTime;
+      return normalizedLeftTime - normalizedRightTime || left.id - right.id;
+    });
+    const latestDecisionByReviewer = new Map<string, (typeof orderedReviews)[number]>();
+    for (const review of orderedReviews) {
+      const login = review.user?.login?.trim().toLowerCase();
+      const state = review.state.toUpperCase();
+      if (!login || !decisiveStates.has(state)) continue;
+      latestDecisionByReviewer.set(login, review);
+    }
+
+    const expectedHeadSha = params.headSha?.toLowerCase();
+    const prAuthorLogin = params.prAuthorLogin?.trim().toLowerCase();
     const approvedBy = new Set(
-      reviews
-        .filter((r) => r.state === "APPROVED")
-        .map((r) => r.user?.login)
-        .filter((u): u is string => Boolean(u)),
+      [...latestDecisionByReviewer.entries()]
+        .filter(([login, review]) => {
+          if (login === prAuthorLogin) return false;
+          if (review.state.toUpperCase() !== "APPROVED") return false;
+          if (!expectedHeadSha) return true;
+          return review.commit_id?.toLowerCase() === expectedHeadSha;
+        })
+        .map(([login]) => login),
     );
 
     if (approvedBy.size < policy.required_approvals) {
       if (enforce) forceBlock = true;
       findings.push(
         enforce
-          ? `Sensitive-path agent PR requires ${policy.required_approvals} approval(s); found ${approvedBy.size}.`
-          : `Sensitive-path agent PR would require ${policy.required_approvals} approval(s); found ${approvedBy.size} (warn mode; not blocking).`,
+          ? `Sensitive-path agent PR requires ${policy.required_approvals} current-head approval(s) from reviewer(s) other than the PR author; found ${approvedBy.size}.`
+          : `Sensitive-path agent PR would require ${policy.required_approvals} current-head approval(s) from reviewer(s) other than the PR author; found ${approvedBy.size} (warn mode; not blocking).`,
       );
     }
 
@@ -1207,7 +1253,7 @@ async function enforceAgentPrPolicies(params: {
         );
       } else {
         const hasCodeOwnerApproval = policy.code_owner_reviewers.some((r) =>
-          approvedBy.has(r),
+          approvedBy.has(r.trim().toLowerCase()),
         );
         if (!hasCodeOwnerApproval) {
           if (enforce) forceBlock = true;
@@ -1224,7 +1270,7 @@ async function enforceAgentPrPolicies(params: {
     // Fail-open remains the default: do not force block on API errors.
   }
 
-  return { adjustedRiskThreshold, forceBlock, findings };
+  return { adjustedRiskThreshold, forceBlock, findings, notices };
 }
 
 // ---------------------------------------------------------------------------
@@ -1513,7 +1559,14 @@ async function callGateApi(
 // PR context for v4 context matching
 // ---------------------------------------------------------------------------
 
-function getPrMatchContext(): PrMatchContext {
+export interface EvaluationPrMetadata {
+  baseRef: string;
+  headRef: string;
+  labels: string[];
+  authorLogin?: string;
+}
+
+function getPrMatchContext(metadata?: EvaluationPrMetadata): PrMatchContext {
   const pr = github.context.payload?.pull_request as
     | {
         base?: { ref?: string };
@@ -1523,9 +1576,18 @@ function getPrMatchContext(): PrMatchContext {
     | undefined;
 
   return {
-    baseRef: pr?.base?.ref ?? github.context.ref?.replace("refs/heads/", "") ?? "main",
-    headRef: pr?.head?.ref ?? github.context.ref?.replace("refs/heads/", "") ?? "main",
-    labels: (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
+    baseRef:
+      metadata?.baseRef ??
+      pr?.base?.ref ??
+      github.context.ref?.replace("refs/heads/", "") ??
+      "main",
+    headRef:
+      metadata?.headRef ??
+      pr?.head?.ref ??
+      github.context.ref?.replace("refs/heads/", "") ??
+      "main",
+    labels:
+      metadata?.labels ?? (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
   };
 }
 
@@ -1963,16 +2025,16 @@ export async function evaluateGate(
   config: TrailheadConfig,
   commitSha: string,
   prNumber?: number,
+  prMetadata?: EvaluationPrMetadata,
 ): Promise<GateEvaluation> {
   const start = Date.now();
   // Nothing is known about this run's availability stance until a context matches.
   setResolvedAvailabilityStance(null);
+  const prMatchCtx = getPrMatchContext(prMetadata);
 
   const isMergeQueue =
     github.context.eventName === "merge_group" ||
-    (
-      github.context.payload?.pull_request?.labels as Array<{ name: string }> | undefined
-    )?.some((l) => l.name === "queue" || l.name.includes("merge-queue")) === true;
+    prMatchCtx.labels.some((label) => label === "queue" || label.includes("merge-queue"));
 
   if (isMergeQueue) {
     core.info("Merge queue detected — adjusting evaluation (skipping author_history)");
@@ -2029,7 +2091,6 @@ export async function evaluateGate(
     repoConfig?.schema_version ?? 1,
     config.gateMode,
   );
-  const prMatchCtx = getPrMatchContext();
   const matchedContext =
     repoConfig?.contexts && repoConfig.contexts.length > 0
       ? matchContext(repoConfig.contexts, prMatchCtx)
@@ -2253,6 +2314,15 @@ export async function evaluateGate(
     repoConfig,
     provenance,
     currentRiskThreshold: adjustedRiskThreshold,
+    matchedContextName: matchedContext?.matched.name,
+    headSha: commitSha,
+    prAuthorLogin: prMetadata
+      ? prMetadata.authorLogin
+      : (
+          github.context.payload?.pull_request as
+            | { user?: { login?: string } }
+            | undefined
+        )?.user?.login,
   });
   if (agentPolicy?.adjustedRiskThreshold !== undefined) {
     adjustedRiskThreshold = agentPolicy.adjustedRiskThreshold;
@@ -2303,12 +2373,13 @@ export async function evaluateGate(
       declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
       catalogKnownEntities,
       repoPaths,
-      // promotion_coherence (ADR-010): branch topology from the Actions env.
+      // promotion_coherence (ADR-010): use the fetched PR topology for
+      // evaluate-pr backfills, with the event-derived context as the normal path.
       promotion:
-        process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
+        prMetadata || process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
           ? {
-              baseBranch: process.env.GITHUB_BASE_REF,
-              headBranch: process.env.GITHUB_HEAD_REF,
+              baseBranch: prMatchCtx.baseRef,
+              headBranch: prMatchCtx.headRef,
             }
           : undefined,
       // close_on_ship_link: the PR body carries the `Closes task: <id>` convention.
@@ -2455,6 +2526,11 @@ export async function evaluateGate(
       "agent_policy",
       agentPolicy?.findings ?? [],
       agentPolicy?.forceBlock === true ? "blocking" : "warn",
+    ),
+    ...enumerateDetectorFindings(
+      "agent_policy_notice",
+      agentPolicy?.notices ?? [],
+      "advisory",
     ),
     // A single escalation verdict, so its id is fixed rather than enumerated.
     ...(sensitiveEscalation.reason

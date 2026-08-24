@@ -108,6 +108,7 @@ describe("run (main entrypoint)", () => {
       expect.any(Object),
       "pr-head-sha-123",
       42,
+      undefined,
     );
     expect(ciManifestSpy).toHaveBeenCalledWith(
       expect.objectContaining({ commitSha: "pr-head-sha-123" }),
@@ -142,6 +143,69 @@ describe("run (main entrypoint)", () => {
       { maxRetries: 3 },
     );
     expect(core.setFailed).not.toHaveBeenCalled();
+  });
+});
+
+describe("run — evaluate-pr target metadata", () => {
+  it("passes the fetched PR branch, labels, and author into gate evaluation", async () => {
+    vi.resetModules();
+
+    const freshCore = await import("@actions/core");
+    const freshGithub = await import("@actions/github");
+    const freshGate = await import("../gate.js");
+    const freshHealers = await import("../healers/index.js");
+
+    vi.mocked(freshCore.getInput).mockImplementation(
+      (name: string) =>
+        ({
+          "github-token": "ghp_test",
+          "evaluate-pr": "99",
+          "security-gate": "false",
+          "disable-cloud-upsell": "true",
+        })[name] ?? "",
+    );
+    (
+      freshGithub.context as {
+        payload: Record<string, unknown>;
+        sha: string;
+      }
+    ).payload = {};
+    freshGithub.context.sha = "workflow-dispatch-sha";
+
+    const getPr = vi.fn().mockResolvedValue({
+      data: {
+        state: "open",
+        base: { ref: "master" },
+        head: { ref: "promotion/train-28", sha: "target-head-sha" },
+        labels: [{ name: "release-train" }, { name: "urgent" }],
+        user: { login: "train-opener[bot]" },
+      },
+    });
+    vi.mocked(freshGithub.getOctokit).mockReturnValue({
+      rest: { pulls: { get: getPr } },
+    } as never);
+
+    vi.spyOn(freshHealers, "registerHealer").mockImplementation(() => undefined);
+    const evaluateSpy = vi
+      .spyOn(freshGate, "evaluateGate")
+      .mockResolvedValue(makeEvaluation({ commitSha: "target-head-sha" }));
+    vi.spyOn(freshGate, "formatGateReport").mockReturnValue("## Report");
+
+    await import("../main.js");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getPr).toHaveBeenCalledWith({
+      owner: "test-owner",
+      repo: "test-repo",
+      pull_number: 99,
+    });
+    expect(evaluateSpy).toHaveBeenCalledWith(expect.any(Object), "target-head-sha", 99, {
+      baseRef: "master",
+      headRef: "promotion/train-28",
+      labels: ["release-train", "urgent"],
+      authorLogin: "train-opener[bot]",
+    });
+    expect(freshCore.setFailed).not.toHaveBeenCalled();
   });
 });
 

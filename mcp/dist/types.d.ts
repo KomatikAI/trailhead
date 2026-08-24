@@ -3125,6 +3125,7 @@ export declare const RepoConfig: z.ZodObject<{
             enabled: z.ZodDefault<z.ZodBoolean>;
             mode: z.ZodDefault<z.ZodEnum<["warn", "block"]>>;
             risk_threshold: z.ZodOptional<z.ZodNumber>;
+            risk_threshold_exempt_contexts: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
             required_approvals: z.ZodDefault<z.ZodNumber>;
             require_code_owner_approval: z.ZodDefault<z.ZodBoolean>;
             code_owner_reviewers: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
@@ -3133,6 +3134,7 @@ export declare const RepoConfig: z.ZodObject<{
         }, "strip", z.ZodTypeAny, {
             enabled: boolean;
             mode: "warn" | "block";
+            risk_threshold_exempt_contexts: string[];
             required_approvals: number;
             require_code_owner_approval: boolean;
             code_owner_reviewers: string[];
@@ -3143,6 +3145,7 @@ export declare const RepoConfig: z.ZodObject<{
             enabled?: boolean | undefined;
             mode?: "warn" | "block" | undefined;
             risk_threshold?: number | undefined;
+            risk_threshold_exempt_contexts?: string[] | undefined;
             required_approvals?: number | undefined;
             require_code_owner_approval?: boolean | undefined;
             code_owner_reviewers?: string[] | undefined;
@@ -3352,6 +3355,7 @@ export declare const RepoConfig: z.ZodObject<{
         agent_prs: {
             enabled: boolean;
             mode: "warn" | "block";
+            risk_threshold_exempt_contexts: string[];
             required_approvals: number;
             require_code_owner_approval: boolean;
             code_owner_reviewers: string[];
@@ -3420,6 +3424,7 @@ export declare const RepoConfig: z.ZodObject<{
             enabled?: boolean | undefined;
             mode?: "warn" | "block" | undefined;
             risk_threshold?: number | undefined;
+            risk_threshold_exempt_contexts?: string[] | undefined;
             required_approvals?: number | undefined;
             require_code_owner_approval?: boolean | undefined;
             code_owner_reviewers?: string[] | undefined;
@@ -3579,6 +3584,7 @@ export declare const RepoConfig: z.ZodObject<{
         agent_prs: {
             enabled: boolean;
             mode: "warn" | "block";
+            risk_threshold_exempt_contexts: string[];
             required_approvals: number;
             require_code_owner_approval: boolean;
             code_owner_reviewers: string[];
@@ -3868,6 +3874,7 @@ export declare const RepoConfig: z.ZodObject<{
             enabled?: boolean | undefined;
             mode?: "warn" | "block" | undefined;
             risk_threshold?: number | undefined;
+            risk_threshold_exempt_contexts?: string[] | undefined;
             required_approvals?: number | undefined;
             require_code_owner_approval?: boolean | undefined;
             code_owner_reviewers?: string[] | undefined;

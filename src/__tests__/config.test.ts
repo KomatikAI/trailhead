@@ -229,6 +229,8 @@ policies:
     enabled: true
     mode: warn
     risk_threshold: 55
+    risk_threshold_exempt_contexts:
+      - "master-promotion"
     required_approvals: 2
     require_code_owner_approval: true
     code_owner_reviewers:
@@ -242,10 +244,41 @@ policies:
     expect(config!.policies.agent_prs.enabled).toBe(true);
     expect(config!.policies.agent_prs.mode).toBe("warn");
     expect(config!.policies.agent_prs.risk_threshold).toBe(55);
+    expect(config!.policies.agent_prs.risk_threshold_exempt_contexts).toEqual([
+      "master-promotion",
+    ]);
     expect(config!.policies.agent_prs.required_approvals).toBe(2);
     expect(config!.policies.agent_prs.require_code_owner_approval).toBe(true);
     expect(config!.policies.agent_prs.code_owner_reviewers).toEqual(["alice", "bob"]);
     expect(config!.policies.agent_prs.sensitive_paths).toEqual(["src/auth/**"]);
+  });
+
+  it("defaults agent threshold context exemptions to an empty list", async () => {
+    mockOctokit(`schema_version: 2`);
+
+    const config = await loadRepoConfig("ghp_test");
+
+    expect(config!.policies.agent_prs.risk_threshold_exempt_contexts).toEqual([]);
+  });
+
+  it("warns when an agent threshold exemption names an unknown context", async () => {
+    mockOctokit(
+      `schema_version: 2
+contexts:
+  - name: master-promotion
+    match:
+      base_branch: [master]
+policies:
+  agent_prs:
+    risk_threshold_exempt_contexts: [master-promtoion]`,
+    );
+
+    const config = await loadRepoConfig("ghp_test");
+
+    expect(config).not.toBeNull();
+    expect(vi.mocked(core.warning)).toHaveBeenCalledWith(
+      expect.stringContaining('unknown context name "master-promtoion"'),
+    );
   });
 
   it("parses size factor metadata mode", async () => {
@@ -339,6 +372,9 @@ policies:
     max_changes: 1500
     mode: "block"
     require_plan_for_agent_prs: true
+    exempt:
+      - head_branch: ["promotion/train-*"]
+        base_branch: ["master"]
   duplicate_logic:
     enabled: true
     mode: "warn"
@@ -354,6 +390,9 @@ policies:
     expect(config!.escalation.acknowledge_sla_minutes).toBe(15);
     expect(config!.policies.pr_scope.max_files).toBe(40);
     expect(config!.policies.pr_scope.mode).toBe("block");
+    expect(config!.policies.pr_scope.exempt).toEqual([
+      { head_branch: ["promotion/train-*"], base_branch: ["master"] },
+    ]);
     expect(config!.policies.cross_repo_impact.mode).toBe("block");
   });
 

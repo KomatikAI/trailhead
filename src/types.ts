@@ -694,6 +694,10 @@ export const RepoConfig = z.object({
           enabled: z.boolean().default(false),
           mode: z.enum(["warn", "block"]).default("block"),
           risk_threshold: z.number().min(0).max(100).optional(),
+          // Exact context names where the context/environment threshold remains
+          // authoritative instead of being tightened by the global agent bar.
+          // Approval and sensitive-path requirements still apply.
+          risk_threshold_exempt_contexts: z.array(z.string().min(1)).default([]),
           required_approvals: z.number().int().min(0).default(1),
           require_code_owner_approval: z.boolean().default(false),
           code_owner_reviewers: z.array(z.string()).default([]),

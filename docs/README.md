@@ -177,6 +177,10 @@ policies:
     enabled: true
     mode: block # use warn for advisory-only measurement
     risk_threshold: 60
+    # Keep named promotion contexts on their context-specific threshold.
+    # Approval and sensitive-path requirements remain enforced.
+    risk_threshold_exempt_contexts: ["production-promotion"]
+    # Only distinct, latest-state approvals on the current PR head count.
     required_approvals: 2
     require_code_owner_approval: true
     code_owner_reviewers: ["platform-owner"]
