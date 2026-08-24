@@ -129,6 +129,23 @@ export function parseYaml(input) {
  */
 export function collectConfigWarnings(config) {
     const warnings = [];
+    const contextNameCounts = new Map();
+    for (const context of config.contexts) {
+        contextNameCounts.set(context.name, (contextNameCounts.get(context.name) ?? 0) + 1);
+    }
+    for (const [name, count] of contextNameCounts) {
+        if (count <= 1)
+            continue;
+        warnings.push(`contexts: name "${name}" is configured ${count} times. Context names must be unique for deterministic policy exemptions.`);
+    }
+    for (const name of config.policies.agent_prs.risk_threshold_exempt_contexts) {
+        const count = contextNameCounts.get(name) ?? 0;
+        if (count === 1)
+            continue;
+        warnings.push(count === 0
+            ? `policies.agent_prs.risk_threshold_exempt_contexts: unknown context name "${name}"; the exemption will not apply.`
+            : `policies.agent_prs.risk_threshold_exempt_contexts: context name "${name}" is ambiguous because it is configured ${count} times; make context names unique.`);
+    }
     for (const context of config.contexts) {
         for (const entry of context.input_relevance) {
             if (entry.disposition !== "irrelevant")

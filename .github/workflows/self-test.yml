@@ -3,6 +3,9 @@ name: "Self-Test: Trailhead on own PRs"
 on:
   pull_request:
     branches: [dev]
+  # Re-evaluate required_approvals as soon as formal review state changes.
+  pull_request_review:
+    types: [submitted, dismissed]
 
 permissions:
   contents: read
@@ -13,6 +16,7 @@ permissions:
 jobs:
   gate:
     name: "Trailhead Self-Test"
+    if: github.event.pull_request.base.ref == 'dev'
     runs-on: ubuntu-latest
 
     steps:
@@ -67,6 +71,7 @@ jobs:
 
   advisory:
     name: "Trailhead Advisory Self-Test"
+    if: github.event.pull_request.base.ref == 'dev'
     runs-on: ubuntu-latest
 
     steps:

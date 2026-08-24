@@ -159,6 +159,68 @@ describe("runDoctor", () => {
     expect(report.configuredChecks).toContain("CI Gate");
     expect(report.ok).toBe(true);
   });
+
+  it("surfaces an unknown risk-threshold exemption context offline", async () => {
+    const dir = makeTempDir();
+    fs.writeFileSync(
+      path.join(dir, ".trailhead.yml"),
+      `schema_version: 2
+contexts:
+  - name: master-promotion
+    match:
+      base_branch: [master]
+policies:
+  agent_prs:
+    risk_threshold_exempt_contexts: [master-promtoion]
+`,
+    );
+
+    const report = await runDoctor({ cwd: dir, offline: true });
+
+    expect(report.findings).toContainEqual(
+      expect.objectContaining({
+        severity: "warn",
+        code: "config_warning",
+        message: expect.stringContaining('unknown context name "master-promtoion"'),
+      }),
+    );
+  });
+
+  it("surfaces duplicate and ambiguous exemption context names offline", async () => {
+    const dir = makeTempDir();
+    fs.writeFileSync(
+      path.join(dir, ".trailhead.yml"),
+      `schema_version: 2
+contexts:
+  - name: promotion
+    match:
+      base_branch: [staging]
+  - name: promotion
+    match:
+      base_branch: [master]
+policies:
+  agent_prs:
+    risk_threshold_exempt_contexts: [promotion]
+`,
+    );
+
+    const report = await runDoctor({ cwd: dir, offline: true });
+
+    expect(report.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "config_warning",
+          message: expect.stringContaining('name "promotion" is configured 2 times'),
+        }),
+        expect.objectContaining({
+          code: "config_warning",
+          message: expect.stringContaining(
+            'context name "promotion" is ambiguous because it is configured 2 times',
+          ),
+        }),
+      ]),
+    );
+  });
 });
 
 describe("formatDoctorReport", () => {

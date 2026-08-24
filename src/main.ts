@@ -12,6 +12,7 @@ import {
   shouldBlockMerge,
   resolveCheckName,
   wrapCollapsibleSection,
+  type EvaluationPrMetadata,
 } from "./gate.js";
 import { renderReleaseBrief } from "./release-brief.js";
 import { deliverWebhooks, storeEvaluationDetailed } from "./notify.js";
@@ -280,6 +281,7 @@ async function run(): Promise<void> {
     const githubToken =
       core.getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
     let { commitSha, prNumber } = resolveEvaluationTarget(context);
+    let evaluationPrMetadata: EvaluationPrMetadata | undefined;
 
     // Resolve on-demand targets before external CI so every check provider
     // queries the same commit as the gate.
@@ -305,6 +307,12 @@ async function run(): Promise<void> {
       });
       prNumber = parsedPr;
       commitSha = targetPr.head.sha;
+      evaluationPrMetadata = {
+        baseRef: targetPr.base.ref,
+        headRef: targetPr.head.ref,
+        labels: targetPr.labels.map((label) => label.name),
+        authorLogin: targetPr.user?.login,
+      };
       core.info(
         `evaluate-pr mode: PR #${parsedPr} (${targetPr.state}) @ ${commitSha.substring(0, 7)} ` +
           `base=${targetPr.base.ref} — backfill/re-evaluation; PR comments, labels and autofix are skipped.`,
@@ -398,7 +406,12 @@ async function run(): Promise<void> {
 
     core.info(`Evaluating deployment gate for ${commitSha.substring(0, 7)}`);
 
-    const evaluation = await evaluateGate(config, commitSha, prNumber);
+    const evaluation = await evaluateGate(
+      config,
+      commitSha,
+      prNumber,
+      evaluationPrMetadata,
+    );
     if (policyOverride && !evaluation.policyOverride) {
       evaluation.policyOverride = policyOverride;
     }

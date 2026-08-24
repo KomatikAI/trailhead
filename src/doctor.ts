@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { checkNameMatches } from "./ci-core.js";
-import { parseRepoConfigContent } from "./config-core.js";
+import { collectConfigWarnings, parseRepoConfigContent } from "./config-core.js";
 import { resolveCheckName } from "./release-ready.js";
 import type { GateMode, RepoConfig } from "./types.js";
 
@@ -86,7 +86,11 @@ export function validateConfigStructure(
   config: RepoConfig,
   configPath: string,
 ): DoctorFinding[] {
-  const findings: DoctorFinding[] = [];
+  const findings: DoctorFinding[] = collectConfigWarnings(config).map((message) => ({
+    severity: "warn",
+    code: "config_warning",
+    message,
+  }));
   const fileName = path.basename(configPath);
   const gateMode = config.gate.mode;
 

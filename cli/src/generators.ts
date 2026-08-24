@@ -336,6 +336,7 @@ export interface WorkflowYmlOptions {
   gateMode: GateModeOption;
   waitForChecks: boolean;
   submissionGate?: boolean;
+  rerunOnReview?: boolean;
 }
 
 export function generateWorkflowYml(options: WorkflowYmlOptions): string {
@@ -345,6 +346,14 @@ export function generateWorkflowYml(options: WorkflowYmlOptions): string {
     "on:",
     "  pull_request:",
     "    types: [opened, synchronize, reopened]",
+  ];
+
+  if (options.rerunOnReview) {
+    lines.push("  pull_request_review:");
+    lines.push("    types: [submitted, dismissed]");
+  }
+
+  lines.push(
     "",
     "permissions:",
     "  contents: read",
@@ -361,7 +370,7 @@ export function generateWorkflowYml(options: WorkflowYmlOptions): string {
     "      - uses: KomatikAI/trailhead@v4",
     "        id: gate",
     "        with:",
-  ];
+  );
 
   if (options.gateMode !== "risk-only") {
     lines.push(`          gate-mode: "${options.gateMode}"`);
@@ -626,6 +635,7 @@ export function writeInitArtifacts(profile: InitProfile, cwd = process.cwd()): v
     gateMode: profile.gateMode,
     waitForChecks: profile.gateMode === "release-ready",
     submissionGate: profile.submissionGate,
+    rerunOnReview: profile.agentPolicies,
   });
 
   const workflowPath = path.join(workflowDir, "trailhead.yml");
