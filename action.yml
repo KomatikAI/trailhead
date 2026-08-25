@@ -112,7 +112,7 @@ inputs:
     required: false
     default: ""
   wait-for-checks:
-    description: "Poll GitHub Checks API until required checks complete or timeout. Defaults to true in release-ready mode when gate-mode input is set."
+    description: "Poll GitHub Checks API until required checks complete or timeout. Defaults to true whenever the effective gate mode is release-ready — from this input, or from .trailhead.yml (gate.mode / schema_version) when the input is left unset."
     required: false
     default: ""
   wait-timeout-minutes:

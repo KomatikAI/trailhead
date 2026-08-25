@@ -2091,6 +2091,11 @@ export async function evaluateGate(
     repoConfig?.schema_version ?? 1,
     config.gateMode,
   );
+  // config.waitForChecks is tri-state: an explicit wait-for-checks input
+  // (true/false) always wins. Left unset, default to waiting on the
+  // EFFECTIVE gate mode resolved just above — which folds in .trailhead.yml
+  // — not the raw action input alone.
+  const waitForChecksEffective = config.waitForChecks ?? gateMode === "release-ready";
   const matchedContext =
     repoConfig?.contexts && repoConfig.contexts.length > 0
       ? matchContext(repoConfig.contexts, prMatchCtx)
@@ -2736,7 +2741,7 @@ export async function evaluateGate(
       ];
       const ciManifest = config.ciManifest ?? null;
 
-      if (config.waitForChecks && ciConfig.required_checks.length > 0) {
+      if (waitForChecksEffective && ciConfig.required_checks.length > 0) {
         ciSummary = await waitForChecks({
           octokit,
           owner,

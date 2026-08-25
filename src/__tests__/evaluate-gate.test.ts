@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import * as core from "@actions/core";
 
 import { evaluateGate } from "../gate.js";
 import { GateEvaluation } from "../types.js";
@@ -1185,6 +1186,168 @@ contexts:
     expect(
       result.ci?.checks.find((check) => check.name === "Vercel")?.disposition,
     ).toEqual({ kind: "advisory", source: "default" });
+  });
+
+  // -------------------------------------------------------------------------
+  // wait-for-checks default resolution.
+  //
+  // main.ts computes config.gateMode / config.waitForChecks from the raw
+  // `gate-mode` / `wait-for-checks` action inputs alone — both are commonly
+  // left unset, with release-ready mode instead coming from .trailhead.yml's
+  // `gate.mode` (the standard way a repo declares it — RepoConfig's zod
+  // schema defaults the whole `gate` object, so schema_version alone can't
+  // signal "unset" to resolveGateMode's fallback). These tests call
+  // evaluateGate the same way main.ts does in the common case: no gateMode,
+  // no waitForChecks override in the passed-in config — proving the EFFECTIVE
+  // gate mode (resolved from .trailhead.yml) is what decides whether the gate
+  // waits, not the possibly-unset raw input main.ts saw before the repo
+  // config was even loaded.
+  // -------------------------------------------------------------------------
+
+  describe("wait-for-checks default resolution", () => {
+    beforeEach(() => {
+      // core.warning's call history is not cleared by the file-level
+      // beforeEach above (other tests in this file rely on it accumulating),
+      // so scope the reset to this block only — each test here asserts on
+      // whether *its own* run warned, not on residue from a sibling test.
+      vi.mocked(core.warning).mockClear();
+    });
+
+    const pendingContextConfig = `schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [CI Gate]
+      optional_checks: []
+      missing_required: fail`;
+
+    it("waits on a still-pending required check when release-ready comes only from .trailhead.yml (no gate-mode/wait-for-checks inputs)", async () => {
+      githubMockState.checkRuns = [
+        { name: "CI Gate", status: "in_progress", conclusion: null },
+      ];
+
+      const result = await withLocalTrailheadConfig(pendingContextConfig, () =>
+        evaluateGate(
+          // No gateMode, no waitForChecks — exactly what main.ts passes
+          // through when both action inputs are left unset.
+          makeConfig({
+            githubToken: "ghp_test",
+            securityGate: false,
+            waitTimeoutMinutes: 0,
+          }),
+          "pull-request-head-sha",
+          42,
+        ),
+      );
+
+      // A single-fetch, no-wait evaluation would report this identically
+      // (still pending, not ready) — the distinguishing proof that the WAIT
+      // path actually ran is the timeout warning waitForChecks emits when it
+      // gives up at its deadline. fetchCheckRuns' immediate-evaluate fallback
+      // never emits this warning.
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "CI wait timed out after 0m with 1 check(s) still pending",
+        ),
+      );
+      expect(result.ci?.pendingCount).toBe(1);
+      expect(result.releaseReady).toBe(false);
+      expect(result.releaseReadyReasons).toEqual([
+        "1 required CI check(s) still pending",
+      ]);
+    });
+
+    it("does not wait when wait-for-checks is explicitly disabled, even in release-ready mode", async () => {
+      githubMockState.checkRuns = [
+        { name: "CI Gate", status: "in_progress", conclusion: null },
+      ];
+
+      const result = await withLocalTrailheadConfig(pendingContextConfig, () =>
+        evaluateGate(
+          makeConfig({
+            githubToken: "ghp_test",
+            securityGate: false,
+            waitForChecks: false,
+            waitTimeoutMinutes: 0,
+          }),
+          "pull-request-head-sha",
+          42,
+        ),
+      );
+
+      expect(core.warning).not.toHaveBeenCalledWith(
+        expect.stringContaining("CI wait timed out"),
+      );
+      expect(result.ci?.pendingCount).toBe(1);
+      expect(result.releaseReady).toBe(false);
+    });
+
+    it("does not default to waiting when the effective gate mode is advisory, not release-ready", async () => {
+      githubMockState.checkRuns = [
+        { name: "CI Gate", status: "in_progress", conclusion: null },
+      ];
+
+      const result = await withLocalTrailheadConfig(pendingContextConfig, () =>
+        evaluateGate(
+          makeConfig({
+            githubToken: "ghp_test",
+            securityGate: false,
+            gateMode: "advisory",
+            waitTimeoutMinutes: 0,
+          }),
+          "pull-request-head-sha",
+          42,
+        ),
+      );
+
+      expect(core.warning).not.toHaveBeenCalledWith(
+        expect.stringContaining("CI wait timed out"),
+      );
+      expect(result.ci?.pendingCount).toBe(1);
+      // advisory mode never blocks, regardless of releaseReady.
+      expect(result.gateMode).toBe("advisory");
+    });
+
+    it("fails fast on a genuine required-check failure instead of waiting out a long timeout", async () => {
+      githubMockState.checkRuns = [
+        { name: "CI Gate", status: "completed", conclusion: "failure" },
+        { name: "Deploy", status: "in_progress", conclusion: null },
+      ];
+
+      const result = await withLocalTrailheadConfig(
+        `schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    ci:
+      required_checks: [CI Gate, Deploy]
+      optional_checks: []
+      missing_required: fail`,
+        () =>
+          evaluateGate(
+            // A real 30-minute default timeout — if the fix regresses to
+            // waiting out the full window on any failure, this test would
+            // hang until vitest's own test timeout instead of returning.
+            makeConfig({ githubToken: "ghp_test", securityGate: false }),
+            "pull-request-head-sha",
+            42,
+          ),
+      );
+
+      expect(githubMockState.checkRefs).toHaveLength(1);
+      expect(result.ci?.failedCount).toBe(1);
+      expect(result.ci?.pendingCount).toBe(1);
+      expect(core.warning).not.toHaveBeenCalledWith(
+        expect.stringContaining("CI wait timed out"),
+      );
+    });
   });
 
   // -------------------------------------------------------------------------

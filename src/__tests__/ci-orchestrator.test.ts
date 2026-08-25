@@ -1,9 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as core from "@actions/core";
+import type * as github from "@actions/github";
 import {
   classifyCheck,
   evaluateRequiredChecks,
   normalizeCheckRuns,
+  waitForChecks,
 } from "../ci-orchestrator.js";
+import type { ContextCiConfig } from "../types.js";
 
 describe("classifyCheck", () => {
   it("maps success to pass", () => {
@@ -77,5 +81,120 @@ describe("evaluateRequiredChecks", () => {
     });
     const buildCheck = summary.checks.find((c) => c.name === "Build");
     expect(buildCheck?.status).toBe("pass");
+  });
+});
+
+describe("waitForChecks", () => {
+  type CheckRunFixture = { name: string; status: string; conclusion: string | null };
+
+  /** Each call to `listForRef` returns the next page in `pages` (the last page repeats). */
+  function makeOctokit(pages: CheckRunFixture[][]) {
+    const listForRef = vi.fn().mockImplementation(async () => {
+      const call = listForRef.mock.calls.length - 1;
+      const page = pages[Math.min(call, pages.length - 1)];
+      return { data: { check_runs: page } };
+    });
+    return {
+      octokit: {
+        rest: { checks: { listForRef } },
+      } as unknown as ReturnType<typeof github.getOctokit>,
+      listForRef,
+    };
+  }
+
+  const baseCiConfig: ContextCiConfig = {
+    required_checks: ["Build"],
+    optional_checks: [],
+    missing_required: "fail",
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("polls until a pending required check resolves, well inside the timeout", async () => {
+    const { octokit, listForRef } = makeOctokit([
+      [{ name: "Build", status: "in_progress", conclusion: null }],
+      [{ name: "Build", status: "in_progress", conclusion: null }],
+      [{ name: "Build", status: "completed", conclusion: "success" }],
+    ]);
+
+    const resultPromise = waitForChecks({
+      octokit,
+      owner: "o",
+      repo: "r",
+      headSha: "sha",
+      ciConfig: baseCiConfig,
+      timeoutMinutes: 30,
+      pollIntervalSeconds: 15,
+    });
+
+    // Two polls are needed to reach the third (passing) page.
+    await vi.advanceTimersByTimeAsync(15_000);
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    const result = await resultPromise;
+    expect(result.pendingCount).toBe(0);
+    expect(result.allRequiredPassed).toBe(true);
+    expect(listForRef).toHaveBeenCalledTimes(3);
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  it("returns on the very first fetch — no waiting — once a required check has genuinely failed, even with another still pending", async () => {
+    const { octokit, listForRef } = makeOctokit([
+      [
+        { name: "Build", status: "completed", conclusion: "failure" },
+        { name: "Deploy", status: "in_progress", conclusion: null },
+      ],
+    ]);
+
+    const result = await waitForChecks({
+      octokit,
+      owner: "o",
+      repo: "r",
+      headSha: "sha",
+      ciConfig: { ...baseCiConfig, required_checks: ["Build", "Deploy"] },
+      // A long timeout: if fail-fast regressed, this would only return once
+      // fake timers below were advanced past it — they never are.
+      timeoutMinutes: 30,
+      pollIntervalSeconds: 15,
+    });
+
+    expect(result.failedCount).toBe(1);
+    expect(result.pendingCount).toBe(1);
+    expect(listForRef).toHaveBeenCalledTimes(1);
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  it("gives up and warns once the deadline passes with a required check still pending", async () => {
+    const { octokit, listForRef } = makeOctokit([
+      [{ name: "Build", status: "in_progress", conclusion: null }],
+    ]);
+
+    const resultPromise = waitForChecks({
+      octokit,
+      owner: "o",
+      repo: "r",
+      headSha: "sha",
+      ciConfig: baseCiConfig,
+      timeoutMinutes: 1,
+      pollIntervalSeconds: 15,
+    });
+
+    // 1 minute / 15s polls: advance past the deadline.
+    for (let i = 0; i < 5; i++) {
+      await vi.advanceTimersByTimeAsync(15_000);
+    }
+
+    const result = await resultPromise;
+    expect(result.pendingCount).toBe(1);
+    expect(listForRef.mock.calls.length).toBeGreaterThan(1);
+    expect(core.warning).toHaveBeenCalledWith(
+      expect.stringContaining("CI wait timed out after 1m with 1 check(s) still pending"),
+    );
   });
 });

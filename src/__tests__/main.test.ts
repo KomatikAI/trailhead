@@ -210,6 +210,108 @@ describe("run — evaluate-pr target metadata", () => {
 });
 
 /**
+ * config.waitForChecks must reach evaluateGate as a genuine tri-state: an
+ * explicit `wait-for-checks` input always wins, but leaving it unset must
+ * pass through `undefined` rather than main.ts guessing a default here. The
+ * default (waiting when the EFFECTIVE gate mode is release-ready) can only be
+ * resolved once gate.ts has loaded .trailhead.yml — main.ts only ever sees
+ * the raw, commonly-unset `gate-mode` input. See gate.ts's
+ * waitForChecksEffective and its evaluate-gate.test.ts coverage for the
+ * default itself; this only pins main.ts's side of the contract.
+ */
+describe("run — wait-for-checks passthrough to gate config", () => {
+  async function runWithInputs(inputs: Record<string, string>) {
+    vi.resetModules();
+
+    const freshCore = await import("@actions/core");
+    const freshGithub = await import("@actions/github");
+    const freshHealers = await import("../healers/index.js");
+    const freshGate = await import("../gate.js");
+
+    vi.mocked(freshCore.getInput).mockImplementation(
+      (name: string) => inputs[name] ?? "",
+    );
+    (
+      freshGithub.context as {
+        payload: { pull_request?: { number: number; head: { sha: string } } };
+      }
+    ).payload = {
+      pull_request: { number: 42, head: { sha: "pr-head-sha-123" } },
+    };
+    vi.mocked(freshGithub.getOctokit).mockReturnValue({
+      rest: {
+        issues: {
+          createComment: vi.fn().mockResolvedValue({}),
+          listComments: vi.fn().mockResolvedValue({ data: [] }),
+          updateComment: vi.fn().mockResolvedValue({}),
+          listLabelsOnIssue: vi.fn().mockResolvedValue({ data: [] }),
+          createLabel: vi.fn().mockResolvedValue({}),
+          removeLabel: vi.fn().mockResolvedValue({}),
+          addLabels: vi.fn().mockResolvedValue({}),
+        },
+        checks: { create: vi.fn().mockResolvedValue({}) },
+        pulls: {
+          requestReviewers: vi.fn().mockResolvedValue({}),
+          listFiles: vi.fn().mockResolvedValue({ data: [] }),
+          get: vi.fn().mockResolvedValue({ data: {} }),
+          listCommits: vi.fn().mockResolvedValue({ data: [] }),
+          listReviews: vi.fn().mockResolvedValue({ data: [] }),
+        },
+        repos: {
+          getContent: vi.fn().mockRejectedValue(new Error("not found")),
+          listCommits: vi.fn().mockResolvedValue({ data: [] }),
+        },
+      },
+      request: vi.fn().mockResolvedValue({ data: [] }),
+    } as never);
+
+    vi.spyOn(freshHealers, "registerHealer").mockImplementation(() => undefined);
+    const evaluateSpy = vi
+      .spyOn(freshGate, "evaluateGate")
+      .mockResolvedValue(makeEvaluation());
+    vi.spyOn(freshGate, "formatGateReport").mockReturnValue("## Report");
+
+    await import("../main.js");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    return evaluateSpy;
+  }
+
+  it("passes undefined when wait-for-checks is left unset", async () => {
+    const evaluateSpy = await runWithInputs({
+      "github-token": "ghp_test",
+      "disable-cloud-upsell": "true",
+    });
+
+    const passedConfig = evaluateSpy.mock.calls[0]?.[0] as { waitForChecks?: boolean };
+    expect(passedConfig.waitForChecks).toBeUndefined();
+  });
+
+  it("passes true when wait-for-checks=true is explicit", async () => {
+    const evaluateSpy = await runWithInputs({
+      "github-token": "ghp_test",
+      "disable-cloud-upsell": "true",
+      "wait-for-checks": "true",
+    });
+
+    const passedConfig = evaluateSpy.mock.calls[0]?.[0] as { waitForChecks?: boolean };
+    expect(passedConfig.waitForChecks).toBe(true);
+  });
+
+  it("passes false when wait-for-checks=false is explicit", async () => {
+    const evaluateSpy = await runWithInputs({
+      "github-token": "ghp_test",
+      "disable-cloud-upsell": "true",
+      "gate-mode": "release-ready",
+      "wait-for-checks": "false",
+    });
+
+    const passedConfig = evaluateSpy.mock.calls[0]?.[0] as { waitForChecks?: boolean };
+    expect(passedConfig.waitForChecks).toBe(false);
+  });
+});
+
+/**
  * Cloud-upsell footer, exercised end-to-end through `run()`. Each `run()`
  * import has module-level side effects that only fire once per module
  * instance, so these tests reset the module registry and re-import every

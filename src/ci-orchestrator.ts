@@ -97,8 +97,13 @@ export async function waitForChecks(options: WaitForChecksOptions): Promise<CiSu
     });
     const summary = evaluateRequiredChecks(allChecks, ciConfig, manifest);
 
-    if (summary.pendingCount === 0 || Date.now() >= deadline) {
-      if (summary.pendingCount > 0) {
+    // Pending required checks wait out the timeout; a genuine failure (or
+    // missing-required-with-fail-policy, which evaluateRequiredChecks already
+    // folds into failedCount) resolves the outcome immediately — more polling
+    // cannot turn an already-failed required check back into a pass, so
+    // waiting out the remaining timeout would only delay reporting it.
+    if (summary.pendingCount === 0 || summary.failedCount > 0 || Date.now() >= deadline) {
+      if (summary.pendingCount > 0 && summary.failedCount === 0) {
         core.warning(
           `CI wait timed out after ${timeoutMinutes}m with ${summary.pendingCount} check(s) still pending`,
         );
