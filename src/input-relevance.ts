@@ -7,6 +7,7 @@
 
 import { checkNameMatches } from "./ci-core.js";
 import { matchesGlobs } from "./risk-engine.js";
+import type { CiCheck, CiSummary } from "./types.js";
 
 export type DispositionKind = "blocking" | "advisory" | "irrelevant" | "missing_blocking";
 
@@ -117,4 +118,50 @@ export function resolveDispositions(
 /** Only `blocking` and `missing_blocking` count against release readiness (ADR-011 §2 table). */
 export function dispositionCountsTowardBlocking(d: ResolvedDisposition): boolean {
   return d.kind === "blocking" || d.kind === "missing_blocking";
+}
+
+/**
+ * Annotate every CI input with its ADR-011 §2 disposition and re-roll the
+ * summary counts against the *blocking* set rather than the `required` flag.
+ *
+ * With no `input_relevance` entries the default mapping is required -> blocking
+ * and non-required -> advisory, so the blocking set is exactly the required set
+ * and every count below reproduces `evaluateRequiredChecks` verbatim. Semantics
+ * only move when a policy entry matches.
+ *
+ * A repo can declare blocking checks purely through `input_relevance`, with no
+ * `ci.required_checks` at all — every check defaults to `required: false` in
+ * that shape, so the *blocking* set this function computes is the only
+ * authoritative source of "does this check gate the release", never
+ * `required_checks.length`. Pure (no I/O) so callers that need to know
+ * pending/blocking status ahead of a poll decision — see `waitForChecks` in
+ * ci-orchestrator.ts — can call it mid-loop, not just once at the end.
+ */
+export function applyInputRelevance(
+  summary: CiSummary,
+  entries: InputRelevanceEntry[],
+): CiSummary {
+  const resolved = resolveDispositions(summary.checks, entries);
+  const checks: CiCheck[] = summary.checks.map((check) => {
+    const disposition = resolved.get(check.name);
+    return disposition ? { ...check, disposition } : check;
+  });
+  const blocking = checks.filter(
+    (check) =>
+      check.disposition !== undefined &&
+      dispositionCountsTowardBlocking(check.disposition),
+  );
+
+  return {
+    checks,
+    allRequiredPassed: blocking.every(
+      (check) => check.status === "pass" || check.status === "skip",
+    ),
+    pendingCount: blocking.filter((check) => check.status === "pending").length,
+    failedCount: blocking.filter(
+      (check) =>
+        check.status === "fail" || check.status === "missing" || check.status === "stale",
+    ).length,
+    missingCount: blocking.filter((check) => check.status === "missing").length,
+  };
 }

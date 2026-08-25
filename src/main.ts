@@ -374,9 +374,23 @@ async function run(): Promise<void> {
       environment,
       securityGate: core.getInput("security-gate") !== "false",
       gateMode,
+      // Tri-state (true / false / undefined) on purpose: an explicit
+      // wait-for-checks input wins outright, but leaving it unset must NOT be
+      // resolved here against `gateMode` — that's only the raw `gate-mode`
+      // action input, which is commonly left unset when a repo picks
+      // release-ready mode via .trailhead.yml (gate.mode / schema_version)
+      // instead. Resolving the "release-ready -> wait by default" rule here
+      // against the unset input silently produced `false`, so evaluateGate
+      // skipped waitForChecks entirely and failed not-ready on the first
+      // still-in-flight required check — even with wait-timeout-minutes set.
+      // gate.ts resolves the effective default once it knows the real
+      // (input-or-config) gate mode.
       waitForChecks:
-        core.getInput("wait-for-checks") === "true" ||
-        (gateMode === "release-ready" && core.getInput("wait-for-checks") !== "false"),
+        core.getInput("wait-for-checks") === "true"
+          ? true
+          : core.getInput("wait-for-checks") === "false"
+            ? false
+            : undefined,
       waitTimeoutMinutes: core.getInput("wait-timeout-minutes")
         ? parseInt(core.getInput("wait-timeout-minutes"), 10)
         : 30,
