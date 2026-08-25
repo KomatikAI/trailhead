@@ -1348,6 +1348,62 @@ contexts:
         expect.stringContaining("CI wait timed out"),
       );
     });
+
+    // komatik's actual .trailhead.yml has never had a `ci:` block — it
+    // declares blocking checks purely via `input_relevance` glob/name
+    // patterns. That leaves `ciConfig.required_checks` empty, so every
+    // fetched check carries `required: false`. This is train-30's real
+    // incident shape (run 32800812922, ctx "master-promotion"): gating the
+    // wait path on `required_checks.length > 0` skipped it entirely here,
+    // regardless of gate mode or wait-timeout-minutes, so the immediate
+    // single-fetch path reported still-in-flight checks as failing the gate
+    // on the spot.
+    it("waits on checks blocked purely via input_relevance, with no ci: required_checks block at all (komatik's actual config shape)", async () => {
+      githubMockState.checkRuns = [
+        { name: "Build", status: "in_progress", conclusion: null },
+        { name: "Test", status: "in_progress", conclusion: null },
+      ];
+
+      const result = await withLocalTrailheadConfig(
+        `schema_version: 2
+gate:
+  mode: release-ready
+contexts:
+  - name: main-pr
+    match:
+      base_branch: [main]
+    input_relevance:
+      - pattern: "Build"
+        disposition: blocking
+      - pattern: "Test"
+        disposition: blocking`,
+        () =>
+          evaluateGate(
+            makeConfig({
+              githubToken: "ghp_test",
+              securityGate: false,
+              waitTimeoutMinutes: 0,
+            }),
+            "pull-request-head-sha",
+            42,
+          ),
+      );
+
+      // Same distinguishing proof as the sibling test above: the timeout
+      // warning only fires from inside waitForChecks' poll loop, never from
+      // the immediate-evaluate fallback.
+      expect(core.warning).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "CI wait timed out after 0m with 2 check(s) still pending",
+        ),
+      );
+      expect(githubMockState.checkRefs).toHaveLength(1);
+      expect(result.ci?.pendingCount).toBe(2);
+      expect(result.releaseReady).toBe(false);
+      expect(result.releaseReadyReasons).toEqual([
+        "2 required CI check(s) still pending",
+      ]);
+    });
   });
 
   // -------------------------------------------------------------------------

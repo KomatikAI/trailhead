@@ -110,6 +110,12 @@ describe("waitForChecks", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    // The mocked @actions/core module is a persistent module-scope vi.fn()
+    // with no per-test reset elsewhere in this file — clear it here so each
+    // test's core.warning assertions reflect only its own run, not residue
+    // from an earlier test in this describe block (e.g. the deadline test
+    // below, which does call core.warning).
+    vi.mocked(core.warning).mockClear();
   });
 
   afterEach(() => {
@@ -196,5 +202,97 @@ describe("waitForChecks", () => {
     expect(core.warning).toHaveBeenCalledWith(
       expect.stringContaining("CI wait timed out after 1m with 1 check(s) still pending"),
     );
+  });
+
+  // ---------------------------------------------------------------------
+  // A repo can declare blocking checks purely via `input_relevance`, with
+  // no `ci.required_checks` at all — this is komatik's actual shape (no
+  // `ci:` block in .trailhead.yml, ever). Every check then carries
+  // `required: false`, so the loop's own exit condition must key off the
+  // input_relevance-resolved blocking set, not `required_checks.length`.
+  // ---------------------------------------------------------------------
+
+  const emptyCiConfig: ContextCiConfig = {
+    required_checks: [],
+    optional_checks: [],
+    missing_required: "fail",
+  };
+
+  it("polls on the input_relevance-resolved blocking set when required_checks is empty", async () => {
+    const { octokit, listForRef } = makeOctokit([
+      [{ name: "Build", status: "in_progress", conclusion: null }],
+      [{ name: "Build", status: "in_progress", conclusion: null }],
+      [{ name: "Build", status: "completed", conclusion: "success" }],
+    ]);
+
+    const resultPromise = waitForChecks({
+      octokit,
+      owner: "o",
+      repo: "r",
+      headSha: "sha",
+      ciConfig: emptyCiConfig,
+      inputRelevance: [{ pattern: "Build", disposition: "blocking" }],
+      timeoutMinutes: 30,
+      pollIntervalSeconds: 15,
+    });
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    const result = await resultPromise;
+    expect(result.pendingCount).toBe(0);
+    expect(result.allRequiredPassed).toBe(true);
+    expect(listForRef).toHaveBeenCalledTimes(3);
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  it("fails fast on an input_relevance-blocking failure even when required_checks is empty", async () => {
+    const { octokit, listForRef } = makeOctokit([
+      [
+        { name: "Build", status: "completed", conclusion: "failure" },
+        { name: "Deploy", status: "in_progress", conclusion: null },
+      ],
+    ]);
+
+    const result = await waitForChecks({
+      octokit,
+      owner: "o",
+      repo: "r",
+      headSha: "sha",
+      ciConfig: emptyCiConfig,
+      inputRelevance: [
+        { pattern: "Build", disposition: "blocking" },
+        { pattern: "Deploy", disposition: "blocking" },
+      ],
+      timeoutMinutes: 30,
+      pollIntervalSeconds: 15,
+    });
+
+    expect(result.failedCount).toBe(1);
+    expect(result.pendingCount).toBe(1);
+    expect(listForRef).toHaveBeenCalledTimes(1);
+    expect(core.warning).not.toHaveBeenCalled();
+  });
+
+  it("does not poll when neither required_checks nor input_relevance mark anything as blocking", async () => {
+    const { octokit, listForRef } = makeOctokit([
+      [{ name: "Lint", status: "in_progress", conclusion: null }],
+    ]);
+
+    const result = await waitForChecks({
+      octokit,
+      owner: "o",
+      repo: "r",
+      headSha: "sha",
+      ciConfig: emptyCiConfig,
+      timeoutMinutes: 30,
+      pollIntervalSeconds: 15,
+    });
+
+    // "Lint" is required:false with no input_relevance entry, so its
+    // default disposition is advisory — it never blocks, so pendingCount
+    // is 0 on the very first fetch and the loop exits without polling.
+    expect(result.pendingCount).toBe(0);
+    expect(listForRef).toHaveBeenCalledTimes(1);
   });
 });

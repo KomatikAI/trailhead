@@ -11,7 +11,6 @@ import type {
   GateDecision,
   GateEvaluation,
   HealthCheckResult,
-  InputRelevanceEntry,
   PrProvenance,
   ReleaseBrief,
   RemediationSeverity,
@@ -44,10 +43,7 @@ import {
   resolveCheckName,
   shouldBlockMerge,
 } from "./release-ready.js";
-import {
-  dispositionCountsTowardBlocking,
-  resolveDispositions,
-} from "./input-relevance.js";
+import { applyInputRelevance } from "./input-relevance.js";
 import { formatEvaluationDelta, renderReleaseBrief } from "./release-brief.js";
 import {
   computeRiskScore as computeRiskScoreShared,
@@ -1704,45 +1700,18 @@ async function applyLabelOverrideIfNeeded(input: {
 // ---------------------------------------------------------------------------
 
 /**
- * Annotate every CI input with its ADR-011 §2 disposition and re-roll the
- * summary counts against the *blocking* set rather than the `required` flag.
- *
- * With no `input_relevance` entries the default mapping is required -> blocking
- * and non-required -> advisory, so the blocking set is exactly the required set
- * and every count below reproduces `evaluateRequiredChecks` verbatim. Semantics
- * only move when a policy entry matches.
+ * `applyInputRelevance` now lives in input-relevance.ts — both this module
+ * (the single-fetch path below) and `waitForChecks` in ci-orchestrator.ts
+ * (the poll loop's own blocking-set exit condition) need it, and the latter
+ * would otherwise have had to import gate.ts, an actual circular import
+ * (gate.ts already imports ci-orchestrator.ts). Re-exported here (via the
+ * import above) so every existing caller/import site keeps working
+ * unchanged.
  */
+export { applyInputRelevance };
+
 /** Budget for the brief inside a report that also becomes a check-run summary. */
 const BRIEF_MAX_CHARS = 20000;
-
-export function applyInputRelevance(
-  summary: CiSummary,
-  entries: InputRelevanceEntry[],
-): CiSummary {
-  const resolved = resolveDispositions(summary.checks, entries);
-  const checks: CiCheck[] = summary.checks.map((check) => {
-    const disposition = resolved.get(check.name);
-    return disposition ? { ...check, disposition } : check;
-  });
-  const blocking = checks.filter(
-    (check) =>
-      check.disposition !== undefined &&
-      dispositionCountsTowardBlocking(check.disposition),
-  );
-
-  return {
-    checks,
-    allRequiredPassed: blocking.every(
-      (check) => check.status === "pass" || check.status === "skip",
-    ),
-    pendingCount: blocking.filter((check) => check.status === "pending").length,
-    failedCount: blocking.filter(
-      (check) =>
-        check.status === "fail" || check.status === "missing" || check.status === "stale",
-    ).length,
-    missingCount: blocking.filter((check) => check.status === "missing").length,
-  };
-}
 
 /**
  * Detector messages are authored as `<file>: <message>`. Split them so the brief
@@ -2740,8 +2709,19 @@ export async function evaluateGate(
         "Trailhead — Release Ready",
       ];
       const ciManifest = config.ciManifest ?? null;
+      const inputRelevance = matchedContext?.context.input_relevance ?? [];
 
-      if (waitForChecksEffective && ciConfig.required_checks.length > 0) {
+      // A repo can (and komatik does) declare blocking checks purely via
+      // `input_relevance`, with no `ci.required_checks` at all — every check
+      // then carries `required: false`, so gating the wait on
+      // `ciConfig.required_checks.length > 0` skipped the wait path entirely
+      // for exactly that shape, even in release-ready mode with
+      // wait-timeout-minutes configured (komatik run 32800812922). The
+      // decision to wait is `waitForChecksEffective` alone; what's actually
+      // pending is resolved against the input_relevance-aware blocking set
+      // (passed through so `waitForChecks`' own poll-exit condition uses it,
+      // not just `required_checks`).
+      if (waitForChecksEffective) {
         ciSummary = await waitForChecks({
           octokit,
           owner,
@@ -2751,6 +2731,7 @@ export async function evaluateGate(
           excludeCheckNames,
           timeoutMinutes: config.waitTimeoutMinutes ?? 30,
           manifest: ciManifest,
+          inputRelevance,
         });
       } else {
         const checks = await fetchCheckRuns(octokit, {
@@ -2763,10 +2744,10 @@ export async function evaluateGate(
       }
       // ADR-011 §2 — resolve each input's disposition before anything reads the
       // summary. With no input_relevance config this is a pure annotation pass.
-      ciSummary = applyInputRelevance(
-        ciSummary,
-        matchedContext?.context.input_relevance ?? [],
-      );
+      // `waitForChecks` above already applied this internally (to decide when
+      // to stop polling); re-applying here is idempotent — same checks, same
+      // entries — and guarantees the non-wait branch gets identical treatment.
+      ciSummary = applyInputRelevance(ciSummary, inputRelevance);
       localEvaluation.ci = ciSummary;
     } catch (error) {
       core.warning(`CI orchestration failed (non-blocking): ${error}`);

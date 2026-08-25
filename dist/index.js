@@ -1,10 +1,17 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 8066:
+/***/ 6390:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
+module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-gnu.node")
+
+/***/ }),
+
+/***/ 7064:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-musl.node")
 
 /***/ }),
 
@@ -951,7 +958,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8066)
+        return __nccwpck_require__(9763)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1085,7 +1092,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(5254)
+        return __nccwpck_require__(7064)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1097,7 +1104,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6571)
+        return __nccwpck_require__(6390)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -29769,22 +29776,6 @@ module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
 
 /***/ }),
 
-/***/ 6571:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-linux-arm64-gnu");
-
-
-/***/ }),
-
-/***/ 5254:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-linux-arm64-musl");
-
-
-/***/ }),
-
 /***/ 3586:
 /***/ ((module) => {
 
@@ -29853,6 +29844,14 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
+
+
+/***/ }),
+
+/***/ 9763:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-win32-x64-msvc");
 
 
 /***/ }),
@@ -43801,7 +43800,126 @@ function formatCiStatusIcon(status) {
     }
 }
 
+;// CONCATENATED MODULE: ./src/input-relevance.ts
+// ADR-011 §2 — input relevance policy (disposition engine).
+//
+// ADR-009's status enum (`pass|fail|skip|pending|stale|missing`) says what a check DID.
+// A disposition says what that MEANS for this release decision. This module is pure:
+// no octokit, no config loading, no I/O — callers resolve the policy entries for the
+// matched branch pair and hand them in.
+
+
+/**
+ * Reason substituted when config declares `irrelevant` without a reason. ADR-011 §2 makes the
+ * reason mandatory ("reason mandatory and shown in the brief"); the config schema layer rejects
+ * it too, so this is defense in depth for configs that reached us unvalidated.
+ */
+const MISSING_IRRELEVANT_REASON = "(no reason configured — reason is mandatory for irrelevant; fix .trailhead.yml)";
+/**
+ * Pattern matching precedence, per entry:
+ *   1. exact name match                      (checkNameMatches)
+ *   2. case-insensitive name match           (checkNameMatches)
+ *   3. configured-value-as-prefix match      (checkNameMatches)
+ *   4. glob match, case-insensitive          (matchesGlobs — lets "Deploy *" work)
+ * These are a union, not a ranking: an entry matches if ANY of them matches. Ranking between
+ * entries is positional only — entries are evaluated in declaration order and the FIRST
+ * matching entry wins, exactly like `contexts[]` resolution in context-matcher.ts.
+ */
+function entryMatches(entry, checkName) {
+    // A blank pattern would prefix-match every check name; treat it as matching nothing so a
+    // config typo cannot silently reclassify the whole input set.
+    if (entry.pattern.trim() === "")
+        return false;
+    if (checkNameMatches(entry.pattern, checkName))
+        return true;
+    return matchesGlobs(checkName, [entry.pattern]);
+}
+function hasText(value) {
+    return value !== undefined && value.trim() !== "";
+}
+/**
+ * Resolve one check to a disposition.
+ *
+ * - First matching entry wins; no match falls back to `required ? blocking : advisory`
+ *   with source `default`.
+ * - `missing_blocking` is DERIVED: ADR-009 status `missing` on a check that would otherwise
+ *   resolve to `blocking`. It is never configurable.
+ */
+function resolveDisposition(check, entries) {
+    const matched = entries.find((entry) => entryMatches(entry, check.name));
+    let kind;
+    let reason;
+    let source;
+    if (matched) {
+        kind = matched.disposition;
+        reason = hasText(matched.reason) ? matched.reason : undefined;
+        source = "policy";
+        if (kind === "irrelevant" && reason === undefined) {
+            reason = MISSING_IRRELEVANT_REASON;
+        }
+    }
+    else {
+        kind = check.required ? "blocking" : "advisory";
+        source = "default";
+    }
+    if (check.status === "missing" && kind === "blocking") {
+        kind = "missing_blocking";
+    }
+    return reason === undefined ? { kind, source } : { kind, reason, source };
+}
+/**
+ * Resolve a whole CI input set, keyed by check name. On duplicate check names the first
+ * occurrence wins, so the map is stable regardless of how many times a name appears.
+ */
+function resolveDispositions(checks, entries) {
+    const resolved = new Map();
+    for (const check of checks) {
+        if (resolved.has(check.name))
+            continue;
+        resolved.set(check.name, resolveDisposition(check, entries));
+    }
+    return resolved;
+}
+/** Only `blocking` and `missing_blocking` count against release readiness (ADR-011 §2 table). */
+function dispositionCountsTowardBlocking(d) {
+    return d.kind === "blocking" || d.kind === "missing_blocking";
+}
+/**
+ * Annotate every CI input with its ADR-011 §2 disposition and re-roll the
+ * summary counts against the *blocking* set rather than the `required` flag.
+ *
+ * With no `input_relevance` entries the default mapping is required -> blocking
+ * and non-required -> advisory, so the blocking set is exactly the required set
+ * and every count below reproduces `evaluateRequiredChecks` verbatim. Semantics
+ * only move when a policy entry matches.
+ *
+ * A repo can declare blocking checks purely through `input_relevance`, with no
+ * `ci.required_checks` at all — every check defaults to `required: false` in
+ * that shape, so the *blocking* set this function computes is the only
+ * authoritative source of "does this check gate the release", never
+ * `required_checks.length`. Pure (no I/O) so callers that need to know
+ * pending/blocking status ahead of a poll decision — see `waitForChecks` in
+ * ci-orchestrator.ts — can call it mid-loop, not just once at the end.
+ */
+function applyInputRelevance(summary, entries) {
+    const resolved = resolveDispositions(summary.checks, entries);
+    const checks = summary.checks.map((check) => {
+        const disposition = resolved.get(check.name);
+        return disposition ? { ...check, disposition } : check;
+    });
+    const blocking = checks.filter((check) => check.disposition !== undefined &&
+        dispositionCountsTowardBlocking(check.disposition));
+    return {
+        checks,
+        allRequiredPassed: blocking.every((check) => check.status === "pass" || check.status === "skip"),
+        pendingCount: blocking.filter((check) => check.status === "pending").length,
+        failedCount: blocking.filter((check) => check.status === "fail" || check.status === "missing" || check.status === "stale").length,
+        missingCount: blocking.filter((check) => check.status === "missing").length,
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/ci-orchestrator.ts
+
 
 
 
@@ -43833,7 +43951,7 @@ async function fetchCheckRuns(octokit, options) {
     return normalizeCheckRuns(runs, excludeCheckNames);
 }
 async function waitForChecks(options) {
-    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, manifest, } = options;
+    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, manifest, inputRelevance = [], } = options;
     const deadline = Date.now() + timeoutMinutes * 60 * 1000;
     while (true) {
         const allChecks = await fetchCheckRuns(octokit, {
@@ -43842,9 +43960,16 @@ async function waitForChecks(options) {
             headSha,
             excludeCheckNames,
         });
-        const summary = evaluateRequiredChecks(allChecks, ciConfig, manifest);
-        if (summary.pendingCount === 0 || Date.now() >= deadline) {
-            if (summary.pendingCount > 0) {
+        const summary = applyInputRelevance(evaluateRequiredChecks(allChecks, ciConfig, manifest), inputRelevance);
+        // Pending blocking checks (ADR-011 §2 disposition — required_checks when
+        // no input_relevance policy matches, but never required_checks alone)
+        // wait out the timeout; a genuine failure (or missing-required-with-
+        // fail-policy, which evaluateRequiredChecks already folds into
+        // failedCount) resolves the outcome immediately — more polling cannot
+        // turn an already-failed blocking check back into a pass, so waiting out
+        // the remaining timeout would only delay reporting it.
+        if (summary.pendingCount === 0 || summary.failedCount > 0 || Date.now() >= deadline) {
+            if (summary.pendingCount > 0 && summary.failedCount === 0) {
                 core_warning(`CI wait timed out after ${timeoutMinutes}m with ${summary.pendingCount} check(s) still pending`);
             }
             return summary;
@@ -43966,91 +44091,6 @@ function resolveCheckName(gateMode, configuredName) {
     if (gateMode === "risk-only")
         return "Trailhead";
     return configuredName ?? "Trailhead — Release Ready";
-}
-
-;// CONCATENATED MODULE: ./src/input-relevance.ts
-// ADR-011 §2 — input relevance policy (disposition engine).
-//
-// ADR-009's status enum (`pass|fail|skip|pending|stale|missing`) says what a check DID.
-// A disposition says what that MEANS for this release decision. This module is pure:
-// no octokit, no config loading, no I/O — callers resolve the policy entries for the
-// matched branch pair and hand them in.
-
-
-/**
- * Reason substituted when config declares `irrelevant` without a reason. ADR-011 §2 makes the
- * reason mandatory ("reason mandatory and shown in the brief"); the config schema layer rejects
- * it too, so this is defense in depth for configs that reached us unvalidated.
- */
-const MISSING_IRRELEVANT_REASON = "(no reason configured — reason is mandatory for irrelevant; fix .trailhead.yml)";
-/**
- * Pattern matching precedence, per entry:
- *   1. exact name match                      (checkNameMatches)
- *   2. case-insensitive name match           (checkNameMatches)
- *   3. configured-value-as-prefix match      (checkNameMatches)
- *   4. glob match, case-insensitive          (matchesGlobs — lets "Deploy *" work)
- * These are a union, not a ranking: an entry matches if ANY of them matches. Ranking between
- * entries is positional only — entries are evaluated in declaration order and the FIRST
- * matching entry wins, exactly like `contexts[]` resolution in context-matcher.ts.
- */
-function entryMatches(entry, checkName) {
-    // A blank pattern would prefix-match every check name; treat it as matching nothing so a
-    // config typo cannot silently reclassify the whole input set.
-    if (entry.pattern.trim() === "")
-        return false;
-    if (checkNameMatches(entry.pattern, checkName))
-        return true;
-    return matchesGlobs(checkName, [entry.pattern]);
-}
-function hasText(value) {
-    return value !== undefined && value.trim() !== "";
-}
-/**
- * Resolve one check to a disposition.
- *
- * - First matching entry wins; no match falls back to `required ? blocking : advisory`
- *   with source `default`.
- * - `missing_blocking` is DERIVED: ADR-009 status `missing` on a check that would otherwise
- *   resolve to `blocking`. It is never configurable.
- */
-function resolveDisposition(check, entries) {
-    const matched = entries.find((entry) => entryMatches(entry, check.name));
-    let kind;
-    let reason;
-    let source;
-    if (matched) {
-        kind = matched.disposition;
-        reason = hasText(matched.reason) ? matched.reason : undefined;
-        source = "policy";
-        if (kind === "irrelevant" && reason === undefined) {
-            reason = MISSING_IRRELEVANT_REASON;
-        }
-    }
-    else {
-        kind = check.required ? "blocking" : "advisory";
-        source = "default";
-    }
-    if (check.status === "missing" && kind === "blocking") {
-        kind = "missing_blocking";
-    }
-    return reason === undefined ? { kind, source } : { kind, reason, source };
-}
-/**
- * Resolve a whole CI input set, keyed by check name. On duplicate check names the first
- * occurrence wins, so the map is stable regardless of how many times a name appears.
- */
-function resolveDispositions(checks, entries) {
-    const resolved = new Map();
-    for (const check of checks) {
-        if (resolved.has(check.name))
-            continue;
-        resolved.set(check.name, resolveDisposition(check, entries));
-    }
-    return resolved;
-}
-/** Only `blocking` and `missing_blocking` count against release readiness (ADR-011 §2 table). */
-function dispositionCountsTowardBlocking(d) {
-    return d.kind === "blocking" || d.kind === "missing_blocking";
 }
 
 ;// CONCATENATED MODULE: ./src/release-brief.ts
@@ -52036,32 +52076,17 @@ async function applyLabelOverrideIfNeeded(input) {
 // ADR-011 — input relevance, enumerated findings, Release Brief
 // ---------------------------------------------------------------------------
 /**
- * Annotate every CI input with its ADR-011 §2 disposition and re-roll the
- * summary counts against the *blocking* set rather than the `required` flag.
- *
- * With no `input_relevance` entries the default mapping is required -> blocking
- * and non-required -> advisory, so the blocking set is exactly the required set
- * and every count below reproduces `evaluateRequiredChecks` verbatim. Semantics
- * only move when a policy entry matches.
+ * `applyInputRelevance` now lives in input-relevance.ts — both this module
+ * (the single-fetch path below) and `waitForChecks` in ci-orchestrator.ts
+ * (the poll loop's own blocking-set exit condition) need it, and the latter
+ * would otherwise have had to import gate.ts, an actual circular import
+ * (gate.ts already imports ci-orchestrator.ts). Re-exported here (via the
+ * import above) so every existing caller/import site keeps working
+ * unchanged.
  */
+
 /** Budget for the brief inside a report that also becomes a check-run summary. */
 const BRIEF_MAX_CHARS = 20000;
-function applyInputRelevance(summary, entries) {
-    const resolved = resolveDispositions(summary.checks, entries);
-    const checks = summary.checks.map((check) => {
-        const disposition = resolved.get(check.name);
-        return disposition ? { ...check, disposition } : check;
-    });
-    const blocking = checks.filter((check) => check.disposition !== undefined &&
-        dispositionCountsTowardBlocking(check.disposition));
-    return {
-        checks,
-        allRequiredPassed: blocking.every((check) => check.status === "pass" || check.status === "skip"),
-        pendingCount: blocking.filter((check) => check.status === "pending").length,
-        failedCount: blocking.filter((check) => check.status === "fail" || check.status === "missing" || check.status === "stale").length,
-        missingCount: blocking.filter((check) => check.status === "missing").length,
-    };
-}
 /**
  * Detector messages are authored as `<file>: <message>`. Split them so the brief
  * can carry the file as evidence; anything that does not look like a path prefix
@@ -52334,6 +52359,11 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
             : Promise.resolve(null),
     ]);
     const gateMode = resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, config.gateMode);
+    // config.waitForChecks is tri-state: an explicit wait-for-checks input
+    // (true/false) always wins. Left unset, default to waiting on the
+    // EFFECTIVE gate mode resolved just above — which folds in .trailhead.yml
+    // — not the raw action input alone.
+    const waitForChecksEffective = config.waitForChecks ?? gateMode === "release-ready";
     const matchedContext = repoConfig?.contexts && repoConfig.contexts.length > 0
         ? matchContext(repoConfig.contexts, prMatchCtx)
         : null;
@@ -52815,7 +52845,18 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
                 "Trailhead — Release Ready",
             ];
             const ciManifest = config.ciManifest ?? null;
-            if (config.waitForChecks && ciConfig.required_checks.length > 0) {
+            const inputRelevance = matchedContext?.context.input_relevance ?? [];
+            // A repo can (and komatik does) declare blocking checks purely via
+            // `input_relevance`, with no `ci.required_checks` at all — every check
+            // then carries `required: false`, so gating the wait on
+            // `ciConfig.required_checks.length > 0` skipped the wait path entirely
+            // for exactly that shape, even in release-ready mode with
+            // wait-timeout-minutes configured (komatik run 32800812922). The
+            // decision to wait is `waitForChecksEffective` alone; what's actually
+            // pending is resolved against the input_relevance-aware blocking set
+            // (passed through so `waitForChecks`' own poll-exit condition uses it,
+            // not just `required_checks`).
+            if (waitForChecksEffective) {
                 ciSummary = await waitForChecks({
                     octokit,
                     owner,
@@ -52825,6 +52866,7 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
                     excludeCheckNames,
                     timeoutMinutes: config.waitTimeoutMinutes ?? 30,
                     manifest: ciManifest,
+                    inputRelevance,
                 });
             }
             else {
@@ -52838,7 +52880,10 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
             }
             // ADR-011 §2 — resolve each input's disposition before anything reads the
             // summary. With no input_relevance config this is a pure annotation pass.
-            ciSummary = applyInputRelevance(ciSummary, matchedContext?.context.input_relevance ?? []);
+            // `waitForChecks` above already applied this internally (to decide when
+            // to stop polling); re-applying here is idempotent — same checks, same
+            // entries — and guarantees the non-wait branch gets identical treatment.
+            ciSummary = applyInputRelevance(ciSummary, inputRelevance);
             localEvaluation.ci = ciSummary;
         }
         catch (error) {
@@ -57081,8 +57126,22 @@ async function run() {
             environment,
             securityGate: getInput("security-gate") !== "false",
             gateMode,
-            waitForChecks: getInput("wait-for-checks") === "true" ||
-                (gateMode === "release-ready" && getInput("wait-for-checks") !== "false"),
+            // Tri-state (true / false / undefined) on purpose: an explicit
+            // wait-for-checks input wins outright, but leaving it unset must NOT be
+            // resolved here against `gateMode` — that's only the raw `gate-mode`
+            // action input, which is commonly left unset when a repo picks
+            // release-ready mode via .trailhead.yml (gate.mode / schema_version)
+            // instead. Resolving the "release-ready -> wait by default" rule here
+            // against the unset input silently produced `false`, so evaluateGate
+            // skipped waitForChecks entirely and failed not-ready on the first
+            // still-in-flight required check — even with wait-timeout-minutes set.
+            // gate.ts resolves the effective default once it knows the real
+            // (input-or-config) gate mode.
+            waitForChecks: getInput("wait-for-checks") === "true"
+                ? true
+                : getInput("wait-for-checks") === "false"
+                    ? false
+                    : undefined,
             waitTimeoutMinutes: getInput("wait-timeout-minutes")
                 ? parseInt(getInput("wait-timeout-minutes"), 10)
                 : 30,
