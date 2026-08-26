@@ -30,4 +30,50 @@ describe("CI integrity diff precision", () => {
     expect(result.blockingPatterns).toHaveLength(1);
     expect(result.score).toBe(45);
   });
+
+  it("exempts || true inside a trap cleanup handler (komatik#4864)", () => {
+    const result = detectCiIntegrity([
+      {
+        filename: ".github/workflows/teams-worker.yml",
+        patch: [
+          "@@ -95,2 +95,3 @@",
+          "       - name: Boot Teams image and prove exact release identity",
+          "+          trap 'docker rm --force \"$container_id\" >/dev/null 2>&1 || true' EXIT",
+        ].join("\n"),
+      },
+    ]);
+
+    expect(result.blockingPatterns).toEqual([]);
+    expect(result.score).toBe(0);
+  });
+
+  it("exempts the inline run: trap form", () => {
+    const result = detectCiIntegrity([
+      {
+        filename: ".github/workflows/ci.yml",
+        patch: "@@ -1,1 +1,2 @@\n+        run: trap 'rm -rf \"$scratch\" || true' EXIT",
+      },
+    ]);
+
+    expect(result.blockingPatterns).toEqual([]);
+    expect(result.score).toBe(0);
+  });
+
+  it("still blocks a real bypass added alongside a trap cleanup line", () => {
+    const result = detectCiIntegrity([
+      {
+        filename: ".github/workflows/ci.yml",
+        patch: [
+          "@@ -1,2 +1,4 @@",
+          "+          trap 'docker rm --force \"$cid\" || true' EXIT",
+          "+          npm test || true",
+        ].join("\n"),
+      },
+    ]);
+
+    expect(result.blockingPatterns).toEqual([
+      '.github/workflows/ci.yml: workflow bypass pattern "|| true"',
+    ]);
+    expect(result.score).toBe(45);
+  });
 });
