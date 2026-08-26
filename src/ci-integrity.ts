@@ -19,6 +19,18 @@ function addedPatchLines(patch: string | undefined): string[] {
     .map((line) => line.slice(1));
 }
 
+const OR_TRUE_BYPASS = /\|\|\s*true/;
+
+/** A `|| true` on a `trap '…'` line is best-effort cleanup, not a CI bypass:
+ * the suppression applies only to the trap handler's own command (e.g.
+ * `trap 'docker rm --force "$c" >/dev/null 2>&1 || true' EXIT`), never to a
+ * test/build step's outcome. First hit: komatik release train #4864
+ * (2026-08-26), where teams-worker.yml's container-cleanup trap was flagged
+ * as a blocking bypass. The optional `run:` prefix keeps the inline YAML form
+ * (`run: trap '…' EXIT`) exempt too; a `|| true` on any other added line
+ * still blocks. */
+const TRAP_CLEANUP_LINE = /^\s*(?:-\s*)?(?:run:\s*)?trap\b/;
+
 /** Detect newly introduced CI bypasses, never unchanged or deleted context. */
 export function detectCiIntegrity(files: CiIntegrityFile[]): CiIntegrityResult {
   const blockingPatterns: string[] = [];
@@ -28,8 +40,13 @@ export function detectCiIntegrity(files: CiIntegrityFile[]): CiIntegrityResult {
   for (const file of files.filter((entry) =>
     entry.filename.startsWith(".github/workflows/"),
   )) {
-    const added = addedPatchLines(file.patch).join("\n");
-    if (/\|\|\s*true/.test(added)) {
+    const addedLines = addedPatchLines(file.patch);
+    const added = addedLines.join("\n");
+    if (
+      addedLines.some(
+        (line) => OR_TRUE_BYPASS.test(line) && !TRAP_CLEANUP_LINE.test(line),
+      )
+    ) {
       blockingPatterns.push(`${file.filename}: workflow bypass pattern "|| true"`);
       score += 45;
     }
