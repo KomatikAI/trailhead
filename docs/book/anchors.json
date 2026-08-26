@@ -252,7 +252,8 @@
       "confidence": "ratified",
       "sources": [
         "pr:314",
-        "pr:315"
+        "pr:315",
+        "pr:321"
       ]
     },
     "p-trailhead-history-founded-as-deployguard": {
@@ -281,6 +282,8 @@
       "sources": [
         "pr:214",
         "commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6",
+        "pr:216",
+        "pr:217",
         "pr:218"
       ]
     },

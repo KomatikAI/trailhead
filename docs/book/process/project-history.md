@@ -18,6 +18,8 @@ pins:
   - pr:35
   - pr:214
   - commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6
+  - pr:216
+  - pr:217
   - pr:218
   - commit:7fa9803444117335f3a6847d498614fff9f36e52
   - pr:244
@@ -28,6 +30,7 @@ pins:
   - pr:284
   - pr:314
   - pr:315
+  - pr:321
   - pr:279
   - pr:301
   - pr:328
@@ -58,7 +61,7 @@ The April rename established Trailhead as the product identity and added an agen
 
 The v4 era introduced the composite Release Ready gate, Trailhead Cloud, path-aware CI manifests, cross-repository impact, and multi-platform CI adapters. Trailhead became a configurable release product rather than only a scalar risk check.
 
-> since 2026-05-24 · verified 2026-08-26 · confidence ratified · sources: `pr:214`, `commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6`, `pr:218`
+> since 2026-05-24 · verified 2026-08-26 · confidence ratified · sources: `pr:214`, `commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6`, `pr:216`, `pr:217`, `pr:218`
 
 <a id="p-trailhead-history-added-coach-and-fixer"></a>
 ### Coach and Fixer closed the loop {#p-trailhead-history-added-coach-and-fixer}
@@ -86,7 +89,7 @@ Warehouse audits scoped security evidence to the PR and improved provenance and 
 
 The July sprint added durable Cloud storage, billing, key claiming, a customer site, and account dashboards. Immediate post-payment hardening kept billing failures distinct from gate decisions and repaired customer-facing security issues.
 
-> since 2026-07-02 · verified 2026-08-26 · confidence ratified · sources: `pr:314`, `pr:315`
+> since 2026-07-02 · verified 2026-08-26 · confidence ratified · sources: `pr:314`, `pr:315`, `pr:321`
 
 <a id="p-trailhead-history-v46-closed-reconciliation-gaps"></a>
 ### Version 4.6 closed reconciliation gaps {#p-trailhead-history-v46-closed-reconciliation-gaps}

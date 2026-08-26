@@ -88,7 +88,7 @@
     "p-trailhead-current-release-docs-need-supersession": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 106,
+      "line": 109,
       "inbound": [],
       "outbound": []
     },
@@ -109,63 +109,63 @@
     "p-trailhead-history-added-coach-and-fixer": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 64,
+      "line": 67,
       "inbound": [],
       "outbound": []
     },
     "p-trailhead-history-added-lifecycle-gates": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 71,
+      "line": 74,
       "inbound": [],
       "outbound": []
     },
     "p-trailhead-history-became-trailhead": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 50,
+      "line": 53,
       "inbound": [],
       "outbound": []
     },
     "p-trailhead-history-calibrated-real-fleet-data": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 78,
+      "line": 81,
       "inbound": [],
       "outbound": []
     },
     "p-trailhead-history-cloud-became-a-product": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 85,
+      "line": 88,
       "inbound": [],
       "outbound": []
     },
     "p-trailhead-history-founded-as-deployguard": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 43,
+      "line": 46,
       "inbound": [],
       "outbound": []
     },
     "p-trailhead-history-v4-unified-release-readiness": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 57,
+      "line": 60,
       "inbound": [],
       "outbound": []
     },
     "p-trailhead-history-v46-closed-reconciliation-gaps": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 92,
+      "line": 95,
       "inbound": [],
       "outbound": []
     },
     "p-trailhead-history-v47-made-decisions-readable": {
       "chapter": "process/project-history",
       "path": "process/project-history.md",
-      "line": 99,
+      "line": 102,
       "inbound": [],
       "outbound": []
     },
@@ -338,6 +338,22 @@
         "process/project-history"
       ]
     },
+    "pr:216": {
+      "paragraphs": [
+        "p-trailhead-history-v4-unified-release-readiness"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:217": {
+      "paragraphs": [
+        "p-trailhead-history-v4-unified-release-readiness"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
     "pr:218": {
       "paragraphs": [
         "p-trailhead-history-v4-unified-release-readiness"
@@ -472,6 +488,14 @@
       ],
       "chapters": [
         "platform/product-surfaces",
+        "process/project-history"
+      ]
+    },
+    "pr:321": {
+      "paragraphs": [
+        "p-trailhead-history-cloud-became-a-product"
+      ],
+      "chapters": [
         "process/project-history"
       ]
     },
