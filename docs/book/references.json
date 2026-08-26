@@ -1,0 +1,573 @@
+{
+  "schema": "komatik.book.references/1",
+  "paragraphs": {
+    "p-trailhead-action-is-the-primary-gate": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "line": 26,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-agent-policy-starts-with-provenance": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "line": 28,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-app-protects-deployments": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "line": 40,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-availability-is-an-explicit-policy": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "line": 27,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-brief-enumerates-actionable-findings": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "line": 42,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-can-backfill-historical-evaluations": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "line": 70,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-ci-integrity-scans-added-behavior": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "line": 55,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-ci-status-and-relevance-differ": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "line": 35,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-cli-configures-and-diagnoses": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "line": 33,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-close-on-ship-reconnects-work": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "line": 63,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-cloud-adds-durable-organization-memory": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "line": 54,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-complete-pr-files": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "line": 41,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-current-release-docs-need-supersession": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 106,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-dev-repairs": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "line": 62,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-evaluation-failure-must-speak": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "line": 56,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-added-coach-and-fixer": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 64,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-added-lifecycle-gates": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 71,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-became-trailhead": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 50,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-calibrated-real-fleet-data": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 78,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-cloud-became-a-product": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 85,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-founded-as-deployguard": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 43,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-v4-unified-release-readiness": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 57,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-v46-closed-reconciliation-gaps": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 92,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-history-v47-made-decisions-readable": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "line": 99,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-mcp-makes-evidence-agent-readable": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "line": 47,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-observes-health-and-delivery-outcomes": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "line": 48,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-pr-evidence-follows-head-sha": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "line": 34,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-readable-remediation": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "line": 42,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-release-ready-is-composite": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "line": 21,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-repairs-stay-reviewable": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "line": 56,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-risk-engine-is-shared": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "line": 28,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-risk-override-boundary": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "line": 49,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-submission-gate-checks-the-handoff": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "line": 35,
+      "inbound": [],
+      "outbound": []
+    },
+    "p-trailhead-trust-learns-from-outcomes": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "line": 49,
+      "inbound": [],
+      "outbound": []
+    }
+  },
+  "sources": {
+    "commit:622c6e9255f1b124f3c0aea4102eb87d1e54b162": {
+      "paragraphs": [
+        "p-trailhead-current-release-docs-need-supersession"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "commit:7fa9803444117335f3a6847d498614fff9f36e52": {
+      "paragraphs": [
+        "p-trailhead-history-added-coach-and-fixer",
+        "p-trailhead-readable-remediation"
+      ],
+      "chapters": [
+        "fleet/agent-governance",
+        "process/project-history"
+      ]
+    },
+    "commit:b7b0f56a63606f74e7f63a06f05baeaa932653b8": {
+      "paragraphs": [
+        "p-trailhead-readable-remediation"
+      ],
+      "chapters": [
+        "fleet/agent-governance"
+      ]
+    },
+    "commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6": {
+      "paragraphs": [
+        "p-trailhead-cloud-adds-durable-organization-memory",
+        "p-trailhead-history-v4-unified-release-readiness"
+      ],
+      "chapters": [
+        "platform/product-surfaces",
+        "process/project-history"
+      ]
+    },
+    "pr:1": {
+      "paragraphs": [
+        "p-trailhead-action-is-the-primary-gate",
+        "p-trailhead-history-founded-as-deployguard"
+      ],
+      "chapters": [
+        "platform/product-surfaces",
+        "process/project-history"
+      ]
+    },
+    "pr:10": {
+      "paragraphs": [
+        "p-trailhead-history-founded-as-deployguard",
+        "p-trailhead-mcp-makes-evidence-agent-readable"
+      ],
+      "chapters": [
+        "platform/product-surfaces",
+        "process/project-history"
+      ]
+    },
+    "pr:12": {
+      "paragraphs": [
+        "p-trailhead-app-protects-deployments",
+        "p-trailhead-availability-is-an-explicit-policy",
+        "p-trailhead-history-founded-as-deployguard",
+        "p-trailhead-observes-health-and-delivery-outcomes",
+        "p-trailhead-risk-engine-is-shared"
+      ],
+      "chapters": [
+        "engine/release-ready-decision",
+        "infra/safety-and-observability",
+        "platform/product-surfaces",
+        "process/project-history"
+      ]
+    },
+    "pr:14": {
+      "paragraphs": [
+        "p-trailhead-history-founded-as-deployguard"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:16": {
+      "paragraphs": [
+        "p-trailhead-history-became-trailhead"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:214": {
+      "paragraphs": [
+        "p-trailhead-history-v4-unified-release-readiness",
+        "p-trailhead-release-ready-is-composite"
+      ],
+      "chapters": [
+        "engine/release-ready-decision",
+        "process/project-history"
+      ]
+    },
+    "pr:218": {
+      "paragraphs": [
+        "p-trailhead-history-v4-unified-release-readiness"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:220": {
+      "paragraphs": [
+        "p-trailhead-cli-configures-and-diagnoses"
+      ],
+      "chapters": [
+        "platform/product-surfaces"
+      ]
+    },
+    "pr:234": {
+      "paragraphs": [
+        "p-trailhead-readable-remediation"
+      ],
+      "chapters": [
+        "fleet/agent-governance"
+      ]
+    },
+    "pr:244": {
+      "paragraphs": [
+        "p-trailhead-agent-policy-starts-with-provenance",
+        "p-trailhead-history-added-coach-and-fixer",
+        "p-trailhead-submission-gate-checks-the-handoff"
+      ],
+      "chapters": [
+        "fleet/agent-governance",
+        "process/project-history"
+      ]
+    },
+    "pr:246": {
+      "paragraphs": [
+        "p-trailhead-mcp-makes-evidence-agent-readable",
+        "p-trailhead-submission-gate-checks-the-handoff"
+      ],
+      "chapters": [
+        "fleet/agent-governance",
+        "platform/product-surfaces"
+      ]
+    },
+    "pr:261": {
+      "paragraphs": [
+        "p-trailhead-history-added-coach-and-fixer",
+        "p-trailhead-trust-learns-from-outcomes"
+      ],
+      "chapters": [
+        "fleet/agent-governance",
+        "process/project-history"
+      ]
+    },
+    "pr:263": {
+      "paragraphs": [
+        "p-trailhead-history-added-lifecycle-gates"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:269": {
+      "paragraphs": [
+        "p-trailhead-repairs-stay-reviewable"
+      ],
+      "chapters": [
+        "fleet/agent-governance"
+      ]
+    },
+    "pr:273": {
+      "paragraphs": [
+        "p-trailhead-history-added-lifecycle-gates",
+        "p-trailhead-repairs-stay-reviewable"
+      ],
+      "chapters": [
+        "fleet/agent-governance",
+        "process/project-history"
+      ]
+    },
+    "pr:279": {
+      "paragraphs": [
+        "p-trailhead-can-backfill-historical-evaluations",
+        "p-trailhead-history-v46-closed-reconciliation-gaps"
+      ],
+      "chapters": [
+        "fleet/agent-governance",
+        "process/project-history"
+      ]
+    },
+    "pr:280": {
+      "paragraphs": [
+        "p-trailhead-history-calibrated-real-fleet-data"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:284": {
+      "paragraphs": [
+        "p-trailhead-history-calibrated-real-fleet-data"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:301": {
+      "paragraphs": [
+        "p-trailhead-close-on-ship-reconnects-work",
+        "p-trailhead-history-v46-closed-reconciliation-gaps"
+      ],
+      "chapters": [
+        "fleet/agent-governance",
+        "process/project-history"
+      ]
+    },
+    "pr:314": {
+      "paragraphs": [
+        "p-trailhead-cloud-adds-durable-organization-memory",
+        "p-trailhead-history-cloud-became-a-product"
+      ],
+      "chapters": [
+        "platform/product-surfaces",
+        "process/project-history"
+      ]
+    },
+    "pr:315": {
+      "paragraphs": [
+        "p-trailhead-cloud-adds-durable-organization-memory",
+        "p-trailhead-history-cloud-became-a-product"
+      ],
+      "chapters": [
+        "platform/product-surfaces",
+        "process/project-history"
+      ]
+    },
+    "pr:328": {
+      "paragraphs": [
+        "p-trailhead-history-v46-closed-reconciliation-gaps",
+        "p-trailhead-pr-evidence-follows-head-sha"
+      ],
+      "chapters": [
+        "infra/safety-and-observability",
+        "process/project-history"
+      ]
+    },
+    "pr:345": {
+      "paragraphs": [
+        "p-trailhead-ci-integrity-scans-added-behavior",
+        "p-trailhead-complete-pr-files",
+        "p-trailhead-history-v46-closed-reconciliation-gaps"
+      ],
+      "chapters": [
+        "infra/safety-and-observability",
+        "process/project-history"
+      ]
+    },
+    "pr:348": {
+      "paragraphs": [
+        "p-trailhead-availability-is-an-explicit-policy",
+        "p-trailhead-brief-enumerates-actionable-findings",
+        "p-trailhead-ci-status-and-relevance-differ",
+        "p-trailhead-evaluation-failure-must-speak",
+        "p-trailhead-history-v47-made-decisions-readable",
+        "p-trailhead-risk-override-boundary"
+      ],
+      "chapters": [
+        "engine/release-ready-decision",
+        "infra/safety-and-observability",
+        "process/project-history"
+      ]
+    },
+    "pr:349": {
+      "paragraphs": [
+        "p-trailhead-current-release-docs-need-supersession",
+        "p-trailhead-history-v47-made-decisions-readable"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:35": {
+      "paragraphs": [
+        "p-trailhead-history-became-trailhead"
+      ],
+      "chapters": [
+        "process/project-history"
+      ]
+    },
+    "pr:357": {
+      "paragraphs": [
+        "p-trailhead-dev-repairs"
+      ],
+      "chapters": [
+        "infra/safety-and-observability"
+      ]
+    },
+    "pr:358": {
+      "paragraphs": [
+        "p-trailhead-dev-repairs"
+      ],
+      "chapters": [
+        "infra/safety-and-observability"
+      ]
+    },
+    "pr:359": {
+      "paragraphs": [
+        "p-trailhead-ci-integrity-scans-added-behavior",
+        "p-trailhead-dev-repairs"
+      ],
+      "chapters": [
+        "infra/safety-and-observability"
+      ]
+    },
+    "pr:53": {
+      "paragraphs": [
+        "p-trailhead-availability-is-an-explicit-policy"
+      ],
+      "chapters": [
+        "infra/safety-and-observability"
+      ]
+    },
+    "pr:8": {
+      "paragraphs": [
+        "p-trailhead-observes-health-and-delivery-outcomes"
+      ],
+      "chapters": [
+        "infra/safety-and-observability"
+      ]
+    }
+  }
+}
