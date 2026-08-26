@@ -52,7 +52,7 @@ The Engine pilot metric is bound to exactly four chapters: `engine/run-cycle`, `
 
 Secret values, personal contact details, live infrastructure topology, unresolved security findings, and commercial terms do not belong in this book. The scanner blocks value-shaped secrets, domestic and international phone numbers, contact details, and internal, managed-cloud, or Komatik service hostnames. Its narrow example allowlist admits reserved `example.*`/`.invalid` names, documentation-only IP ranges, fictional `555-01xx` phone numbers, localhost, public Komatik roots, and named public documentation hosts; new exceptions require code review rather than prose markers. The source allowlist excludes restricted audit and strategy surfaces; human review remains the semantic gate for audience-tiered prose. Use safe handle names or pointers to the owning restricted surface, never the sensitive value itself.
 
-Run `npm run book:hooks:install` once per clone to activate the tracked hooks. The pre-commit gate scans exact staged blobs, while CI repeats the full-tree scan and every structural check.
+Run the shared Book index, lint, and disclosure scan before review. This backfill is validated at its exact source-PR head with Komatik's shared toolchain; Trailhead does not yet install that toolchain as a repo-local hook or CI job. Until it does, the central catalog must re-read exact merged Git blobs and reject stale generation, invalid provenance, or disclosure findings before import.
 
 ## Repo-native Project Books
 
