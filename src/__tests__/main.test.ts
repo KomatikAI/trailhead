@@ -848,7 +848,15 @@ describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
     freshGate.setResolvedCheckContract(options.checkContract ?? null);
 
     await import("../main.js");
-    await new Promise((r) => setTimeout(r, 0));
+    await vi.waitFor(() => {
+      const failed = vi.mocked(freshCore.setFailed).mock.calls.length > 0;
+      const failOpenWarning = vi
+        .mocked(freshCore.warning)
+        .mock.calls.some(([message]) =>
+          String(message).startsWith("Trailhead evaluation failed"),
+        );
+      expect(failed || failOpenWarning).toBe(true);
+    });
 
     return {
       freshCore,
@@ -1055,7 +1063,9 @@ describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
     freshGate.setResolvedAvailabilityStance(null);
 
     await import("../main.js");
-    await new Promise((r) => setTimeout(r, 0));
+    await vi.waitFor(() =>
+      expect(freshCore.setFailed).toHaveBeenCalledWith(expect.stringContaining("boom")),
+    );
 
     expect(freshCore.setFailed).toHaveBeenCalledWith(expect.stringContaining("boom"));
     expect(freshCore.setFailed).toHaveBeenCalledTimes(1);
