@@ -788,6 +788,8 @@ describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
 
     const freshCore = await import("@actions/core");
     const freshGithub = await import("@actions/github");
+    const freshConfig = await import("../config.js");
+    const freshConfigCore = await import("../config-core.js");
     const freshGate = await import("../gate.js");
     const freshHealers = await import("../healers/index.js");
 
@@ -816,18 +818,13 @@ describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
     };
 
     if (options.repoConfigContent) {
-      vi.mocked(freshGithub.getOctokit).mockReturnValue({
-        rest: {
-          repos: {
-            getContent: vi.fn().mockResolvedValue({
-              data: {
-                type: "file",
-                content: Buffer.from(options.repoConfigContent).toString("base64"),
-              },
-            }),
-          },
-        },
-      } as never);
+      const repoConfig = freshConfigCore.parseRepoConfigContent(
+        options.repoConfigContent,
+      );
+      if (!repoConfig) {
+        throw new Error("runFailedMain received invalid repoConfigContent");
+      }
+      vi.spyOn(freshConfig, "loadRepoConfig").mockResolvedValue(repoConfig);
     }
 
     vi.spyOn(freshHealers, "registerHealer").mockImplementation(() => undefined);
