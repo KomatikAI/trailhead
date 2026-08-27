@@ -132,6 +132,12 @@ export function applyReleaseReadyToEvaluation(
 export function checkConclusionForEvaluation(
   evaluation: GateEvaluation,
 ): "success" | "neutral" | "failure" {
+  // Availability is a separate contract from advisory/risk/release modes. A
+  // cannot-evaluate check explicitly satisfies fail-open or fails fail-closed.
+  if (evaluation.releaseBrief?.verdict === "cannot_evaluate") {
+    return evaluation.gateDecision === "allow" ? "success" : "failure";
+  }
+
   const mode = evaluation.gateMode ?? "risk-only";
 
   if (mode === "advisory") {
@@ -165,6 +171,7 @@ export function shouldBlockMerge(evaluation: GateEvaluation): boolean {
 }
 
 export function resolveCheckName(gateMode: GateMode, configuredName?: string): string {
+  if (configuredName) return configuredName;
   if (gateMode === "risk-only") return "Trailhead";
-  return configuredName ?? "Trailhead — Release Ready";
+  return "Trailhead — Release Ready";
 }

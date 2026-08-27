@@ -236,6 +236,20 @@ export const BriefOverride = z.object({
     scope: z.string(),
     rationale: z.string(),
 });
+export const BriefOverrideStatus = z.object({
+    status: z.enum(["applied", "partial", "rejected", "revoked", "unavailable"]),
+    message: z.string(),
+    source: z.enum(["live", "payload_fallback"]).optional(),
+});
+export const BriefRequiredCheck = z.object({
+    published: z.boolean(),
+    /** Whether the published check body contains this D3 publication record. */
+    reportRefreshed: z.boolean(),
+    name: z.string(),
+    headSha: z.string(),
+    eventName: z.string(),
+    message: z.string(),
+});
 export const ReleaseBrief = z.object({
     verdict: BriefVerdict,
     riskScore: z.number().optional(),
@@ -246,6 +260,8 @@ export const ReleaseBrief = z.object({
     delta: z.string().optional(),
     actions: z.array(BriefAction),
     override: BriefOverride.nullish(),
+    overrideStatus: BriefOverrideStatus.optional(),
+    requiredCheck: BriefRequiredCheck.optional(),
     cannotEvaluateReason: z.string().optional(),
 });
 export const CreditMeterResult = z.object({
@@ -313,8 +329,9 @@ export const GateEvaluation = z.object({
     policyOverride: PolicyOverrideAudit.optional(),
     labelOverrideFeedback: z
         .object({
-        status: z.enum(["applied", "rejected"]),
+        status: z.enum(["applied", "partial", "rejected", "revoked", "unavailable"]),
         message: z.string(),
+        source: z.enum(["live", "payload_fallback"]).optional(),
     })
         .optional(),
     releaseReady: z.boolean().optional(),
@@ -322,6 +339,8 @@ export const GateEvaluation = z.object({
     ci: CiSummary.optional(),
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
+    /** Effective Checks API context after action-input and repo-config resolution. */
+    resolvedCheckName: z.string().optional(),
     storePersisted: z.boolean().optional(),
     credit_meter: CreditMeterResult.optional(),
     remediation: Remediation.optional(),
@@ -439,7 +458,10 @@ export const TrailheadContext = z.object({
 });
 export const GateConfig = z.object({
     mode: GateMode.default("risk-only"),
-    check_name: z.string().default("Trailhead — Release Ready"),
+    // Omitted means the mode-specific default from resolveCheckName. Keeping
+    // this optional preserves the distinction between "not configured" and an
+    // explicit custom protected-check contract in risk-only mode.
+    check_name: z.string().optional(),
     agent_brief: AgentBriefMode.optional(),
 });
 export const RemediationConfig = z.object({

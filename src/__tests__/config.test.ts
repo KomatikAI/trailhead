@@ -448,6 +448,7 @@ contexts:
     if (!parsed.success) return;
     expect(parsed.data.schema_version).toBe(1);
     expect(parsed.data.gate.mode).toBe("risk-only");
+    expect(parsed.data.gate.check_name).toBeUndefined();
     expect(parsed.data.contexts).toEqual([]);
   });
 

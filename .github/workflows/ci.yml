@@ -52,7 +52,10 @@ jobs:
 
       - name: Typecheck mcp/
         run: |
-          cd mcp && npm ci && npm run prebuild && npx tsc --noEmit
+          cd mcp && npm ci && npm run build
+
+      - name: Verify shared sources and MCP runtime are committed
+        run: git diff --exit-code -- app/src mcp/src mcp/dist
 
       - name: Typecheck cloud/
         run: |

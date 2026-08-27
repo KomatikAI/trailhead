@@ -174,6 +174,78 @@ describe("renderReleaseBrief — verdict shapes", () => {
     const output = renderReleaseBrief(brief({ override: null }));
     expect(output).not.toContain("### Override");
   });
+
+  it("renders an override trace that could not be honored", () => {
+    const output = renderReleaseBrief(
+      brief({
+        overrideStatus: {
+          status: "rejected",
+          source: "live",
+          message:
+            "A reason comment is present but the trailhead-override label is missing. Add it.",
+        },
+      }),
+    );
+
+    expect(output).toContain(
+      "> ⚠️ **Override rejected:** A reason comment is present but the trailhead-override label is missing. Add it. _(state source: live)_",
+    );
+  });
+
+  it("renders legacy override feedback without inventing a live source", () => {
+    const output = renderReleaseBrief(
+      brief({
+        overrideStatus: {
+          status: "rejected",
+          message: "Historical feedback",
+        },
+      }),
+    );
+
+    expect(output).toContain("> ⚠️ **Override rejected:** Historical feedback");
+    expect(output).not.toContain("state source:");
+  });
+
+  it.each([
+    { published: true, reportRefreshed: true, label: "✅", state: "published" },
+    {
+      published: true,
+      reportRefreshed: false,
+      label: "⚠️",
+      state: "published, report stale",
+    },
+    {
+      published: false,
+      reportRefreshed: false,
+      label: "⚠️",
+      state: "not published",
+    },
+  ])(
+    "renders required-check publication: $state",
+    ({ published, reportRefreshed, label, state }) => {
+      const output = renderReleaseBrief(
+        brief({
+          requiredCheck: {
+            published,
+            reportRefreshed,
+            name: "Trailhead — Release Ready",
+            headSha: "abc123",
+            eventName: "pull_request_review",
+            message: published
+              ? "Published the custom check on the PR head."
+              : "Publishing failed; trigger pull_request:labeled after recovery.",
+          },
+        }),
+      );
+
+      expect(output).toContain(`> ${label} **Required check ${state}:**`);
+      expect(output).toContain(
+        published
+          ? "Published the custom check on the PR head."
+          : "trigger pull_request:labeled after recovery.",
+      );
+    },
+  );
 });
 
 describe("renderReleaseBrief — empty and partial data", () => {

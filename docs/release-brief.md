@@ -156,6 +156,84 @@ rerun could not see it. The same live read backs context matching and merge-queu
 detection, so every consumer sees one current set of labels. If the live read fails, the
 run warns and falls back to the payload labels for that evaluation.
 
+That single live label read is also what the override consumes — there is no second
+label read. PR comments are fetched separately (REST `issues.listComments`) and only when
+the live labels actually carry `trailhead-override`, so an evaluation with no override
+intent makes no comment request. Live labels are authoritative: removing the label revokes
+the override even if an older labeled run is re-run.
+
+When the live read fails, the fallback is a **degradation, not a regression** — the
+evaluation continues on the triggering event's payload and can still authorize, and the
+brief records `overrideStatus.source: payload_fallback` so the degraded read is visible.
+The one thing a frozen payload cannot do is supply an override reason it never carried;
+that case is reported as `overrideStatus.status: unavailable` with the recovery step.
+
+Record the comment **before** adding the label. `labeled`/`unlabeled` activity triggers
+the gate only for `trailhead-override`; unrelated label changes are filtered at the job.
+If a label-first run starts before the comment exists, add the comment and re-run, or
+remove and re-add the label.
+
+Use the safe concurrency group from `docs/getting-started.md` so the newest real gate
+event supersedes older evaluations, including a label revocation overtaking an active
+override run. GitHub evaluates concurrency before the job filter, so ignored-label runs
+must use a unique group such as `github.run_id` rather than canceling the real gate, and
+the group must include `github.workflow` so separate publishers cannot cancel each other.
+
+Any incomplete or unusable trace is explicit in `overrideStatus`: comment without
+label, label without comment, retained mechanical CI under `risk_only`, disabled/capped
+policy, or payload-only fallback. The brief gives the next action rather than silently
+ignoring the recorded human intent.
+
+### Required-check publication (ADR-012 D3)
+
+Branch protection must require the custom check named by `gate.check_name` or the
+`check-name` action input (default **Trailhead — Release Ready** in release-ready mode and
+**Trailhead** in risk-only mode), not the native workflow job name. The check's source is the
+GitHub App that owns the publication token: GitHub
+Actions when Trailhead uses `GITHUB_TOKEN`, or the separate App when an installation token
+is supplied. The custom check is published on the evaluated PR head SHA and works across
+`pull_request` and `pull_request_review` evaluations. Native job checks remain attached to
+their triggering workflow suite and can reproduce the close/reopen failure that motivated
+ADR-012.
+
+An explicit `check-name` action input overrides `gate.check_name`; repo config supplies the
+name when the input is absent.
+
+Pin the token's publishing GitHub App as the expected source as well as the name. For
+`GITHUB_TOKEN`, pin **GitHub Actions** (`integration_id: 15368` on github.com); for an
+installation token, pin that separate App instead. A name-only rule can be satisfied by a
+different app publishing the same context. GitHub Enterprise Server installations must
+use the corresponding local App id.
+
+Fork PRs are a permission boundary: their ordinary `pull_request` token is read-only and
+cannot publish this custom check. Public repositories must use the no-checkout
+`pull_request_target` publisher in `docs/getting-started.md`, or a GitHub App installation
+token and a ruleset pinned to that App. Reapplying the label cannot repair a read-only
+token by itself. The target-only publisher does not receive review events, so fork policies
+that enforce approvals require an installed App or external publisher listening to review
+webhooks with a write-capable installation token. Without that bridge, review state must not be
+a blocking Trailhead input for fork PRs.
+
+The Release Brief records whether custom-check publication succeeded. If it failed, the
+brief states that the evaluation cannot satisfy protection and names the recovery path:
+restore GitHub Checks access and re-run, or apply/reapply the override label to trigger
+`pull_request:labeled`.
+
+After the check is created, Trailhead refreshes that same check run with the publication
+record before persisting the completed brief. It retries that D3 refresh twice. If both
+attempts fail, `requiredCheck.reportRefreshed` is `false` and every persisted/downstream
+surface warns **published, report stale**; branch protection still has the published
+conclusion, but the check body does not claim to be synchronized. When refresh succeeds,
+the evaluation store, JSON output, webhook, job summary, custom-check summary, and PR
+comment expose the same D3 state.
+
+If evaluation itself throws, Trailhead still best-effort publishes the custom context —
+but a run that evaluated nothing never publishes `success`. `fail_open` publishes
+conclusion **neutral**, titled **CANNOT EVALUATE (FAIL-OPEN)**: it does not block the
+merge and does not claim a passing verdict. `fail_closed` publishes **failure**, titled
+**CANNOT EVALUATE (FAIL-CLOSED)**. A Checks API failure remains visible and may leave
+protection pending; fail-open is not permission to pretend publication occurred.
+
 ## Example `.trailhead.yml`
 
 This is ADR-011's seed table for the dogfood consumer (komatik), written out in full.

@@ -13,6 +13,7 @@ import {
   checkMcpHealth,
   postPrComment,
   createCheckRun,
+  updateCheckRunReport,
   managePrLabels,
   requestHighRiskReviewers,
   formatGateReport,
@@ -27,6 +28,7 @@ const {
   mockCreateComment,
   mockUpdateComment,
   mockChecksCreate,
+  mockChecksUpdate,
   mockCreateLabel,
   mockListLabelsOnIssue,
   mockRemoveLabel,
@@ -38,6 +40,7 @@ const {
   mockCreateComment: vi.fn(),
   mockUpdateComment: vi.fn(),
   mockChecksCreate: vi.fn(),
+  mockChecksUpdate: vi.fn(),
   mockCreateLabel: vi.fn(),
   mockListLabelsOnIssue: vi.fn(),
   mockRemoveLabel: vi.fn(),
@@ -73,6 +76,7 @@ vi.mock("@actions/github", () => ({
       },
       checks: {
         create: mockChecksCreate,
+        update: mockChecksUpdate,
       },
       pulls: {
         get: mockPullsGet,
@@ -1280,7 +1284,10 @@ describe("checkSupabaseHealth", () => {
 
 describe("createCheckRun", () => {
   beforeEach(() => {
-    mockChecksCreate.mockReset().mockResolvedValue({});
+    mockChecksCreate.mockReset().mockResolvedValue({
+      data: { id: 77, check_suite: { id: 88 } },
+    });
+    mockChecksUpdate.mockReset().mockResolvedValue({});
   });
 
   const baseEval: GateEvaluation = {
@@ -1296,7 +1303,7 @@ describe("createCheckRun", () => {
   };
 
   it("creates a check run with success conclusion for allow", async () => {
-    await createCheckRun(baseEval, "## Report", "ghp_test");
+    const publication = await createCheckRun(baseEval, "## Report", "ghp_test");
     expect(mockChecksCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         owner: "test-owner",
@@ -1311,6 +1318,13 @@ describe("createCheckRun", () => {
         }),
       }),
     );
+    expect(publication).toEqual({
+      published: true,
+      name: "Trailhead",
+      headSha: "abc1234567890",
+      checkRunId: 77,
+      checkSuiteId: 88,
+    });
   });
 
   it("includes persistence warning in check output when store failed", async () => {
@@ -1340,9 +1354,51 @@ describe("createCheckRun", () => {
 
   it("handles API errors gracefully", async () => {
     mockChecksCreate.mockRejectedValue(new Error("forbidden"));
+    await expect(createCheckRun(baseEval, "## Report", "ghp_test")).resolves.toEqual({
+      published: false,
+      name: "Trailhead",
+      headSha: "abc1234567890",
+    });
+  });
+
+  it("refreshes the same check run with the final publication brief", async () => {
+    const publication = await createCheckRun(
+      baseEval,
+      "## Initial report",
+      "ghp_test",
+      "Custom Gate",
+    );
+    const finalEvaluation: GateEvaluation = {
+      ...baseEval,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+        requiredCheck: {
+          published: true,
+          reportRefreshed: true,
+          name: "Custom Gate",
+          headSha: baseEval.commitSha,
+          eventName: "pull_request",
+          message: "Published the custom check.",
+        },
+      },
+    };
+
     await expect(
-      createCheckRun(baseEval, "## Report", "ghp_test"),
-    ).resolves.toBeUndefined();
+      updateCheckRunReport(publication, finalEvaluation, "## Final report", "ghp_test"),
+    ).resolves.toBe(true);
+    expect(mockChecksUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        check_run_id: 77,
+        output: expect.objectContaining({
+          title: "Custom Gate: ALLOW",
+          summary: "## Final report",
+        }),
+      }),
+    );
   });
 });
 

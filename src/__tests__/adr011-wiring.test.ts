@@ -623,6 +623,42 @@ describe("buildReleaseBrief", () => {
     expect(buildReleaseBrief(evaluation(), 70).override).toBeNull();
   });
 
+  it("projects rejected and partial override traces into the brief", () => {
+    const brief = buildReleaseBrief(
+      evaluation({
+        labelOverrideFeedback: {
+          status: "partial",
+          source: "live",
+          message: "risk_only cannot clear required CI check type-check",
+        },
+      }),
+      70,
+    );
+
+    expect(brief.overrideStatus).toEqual({
+      status: "partial",
+      source: "live",
+      message: "risk_only cannot clear required CI check type-check",
+    });
+  });
+
+  it("does not relabel a historical feedback source as live", () => {
+    const brief = buildReleaseBrief(
+      evaluation({
+        labelOverrideFeedback: {
+          status: "rejected",
+          message: "Historical override feedback without source metadata",
+        },
+      }),
+      70,
+    );
+
+    expect(brief.overrideStatus).toEqual({
+      status: "rejected",
+      message: "Historical override feedback without source metadata",
+    });
+  });
+
   it("renders a delta only once a previous evaluation exists", () => {
     expect(buildReleaseBrief(evaluation(), 70).delta).toBeUndefined();
 

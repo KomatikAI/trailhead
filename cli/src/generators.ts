@@ -5,6 +5,11 @@ export type GateModeOption = "release-ready" | "risk-only" | "advisory";
 export type BranchModel = "main-only" | "progressive";
 export type AudienceId = "solo" | "team" | "agent" | "ops" | "custom";
 
+/** Mode-specific custom check emitted by the generated workflow when unset. */
+export function requiredCheckNameForGateMode(gateMode: GateModeOption): string {
+  return gateMode === "risk-only" ? "Trailhead" : "Trailhead — Release Ready";
+}
+
 export function parseCheckList(input: string, fallback: string[]): string[] {
   const list = input
     .split(",")
@@ -345,7 +350,7 @@ export function generateWorkflowYml(options: WorkflowYmlOptions): string {
     "",
     "on:",
     "  pull_request:",
-    "    types: [opened, synchronize, reopened]",
+    "    types: [opened, synchronize, reopened, labeled, unlabeled]",
   ];
 
   if (options.rerunOnReview) {
@@ -355,6 +360,11 @@ export function generateWorkflowYml(options: WorkflowYmlOptions): string {
 
   lines.push(
     "",
+    "# Keep the newest real gate authoritative while unrelated label runs cannot cancel it.",
+    "concurrency:",
+    "  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}",
+    "  cancel-in-progress: true",
+    "",
     "permissions:",
     "  contents: read",
     "  pull-requests: write",
@@ -363,6 +373,9 @@ export function generateWorkflowYml(options: WorkflowYmlOptions): string {
     "",
     "jobs:",
     "  trailhead:",
+    "    if: >-",
+    "      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||",
+    "      github.event.label.name == 'trailhead-override'",
     "    runs-on: ubuntu-latest",
     "    steps:",
     "      - uses: actions/checkout@v4",

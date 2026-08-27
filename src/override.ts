@@ -36,6 +36,7 @@ export type LabelOverrideRejectionCode =
 
 export type LabelOverrideOutcome =
   | { kind: "none" }
+  | { kind: "revoked"; message: string }
   | { kind: "applied"; audit: PolicyOverrideAudit }
   | { kind: "rejected"; code: LabelOverrideRejectionCode; message: string };
 
@@ -151,21 +152,27 @@ export function formatOverrideRejectionMessage(code: LabelOverrideRejectionCode)
         "The `trailhead-override` label is present but no valid override reason was found. " +
         "Add a PR comment starting with `trailhead-override: <your reason>` " +
         "(for example: `trailhead-override: emergency hotfix for prod outage`). " +
-        "The gate will re-evaluate on the next run after the comment is posted."
+        "Then re-run the Trailhead job, or remove and re-add the label to trigger a fresh " +
+        "`pull_request` evaluation."
       );
     case "disabled":
       return (
         "The `trailhead-override` label is present but label overrides are disabled " +
-        "in this repo's `.trailhead.yml` (`override.enabled: false`)."
+        "in this repo's `.trailhead.yml` (`override.enabled: false`). Remove the label, or " +
+        "enable the policy in a reviewed config change and then re-run or reapply the label."
       );
     case "cap_exceeded":
       return (
         "The `trailhead-override` label is present but this repo has reached its weekly " +
-        "override cap. File an issue in [KomatikAI/trailhead](https://github.com/KomatikAI/trailhead) " +
-        "linking this PR and the override pattern before applying another override."
+        "override cap. Remove the label, then file an issue in " +
+        "[KomatikAI/trailhead](https://github.com/KomatikAI/trailhead) linking this PR and " +
+        "the override pattern before applying another override."
       );
     case "not_needed":
-      return "The `trailhead-override` label is present but release is already ready — no override applied.";
+      return (
+        "The `trailhead-override` label is present but release is already ready, so no " +
+        "override was applied. Remove the label to avoid leaving stale override intent on the PR."
+      );
     default: {
       const _exhaustive: never = code;
       return _exhaustive;
@@ -184,8 +191,18 @@ export function resolveLabelOverride(input: {
   /** Structural CI signal used to scope a risk_only override. */
   ci?: CiSummary | null;
 }): LabelOverrideOutcome {
+  const parsed = parseOverrideComment(input.comments);
   if (!hasOverrideLabel(input.labels)) {
-    return { kind: "none" };
+    return parsed
+      ? {
+          kind: "revoked",
+          message:
+            "A valid `trailhead-override: <reason>` comment is recorded, but the " +
+            "`trailhead-override` label is absent, so no override is active. This is the " +
+            "expected state after revocation. Add the label only if you intend to authorize " +
+            "the recorded override; adding it triggers a fresh `pull_request:labeled` evaluation.",
+        }
+      : { kind: "none" };
   }
 
   if (!input.config.enabled) {
@@ -197,10 +214,13 @@ export function resolveLabelOverride(input: {
   }
 
   if (input.releaseResult.releaseReady) {
-    return { kind: "none" };
+    return {
+      kind: "rejected",
+      code: "not_needed",
+      message: formatOverrideRejectionMessage("not_needed"),
+    };
   }
 
-  const parsed = parseOverrideComment(input.comments);
   if (!parsed) {
     return {
       kind: "rejected",

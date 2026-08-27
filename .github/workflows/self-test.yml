@@ -3,9 +3,14 @@ name: "Self-Test: Trailhead on own PRs"
 on:
   pull_request:
     branches: [dev]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   # Re-evaluate required_approvals as soon as formal review state changes.
   pull_request_review:
     types: [submitted, dismissed]
+
+concurrency:
+  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -16,9 +21,11 @@ permissions:
 jobs:
   gate:
     name: "Trailhead Self-Test"
-    if: github.event.pull_request.base.ref == 'dev'
+    if: >-
+      github.event.pull_request.base.ref == 'dev' &&
+      ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override')
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
 
@@ -71,9 +78,11 @@ jobs:
 
   advisory:
     name: "Trailhead Advisory Self-Test"
-    if: github.event.pull_request.base.ref == 'dev'
+    if: >-
+      github.event.pull_request.base.ref == 'dev' &&
+      ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override')
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
 
@@ -89,6 +98,7 @@ jobs:
         uses: ./
         with:
           gate-mode: advisory
+          check-name: "Trailhead — Advisory Self-Test"
           risk-threshold: "1"
           fail-mode: "open"
 

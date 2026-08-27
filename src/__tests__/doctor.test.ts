@@ -243,6 +243,9 @@ describe("formatDoctorReport", () => {
     });
 
     expect(text).toContain("WARN [unknown_check_name]");
+    expect(text).toContain("Expected custom check name: Trailhead — Release Ready");
+    expect(text).toContain("GitHub Actions when using GITHUB_TOKEN");
+    expect(text).toContain("token's publishing GitHub App");
     expect(text).toContain("Result: OK");
   });
 });

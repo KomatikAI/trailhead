@@ -77,21 +77,46 @@ describe("run (main entrypoint)", () => {
     vi.spyOn(gate, "evaluateGate").mockResolvedValue(makeEvaluation());
     setupInputs({ "api-key": "test-key" });
 
-    const eval_ = makeEvaluation();
+    const eval_ = makeEvaluation({
+      gateMode: "release-ready",
+      resolvedCheckName: "Custom Release Gate",
+      releaseReady: true,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+      },
+    });
     vi.spyOn(gate, "evaluateGate").mockResolvedValue(eval_);
-    vi.spyOn(gate, "formatGateReport").mockReturnValue("## Report");
+    vi.spyOn(gate, "formatGateReport").mockImplementation((evaluation) =>
+      evaluation.releaseBrief?.requiredCheck
+        ? "## Report\nrequired check not published"
+        : "## Report",
+    );
     const commentSpy = vi.spyOn(gate, "postPrComment").mockResolvedValue();
-    const checkSpy = vi.spyOn(gate, "createCheckRun").mockResolvedValue();
+    const checkSpy = vi.spyOn(gate, "createCheckRun").mockResolvedValue({
+      published: false,
+      name: "Trailhead — Release Ready",
+      headSha: eval_.commitSha,
+    });
     const ciManifestSpy = vi
       .spyOn(ciExternal, "resolveCiManifests")
       .mockResolvedValue(null);
     const webhookSpy = vi.spyOn(notify, "deliverWebhooks").mockResolvedValue();
-    const storeSpy = vi.spyOn(notify, "storeEvaluationDetailed").mockResolvedValue({
-      stored: true,
-      quotaExceeded: false,
-      suspended: false,
-      hardCapped: false,
-    });
+    let storedSnapshot: GateEvaluation | undefined;
+    const storeSpy = vi
+      .spyOn(notify, "storeEvaluationDetailed")
+      .mockImplementation(async (_url, evaluation) => {
+        storedSnapshot = structuredClone(evaluation);
+        return {
+          stored: true,
+          quotaExceeded: false,
+          suspended: false,
+          hardCapped: false,
+        };
+      });
     setupInputs({
       "api-key": "test-key",
       "github-token": "ghp_test",
@@ -129,8 +154,29 @@ describe("run (main entrypoint)", () => {
       "rollout-readiness-json",
       expect.stringContaining('"band"'),
     );
-    expect(commentSpy).toHaveBeenCalledWith("## Report", 42, "ghp_test");
+    expect(commentSpy).toHaveBeenCalledWith(
+      "## Report\nrequired check not published",
+      42,
+      "ghp_test",
+    );
     expect(checkSpy).toHaveBeenCalled();
+    expect(checkSpy).toHaveBeenCalledWith(
+      eval_,
+      "## Report",
+      "ghp_test",
+      "Custom Release Gate",
+    );
+    expect(eval_.releaseBrief?.requiredCheck).toEqual(
+      expect.objectContaining({
+        published: false,
+        eventName: "pull_request",
+        message: expect.stringContaining("cannot satisfy branch protection"),
+      }),
+    );
+    expect(core.setOutput).toHaveBeenCalledWith(
+      "release-brief-json",
+      expect.stringContaining('"published":false'),
+    );
     expect(webhookSpy).toHaveBeenCalledWith(
       "https://hooks.slack.com/test",
       eval_,
@@ -141,6 +187,12 @@ describe("run (main entrypoint)", () => {
       "https://example.com/api/trailhead/store",
       eval_,
       { maxRetries: 3 },
+    );
+    expect(storedSnapshot?.releaseBrief?.requiredCheck).toEqual(
+      expect.objectContaining({
+        published: false,
+        name: "Custom Release Gate",
+      }),
     );
     expect(core.setFailed).not.toHaveBeenCalled();
   });
@@ -320,6 +372,11 @@ describe("run — wait-for-checks passthrough to gate config", () => {
 describe("run — cloud-upsell footer in the check summary", () => {
   async function runMain(options: {
     inputs: Record<string, string>;
+    evaluation?: GateEvaluation;
+    updateOutcome?: boolean;
+    fork?: boolean;
+    eventName?: string;
+    checkPublished?: boolean;
     storeOutcome?: {
       stored: boolean;
       quotaExceeded: boolean;
@@ -329,6 +386,8 @@ describe("run — cloud-upsell footer in the check summary", () => {
   }): Promise<{
     freshCore: typeof import("@actions/core");
     summaryText: string;
+    updateCheckRunReportSpy: ReturnType<typeof vi.spyOn>;
+    storeSpy?: ReturnType<typeof vi.spyOn>;
   }> {
     vi.resetModules();
 
@@ -341,10 +400,23 @@ describe("run — cloud-upsell footer in the check summary", () => {
     vi.mocked(freshCore.getInput).mockImplementation(
       (name: string) => options.inputs[name] ?? "",
     );
-    (freshGithub.context as { payload: { pull_request?: { number: number } } }).payload =
-      {
-        pull_request: { number: 42 },
-      };
+    (freshGithub.context as { eventName: string }).eventName =
+      options.eventName ?? "pull_request";
+    (
+      freshGithub.context as {
+        payload: {
+          pull_request?: {
+            number: number;
+            head: { repo: { fork: boolean } };
+          };
+        };
+      }
+    ).payload = {
+      pull_request: {
+        number: 42,
+        head: { repo: { fork: options.fork ?? false } },
+      },
+    };
     vi.mocked(freshGithub.getOctokit).mockReturnValue({
       rest: {
         issues: {
@@ -373,14 +445,34 @@ describe("run — cloud-upsell footer in the check summary", () => {
     } as never);
 
     vi.spyOn(freshHealers, "registerHealer").mockImplementation(() => undefined);
-    vi.spyOn(freshGate, "evaluateGate").mockResolvedValue(makeEvaluation());
-    vi.spyOn(freshGate, "formatGateReport").mockReturnValue("## Report");
+    vi.spyOn(freshGate, "evaluateGate").mockResolvedValue(
+      options.evaluation ?? makeEvaluation(),
+    );
+    vi.spyOn(freshGate, "formatGateReport").mockImplementation((evaluation) => {
+      const requiredCheck = evaluation.releaseBrief?.requiredCheck;
+      if (!requiredCheck) return "## Report";
+      const state = requiredCheck.published
+        ? requiredCheck.reportRefreshed
+          ? "published"
+          : "published, report stale"
+        : "not published";
+      return `## Report\nRequired check ${state}`;
+    });
     vi.spyOn(freshGate, "postPrComment").mockResolvedValue();
-    vi.spyOn(freshGate, "createCheckRun").mockResolvedValue();
+    vi.spyOn(freshGate, "createCheckRun").mockResolvedValue({
+      published: options.checkPublished ?? true,
+      name: "Trailhead — Release Ready",
+      headSha: "abc123",
+      ...(options.checkPublished === false ? {} : { checkRunId: 77 }),
+    });
+    const updateCheckRunReportSpy = vi
+      .spyOn(freshGate, "updateCheckRunReport")
+      .mockResolvedValue(options.updateOutcome ?? true);
+    let storeSpy: ReturnType<typeof vi.spyOn> | undefined;
     if (options.storeOutcome) {
-      vi.spyOn(freshNotify, "storeEvaluationDetailed").mockResolvedValue(
-        options.storeOutcome,
-      );
+      storeSpy = vi
+        .spyOn(freshNotify, "storeEvaluationDetailed")
+        .mockResolvedValue(options.storeOutcome);
     }
 
     await import("../main.js");
@@ -391,8 +483,186 @@ describe("run — cloud-upsell footer in the check summary", () => {
       .mock.calls.map((call) => call[0])
       .join("\n");
 
-    return { freshCore, summaryText };
+    return { freshCore, summaryText, updateCheckRunReportSpy, storeSpy };
   }
+
+  it("refreshes D3 publication before persistence", async () => {
+    const evaluation = makeEvaluation({
+      gateMode: "release-ready",
+      releaseReady: true,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+      },
+    });
+    const { updateCheckRunReportSpy, storeSpy } = await runMain({
+      inputs: {
+        "api-key": "test-key",
+        "github-token": "ghp_test",
+        "trailhead-api-key": "th_live_abc",
+        "disable-cloud-upsell": "true",
+      },
+      evaluation,
+      storeOutcome: {
+        stored: true,
+        quotaExceeded: false,
+        suspended: false,
+        hardCapped: false,
+      },
+    });
+
+    expect(updateCheckRunReportSpy).toHaveBeenCalledTimes(1);
+    expect(evaluation.releaseBrief?.requiredCheck?.message).toContain(
+      "token's publishing GitHub App",
+    );
+    expect(evaluation.releaseBrief?.requiredCheck?.reportRefreshed).toBe(true);
+    expect(storeSpy).toBeDefined();
+    expect(updateCheckRunReportSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      storeSpy!.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("discloses a published check whose report cannot be refreshed", async () => {
+    const evaluation = makeEvaluation({
+      gateMode: "release-ready",
+      releaseReady: true,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+      },
+    });
+    const { summaryText, updateCheckRunReportSpy, storeSpy } = await runMain({
+      inputs: {
+        "api-key": "test-key",
+        "github-token": "ghp_test",
+        "trailhead-api-key": "th_live_abc",
+        "disable-cloud-upsell": "true",
+      },
+      evaluation,
+      updateOutcome: false,
+      storeOutcome: {
+        stored: true,
+        quotaExceeded: false,
+        suspended: false,
+        hardCapped: false,
+      },
+    });
+
+    expect(updateCheckRunReportSpy).toHaveBeenCalledTimes(2);
+    expect(storeSpy).toBeDefined();
+    expect(updateCheckRunReportSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      storeSpy!.mock.invocationCallOrder[0],
+    );
+    expect(updateCheckRunReportSpy.mock.invocationCallOrder[1]).toBeLessThan(
+      storeSpy!.mock.invocationCallOrder[0],
+    );
+    expect(evaluation.releaseBrief?.requiredCheck).toEqual(
+      expect.objectContaining({
+        published: true,
+        reportRefreshed: false,
+        message: expect.stringContaining("check body is stale"),
+      }),
+    );
+    expect(summaryText).toContain("Required check published, report stale");
+  });
+
+  it("names the durable publisher path when a fork token cannot publish", async () => {
+    const evaluation = makeEvaluation({
+      gateMode: "release-ready",
+      releaseReady: true,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+      },
+    });
+
+    await runMain({
+      inputs: {
+        "github-token": "read-only-fork-token",
+        "disable-cloud-upsell": "true",
+      },
+      evaluation,
+      fork: true,
+      checkPublished: false,
+    });
+
+    const message = evaluation.releaseBrief?.requiredCheck?.message ?? "";
+    expect(message).toContain("fork `pull_request`");
+    expect(message).toContain("`pull_request_target`");
+    expect(message).toContain("installed GitHub App token");
+    expect(message).toContain("cannot repair");
+  });
+
+  it("treats fork pull_request_review tokens as read-only", async () => {
+    const evaluation = makeEvaluation({
+      gateMode: "release-ready",
+      releaseReady: true,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+      },
+    });
+
+    await runMain({
+      inputs: {
+        "github-token": "read-only-fork-review-token",
+        "disable-cloud-upsell": "true",
+      },
+      evaluation,
+      fork: true,
+      eventName: "pull_request_review",
+      checkPublished: false,
+    });
+
+    const message = evaluation.releaseBrief?.requiredCheck?.message ?? "";
+    expect(message).toContain("fork `pull_request_review`");
+    expect(message).toContain("token is read-only");
+    expect(message).toContain(
+      "`pull_request_target` publisher does not receive review events",
+    );
+    expect(message).toContain("installed GitHub App or external publisher");
+  });
+
+  it("does not call a pull_request_target publisher token inherently read-only", async () => {
+    const evaluation = makeEvaluation({
+      gateMode: "release-ready",
+      releaseReady: true,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+      },
+    });
+
+    await runMain({
+      inputs: {
+        "github-token": "base-repo-token",
+        "disable-cloud-upsell": "true",
+      },
+      evaluation,
+      fork: true,
+      eventName: "pull_request_target",
+      checkPublished: false,
+    });
+
+    const message = evaluation.releaseBrief?.requiredCheck?.message ?? "";
+    expect(message).toContain("Restore GitHub Checks access");
+    expect(message).not.toContain("token is read-only");
+  });
 
   it("appends the no-key upsell footer when no trailhead-api-key is set", async () => {
     const { summaryText } = await runMain({ inputs: { "api-key": "test-key" } });
@@ -498,10 +768,21 @@ describe("run — cloud-upsell footer in the check summary", () => {
 describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
   async function runFailedMain(options: {
     inputs: Record<string, string>;
+    repoConfigContent?: string;
     stance?: "fail_open" | "fail_closed" | null;
+    fork?: boolean;
+    eventName?: string;
+    checkPublished?: boolean;
+    updateOutcome?: boolean;
+    checkContract?: {
+      name: string;
+      mode: "risk-only" | "advisory" | "release-ready";
+    } | null;
   }): Promise<{
     freshCore: typeof import("@actions/core");
     postPrCommentSpy: ReturnType<typeof vi.spyOn>;
+    createCheckRunSpy: ReturnType<typeof vi.spyOn>;
+    updateCheckRunReportSpy: ReturnType<typeof vi.spyOn>;
   }> {
     vi.resetModules();
 
@@ -513,38 +794,148 @@ describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
     vi.mocked(freshCore.getInput).mockImplementation(
       (name: string) => options.inputs[name] ?? "",
     );
-    (freshGithub.context as { payload: { pull_request?: { number: number } } }).payload =
-      {
-        pull_request: { number: 42 },
-      };
+    (freshGithub.context as { eventName: string }).eventName =
+      options.eventName ?? "pull_request";
+    (
+      freshGithub.context as {
+        payload: {
+          pull_request?: {
+            number: number;
+            head: { sha: string; repo: { fork: boolean } };
+          };
+        };
+      }
+    ).payload = {
+      pull_request: {
+        number: 42,
+        head: {
+          sha: "cannot-evaluate-head-sha",
+          repo: { fork: options.fork ?? false },
+        },
+      },
+    };
+
+    if (options.repoConfigContent) {
+      vi.mocked(freshGithub.getOctokit).mockReturnValue({
+        rest: {
+          repos: {
+            getContent: vi.fn().mockResolvedValue({
+              data: {
+                type: "file",
+                content: Buffer.from(options.repoConfigContent).toString("base64"),
+              },
+            }),
+          },
+        },
+      } as never);
+    }
 
     vi.spyOn(freshHealers, "registerHealer").mockImplementation(() => undefined);
     vi.spyOn(freshGate, "evaluateGate").mockRejectedValue(
       new Error("evaluation store unreachable"),
     );
     const postPrCommentSpy = vi.spyOn(freshGate, "postPrComment").mockResolvedValue();
+    const createCheckRunSpy = vi.spyOn(freshGate, "createCheckRun").mockResolvedValue({
+      published: options.checkPublished ?? true,
+      name: "Trailhead — Release Ready",
+      headSha: "cannot-evaluate-head-sha",
+      ...(options.checkPublished === false ? {} : { checkRunId: 77 }),
+    });
+    const updateCheckRunReportSpy = vi
+      .spyOn(freshGate, "updateCheckRunReport")
+      .mockResolvedValue(options.updateOutcome ?? true);
     freshGate.setResolvedAvailabilityStance(options.stance ?? null);
+    freshGate.setResolvedCheckContract(options.checkContract ?? null);
 
     await import("../main.js");
     await new Promise((r) => setTimeout(r, 0));
 
-    return { freshCore, postPrCommentSpy };
+    return {
+      freshCore,
+      postPrCommentSpy,
+      createCheckRunSpy,
+      updateCheckRunReportSpy,
+    };
   }
 
   it("posts a cannot-evaluate brief and sets release-brief-json", async () => {
-    const { freshCore, postPrCommentSpy } = await runFailedMain({
-      inputs: { "github-token": "ghp_test", "fail-mode": "open" },
-    });
+    const { freshCore, postPrCommentSpy, createCheckRunSpy, updateCheckRunReportSpy } =
+      await runFailedMain({
+        inputs: {
+          "github-token": "ghp_test",
+          "fail-mode": "open",
+          "gate-mode": "release-ready",
+        },
+      });
 
     expect(postPrCommentSpy).toHaveBeenCalledTimes(1);
     const body = postPrCommentSpy.mock.calls[0]?.[0] as string;
     expect(body).toContain("CANNOT EVALUATE");
     expect(body).toContain("evaluation store unreachable");
+    expect(body).toContain("Required check published");
+    expect(createCheckRunSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateDecision: "allow",
+        releaseReady: true,
+        gateMode: "release-ready",
+      }),
+      expect.stringContaining("CANNOT EVALUATE"),
+      "ghp_test",
+      "Trailhead — Release Ready",
+    );
+    expect(updateCheckRunReportSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ published: true, checkRunId: 77 }),
+      expect.objectContaining({ releaseBrief: expect.any(Object) }),
+      expect.stringContaining("Required check published"),
+      "ghp_test",
+    );
     expect(freshCore.setOutput).toHaveBeenCalledWith(
       "release-brief-json",
       expect.stringContaining('"verdict":"cannot_evaluate"'),
     );
     expect(freshCore.setFailed).not.toHaveBeenCalled();
+  });
+
+  it("gives fork-specific recovery when cannot-evaluate publication is denied", async () => {
+    const { postPrCommentSpy, updateCheckRunReportSpy } = await runFailedMain({
+      inputs: {
+        "github-token": "read-only-fork-token",
+        "fail-mode": "open",
+        "gate-mode": "release-ready",
+      },
+      fork: true,
+      eventName: "pull_request_review",
+      checkPublished: false,
+    });
+
+    const body = postPrCommentSpy.mock.calls[0]?.[0] as string;
+    expect(body).toContain("fork `pull_request_review`");
+    expect(body).toContain(
+      "`pull_request_target` publisher does not receive review events",
+    );
+    expect(body).toContain("installed GitHub App or external publisher");
+    expect(body).toContain("cannot repair");
+    expect(updateCheckRunReportSpy).not.toHaveBeenCalled();
+  });
+
+  it("discloses a stale cannot-evaluate check report after both refreshes fail", async () => {
+    const { freshCore, postPrCommentSpy, updateCheckRunReportSpy } = await runFailedMain({
+      inputs: {
+        "github-token": "ghp_test",
+        "fail-mode": "open",
+        "gate-mode": "release-ready",
+      },
+      updateOutcome: false,
+    });
+
+    expect(updateCheckRunReportSpy).toHaveBeenCalledTimes(2);
+    const body = postPrCommentSpy.mock.calls[0]?.[0] as string;
+    expect(body).toContain("Required check published, report stale");
+    expect(body).toContain("check body is stale");
+    expect(freshCore.setOutput).toHaveBeenCalledWith(
+      "release-brief-json",
+      expect.stringContaining('"reportRefreshed":false'),
+    );
   });
 
   it("posts a cannot-evaluate brief when the policy override is unusable", async () => {
@@ -573,14 +964,50 @@ describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
     );
   });
 
+  it("uses the repo-configured protected check when an override fails before evaluation", async () => {
+    const { createCheckRunSpy } = await runFailedMain({
+      inputs: {
+        "github-token": "ghp_test",
+        "override-risk-threshold": "90",
+      },
+      repoConfigContent: [
+        "schema_version: 2",
+        "gate:",
+        "  mode: release-ready",
+        '  check_name: "Trailhead Custom Contract"',
+      ].join("\n"),
+    });
+
+    expect(createCheckRunSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateMode: "release-ready",
+        resolvedCheckName: "Trailhead Custom Contract",
+      }),
+      expect.stringContaining("CANNOT EVALUATE"),
+      "ghp_test",
+      "Trailhead Custom Contract",
+    );
+  });
+
   it("a fail_closed context stance overrides a fail-open action input", async () => {
-    const { freshCore } = await runFailedMain({
-      inputs: { "github-token": "ghp_test", "fail-mode": "open" },
+    const { freshCore, createCheckRunSpy } = await runFailedMain({
+      inputs: {
+        "github-token": "ghp_test",
+        "fail-mode": "open",
+        "gate-mode": "release-ready",
+      },
+      checkContract: { name: "Custom Release Gate", mode: "release-ready" },
       stance: "fail_closed",
     });
 
     expect(freshCore.setFailed).toHaveBeenCalledWith(
       expect.stringContaining("fail-closed"),
+    );
+    expect(createCheckRunSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ gateDecision: "block", releaseReady: false }),
+      expect.any(String),
+      "ghp_test",
+      "Custom Release Gate",
     );
   });
 
@@ -595,11 +1022,12 @@ describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
   });
 
   it("skips the PR comment in backfill mode but still sets the output", async () => {
-    const { freshCore, postPrCommentSpy } = await runFailedMain({
+    const { freshCore, postPrCommentSpy, createCheckRunSpy } = await runFailedMain({
       inputs: { "github-token": "ghp_test", "evaluate-pr": "99" },
     });
 
     expect(postPrCommentSpy).not.toHaveBeenCalled();
+    expect(createCheckRunSpy).not.toHaveBeenCalled();
     expect(freshCore.setOutput).toHaveBeenCalledWith(
       "release-brief-json",
       expect.stringContaining('"verdict":"cannot_evaluate"'),

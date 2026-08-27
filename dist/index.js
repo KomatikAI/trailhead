@@ -1,17 +1,10 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 6390:
+/***/ 8066:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-gnu.node")
-
-/***/ }),
-
-/***/ 7064:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-musl.node")
+module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
 
 /***/ }),
 
@@ -958,7 +951,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(9763)
+        return __nccwpck_require__(8066)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1092,7 +1085,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(7064)
+        return __nccwpck_require__(5254)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1104,7 +1097,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6390)
+        return __nccwpck_require__(6571)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -29776,6 +29769,22 @@ module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
 
 /***/ }),
 
+/***/ 6571:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-linux-arm64-gnu");
+
+
+/***/ }),
+
+/***/ 5254:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-linux-arm64-musl");
+
+
+/***/ }),
+
 /***/ 3586:
 /***/ ((module) => {
 
@@ -29844,14 +29853,6 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
-
-
-/***/ }),
-
-/***/ 9763:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-win32-x64-msvc");
 
 
 /***/ }),
@@ -42076,6 +42077,20 @@ const BriefOverride = objectType({
     scope: stringType(),
     rationale: stringType(),
 });
+const BriefOverrideStatus = objectType({
+    status: enumType(["applied", "partial", "rejected", "revoked", "unavailable"]),
+    message: stringType(),
+    source: enumType(["live", "payload_fallback"]).optional(),
+});
+const BriefRequiredCheck = objectType({
+    published: booleanType(),
+    /** Whether the published check body contains this D3 publication record. */
+    reportRefreshed: booleanType(),
+    name: stringType(),
+    headSha: stringType(),
+    eventName: stringType(),
+    message: stringType(),
+});
 const ReleaseBrief = objectType({
     verdict: BriefVerdict,
     riskScore: numberType().optional(),
@@ -42086,6 +42101,8 @@ const ReleaseBrief = objectType({
     delta: stringType().optional(),
     actions: arrayType(BriefAction),
     override: BriefOverride.nullish(),
+    overrideStatus: BriefOverrideStatus.optional(),
+    requiredCheck: BriefRequiredCheck.optional(),
     cannotEvaluateReason: stringType().optional(),
 });
 const CreditMeterResult = objectType({
@@ -42148,8 +42165,9 @@ const GateEvaluation = objectType({
         .optional(),
     policyOverride: PolicyOverrideAudit.optional(),
     labelOverrideFeedback: objectType({
-        status: enumType(["applied", "rejected"]),
+        status: enumType(["applied", "partial", "rejected", "revoked", "unavailable"]),
         message: stringType(),
+        source: enumType(["live", "payload_fallback"]).optional(),
     })
         .optional(),
     releaseReady: booleanType().optional(),
@@ -42157,6 +42175,8 @@ const GateEvaluation = objectType({
     ci: CiSummary.optional(),
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
+    /** Effective Checks API context after action-input and repo-config resolution. */
+    resolvedCheckName: stringType().optional(),
     storePersisted: booleanType().optional(),
     credit_meter: CreditMeterResult.optional(),
     remediation: Remediation.optional(),
@@ -42272,7 +42292,10 @@ const TrailheadContext = objectType({
 });
 const GateConfig = objectType({
     mode: GateMode.default("risk-only"),
-    check_name: stringType().default("Trailhead — Release Ready"),
+    // Omitted means the mode-specific default from resolveCheckName. Keeping
+    // this optional preserves the distinction between "not configured" and an
+    // explicit custom protected-check contract in risk-only mode.
+    check_name: stringType().optional(),
     agent_brief: AgentBriefMode.optional(),
 });
 const RemediationConfig = objectType({
@@ -43816,28 +43839,6 @@ function formatCiStatusIcon(status) {
  */
 const MISSING_IRRELEVANT_REASON = "(no reason configured — reason is mandatory for irrelevant; fix .trailhead.yml)";
 /**
- * Reasons the DEFAULT source supplies, so no brief row ever renders a bare
- * `advisory / —`. ADR-011 §1 requires every input to carry a disposition *with a
- * reason*, but only policy-authored `irrelevant` entries had one — the first
- * live-brief audit found every Inputs row on a dev PR reading `advisory / —`.
- * A default disposition can always describe itself: it came from the check's
- * required/optional flag, and saying so is the whole reason.
- */
-const DEFAULT_BLOCKING_REASON = "required check";
-const DEFAULT_ADVISORY_REASON = "not required";
-/**
- * ADR-009 `skip` on a check no policy entry claims. The workflow's own path
- * filter or `if:` condition already decided this check has nothing to say about
- * these files, so it is irrelevant to THIS decision — and now says so instead of
- * being narrated as a blocking input that happens not to have run.
- *
- * Outcome-neutral by construction: `skip` never counted against release
- * readiness anyway (`computeReleaseReady` counts fail/missing/stale, and the
- * blocking-set rollup in `applyInputRelevance` treats skip as passing), so
- * moving these rows out of the blocking set changes narration only.
- */
-const DEFAULT_SKIPPED_UPSTREAM_REASON = "skipped upstream (path filter or workflow condition)";
-/**
  * Pattern matching precedence, per entry:
  *   1. exact name match                      (checkNameMatches)
  *   2. case-insensitive name match           (checkNameMatches)
@@ -43862,16 +43863,8 @@ function hasText(value) {
 /**
  * Resolve one check to a disposition.
  *
- * - First matching entry wins. A policy-sourced disposition is never rewritten — the
- *   table is the author's stated intent for this branch pair — with one exception:
- *   ADR-009 status `skip` always resolves to `irrelevant(skipped upstream …)`,
- *   whatever the source. A blocking-configured check the workflow itself classified
- *   out (path filter, job condition) is not blocking THIS decision, and `skip`
- *   contributes zero to every blocking rollup, so this is narration-only
- *   (promotion-zero correction, trailhead#350). A policy `irrelevant` entry's own
- *   reason survives the rewrite.
- * - No match falls back to `required ? blocking : advisory` with source `default`, each
- *   carrying a self-describing reason.
+ * - First matching entry wins; no match falls back to `required ? blocking : advisory`
+ *   with source `default`.
  * - `missing_blocking` is DERIVED: ADR-009 status `missing` on a check that would otherwise
  *   resolve to `blocking`. It is never configurable.
  */
@@ -43887,28 +43880,10 @@ function resolveDisposition(check, entries) {
         if (kind === "irrelevant" && reason === undefined) {
             reason = MISSING_IRRELEVANT_REASON;
         }
-        if (check.status === "skip") {
-            // Rendering "skip | blocking | —" contradicts itself; keep the policy's own
-            // reason only when the policy already classified the check out.
-            if (kind !== "irrelevant")
-                reason = DEFAULT_SKIPPED_UPSTREAM_REASON;
-            kind = "irrelevant";
-        }
     }
     else {
+        kind = check.required ? "blocking" : "advisory";
         source = "default";
-        if (check.status === "skip") {
-            kind = "irrelevant";
-            reason = DEFAULT_SKIPPED_UPSTREAM_REASON;
-        }
-        else if (check.required) {
-            kind = "blocking";
-            reason = DEFAULT_BLOCKING_REASON;
-        }
-        else {
-            kind = "advisory";
-            reason = DEFAULT_ADVISORY_REASON;
-        }
     }
     if (check.status === "missing" && kind === "blocking") {
         kind = "missing_blocking";
@@ -44107,6 +44082,11 @@ function applyReleaseReadyToEvaluation(evaluation, result, gateMode) {
     };
 }
 function checkConclusionForEvaluation(evaluation) {
+    // Availability is a separate contract from advisory/risk/release modes. A
+    // cannot-evaluate check explicitly satisfies fail-open or fails fail-closed.
+    if (evaluation.releaseBrief?.verdict === "cannot_evaluate") {
+        return evaluation.gateDecision === "allow" ? "success" : "failure";
+    }
     const mode = evaluation.gateMode ?? "risk-only";
     if (mode === "advisory") {
         return "neutral";
@@ -44136,9 +44116,11 @@ function shouldBlockMerge(evaluation) {
     return evaluation.gateDecision === "block";
 }
 function resolveCheckName(gateMode, configuredName) {
+    if (configuredName)
+        return configuredName;
     if (gateMode === "risk-only")
         return "Trailhead";
-    return configuredName ?? "Trailhead — Release Ready";
+    return "Trailhead — Release Ready";
 }
 
 ;// CONCATENATED MODULE: ./src/release-brief.ts
@@ -44215,6 +44197,9 @@ function cell(value) {
         return EMPTY_CELL;
     return escapePipes(flattened);
 }
+function inlineMessage(value) {
+    return escapePipes(value.replace(/\r?\n/g, " ").trim());
+}
 function verdictLabel(verdict) {
     return verdict.replace(/_/g, " ").toUpperCase();
 }
@@ -44261,6 +44246,22 @@ function buildBrief(brief, keepFindings, evidenceCap, storedEvaluationUrl) {
     if (brief.verdict === "cannot_evaluate" || brief.cannotEvaluateReason) {
         const reason = brief.cannotEvaluateReason?.trim();
         lines.push(`> ⚠️ **Cannot evaluate:** ${reason && reason.length > 0 ? reason : "no reason recorded"}`, "");
+    }
+    if (brief.requiredCheck) {
+        const reportStale = brief.requiredCheck.published && !brief.requiredCheck.reportRefreshed;
+        const icon = brief.requiredCheck.published && !reportStale ? "✅" : "⚠️";
+        const state = reportStale
+            ? "published, report stale"
+            : brief.requiredCheck.published
+                ? "published"
+                : "not published";
+        lines.push(`> ${icon} **Required check ${state}:** ${inlineMessage(brief.requiredCheck.message)}`, "");
+    }
+    if (brief.overrideStatus) {
+        const source = brief.overrideStatus.source
+            ? ` _(state source: ${brief.overrideStatus.source})_`
+            : "";
+        lines.push(`> ⚠️ **Override ${brief.overrideStatus.status}:** ${inlineMessage(brief.overrideStatus.message)}${source}`, "");
     }
     lines.push("### Findings", "");
     if (brief.findings.length === 0) {
@@ -49635,9 +49636,6 @@ const RED_LANE_FIX_CODES = new Set([
     "security.code_scanning",
     "risk.sensitive_files",
     "risk.supply_chain",
-    // Over-threshold risk on an agent PR resolves via human levers only
-    // (scope split or a recorded override), never an agent retry loop.
-    "risk.over_threshold",
 ]);
 /** Routine (yellow-lane) fix codes — agent should fix_and_retry. */
 const ROUTINE_FIX_CODES = new Set([
@@ -49647,10 +49645,6 @@ const ROUTINE_FIX_CODES = new Set([
     "policy.duplicate_logic",
     "ci.failed",
     "ci.missing",
-    // Severity-suffixed policy findings are the non-blocking tiers; the
-    // canonical blocking `policy.finding` stays red.
-    "policy.finding.warn",
-    "policy.finding.advisory",
 ]);
 function classifyFixLane(code) {
     if (RED_LANE_FIX_CODES.has(code))
@@ -49696,13 +49690,6 @@ function computeNextAction(args) {
 // Shared across the GitHub Action, MCP server, and GitHub App via the existing
 // prebuild copy pattern. Keep this module free of @actions/*, octokit, and Node
 // runtime imports so it stays portable.
-//
-// `trailhead.remediation.v1` is a consumed contract: fix codes are additive and
-// an existing code never changes meaning. Two rules the derivations below keep:
-// a fix's severity is the severity of the thing it describes (never the gate
-// decision that happens to surround it), and whatever actually produced the
-// verdict has a fix of its own — a block with no matching fix is the defect
-// ADR-011 §1 calls silence.
 
 
 
@@ -49879,127 +49866,15 @@ function deriveCiFixes(ci) {
     }
     return fixes;
 }
-const SEVERITY_RANK = {
-    blocking: 3,
-    warn: 2,
-    advisory: 1,
-};
-const SEVERITY_TIERS = ["blocking", "warn", "advisory"];
-/** Canonical policy-finding code — kept for the highest tier present, so existing
- * consumers of `policy.finding` keep seeing the findings that carry the verdict.
- * Lower tiers get a severity-suffixed code (`policy.finding.warn`,
- * `policy.finding.advisory`) because fixes are deduplicated by code. */
-const POLICY_FINDING_CODE = "policy.finding";
-/**
- * ADR-011 §1: enumerate, never count. The title carries the finding titles
- * themselves; the detail carries the full enumeration.
- */
-function policyFindingTitle(titles) {
-    const label = titles.length === 1 ? "Policy finding" : "Policy findings";
-    const shown = titles.slice(0, 3);
-    return `${label}: ${shown.join("; ")}${titles.length > shown.length ? "; …" : ""}`;
-}
-function enumeratedFindingLine(finding) {
-    const evidence = finding.evidence ? ` — ${finding.evidence}` : "";
-    return `- \`${finding.id}\` ${finding.title}${evidence}`;
-}
-/**
- * Policy findings, at their real severity.
- *
- * The gate decision is a property of the evaluation, not of any one finding:
- * deriving each fix's severity from it promoted warn-level change notices (e.g.
- * "Agent PR risk threshold tightened from 70 to 50") to `blocking`, telling
- * consuming agents to fix something no code change can fix. When the evaluation
- * carries `enumeratedFindings` (ADR-011 §1) those per-finding severities win and
- * the gate decision is ignored; one fix is emitted per severity tier present.
- * Without them there is no per-finding signal, so the legacy gate-derived
- * severity stands.
- */
-function derivePolicyFindingFixes(input) {
-    const enumerated = input.enumeratedFindings ?? [];
-    if (enumerated.length > 0) {
-        const tiers = SEVERITY_TIERS.map((severity) => ({
+function derivePolicyFindingFixes(findings, severity) {
+    if (!findings || findings.length === 0)
+        return [];
+    return [
+        RemediationFix.parse({
+            code: "policy.finding",
             severity,
-            findings: enumerated.filter((finding) => finding.severity === severity),
-        })).filter((tier) => tier.findings.length > 0);
-        return tiers.map((tier, index) => RemediationFix.parse({
-            code: index === 0 ? POLICY_FINDING_CODE : `${POLICY_FINDING_CODE}.${tier.severity}`,
-            severity: tier.severity,
-            title: policyFindingTitle(tier.findings.map((finding) => finding.title)),
-            detail: tier.findings.map(enumeratedFindingLine).join("\n"),
-        }));
-    }
-    const findings = input.findings ?? [];
-    if (findings.length === 0)
-        return [];
-    return [
-        RemediationFix.parse({
-            code: POLICY_FINDING_CODE,
-            severity: input.gateDecision === "block" ? "blocking" : "warn",
-            title: policyFindingTitle(findings),
+            title: `${findings.length} policy finding${findings.length === 1 ? "" : "s"}`,
             detail: findings.map((f) => `- ${f}`).join("\n"),
-        }),
-    ];
-}
-/** ADR-011 §3 override mechanism — mirrors `OVERRIDE_LABEL` in `src/override.ts`,
- * inlined because override.ts is not part of the shared-source copy set. */
-const OVERRIDE_LABEL = "trailhead-override";
-const RISK_OVER_THRESHOLD_CODE = "risk.over_threshold";
-/** The prose `computeReleaseReady()` emits for the same condition — the fallback
- * source of the pair when the caller has not threaded the numbers through. */
-const RELEASE_READY_RISK_REASON = /^Risk score (\d+(?:\.\d+)?) exceeds threshold (\d+(?:\.\d+)?)$/;
-function resolveRiskOverThreshold(evaluation) {
-    const { riskScore, riskThreshold } = evaluation;
-    if (riskScore !== undefined && riskThreshold !== undefined) {
-        return riskScore > riskThreshold
-            ? { score: riskScore, threshold: riskThreshold }
-            : null;
-    }
-    for (const reason of evaluation.releaseReadyReasons ?? []) {
-        const match = RELEASE_READY_RISK_REASON.exec(reason.trim());
-        if (!match)
-            continue;
-        const score = Number(match[1]);
-        const threshold = Number(match[2]);
-        if (Number.isFinite(score) && Number.isFinite(threshold) && score > threshold) {
-            return { score, threshold };
-        }
-    }
-    return null;
-}
-/**
- * The machine-readable block cause when risk carries the verdict.
- *
- * Without it the fixes array named every finding except the one thing that
- * actually blocked the PR, and neither of the two real levers — a smaller PR or
- * a recorded override — appeared anywhere an agent could read them.
- */
-function deriveRiskThresholdFixes(evaluation) {
-    if (evaluation.gateDecision !== "block")
-        return [];
-    // A recorded override (ADR-011 §3) leaves the decision at `block` while the
-    // release is ready on the record. Re-emitting the block cause as a blocking fix
-    // would flip `release_ready` back to false and undo the override.
-    if (evaluation.releaseReady === true)
-        return [];
-    const over = resolveRiskOverThreshold(evaluation);
-    if (!over)
-        return [];
-    const movers = [...(evaluation.riskFactors ?? [])]
-        .filter((factor) => factor.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3);
-    const moversText = movers.length
-        ? movers.map((factor) => `${factor.type} ${factor.score}/100`).join(", ")
-        : "no single factor dominates — the composite carries the score";
-    return [
-        RemediationFix.parse({
-            code: RISK_OVER_THRESHOLD_CODE,
-            severity: "blocking",
-            title: `risk ${over.score} exceeds threshold ${over.threshold}`,
-            detail: `Composite risk score ${over.score} is above this PR's effective threshold of ${over.threshold}, so the gate blocks. Top risk factors: ${moversText}. No single file edit clears this: either the PR gets smaller (which lowers the factors above) or the risk is accepted on the record.`,
-            suggested_action: `Reduce PR scope — split the change so the score falls below ${over.threshold} — or record an override: add the \`${OVERRIDE_LABEL}\` label and post a PR comment \`${OVERRIDE_LABEL}: <rationale>\`.`,
-            autofix_eligible: false,
         }),
     ];
 }
@@ -50040,23 +49915,23 @@ function buildRemediation(input) {
         fixes.push(RemediationFix.parse({ ...built, severity }));
     }
     fixes.push(...deriveCiFixes(input.evaluation.ci));
-    fixes.push(...derivePolicyFindingFixes({
-        findings: input.evaluation.policyFindings,
-        enumeratedFindings: input.evaluation.enumeratedFindings,
-        gateDecision: input.evaluation.gateDecision,
-    }));
-    fixes.push(...deriveRiskThresholdFixes(input.evaluation));
+    fixes.push(...derivePolicyFindingFixes(input.evaluation.policyFindings, input.evaluation.gateDecision === "block" ? "blocking" : "warn"));
     fixes.push(...deriveSubmissionFixes(input.submissionChecks));
     // Deduplicate by code, keeping the highest severity occurrence.
+    const severityRank = {
+        blocking: 3,
+        warn: 2,
+        advisory: 1,
+    };
     const byCode = new Map();
     for (const fix of fixes) {
         const existing = byCode.get(fix.code);
-        if (!existing || SEVERITY_RANK[fix.severity] > SEVERITY_RANK[existing.severity]) {
+        if (!existing || severityRank[fix.severity] > severityRank[existing.severity]) {
             byCode.set(fix.code, fix);
         }
     }
     const dedupedFixes = Array.from(byCode.values()).sort((a, b) => {
-        const sev = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
+        const sev = severityRank[b.severity] - severityRank[a.severity];
         if (sev !== 0)
             return sev;
         return a.code.localeCompare(b.code);
@@ -50421,10 +50296,10 @@ async function countRecentLabelOverrides(params) {
 
 ;// CONCATENATED MODULE: ./src/override.ts
 
-const override_OVERRIDE_LABEL = "trailhead-override";
+const OVERRIDE_LABEL = "trailhead-override";
 const OVERRIDE_COMMENT_PATTERN = /^trailhead-override:\s*(.+)/im;
 function hasOverrideLabel(labels) {
-    return labels.some((label) => label.toLowerCase() === override_OVERRIDE_LABEL);
+    return labels.some((label) => label.toLowerCase() === OVERRIDE_LABEL);
 }
 function parseOverrideComment(comments) {
     for (let index = comments.length - 1; index >= 0; index -= 1) {
@@ -50508,16 +50383,20 @@ function formatOverrideRejectionMessage(code) {
             return ("The `trailhead-override` label is present but no valid override reason was found. " +
                 "Add a PR comment starting with `trailhead-override: <your reason>` " +
                 "(for example: `trailhead-override: emergency hotfix for prod outage`). " +
-                "The gate will re-evaluate on the next run after the comment is posted.");
+                "Then re-run the Trailhead job, or remove and re-add the label to trigger a fresh " +
+                "`pull_request` evaluation.");
         case "disabled":
             return ("The `trailhead-override` label is present but label overrides are disabled " +
-                "in this repo's `.trailhead.yml` (`override.enabled: false`).");
+                "in this repo's `.trailhead.yml` (`override.enabled: false`). Remove the label, or " +
+                "enable the policy in a reviewed config change and then re-run or reapply the label.");
         case "cap_exceeded":
             return ("The `trailhead-override` label is present but this repo has reached its weekly " +
-                "override cap. File an issue in [KomatikAI/trailhead](https://github.com/KomatikAI/trailhead) " +
-                "linking this PR and the override pattern before applying another override.");
+                "override cap. Remove the label, then file an issue in " +
+                "[KomatikAI/trailhead](https://github.com/KomatikAI/trailhead) linking this PR and " +
+                "the override pattern before applying another override.");
         case "not_needed":
-            return "The `trailhead-override` label is present but release is already ready — no override applied.";
+            return ("The `trailhead-override` label is present but release is already ready, so no " +
+                "override was applied. Remove the label to avoid leaving stale override intent on the PR.");
         default: {
             const _exhaustive = code;
             return _exhaustive;
@@ -50525,8 +50404,17 @@ function formatOverrideRejectionMessage(code) {
     }
 }
 function resolveLabelOverride(input) {
+    const parsed = parseOverrideComment(input.comments);
     if (!hasOverrideLabel(input.labels)) {
-        return { kind: "none" };
+        return parsed
+            ? {
+                kind: "revoked",
+                message: "A valid `trailhead-override: <reason>` comment is recorded, but the " +
+                    "`trailhead-override` label is absent, so no override is active. This is the " +
+                    "expected state after revocation. Add the label only if you intend to authorize " +
+                    "the recorded override; adding it triggers a fresh `pull_request:labeled` evaluation.",
+            }
+            : { kind: "none" };
     }
     if (!input.config.enabled) {
         return {
@@ -50536,9 +50424,12 @@ function resolveLabelOverride(input) {
         };
     }
     if (input.releaseResult.releaseReady) {
-        return { kind: "none" };
+        return {
+            kind: "rejected",
+            code: "not_needed",
+            message: formatOverrideRejectionMessage("not_needed"),
+        };
     }
-    const parsed = parseOverrideComment(input.comments);
     if (!parsed) {
         return {
             kind: "rejected",
@@ -50936,24 +50827,1156 @@ function readTrustRuntime(env = process.env) {
 }
 
 ;// CONCATENATED MODULE: ./src/ci-integrity.ts
+const YAML_MAPPING_ENTRY = /^[ \t]*(?:-[ \t]+)?(?:[A-Za-z0-9_.-]+|"[^"\r\n]*"|'(?:[^']|'')*')[ \t]*:(?:[ \t]|$)/;
+const YAML_DOCUMENT_BOUNDARY = /^[ \t]*(?:---|\.\.\.)[ \t]*(?:#.*)?$/;
+const YAML_BLOCK_HEADER = /^([>|])((?:[+-][1-9]?|[1-9][+-]?)?)$/;
+const YAML_ANCHOR_PROPERTY = /^&[^\s[\]{},]+$/;
+const YAML_TAG_PROPERTY = /^!(?:<[^>\r\n]+>|[^\s]+)$/;
+const SHELL_CONTINUATION = /(?:&&|\|\||\|&|\||\\)\s*$/;
+const YAML_DOUBLE_ESCAPES = {
+    "0": "\0",
+    a: "\x07",
+    b: "\b",
+    t: "\t",
+    "\t": "\t",
+    n: "\n",
+    v: "\v",
+    f: "\f",
+    r: "\r",
+    e: "\x1b",
+    " ": " ",
+    '"': '"',
+    "/": "/",
+    "\\": "\\",
+    N: "\x85",
+    _: "\xa0",
+    L: "\u2028",
+    P: "\u2029",
+};
+function parseYamlKey(text, start) {
+    if (text[start] === "'") {
+        let value = "";
+        for (let cursor = start + 1; cursor < text.length; cursor += 1) {
+            if (text[cursor] !== "'") {
+                value += text[cursor];
+                continue;
+            }
+            if (text[cursor + 1] === "'") {
+                value += "'";
+                cursor += 1;
+                continue;
+            }
+            return { value, end: cursor + 1 };
+        }
+        return undefined;
+    }
+    if (text[start] === '"') {
+        let value = "";
+        for (let cursor = start + 1; cursor < text.length; cursor += 1) {
+            const character = text[cursor];
+            if (character === '"')
+                return { value, end: cursor + 1 };
+            if (character !== "\\") {
+                value += character;
+                continue;
+            }
+            const escape = text[cursor + 1];
+            if (escape === undefined)
+                return undefined;
+            const hexLength = escape === "x" ? 2 : escape === "u" ? 4 : escape === "U" ? 8 : 0;
+            if (hexLength) {
+                const hex = text.slice(cursor + 2, cursor + 2 + hexLength);
+                if (!new RegExp(`^[0-9A-Fa-f]{${hexLength}}$`).test(hex))
+                    return undefined;
+                const codePoint = Number.parseInt(hex, 16);
+                if (codePoint > 0x10ffff)
+                    return undefined;
+                value += String.fromCodePoint(codePoint);
+                cursor += 1 + hexLength;
+                continue;
+            }
+            const decoded = YAML_DOUBLE_ESCAPES[escape];
+            if (decoded === undefined)
+                return undefined;
+            value += decoded;
+            cursor += 1;
+        }
+        return undefined;
+    }
+    let end = start;
+    while (end < text.length && !/[\s:]/.test(text[end]))
+        end += 1;
+    return end === start ? undefined : { value: text.slice(start, end), end };
+}
+function yamlStringTagEnd(text, start) {
+    if (text[start] === "!" && /[ \t]/.test(text[start + 1] ?? "")) {
+        return start + 1;
+    }
+    for (const tag of ["!!str", "!<tag:yaml.org,2002:str>"]) {
+        if (text.startsWith(tag, start) && /[ \t]/.test(text[start + tag.length] ?? "")) {
+            return start + tag.length;
+        }
+    }
+    return undefined;
+}
+function yamlKeyStartAfterProperties(text, start) {
+    let cursor = start;
+    let tagSeen = false;
+    let anchorSeen = false;
+    while (true) {
+        const tagEnd = yamlStringTagEnd(text, cursor);
+        if (tagEnd !== undefined) {
+            if (tagSeen)
+                return undefined;
+            tagSeen = true;
+            cursor = tagEnd;
+        }
+        else {
+            const anchor = text.slice(cursor).match(/^&[^\s[\]{},]+(?=[ \t])/);
+            if (!anchor)
+                break;
+            if (anchorSeen)
+                return undefined;
+            anchorSeen = true;
+            cursor += anchor[0].length;
+        }
+        while (/[ \t]/.test(text[cursor] ?? ""))
+            cursor += 1;
+    }
+    return cursor;
+}
+function yamlRunEntry(line, runKeyAliases) {
+    const prefix = line.match(/^([ \t]*(?:-[ \t]+)?)/)?.[1] ?? "";
+    const keyStart = yamlKeyStartAfterProperties(line, prefix.length);
+    if (keyStart === undefined)
+        return undefined;
+    const parsedKey = parseYamlKey(line, keyStart);
+    if (!parsedKey)
+        return undefined;
+    const keyAlias = parsedKey.value.match(/^\*([^\s[\]{},]+)$/)?.[1];
+    if (parsedKey.value !== "run" && (!keyAlias || !runKeyAliases?.has(keyAlias))) {
+        return undefined;
+    }
+    let cursor = parsedKey.end;
+    while (/[ \t]/.test(line[cursor] ?? ""))
+        cursor += 1;
+    if (line[cursor] !== ":")
+        return undefined;
+    cursor += 1;
+    if (cursor < line.length && !/[ \t]/.test(line[cursor]))
+        return undefined;
+    while (/[ \t]/.test(line[cursor] ?? ""))
+        cursor += 1;
+    return { keyIndent: prefix.length, value: line.slice(cursor) };
+}
+function decodedCompleteYamlRunValue(value) {
+    const trimmed = value.trimStart();
+    if (trimmed[0] !== "'" && trimmed[0] !== '"')
+        return undefined;
+    const parsed = parseYamlKey(trimmed, 0);
+    if (!parsed)
+        return undefined;
+    const suffix = trimmed.slice(parsed.end);
+    if (suffix !== "" && !/^[ \t]+#/.test(suffix))
+        return undefined;
+    return parsed.value;
+}
+function decodedYamlDoubleQuotedFragment(value) {
+    let decoded = "";
+    for (let cursor = 0; cursor < value.length; cursor += 1) {
+        const character = value[cursor];
+        if (character === '"')
+            break;
+        if (character !== "\\") {
+            decoded += character;
+            continue;
+        }
+        const escape = value[cursor + 1];
+        if (escape === undefined) {
+            decoded += "\\";
+            break;
+        }
+        const hexLength = escape === "x" ? 2 : escape === "u" ? 4 : escape === "U" ? 8 : 0;
+        if (hexLength) {
+            const hex = value.slice(cursor + 2, cursor + 2 + hexLength);
+            if (new RegExp(`^[0-9A-Fa-f]{${hexLength}}$`).test(hex)) {
+                const codePoint = Number.parseInt(hex, 16);
+                if (codePoint <= 0x10ffff) {
+                    decoded += String.fromCodePoint(codePoint);
+                    cursor += 1 + hexLength;
+                    continue;
+                }
+            }
+        }
+        const simple = YAML_DOUBLE_ESCAPES[escape];
+        if (simple !== undefined) {
+            decoded += simple;
+            cursor += 1;
+            continue;
+        }
+        // Invalid/incomplete YAML cannot safely manufacture shell syntax.
+        decoded += `\\${escape}`;
+        cursor += 1;
+    }
+    return decoded;
+}
+function shellCandidateForRunEntry(runEntry) {
+    const decoded = decodedCompleteYamlRunValue(runEntry.value);
+    if (decoded !== undefined)
+        return decoded;
+    const value = runEntry.value.trimStart();
+    if (value[0] === '"')
+        return decodedYamlDoubleQuotedFragment(value.slice(1));
+    return value[0] === "'" ? value.slice(1) : runEntry.value;
+}
+function isYamlRunKey(text, runKeyAliases) {
+    const trimmed = text.trim();
+    const keyStart = yamlKeyStartAfterProperties(trimmed, 0);
+    if (keyStart === undefined)
+        return false;
+    const parsedKey = parseYamlKey(trimmed, keyStart);
+    if (!parsedKey)
+        return false;
+    const keyAlias = parsedKey.value.match(/^\*([^\s[\]{},]+)$/)?.[1];
+    if (parsedKey.value !== "run" && (!keyAlias || !runKeyAliases?.has(keyAlias))) {
+        return false;
+    }
+    const suffix = trimmed.slice(parsedKey.end).trimStart();
+    return suffix === "" || suffix.startsWith("#");
+}
+/** Parse the complete YAML block-header surface accepted for a `run` value. */
+function yamlRunBlockScalarValue(runValue, keyIndent) {
+    // A YAML comment after a block header requires separating whitespace.
+    const value = runValue.replace(/[ \t]+#.*$/, "").trim();
+    const tokens = value.split(/[ \t]+/);
+    const header = tokens.pop()?.match(YAML_BLOCK_HEADER);
+    if (!header)
+        return undefined;
+    let anchorSeen = false;
+    let tagSeen = false;
+    for (const property of tokens) {
+        if (YAML_ANCHOR_PROPERTY.test(property) && !anchorSeen) {
+            anchorSeen = true;
+            continue;
+        }
+        if (YAML_TAG_PROPERTY.test(property) && !tagSeen) {
+            tagSeen = true;
+            continue;
+        }
+        return undefined;
+    }
+    const indentationIndicator = header[2].match(/[1-9]/)?.[0];
+    return {
+        style: header[1] === ">" ? "folded" : "literal",
+        keyIndent,
+        explicitContentIndent: indentationIndicator
+            ? keyIndent + Number(indentationIndicator)
+            : undefined,
+    };
+}
+function yamlExplicitRunKeyIndent(line, runKeyAliases) {
+    const match = line.match(/^([ \t]*(?:-[ \t]+)?)\?[ \t]+(.*)$/);
+    if (!match || !isYamlRunKey(match[2], runKeyAliases))
+        return undefined;
+    return match[1].length;
+}
+function yamlExplicitBlockRunKey(line) {
+    const match = line.match(/^([ \t]*(?:-[ \t]+)?)\?[ \t]+(.*)$/);
+    if (!match || !yamlRunBlockScalarValue(match[2], match[1].length)) {
+        return undefined;
+    }
+    return { keyIndent: match[1].length, contentLines: [] };
+}
+function yamlExplicitValue(line, expectedIndent) {
+    const match = line.match(/^([ \t]*):(?:[ \t]+(.*))?$/);
+    if (!match || match[1].length !== expectedIndent)
+        return undefined;
+    return { keyIndent: expectedIndent, value: match[2] ?? "" };
+}
+function hasYamlPlainComment(value) {
+    for (let index = 0; index < value.length; index += 1) {
+        if (value[index] === "#" && (index === 0 || /[ \t]/.test(value[index - 1]))) {
+            return true;
+        }
+    }
+    return false;
+}
+function multilineRunScalar(runEntry) {
+    const value = runEntry.value.trimStart();
+    if (!value)
+        return undefined;
+    if (value[0] === "'") {
+        if (parseYamlKey(value, 0))
+            return undefined;
+        return {
+            style: "single_quoted",
+            keyIndent: runEntry.keyIndent,
+            previousLineKind: "text",
+            previousHasSuppression: false,
+            rawQuotedValue: value,
+            addedIndexes: [],
+            physicalHasSuppression: false,
+        };
+    }
+    if (value[0] === '"') {
+        if (parseYamlKey(value, 0))
+            return undefined;
+        return {
+            style: "double_quoted",
+            keyIndent: runEntry.keyIndent,
+            previousLineKind: "text",
+            previousHasSuppression: false,
+            rawQuotedValue: value,
+            addedIndexes: [],
+            physicalHasSuppression: false,
+        };
+    }
+    if (hasYamlPlainComment(value))
+        return undefined;
+    return {
+        style: "plain",
+        keyIndent: runEntry.keyIndent,
+        previousLineKind: "text",
+        previousHasSuppression: false,
+        addedIndexes: [],
+        physicalHasSuppression: false,
+    };
+}
+function multilineShellFragment(line, style) {
+    const fragment = line.trimStart();
+    if (style === "double_quoted")
+        return decodedYamlDoubleQuotedFragment(fragment);
+    if (style === "single_quoted") {
+        const closing = fragment.lastIndexOf("'");
+        return (closing >= 0 ? fragment.slice(0, closing) : fragment).replace(/''/g, "'");
+    }
+    return line;
+}
+function closesMultilineQuotedScalar(line, style) {
+    const quote = style === "single_quoted" ? "'" : '"';
+    return parseYamlKey(`${quote}${line.trimStart()}`, 0) !== undefined;
+}
+function isYamlStructuralBoundary(line) {
+    return YAML_MAPPING_ENTRY.test(line) || YAML_DOCUMENT_BOUNDARY.test(line);
+}
+function shellCodeBeforeComment(line) {
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    let escaped = false;
+    for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (character === "\\" && !singleQuoted) {
+            escaped = true;
+            continue;
+        }
+        if (character === "'" && !doubleQuoted) {
+            singleQuoted = !singleQuoted;
+            continue;
+        }
+        if (character === '"' && !singleQuoted) {
+            doubleQuoted = !doubleQuoted;
+            continue;
+        }
+        if (character === "#" &&
+            !singleQuoted &&
+            !doubleQuoted &&
+            (index === 0 || /[\s;&|()]/.test(line[index - 1]))) {
+            return line.slice(0, index);
+        }
+    }
+    return line;
+}
+function continuesShellCommand(line) {
+    return SHELL_CONTINUATION.test(shellCodeBeforeComment(line).trimEnd());
+}
+function unquotedShellSyntax(line) {
+    let syntax = "";
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        if (singleQuoted) {
+            if (character === "'")
+                singleQuoted = false;
+            syntax += " ";
+            continue;
+        }
+        if (doubleQuoted) {
+            if (character === "\\" && /[$`"\\]/.test(line[index + 1] ?? "")) {
+                syntax += "  ";
+                index += 1;
+                continue;
+            }
+            if (character === '"')
+                doubleQuoted = false;
+            syntax += " ";
+            continue;
+        }
+        if (character === "\\") {
+            if (index + 1 < line.length) {
+                syntax += "  ";
+                index += 1;
+            }
+            else {
+                syntax += "\\";
+            }
+            continue;
+        }
+        if (character === "'") {
+            singleQuoted = true;
+            syntax += " ";
+            continue;
+        }
+        if (character === '"') {
+            doubleQuoted = true;
+            syntax += " ";
+            continue;
+        }
+        if (character === "#" && (index === 0 || /[\s;&|()]/.test(line[index - 1]))) {
+            break;
+        }
+        syntax += character;
+    }
+    return syntax;
+}
+/** Decode the static characters Bash concatenates into one command word. */
+function shellWordAt(candidate, start) {
+    let value = "";
+    let cursor = start;
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    let consumed = false;
+    while (cursor < candidate.length) {
+        const character = candidate[cursor];
+        if (singleQuoted) {
+            consumed = true;
+            if (character === "'")
+                singleQuoted = false;
+            else
+                value += character;
+            cursor += 1;
+            continue;
+        }
+        if (doubleQuoted) {
+            consumed = true;
+            if (character === '"') {
+                doubleQuoted = false;
+                cursor += 1;
+                continue;
+            }
+            if (character === "\\" && /[$`"\\\n]/.test(candidate[cursor + 1] ?? "")) {
+                value += candidate[cursor + 1];
+                cursor += 2;
+                continue;
+            }
+            value += character;
+            cursor += 1;
+            continue;
+        }
+        if (/\s|[;&|()<>]/.test(character))
+            break;
+        if (character === "#" && !consumed)
+            break;
+        if (character === "\\") {
+            consumed = true;
+            if (cursor + 1 >= candidate.length) {
+                return { value, end: cursor, closed: false };
+            }
+            value += candidate[cursor + 1];
+            cursor += 2;
+            continue;
+        }
+        if (character === "'") {
+            consumed = true;
+            singleQuoted = true;
+            cursor += 1;
+            continue;
+        }
+        if (character === '"') {
+            consumed = true;
+            doubleQuoted = true;
+            cursor += 1;
+            continue;
+        }
+        consumed = true;
+        value += character;
+        cursor += 1;
+    }
+    return consumed
+        ? { value, end: cursor, closed: !singleQuoted && !doubleQuoted }
+        : undefined;
+}
+function unquotedOrOperatorIndexes(candidate) {
+    const indexes = [];
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    for (let index = 0; index < candidate.length; index += 1) {
+        const character = candidate[index];
+        if (singleQuoted) {
+            if (character === "'")
+                singleQuoted = false;
+            continue;
+        }
+        if (doubleQuoted) {
+            if (character === "\\" && /[$`"\\\n]/.test(candidate[index + 1] ?? "")) {
+                index += 1;
+                continue;
+            }
+            if (character === '"')
+                doubleQuoted = false;
+            continue;
+        }
+        if (character === "\\") {
+            index += 1;
+            continue;
+        }
+        if (character === "'") {
+            singleQuoted = true;
+            continue;
+        }
+        if (character === '"') {
+            doubleQuoted = true;
+            continue;
+        }
+        if (character === "#" && (index === 0 || /[\s;&|()]/.test(candidate[index - 1]))) {
+            break;
+        }
+        if (candidate.startsWith("||", index)) {
+            indexes.push(index);
+            index += 1;
+        }
+    }
+    return indexes;
+}
+function trailingSplitOr(line) {
+    const candidate = line.trimStart().trimEnd();
+    let syntax = unquotedShellSyntax(candidate).trimEnd();
+    const escapedNewline = syntax.endsWith("\\") && candidate.endsWith("\\");
+    const joinedCandidate = escapedNewline ? candidate.slice(0, -1) : candidate;
+    if (escapedNewline)
+        syntax = syntax.slice(0, -1).trimEnd();
+    if (syntax.endsWith("||"))
+        return { kind: "or" };
+    if (!escapedNewline)
+        return undefined;
+    const operators = unquotedOrOperatorIndexes(joinedCandidate);
+    const operator = operators.at(-1);
+    if (operator !== undefined) {
+        let wordStart = operator + 2;
+        while (/\s/.test(joinedCandidate[wordStart] ?? ""))
+            wordStart += 1;
+        const word = shellWordAt(joinedCandidate, wordStart);
+        if ((!word || "true".startsWith(word.value)) &&
+            (!word || word.end === joinedCandidate.length)) {
+            return {
+                kind: "escaped_join",
+                joinedSyntax: joinedCandidate.slice(operator),
+            };
+        }
+    }
+    if (syntax.endsWith("|")) {
+        return { kind: "escaped_join", joinedSyntax: "|" };
+    }
+    return undefined;
+}
+function advanceSplitOr(line, pending) {
+    const candidate = line.trimStart().trimEnd();
+    const syntax = unquotedShellSyntax(candidate).trimEnd();
+    const escapedNewline = syntax.endsWith("\\") && candidate.endsWith("\\");
+    const part = escapedNewline ? candidate.slice(0, -1) : candidate;
+    const joinedSyntax = `${pending.kind === "or" ? "|| " : (pending.joinedSyntax ?? "")}${part}`;
+    if (!joinedSyntax.startsWith("||")) {
+        return escapedNewline && "||".startsWith(joinedSyntax)
+            ? {
+                completes: false,
+                next: { ...pending, joinedSyntax },
+            }
+            : { completes: false };
+    }
+    let wordStart = 2;
+    while (/\s/.test(joinedSyntax[wordStart] ?? ""))
+        wordStart += 1;
+    const word = shellWordAt(joinedSyntax, wordStart);
+    if (!word) {
+        return escapedNewline
+            ? { completes: false, next: { ...pending, joinedSyntax } }
+            : { completes: false, next: { kind: "or" } };
+    }
+    const wordIsComplete = word.value === "true" &&
+        word.closed &&
+        (!escapedNewline || word.end < joinedSyntax.length);
+    if (wordIsComplete)
+        return { completes: true };
+    if (escapedNewline &&
+        "true".startsWith(word.value) &&
+        word.end === joinedSyntax.length) {
+        return {
+            completes: false,
+            next: { ...pending, joinedSyntax },
+        };
+    }
+    return { completes: false };
+}
+function startsWithOrSuccessor(line) {
+    return /^\|\|(?=$|\s)/.test(unquotedShellSyntax(line).trimStart());
+}
+function yamlAliasInfo(patch) {
+    const info = {
+        runKeyAliases: new Set(),
+        suppressionValues: new Map(),
+    };
+    for (const rawLine of patch.split("\n")) {
+        if (rawLine.startsWith("-") ||
+            rawLine.startsWith("@@") ||
+            rawLine.startsWith("+++") ||
+            rawLine.startsWith("\\ No newline")) {
+            continue;
+        }
+        const line = rawLine.startsWith("+") || rawLine.startsWith(" ") ? rawLine.slice(1) : rawLine;
+        for (const match of line.matchAll(/&([^\s[\]{},]+)(?=[ \t]|$)/g)) {
+            const name = match[1];
+            const suffix = line.slice((match.index ?? 0) + match[0].length).trimStart();
+            if (/^(?:run|"run"|'run')(?=$|[ \t:#])/.test(suffix)) {
+                info.runKeyAliases.add(name);
+            }
+            const decoded = decodedCompleteYamlRunValue(suffix);
+            const candidate = decoded ?? suffix.replace(/[ \t]+#.*$/, "").trim();
+            if (hasSemanticOrTrue(candidate))
+                info.suppressionValues.set(name, candidate);
+        }
+    }
+    return info;
+}
+function yamlAliasName(value) {
+    return value.trim().match(/^\*([^\s[\]{},]+)(?:[ \t]+#.*)?$/)?.[1];
+}
+/**
+ * Retain new-file hunk context around additions. An allowlisted physical line
+ * is not safe when the preceding added/context line composes it into a larger
+ * shell command. At a non-file-start hunk boundary with no context, fail closed.
+ */
 function addedPatchLines(patch) {
     if (!patch)
         return [];
-    return patch
-        .split("\n")
-        .filter((line) => line.startsWith("+") && !line.startsWith("+++"))
-        .map((line) => line.slice(1));
+    const additions = [];
+    const aliases = yamlAliasInfo(patch);
+    let continuationPending = false;
+    // MCP callers can provide a bare/truncated patch. Until a hunk header or
+    // unchanged context establishes a boundary, an exemption must fail closed.
+    let ambiguousHunkBoundary = true;
+    let ambiguousContextIndent;
+    let blockScalar;
+    let multilineScalar;
+    let explicitRunKeyIndent;
+    let explicitBlockRunKey;
+    let pendingSplitOr;
+    let ambiguousPrevious;
+    for (const rawLine of patch.split("\n")) {
+        const hunk = rawLine.match(/^@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/);
+        if (hunk) {
+            continuationPending = false;
+            ambiguousHunkBoundary = Number(hunk[1]) > 1;
+            ambiguousContextIndent = undefined;
+            blockScalar = undefined;
+            multilineScalar = undefined;
+            explicitRunKeyIndent = undefined;
+            explicitBlockRunKey = undefined;
+            pendingSplitOr = undefined;
+            ambiguousPrevious = undefined;
+            continue;
+        }
+        if (rawLine.startsWith("+++") || rawLine.startsWith("---"))
+            continue;
+        if (rawLine.startsWith("-") || rawLine.startsWith("\\ No newline"))
+            continue;
+        if (!rawLine.startsWith("+") && !rawLine.startsWith(" "))
+            continue;
+        const line = rawLine.slice(1);
+        const isAdded = rawLine.startsWith("+");
+        const trimmed = line.trim();
+        const indentation = line.length - line.trimStart().length;
+        const shellCode = shellCodeBeforeComment(line).trim();
+        const isBlankOrComment = shellCode.length === 0;
+        let lineInBlockScalar = false;
+        if (blockScalar) {
+            if (!trimmed) {
+                lineInBlockScalar = true;
+            }
+            else {
+                const minimumContentIndent = blockScalar.contentIndent ?? blockScalar.keyIndent + 1;
+                if (indentation >= minimumContentIndent) {
+                    lineInBlockScalar = true;
+                    blockScalar.contentIndent ??= indentation;
+                }
+                else {
+                    blockScalar = undefined;
+                    continuationPending = false;
+                    pendingSplitOr = undefined;
+                }
+            }
+        }
+        let lineInMultilineScalar = false;
+        let foldedFromMultilinePredecessor = false;
+        if (!lineInBlockScalar && multilineScalar) {
+            if (!trimmed) {
+                lineInMultilineScalar = true;
+            }
+            else if (indentation > multilineScalar.keyIndent) {
+                lineInMultilineScalar = true;
+                foldedFromMultilinePredecessor = multilineScalar.previousLineKind === "text";
+            }
+            else {
+                multilineScalar = undefined;
+                pendingSplitOr = undefined;
+            }
+        }
+        if (lineInMultilineScalar &&
+            multilineScalar?.style === "plain" &&
+            trimmed.startsWith("#")) {
+            lineInMultilineScalar = false;
+            foldedFromMultilinePredecessor = false;
+            multilineScalar = undefined;
+            continuationPending = false;
+            pendingSplitOr = undefined;
+        }
+        if (isBlankOrComment)
+            foldedFromMultilinePredecessor = false;
+        const foldedFromBlockPredecessor = Boolean(lineInBlockScalar &&
+            trimmed &&
+            !isBlankOrComment &&
+            blockScalar?.style === "folded" &&
+            blockScalar.previousLineKind === "text" &&
+            indentation === blockScalar.contentIndent);
+        let currentRunEntry;
+        if (!lineInBlockScalar && !lineInMultilineScalar) {
+            if (explicitBlockRunKey) {
+                if (!trimmed)
+                    continue;
+                if (indentation > explicitBlockRunKey.keyIndent) {
+                    explicitBlockRunKey.contentLines.push(trimmed);
+                    continue;
+                }
+                if (explicitBlockRunKey.contentLines.length === 1 &&
+                    isYamlRunKey(explicitBlockRunKey.contentLines[0], aliases.runKeyAliases)) {
+                    currentRunEntry = yamlExplicitValue(line, explicitBlockRunKey.keyIndent);
+                }
+                explicitBlockRunKey = undefined;
+            }
+            if (explicitRunKeyIndent !== undefined) {
+                if (isBlankOrComment)
+                    continue;
+                currentRunEntry = yamlExplicitValue(line, explicitRunKeyIndent);
+                explicitRunKeyIndent = undefined;
+            }
+            const explicitKeyIndent = yamlExplicitRunKeyIndent(line, aliases.runKeyAliases);
+            if (!currentRunEntry && explicitKeyIndent !== undefined) {
+                explicitRunKeyIndent = explicitKeyIndent;
+                continuationPending = false;
+                pendingSplitOr = undefined;
+                if (!isAdded && explicitKeyIndent === 0)
+                    ambiguousHunkBoundary = false;
+                continue;
+            }
+            const blockKey = yamlExplicitBlockRunKey(line);
+            if (!currentRunEntry && blockKey) {
+                explicitBlockRunKey = blockKey;
+                continuationPending = false;
+                pendingSplitOr = undefined;
+                if (!isAdded && blockKey.keyIndent === 0)
+                    ambiguousHunkBoundary = false;
+                continue;
+            }
+            currentRunEntry ??= yamlRunEntry(line, aliases.runKeyAliases);
+            const scalarDeclaration = currentRunEntry
+                ? yamlRunBlockScalarValue(currentRunEntry.value, currentRunEntry.keyIndent)
+                : undefined;
+            if (scalarDeclaration) {
+                blockScalar = {
+                    style: scalarDeclaration.style,
+                    keyIndent: scalarDeclaration.keyIndent,
+                    contentIndent: scalarDeclaration.explicitContentIndent,
+                    previousLineKind: "none",
+                    previousHasSuppression: false,
+                    logicalShell: "",
+                    addedIndexes: [],
+                    physicalHasSuppression: false,
+                };
+                continuationPending = false;
+                pendingSplitOr = undefined;
+                ambiguousPrevious = undefined;
+                // Only unchanged context (or the actual file start) proves that a
+                // declaration is YAML rather than text inside a scalar omitted from
+                // this hunk. Added lines cannot self-certify an ambiguous boundary.
+                if (!isAdded)
+                    ambiguousHunkBoundary = false;
+                continue;
+            }
+            if (isYamlStructuralBoundary(line)) {
+                continuationPending = false;
+                pendingSplitOr = undefined;
+                // An indented mapping-looking line can still be plain text inside an
+                // omitted scalar. Only a column-zero document/mapping boundary is
+                // absolute evidence; otherwise indentation decides whether folding
+                // could compose the current addition with context.
+                if (!isAdded && indentation === 0) {
+                    ambiguousHunkBoundary = false;
+                    ambiguousPrevious = undefined;
+                }
+            }
+        }
+        const runAlias = currentRunEntry ? yamlAliasName(currentRunEntry.value) : undefined;
+        const currentShellCandidate = currentRunEntry
+            ? ((runAlias ? aliases.suppressionValues.get(runAlias) : undefined) ??
+                shellCandidateForRunEntry(currentRunEntry))
+            : lineInMultilineScalar && multilineScalar
+                ? multilineShellFragment(line, multilineScalar.style)
+                : line;
+        const pendingAtLineStart = pendingSplitOr;
+        const splitProgress = !isBlankOrComment && pendingAtLineStart
+            ? advanceSplitOr(currentShellCandidate, pendingAtLineStart)
+            : undefined;
+        const splitCompletes = Boolean(!isBlankOrComment && pendingAtLineStart && splitProgress?.completes);
+        const truncatedLeadingOr = Boolean(isAdded &&
+            ambiguousHunkBoundary &&
+            !isBlankOrComment &&
+            startsWithOrSuccessor(currentShellCandidate));
+        if (splitCompletes && pendingAtLineStart?.sourceAddedIndex !== undefined) {
+            additions[pendingAtLineStart.sourceAddedIndex].splitSuppression = true;
+        }
+        const foldsFromAmbiguousPredecessor = Boolean(ambiguousHunkBoundary &&
+            !isBlankOrComment &&
+            ambiguousPrevious &&
+            ambiguousPrevious.indent === indentation &&
+            startsWithOrSuccessor(currentShellCandidate));
+        if (foldsFromAmbiguousPredecessor && ambiguousPrevious?.addedIndex !== undefined) {
+            additions[ambiguousPrevious.addedIndex].continuedToSuccessor = true;
+        }
+        if (foldedFromBlockPredecessor && blockScalar?.previousAddedIndex !== undefined) {
+            additions[blockScalar.previousAddedIndex].continuedToSuccessor = true;
+        }
+        if (foldedFromMultilinePredecessor &&
+            multilineScalar?.previousAddedIndex !== undefined) {
+            additions[multilineScalar.previousAddedIndex].continuedToSuccessor = true;
+        }
+        const composesPriorSuppression = Boolean((foldedFromBlockPredecessor && blockScalar?.previousHasSuppression) ||
+            (foldedFromMultilinePredecessor && multilineScalar?.previousHasSuppression) ||
+            (foldsFromAmbiguousPredecessor && ambiguousPrevious?.hasSuppression));
+        let currentAddedIndex;
+        if (rawLine.startsWith("+")) {
+            currentAddedIndex = additions.length;
+            additions.push({
+                line,
+                suppressionCandidate: currentRunEntry ? currentShellCandidate : undefined,
+                continuedFromPrevious: (ambiguousHunkBoundary &&
+                    (ambiguousContextIndent === undefined ||
+                        indentation === ambiguousContextIndent)) ||
+                    continuationPending ||
+                    foldedFromMultilinePredecessor ||
+                    foldedFromBlockPredecessor,
+                continuedToSuccessor: false,
+                composesPriorSuppression,
+                splitSuppression: (splitCompletes && isAdded) || truncatedLeadingOr,
+            });
+        }
+        const pendingAfterCurrentLine = (candidate) => {
+            if (splitProgress?.next) {
+                return {
+                    ...splitProgress.next,
+                    sourceAddedIndex: pendingAtLineStart?.sourceAddedIndex ?? currentAddedIndex,
+                };
+            }
+            const trailing = trailingSplitOr(candidate);
+            return trailing ? { ...trailing, sourceAddedIndex: currentAddedIndex } : undefined;
+        };
+        if (lineInBlockScalar && blockScalar) {
+            if (currentAddedIndex !== undefined) {
+                blockScalar.addedIndexes.push(currentAddedIndex);
+            }
+            blockScalar.physicalHasSuppression ||= hasSemanticOrTrue(currentShellCandidate);
+            const content = line.slice(blockScalar.contentIndent ?? indentation);
+            const separator = blockScalar.logicalShell
+                ? blockScalar.style === "folded"
+                    ? " "
+                    : "\n"
+                : "";
+            blockScalar.logicalShell += `${separator}${content}`;
+            if (!blockScalar.physicalHasSuppression &&
+                hasSemanticOrTrue(blockScalar.logicalShell)) {
+                for (const index of blockScalar.addedIndexes) {
+                    additions[index].splitSuppression = true;
+                }
+            }
+        }
+        if (lineInMultilineScalar && multilineScalar?.rawQuotedValue !== undefined) {
+            if (currentAddedIndex !== undefined) {
+                multilineScalar.addedIndexes.push(currentAddedIndex);
+            }
+            multilineScalar.physicalHasSuppression ||= hasSemanticOrTrue(currentShellCandidate);
+            multilineScalar.rawQuotedValue += `\n${line.trimStart()}`;
+            const parsed = parseYamlKey(multilineScalar.rawQuotedValue, 0);
+            if (parsed &&
+                !multilineScalar.physicalHasSuppression &&
+                hasSemanticOrTrue(parsed.value)) {
+                for (const index of multilineScalar.addedIndexes) {
+                    additions[index].splitSuppression = true;
+                }
+            }
+        }
+        if (isBlankOrComment) {
+            if (trimmed &&
+                ((lineInBlockScalar && blockScalar?.style === "folded") || lineInMultilineScalar)) {
+                // Folded YAML turns this into an inline shell comment, so it consumes
+                // rather than separates a pending RHS. Literal block newlines do not.
+                pendingSplitOr = undefined;
+            }
+            if (ambiguousHunkBoundary && !trimmed)
+                ambiguousPrevious = undefined;
+            if (lineInBlockScalar && blockScalar) {
+                blockScalar.previousLineKind = trimmed ? "text" : "blank";
+                blockScalar.previousAddedIndex =
+                    trimmed &&
+                        blockScalar.style === "folded" &&
+                        indentation === blockScalar.contentIndent
+                        ? currentAddedIndex
+                        : undefined;
+                blockScalar.previousHasSuppression = Boolean(trimmed &&
+                    blockScalar.style === "folded" &&
+                    indentation === blockScalar.contentIndent &&
+                    hasSemanticOrTrue(line));
+            }
+            if (lineInMultilineScalar && multilineScalar) {
+                multilineScalar.previousLineKind =
+                    trimmed && multilineScalar.style !== "plain" ? "text" : "blank";
+                multilineScalar.previousAddedIndex =
+                    trimmed && multilineScalar.style !== "plain" ? currentAddedIndex : undefined;
+                multilineScalar.previousHasSuppression = Boolean(trimmed && multilineScalar.style !== "plain" && hasSemanticOrTrue(line));
+                if (multilineScalar.style !== "plain" &&
+                    closesMultilineQuotedScalar(line, multilineScalar.style)) {
+                    multilineScalar = undefined;
+                }
+            }
+            // Comments and blanks neither consume a pending shell RHS nor establish
+            // that a non-file-start hunk is outside an omitted YAML scalar.
+            continue;
+        }
+        if (lineInBlockScalar && blockScalar) {
+            blockScalar.previousLineKind =
+                indentation === blockScalar.contentIndent ? "text" : "more_indented";
+            blockScalar.previousAddedIndex =
+                blockScalar.style === "folded" && blockScalar.previousLineKind === "text"
+                    ? currentAddedIndex
+                    : undefined;
+            blockScalar.previousHasSuppression =
+                blockScalar.style === "folded" &&
+                    blockScalar.previousLineKind === "text" &&
+                    hasSemanticOrTrue(line);
+            continuationPending = continuesShellCommand(line);
+            pendingSplitOr = pendingAfterCurrentLine(line);
+            continue;
+        }
+        if (lineInMultilineScalar && multilineScalar) {
+            multilineScalar.previousLineKind = "text";
+            multilineScalar.previousAddedIndex = currentAddedIndex;
+            multilineScalar.previousHasSuppression = hasSemanticOrTrue(line);
+            continuationPending = continuesShellCommand(line);
+            pendingSplitOr = pendingAfterCurrentLine(line);
+            if (multilineScalar.style !== "plain" &&
+                closesMultilineQuotedScalar(line, multilineScalar.style)) {
+                multilineScalar = undefined;
+            }
+            continue;
+        }
+        if (!isAdded && ambiguousHunkBoundary && ambiguousContextIndent === undefined) {
+            ambiguousContextIndent = indentation;
+        }
+        continuationPending = currentRunEntry
+            ? continuesShellCommand(currentRunEntry.value)
+            : (ambiguousHunkBoundary || !isYamlStructuralBoundary(line)) &&
+                continuesShellCommand(line);
+        if (currentRunEntry) {
+            multilineScalar = multilineRunScalar(currentRunEntry);
+            if (multilineScalar) {
+                multilineScalar.previousAddedIndex = currentAddedIndex;
+                multilineScalar.previousHasSuppression = hasSemanticOrTrue(currentShellCandidate);
+                multilineScalar.physicalHasSuppression = multilineScalar.previousHasSuppression;
+                if (currentAddedIndex !== undefined) {
+                    multilineScalar.addedIndexes.push(currentAddedIndex);
+                }
+            }
+        }
+        pendingSplitOr = pendingAfterCurrentLine(currentShellCandidate);
+        if (ambiguousHunkBoundary) {
+            ambiguousPrevious = {
+                indent: indentation,
+                hasSuppression: hasSemanticOrTrue(currentShellCandidate),
+                addedIndex: currentAddedIndex,
+            };
+        }
+    }
+    return additions;
 }
-const OR_TRUE_BYPASS = /\|\|\s*true/;
-/** A `|| true` on a `trap '…'` line is best-effort cleanup, not a CI bypass:
- * the suppression applies only to the trap handler's own command (e.g.
- * `trap 'docker rm --force "$c" >/dev/null 2>&1 || true' EXIT`), never to a
- * test/build step's outcome. First hit: komatik release train #4864
- * (2026-08-26), where teams-worker.yml's container-cleanup trap was flagged
- * as a blocking bypass. The optional `run:` prefix keeps the inline YAML form
- * (`run: trap '…' EXIT`) exempt too; a `|| true` on any other added line
- * still blocks. */
-const TRAP_CLEANUP_LINE = /^\s*(?:-\s*)?(?:run:\s*)?trap\b/;
+/**
+ * ADR-012 D4: reviewed command shapes whose non-zero exit does not carry the
+ * workflow's test/build/deploy/verification outcome. Matching is deliberately
+ * full-line and fail-closed (see `suppressedCommand`); adding a benign shape is
+ * a data review, while every unlisted `|| true` remains blocking.
+ */
+const OR_TRUE_SUPPRESSION_ALLOWLIST = [
+    {
+        id: "trap-cleanup",
+        category: "cleanup",
+        justification: "Best-effort EXIT/INT/TERM resource cleanup does not decide CI success.",
+        wrapper: "trap",
+        commandPattern: /^(?:docker\s+(?:rm|stop|kill)\b|rm\b|rmdir\b|kill\b|pkill\b)/,
+    },
+    {
+        id: "gh-label-create-ensure",
+        category: "idempotent_ensure",
+        justification: "Creating an already-present GitHub label is an idempotent ensure.",
+        wrapper: "command",
+        commandPattern: /^gh\s+label\s+create\b/,
+    },
+    {
+        id: "directory-ensure",
+        category: "idempotent_ensure",
+        justification: "Parent-directory creation is an idempotent filesystem ensure.",
+        wrapper: "command",
+        commandPattern: /^(?:mkdir\s+(?:-p|--parents)\b|install\s+-d\b)/,
+    },
+    {
+        id: "count-fallback",
+        category: "count_fallback",
+        justification: "grep/rg count mode may return one when the valid count is zero.",
+        wrapper: "command",
+        commandPattern: /^(?:grep|rg)\b(?=.*\s(?:-[A-Za-z]*c[A-Za-z]*|--count)(?:\s|$))/,
+    },
+];
+const TRAP_SIGNALS = "(?:EXIT|INT|TERM)(?:\\s+(?:EXIT|INT|TERM))*";
+function unquotedOrTrueTokens(candidate) {
+    const matches = [];
+    for (const operator of unquotedOrOperatorIndexes(candidate)) {
+        let commandStart = operator + 2;
+        while (/\s/.test(candidate[commandStart] ?? ""))
+            commandStart += 1;
+        const word = shellWordAt(candidate, commandStart);
+        if (!word?.closed || word.value !== "true")
+            continue;
+        matches.push({ start: operator, end: word.end });
+    }
+    return matches;
+}
+function isRedirectionAmpersand(command, index) {
+    return command[index + 1] === ">" || /[<>]/.test(command[index - 1] ?? "");
+}
+function hasUnsafeShellComposition(command) {
+    if (command.includes("${{"))
+        return true;
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    for (let index = 0; index < command.length; index += 1) {
+        const character = command[index];
+        if (singleQuoted) {
+            if (character === "'")
+                singleQuoted = false;
+            continue;
+        }
+        if (doubleQuoted) {
+            if (character === "\\" && /[$`"\\]/.test(command[index + 1] ?? "")) {
+                index += 1;
+                continue;
+            }
+            if (character === '"') {
+                doubleQuoted = false;
+                continue;
+            }
+            if (character === "`" || (character === "$" && command[index + 1] === "(")) {
+                return true;
+            }
+            continue;
+        }
+        if (character === "\\") {
+            index += 1;
+            continue;
+        }
+        if (character === "'") {
+            singleQuoted = true;
+            continue;
+        }
+        if (character === '"') {
+            doubleQuoted = true;
+            continue;
+        }
+        if (character === "`" ||
+            (character === "$" && command[index + 1] === "(") ||
+            ((character === "<" || character === ">") && command[index + 1] === "(") ||
+            character === ";" ||
+            character === "|" ||
+            character === "(" ||
+            character === ")" ||
+            character === "\n" ||
+            character === "\r" ||
+            (character === "&" && !isRedirectionAmpersand(command, index))) {
+            return true;
+        }
+    }
+    return singleQuoted || doubleQuoted;
+}
+function singleSuppressedCommand(candidate, wrapper) {
+    const matches = unquotedOrTrueTokens(candidate);
+    if (matches.length !== 1)
+        return null;
+    const match = matches[0];
+    const command = candidate.slice(0, match.start).trim();
+    const suffix = candidate.slice(match.end).trim();
+    // No compound command, pipeline, command/process substitution or second payload may
+    // hide behind an otherwise allowlisted prefix. Redirections (including 2>&1)
+    // remain valid because they do not compose another command.
+    if (!command || hasUnsafeShellComposition(command))
+        return null;
+    if (suffix && !suffix.startsWith("#"))
+        return null;
+    return { wrapper, command };
+}
+function normalizedShellCandidate(line) {
+    const runEntry = yamlRunEntry(line);
+    return ((runEntry ? shellCandidateForRunEntry(runEntry) : undefined) ??
+        line.replace(/^[ \t]*(?:-[ \t]+)?/, "")).trim();
+}
+function trapHandler(normalized) {
+    for (const quote of ["'", '"']) {
+        const escapedQuote = quote === '"' ? '\\"' : quote;
+        const trap = normalized.match(new RegExp(`^trap\\s+${escapedQuote}([^${escapedQuote}]*)${escapedQuote}\\s+${TRAP_SIGNALS}\\s*(?:#.*)?$`));
+        if (trap)
+            return trap[1];
+    }
+    return undefined;
+}
+function expandStaticActionsStrings(candidate) {
+    return candidate.replace(/\$\{\{\s*'((?:[^']|'')*)'\s*\}\}/g, (_expression, value) => value.replace(/''/g, "'"));
+}
+function hasSemanticOrTrue(line) {
+    const normalized = normalizedShellCandidate(line);
+    const executable = trapHandler(normalized) ?? normalized;
+    return (unquotedOrTrueTokens(executable).length > 0 ||
+        unquotedOrTrueTokens(expandStaticActionsStrings(executable)).length > 0);
+}
+function suppressedCommand(line) {
+    const normalized = normalizedShellCandidate(line);
+    const handler = trapHandler(normalized);
+    if (handler !== undefined)
+        return singleSuppressedCommand(handler, "trap");
+    return singleSuppressedCommand(normalized, "command");
+}
+function isAllowedOrTrueSuppression(line) {
+    const candidate = suppressedCommand(line);
+    if (!candidate)
+        return false;
+    return OR_TRUE_SUPPRESSION_ALLOWLIST.some((rule) => rule.wrapper === candidate.wrapper && rule.commandPattern.test(candidate.command));
+}
 /** Detect newly introduced CI bypasses, never unchanged or deleted context. */
 function detectCiIntegrity(files) {
     const blockingPatterns = [];
@@ -50961,8 +51984,13 @@ function detectCiIntegrity(files) {
     let score = 0;
     for (const file of files.filter((entry) => entry.filename.startsWith(".github/workflows/"))) {
         const addedLines = addedPatchLines(file.patch);
-        const added = addedLines.join("\n");
-        if (addedLines.some((line) => OR_TRUE_BYPASS.test(line) && !TRAP_CLEANUP_LINE.test(line))) {
+        const added = addedLines.map(({ line }) => line).join("\n");
+        if (addedLines.some(({ line, suppressionCandidate, continuedFromPrevious, continuedToSuccessor, composesPriorSuppression, splitSuppression, }) => splitSuppression ||
+            composesPriorSuppression ||
+            (hasSemanticOrTrue(suppressionCandidate ?? line) &&
+                (continuedFromPrevious ||
+                    continuedToSuccessor ||
+                    !isAllowedOrTrueSuppression(suppressionCandidate ?? line))))) {
             blockingPatterns.push(`${file.filename}: workflow bypass pattern "|| true"`);
             score += 45;
         }
@@ -52162,13 +53190,6 @@ async function callGateApi(config, localEvaluation) {
         return null;
     }
 }
-/**
- * Branch/label context derived from the triggering event payload alone.
- *
- * The payload is a SNAPSHOT taken when the event was created. It is the
- * correct source for base/head refs (they cannot change without a new event)
- * but NOT for labels — see resolvePrMatchContext. Kept as the fallback layer.
- */
 function getPrMatchContext(metadata) {
     const pr = github_context.payload?.pull_request;
     return {
@@ -52183,101 +53204,70 @@ function getPrMatchContext(metadata) {
         labels: metadata?.labels ?? (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
     };
 }
-/**
- * Read the PR's CURRENT labels from the API.
- *
- * Returns null — never [] — when the labels could not be read, so the caller
- * can distinguish "this PR genuinely has no labels" (a valid live answer that
- * must be honored, otherwise removing a label would never be seen) from "the
- * live read failed" (fall back to the payload).
- */
-async function fetchLivePrLabels(prNumber, token) {
-    try {
-        const octokit = getOctokit(token);
-        const { owner, repo } = github_context.repo;
-        const { data: pr } = await octokit.rest.pulls.get({
-            owner,
-            repo,
-            pull_number: prNumber,
-        });
-        const labels = pr
-            .labels;
-        if (!Array.isArray(labels))
-            return null;
-        return labels
-            .map((label) => (typeof label === "string" ? label : (label?.name ?? "")))
-            .filter(Boolean);
+const LIVE_OVERRIDE_QUERY = `
+  query TrailheadOverrideState($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        labels(first: 100) { nodes { name } }
+        comments(last: 100) { nodes { body author { login } } }
+      }
     }
-    catch (error) {
-        core_debug(`Failed to read live labels for PR #${prNumber}: ${error}`);
-        return null;
-    }
-}
-/**
- * PR context for every label consumer in this evaluation — merge-queue
- * detection, v4 context matching, and the label override.
- *
- * Labels are read LIVE from the API rather than taken from the triggering
- * event payload. A rerun of an earlier run replays that run's ORIGINAL
- * payload, so a label applied after the run was created is invisible to the
- * rerun. That made the sanctioned `trailhead-override` label unusable as a
- * remedy: GitHub requires every check suite bearing a required context name
- * to end green, and a failed suite can only be made green by rerunning it —
- * which is exactly the path that could never see the new label. Applying the
- * override then still left the PR unmergeable without an admin merge.
- *
- * Resolved at the START of evaluateGate, which also keeps it clear of the
- * action's own `add-risk-labels` writes — those run after the evaluation.
- */
-async function resolvePrMatchContext(input) {
-    const payloadCtx = getPrMatchContext(input.metadata);
-    // Explicit metadata wins, unchanged: the `evaluate-pr` backfill path builds
-    // it in main.ts from its own live pulls.get, so it is already current.
-    if (input.metadata?.labels)
-        return payloadCtx;
-    if (!input.prNumber || !input.token) {
-        if (payloadCtx.labels.length > 0) {
-            core_debug("No PR number or github-token available — using event payload labels for PR context.");
-        }
-        return payloadCtx;
-    }
-    const liveLabels = await fetchLivePrLabels(input.prNumber, input.token);
-    if (!liveLabels) {
-        core_warning(`Could not read live labels for PR #${input.prNumber} — falling back to the ` +
-            `triggering event's payload labels ` +
-            `(${payloadCtx.labels.length > 0 ? payloadCtx.labels.join(", ") : "none"}). ` +
-            `A label applied after this run's event was created — including ` +
-            `\`${override_OVERRIDE_LABEL}\` — is not visible to this evaluation.`);
-        return payloadCtx;
-    }
-    const payloadLabels = payloadCtx.labels;
-    const drifted = liveLabels.length !== payloadLabels.length ||
-        liveLabels.some((label) => !payloadLabels.includes(label));
-    if (drifted) {
-        info(`PR #${input.prNumber} labels changed since this run's triggering event — ` +
-            `using live labels [${liveLabels.join(", ") || "none"}] ` +
-            `instead of payload labels [${payloadLabels.join(", ") || "none"}].`);
-    }
-    return { ...payloadCtx, labels: liveLabels };
-}
-async function fetchPrCommentsForOverride(prNumber, token) {
-    try {
-        const octokit = getOctokit(token);
-        const { owner, repo } = github_context.repo;
-        const { data: comments } = await octokit.rest.issues.listComments({
-            owner,
-            repo,
-            issue_number: prNumber,
-            per_page: 100,
-        });
-        return comments.map((comment) => ({
-            body: comment.body ?? "",
-            author: comment.user?.login ?? undefined,
-        }));
-    }
-    catch (error) {
-        core_debug(`Failed to fetch PR comments for override: ${error}`);
+  }
+`;
+function payloadOverrideComments() {
+    // Only issue_comment payloads contain the same PR conversation surfaced by
+    // GraphQL PullRequest.comments. A pull_request_review_comment is a diff
+    // comment and must never be accepted as an override reason.
+    if (github_context.eventName !== "issue_comment")
         return [];
+    const issue = github_context.payload?.issue;
+    if (!issue?.pull_request)
+        return [];
+    const comment = github_context.payload?.comment;
+    if (!comment?.body)
+        return [];
+    return [{ body: comment.body, author: comment.user?.login }];
+}
+/**
+ * ADR-012 D1: evaluate overrides from the current PR snapshot. Live labels are
+ * authoritative so removing a label revokes an override even when an old run is
+ * re-run. Frozen payload traces are diagnostic-only when live state cannot be
+ * read and can never authorize an override.
+ * GraphQL keeps labels + comments to one API read and asks for the newest 100
+ * comments, unlike the former first-page REST request.
+ */
+async function fetchLiveOverrideState(prNumber, token, payloadLabels) {
+    const fallback = {
+        labels: payloadLabels,
+        comments: payloadOverrideComments(),
+        source: "payload_fallback",
+        unavailableReason: token ? "api_error" : "missing_token",
+    };
+    if (!token)
+        return fallback;
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const data = await octokit.graphql(LIVE_OVERRIDE_QUERY, {
+            owner,
+            repo,
+            number: prNumber,
+        });
+        const pr = data.repository?.pullRequest;
+        if (!pr)
+            throw new Error("Pull request was not returned by GitHub");
+        const comments = pr.comments.nodes.flatMap((comment) => comment
+            ? [{ body: comment.body ?? "", author: comment.author?.login ?? undefined }]
+            : []);
+        return {
+            labels: pr.labels.nodes.flatMap((label) => (label?.name ? [label.name] : [])),
+            comments,
+            source: "live",
+        };
+    }
+    catch (error) {
+        core_warning(`Could not read live PR override state; event payload is diagnostic-only: ${error}`);
+        return fallback;
     }
 }
 async function applyLabelOverrideIfNeeded(input) {
@@ -52286,18 +53276,53 @@ async function applyLabelOverrideIfNeeded(input) {
         max_per_week: 5,
         scope: "full",
     };
-    const comments = await fetchPrCommentsForOverride(input.prNumber, input.githubToken);
-    const recentOverrideCount = await countRecentLabelOverrides({
-        repoId: input.evaluation.repoId,
-        storeUrl: input.config.evaluationStoreUrl,
-        apiKey: input.config.trailheadApiKey,
-    });
-    if (recentOverrideCount === null) {
+    const labelPresent = hasOverrideLabel(input.overrideState.labels);
+    const commentPresent = Boolean(parseOverrideComment(input.overrideState.comments));
+    if (input.overrideState.source === "payload_fallback") {
+        const traces = [
+            ...(labelPresent ? ["the override label"] : []),
+            ...(commentPresent ? ["an override reason"] : []),
+        ];
+        const observed = traces.length > 0
+            ? ` The frozen event payload contained ${traces.join(" and ")}, but unverified ` +
+                "payload state is never trusted to authorize an override."
+            : " No override trace was visible in the frozen event payload.";
+        const message = input.overrideState.unavailableReason === "missing_token"
+            ? "Live PR labels and comments were not read because no GitHub token was available." +
+                observed +
+                " Configure `github-token` and re-run."
+            : "Live PR labels and comments could not be read from GitHub." +
+                observed +
+                " Restore API access and re-run.";
+        return {
+            ...input.evaluation,
+            labelOverrideFeedback: {
+                status: "unavailable",
+                message,
+                source: "payload_fallback",
+            },
+        };
+    }
+    if (!labelPresent && !commentPresent) {
+        return input.evaluation;
+    }
+    const needsCapLookup = labelPresent &&
+        commentPresent &&
+        !input.releaseResult.releaseReady &&
+        overrideSettings.enabled;
+    const recentOverrideCount = needsCapLookup
+        ? await countRecentLabelOverrides({
+            repoId: input.evaluation.repoId,
+            storeUrl: input.config.evaluationStoreUrl,
+            apiKey: input.config.trailheadApiKey,
+        })
+        : null;
+    if (needsCapLookup && recentOverrideCount === null) {
         core_warning("Could not verify weekly override cap — proceeding without cap enforcement.");
     }
     const outcome = resolveLabelOverride({
-        labels: input.prMatchCtx.labels,
-        comments,
+        labels: input.overrideState.labels,
+        comments: input.overrideState.comments,
         config: {
             enabled: overrideSettings.enabled,
             maxPerWeek: overrideSettings.max_per_week,
@@ -52314,28 +53339,45 @@ async function applyLabelOverrideIfNeeded(input) {
         const retained = applied.policyOverride?.retainedReasons ?? [];
         // ADR-011 §3: a risk_only override never clears mechanical blocking inputs —
         // say so, otherwise the warning reads as a full bypass that it is not.
-        const retainedNote = retained.length > 0
-            ? ` — ${retained.length} mechanical CI reason(s) still blocking`
-            : "";
+        const retainedNote = retained.length > 0 ? ` — ${retained.join("; ")}` : "";
+        const feedbackMessage = retained.length > 0
+            ? `Override recorded, but scope \`risk_only\` cannot clear mechanical CI: ${retained.join("; ")}. Fix those checks; bypassing them requires an extraordinary GitHub admin merge.`
+            : `Release override applied by \`${outcome.audit.owner}\`.`;
         core_warning(`Label override applied by ${outcome.audit.owner} (scope ${outcome.audit.scope ?? "full"}): ` +
             `${outcome.audit.reason}${retainedNote}`);
         return {
             ...applied,
             labelOverrideFeedback: {
-                status: "applied",
-                message: `Release override applied by \`${outcome.audit.owner}\`${retainedNote}.`,
+                status: retained.length > 0 ? "partial" : "applied",
+                message: feedbackMessage,
+                source: input.overrideState.source,
+            },
+        };
+    }
+    if (outcome.kind === "revoked") {
+        info(`Label override inactive: ${outcome.message}`);
+        return {
+            ...input.evaluation,
+            labelOverrideFeedback: {
+                status: "revoked",
+                message: outcome.message,
+                source: "live",
             },
         };
     }
     if (outcome.kind === "rejected") {
         core_warning(`Label override rejected: ${outcome.message}`);
-        await postOverrideRejectionComment(input.prNumber, outcome.message, input.githubToken);
+        const message = outcome.message;
+        if (input.githubToken) {
+            await postOverrideRejectionComment(input.prNumber, message, input.githubToken);
+        }
         return {
             ...input.evaluation,
-            policyFindings: [...(input.evaluation.policyFindings ?? []), outcome.message],
+            policyFindings: [...(input.evaluation.policyFindings ?? []), message],
             labelOverrideFeedback: {
                 status: "rejected",
-                message: outcome.message,
+                message,
+                source: input.overrideState.source,
             },
         };
     }
@@ -52485,8 +53527,8 @@ function briefActions(evaluation, findings, riskThreshold) {
         actions.push({
             kind: "override",
             detail: `Risk ${evaluation.riskScore} exceeds threshold ${riskThreshold}. To accept it on ` +
-                `the record, add the \`${override_OVERRIDE_LABEL}\` label and comment ` +
-                `\`${override_OVERRIDE_LABEL}: <rationale>\` on this PR.`,
+                `the record, first comment \`${OVERRIDE_LABEL}: <rationale>\`, then add the ` +
+                `\`${OVERRIDE_LABEL}\` label so the label event re-evaluates this PR.`,
         });
     }
     return actions;
@@ -52498,6 +53540,7 @@ function briefActions(evaluation, findings, riskThreshold) {
 function buildReleaseBrief(evaluation, riskThreshold, cannotEvaluateReason, previous) {
     const findings = evaluation.enumeratedFindings ?? [];
     const override = evaluation.policyOverride;
+    const overrideFeedback = evaluation.labelOverrideFeedback;
     const delta = briefDelta(evaluation, previous);
     return {
         verdict: cannotEvaluateReason ? "cannot_evaluate" : briefVerdict(evaluation),
@@ -52507,22 +53550,13 @@ function buildReleaseBrief(evaluation, riskThreshold, cannotEvaluateReason, prev
             ? { topMovers: briefTopMovers(evaluation.riskFactors) }
             : {}),
         findings,
-        // Every input gets a row, including the ones that did not count, and every
-        // row states its reason (ADR-011 §1).
-        inputs: (evaluation.ci?.checks ?? []).map((check) => {
-            // No disposition attached means a summary built outside applyInputRelevance
-            // (or a pre-ADR-011 stored evaluation being re-rendered). Resolving against
-            // an empty policy table IS the default mapping, and keeps the reason column
-            // self-describing instead of blank.
-            const disposition = check.disposition ??
-                resolveDisposition({ name: check.name, status: check.status, required: check.required }, []);
-            return {
-                checkName: check.name,
-                status: check.status,
-                disposition: disposition.kind,
-                ...(disposition.reason ? { reason: disposition.reason } : {}),
-            };
-        }),
+        // Every input gets a row, including the ones that did not count (ADR-011 §1).
+        inputs: (evaluation.ci?.checks ?? []).map((check) => ({
+            checkName: check.name,
+            status: check.status,
+            disposition: check.disposition?.kind ?? (check.required ? "blocking" : "advisory"),
+            ...(check.disposition?.reason ? { reason: check.disposition.reason } : {}),
+        })),
         ...(delta ? { delta } : {}),
         actions: briefActions(evaluation, findings, riskThreshold),
         // ADR-011 §3 maps the audit's {owner, appliedAt, reason} onto {by, at, rationale}.
@@ -52534,6 +53568,17 @@ function buildReleaseBrief(evaluation, riskThreshold, cannotEvaluateReason, prev
                 rationale: override.reason,
             }
             : null,
+        ...(overrideFeedback &&
+            (overrideFeedback.status !== "applied" ||
+                overrideFeedback.source === "payload_fallback")
+            ? {
+                overrideStatus: {
+                    status: overrideFeedback.status,
+                    message: overrideFeedback.message,
+                    ...(overrideFeedback.source ? { source: overrideFeedback.source } : {}),
+                },
+            }
+            : {}),
         ...(cannotEvaluateReason ? { cannotEvaluateReason } : {}),
     };
 }
@@ -52545,6 +53590,7 @@ function buildReleaseBrief(evaluation, riskThreshold, cannotEvaluateReason, prev
 // after evaluateGate has already thrown. Stashing it here avoids loading and
 // re-matching the repo config a second time just to answer "open or closed?".
 let lastAvailabilityStance = null;
+let lastResolvedCheckContract = null;
 /**
  * The availability stance of the context the most recent evaluation matched, or
  * null when no context matched (or the run failed before matching). Null means
@@ -52556,6 +53602,14 @@ function getResolvedAvailabilityStance() {
 /** Test seam, and the reset evaluateGate performs on entry. */
 function setResolvedAvailabilityStance(stance) {
     lastAvailabilityStance = stance;
+}
+/** Effective custom-check contract reached by the latest evaluation, for catch paths. */
+function getResolvedCheckContract() {
+    return lastResolvedCheckContract;
+}
+/** Test seam, and the reset/set performed by evaluateGate. */
+function setResolvedCheckContract(contract) {
+    lastResolvedCheckContract = contract;
 }
 /**
  * ADR-011 §1: "silence is a bug." When the evaluation could not run at all there is
@@ -52576,8 +53630,9 @@ function buildCannotEvaluateBrief(reason, stance) {
             }
             : {
                 kind: "wait",
-                detail: "Availability stance is fail_open: this run did not block the merge, but no " +
-                    "Trailhead verdict was recorded for this commit.",
+                detail: "Availability stance is fail_open: Trailhead will publish a successful " +
+                    "cannot-evaluate custom check when GitHub Checks access is available. A " +
+                    "publication failure can still leave branch protection pending.",
             },
     ];
     return {
@@ -52596,14 +53651,8 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
     const start = Date.now();
     // Nothing is known about this run's availability stance until a context matches.
     setResolvedAvailabilityStance(null);
-    // Labels are read live here, before anything consumes them, so merge-queue
-    // detection, context matching and the label override all see the same
-    // current truth rather than the triggering event's snapshot.
-    const prMatchCtx = await resolvePrMatchContext({
-        metadata: prMetadata,
-        prNumber,
-        token: config.githubToken,
-    });
+    setResolvedCheckContract(null);
+    const prMatchCtx = getPrMatchContext(prMetadata);
     const isMergeQueue = github_context.eventName === "merge_group" ||
         prMatchCtx.labels.some((label) => label === "queue" || label.includes("merge-queue"));
     if (isMergeQueue) {
@@ -52644,6 +53693,8 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
             : Promise.resolve(null),
     ]);
     const gateMode = resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, config.gateMode);
+    const resolvedCheckName = resolveCheckName(gateMode, config.checkName ?? repoConfig?.gate?.check_name);
+    setResolvedCheckContract({ name: resolvedCheckName, mode: gateMode });
     // config.waitForChecks is tri-state: an explicit wait-for-checks input
     // (true/false) always wins. Left unset, default to waiting on the
     // EFFECTIVE gate mode resolved just above — which folds in .trailhead.yml
@@ -53097,6 +54148,7 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
         escalation_status: escalationStatus,
         trust_profile: trustProfile,
         gateMode,
+        resolvedCheckName,
         context: matchedContext?.matched,
         submissionChecks: submissionChecks.length > 0 ? submissionChecks : undefined,
         cross_repo_impact: crossRepoImpact.services.length > 0
@@ -53125,7 +54177,7 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
                 missing_required: "fail",
             };
             const excludeCheckNames = [
-                resolveCheckName(gateMode, repoConfig?.gate?.check_name ?? config.checkName),
+                resolvedCheckName,
                 "Trailhead",
                 "Trailhead — Release Ready",
             ];
@@ -53195,12 +54247,13 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
         securityBlocked,
     });
     localEvaluation = applyReleaseReadyToEvaluation(localEvaluation, releaseResult, gateMode);
-    if (prNumber && config.githubToken && hasOverrideLabel(prMatchCtx.labels)) {
+    if (prNumber) {
+        const overrideState = await fetchLiveOverrideState(prNumber, config.githubToken, prMatchCtx.labels);
         localEvaluation = await applyLabelOverrideIfNeeded({
             evaluation: localEvaluation,
             config,
             repoConfig,
-            prMatchCtx,
+            overrideState,
             prNumber,
             releaseResult,
             gateDecision,
@@ -53260,12 +54313,6 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
                 releaseReadyReasons: localEvaluation.releaseReadyReasons,
                 policyFindings: localEvaluation.policyFindings,
                 gateDecision: localEvaluation.gateDecision,
-                // Without these three, derivePolicyFindingFixes falls back to the
-                // gate-decision severity (warn findings surface as blocking) and
-                // risk.over_threshold has nothing to resolve in risk-only mode.
-                enumeratedFindings: localEvaluation.enumeratedFindings,
-                riskScore: localEvaluation.riskScore,
-                riskThreshold: adjustedRiskThreshold,
             },
             previousEvaluation,
             maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
@@ -53332,7 +54379,7 @@ async function postOverrideRejectionComment(prNumber, message, token) {
         const body = `${MARKER}\n` +
             `### Trailhead override rejected\n\n` +
             `${message}\n\n` +
-            `_This comment is updated automatically when the \`trailhead-override\` label is present._`;
+            `_This comment is updated automatically when Trailhead detects override intent it cannot honor._`;
         const { data: comments } = await octokit.rest.issues.listComments({
             owner,
             repo,
@@ -53396,40 +54443,83 @@ async function postPrComment(report, prNumber, token) {
         core_warning(`Failed to post PR comment: ${error}`);
     }
 }
-// ---------------------------------------------------------------------------
-// GitHub Check Run
-// ---------------------------------------------------------------------------
-async function createCheckRun(evaluation, report, token, checkName) {
-    try {
-        const octokit = getOctokit(token);
-        const { owner, repo } = github_context.repo;
-        const mode = evaluation.gateMode ?? "risk-only";
-        const name = checkName ?? resolveCheckName(mode);
-        const conclusion = checkConclusionForEvaluation(evaluation);
-        const titleSuffix = mode === "release-ready"
+function checkRunOutput(evaluation, report, name) {
+    const mode = evaluation.gateMode ?? "risk-only";
+    const titleSuffix = evaluation.releaseBrief?.verdict === "cannot_evaluate"
+        ? evaluation.gateDecision === "allow"
+            ? "CANNOT EVALUATE (FAIL-OPEN)"
+            : "CANNOT EVALUATE (FAIL-CLOSED)"
+        : mode === "release-ready"
             ? evaluation.releaseReady
                 ? "RELEASE READY"
                 : "NOT READY"
             : evaluation.gateDecision.toUpperCase();
-        await octokit.rest.checks.create({
+    return {
+        title: `${name}: ${titleSuffix}`,
+        summary: clampGateReport(report),
+        ...(evaluation.storePersisted === false
+            ? { text: "Evaluation not persisted — dashboard incomplete." }
+            : {}),
+    };
+}
+async function createCheckRun(evaluation, report, token, checkName) {
+    const mode = evaluation.gateMode ?? "risk-only";
+    const name = checkName ?? resolveCheckName(mode);
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const conclusion = checkConclusionForEvaluation(evaluation);
+        const response = await octokit.rest.checks.create({
             owner,
             repo,
             name,
             head_sha: evaluation.commitSha,
             status: "completed",
             conclusion,
-            output: {
-                title: `${name}: ${titleSuffix}`,
-                summary: clampGateReport(report),
-                ...(evaluation.storePersisted === false
-                    ? { text: "Evaluation not persisted — dashboard incomplete." }
-                    : {}),
-            },
+            output: checkRunOutput(evaluation, report, name),
         });
+        return {
+            published: true,
+            name,
+            headSha: evaluation.commitSha,
+            ...(response?.data?.id ? { checkRunId: response.data.id } : {}),
+            ...(response?.data?.check_suite?.id
+                ? { checkSuiteId: response.data.check_suite.id }
+                : {}),
+        };
     }
     catch (error) {
         // Fail-soft, but never silent — see postPrComment.
         core_warning(`Failed to create check run: ${error}`);
+        return { published: false, name, headSha: evaluation.commitSha };
+    }
+}
+/**
+ * Refresh the newly-created custom check after publication lineage and store
+ * outcome are known. This keeps its rendered Release Brief identical to the
+ * action summary and PR comment without creating a second check context.
+ */
+async function updateCheckRunReport(publication, evaluation, report, token) {
+    if (!publication.published)
+        return false;
+    if (!publication.checkRunId) {
+        core_warning("Created custom check did not return an id; its report could not be refreshed.");
+        return false;
+    }
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        await octokit.rest.checks.update({
+            owner,
+            repo,
+            check_run_id: publication.checkRunId,
+            output: checkRunOutput(evaluation, report, publication.name),
+        });
+        return true;
+    }
+    catch (error) {
+        core_warning(`Failed to refresh check-run report: ${error}`);
+        return false;
     }
 }
 // ---------------------------------------------------------------------------
@@ -53584,25 +54674,6 @@ function buildScoreBar(score, threshold) {
     const bar = "█".repeat(filled) + "░".repeat(width - filled);
     return `\`${bar}\` ${score}/100 (threshold: ${threshold})`;
 }
-/** A directory segment that names a migrations directory: `migrations`, `migration`, `db_migrations`. */
-const MIGRATIONS_SEGMENT = /^[\w.-]*migrations?$/i;
-/**
- * True only when the path genuinely lives under a migrations directory — the first
- * two *directory* segments (never the filename) are what a repo layout puts it in.
- *
- * The bucket used to be earned by `/^(migrations?|supabase)/` on the top segment,
- * which labelled every `supabase/**` file as schema: komatik#4041's six
- * `supabase/functions/_shared/` edge-function files were narrated as
- * "database/migrations/ changes (6 files)" on a PR carrying no migration at all.
- * A split suggestion is guidance a reviewer acts on, so it names the repo's real
- * layout or nothing.
- */
-function isMigrationsPath(parts) {
-    return parts
-        .slice(0, -1)
-        .slice(0, 2)
-        .some((segment) => MIGRATIONS_SEGMENT.test(segment));
-}
 function suggestSplitBoundaries(files) {
     if (files.length < 5)
         return [];
@@ -53613,12 +54684,10 @@ function suggestSplitBoundaries(files) {
         if (parts[0] === ".github") {
             bucket = "CI/workflow";
         }
-        else if (isMigrationsPath(parts)) {
+        else if (/^(migrations?|supabase)/i.test(parts[0])) {
             bucket = "database/migrations";
         }
         else if (parts.length >= 2) {
-            // Everything else is labelled by its literal two-segment prefix, so the
-            // suggestion can only ever name a directory the PR actually touched.
             bucket = parts.slice(0, 2).join("/");
         }
         else {
@@ -53770,15 +54839,7 @@ function formatGateReport(evaluation, riskThreshold) {
             ? "✅"
             : "🚫"
         : decisionIcon(evaluation.gateDecision);
-    const brief = evaluation.releaseBrief;
-    // ADR-011 §1 — one threshold per report. `riskThreshold` is the caller's BASE
-    // input; the brief carries the threshold the evaluation was actually judged
-    // against (context/environment overrides, agent-PR policy, trust deltas). A
-    // live brief read "risk 53 (threshold 50)" over a legacy table saying
-    // "(threshold 70)" — the brief is the single source, and every threshold
-    // mention below reads from it.
-    const effectiveRiskThreshold = brief?.riskThreshold ?? riskThreshold;
-    const threshold = effectiveRiskThreshold ?? 70;
+    const threshold = riskThreshold ?? 70;
     const healthDisplay = evaluation.healthChecks.length > 0
         ? `${evaluation.healthScore}/100`
         : "n/a (not configured)";
@@ -53794,8 +54855,8 @@ function formatGateReport(evaluation, riskThreshold) {
     const lines = [];
     // ADR-011 §1 — the brief leads; the pre-existing report stays below it so the
     // same `<!-- trailhead-gate-report -->` comment upgrades in place.
-    if (brief) {
-        lines.push(renderReleaseBrief(brief, {
+    if (evaluation.releaseBrief) {
+        lines.push(renderReleaseBrief(evaluation.releaseBrief, {
             // The same markdown becomes a check run's output.summary, which GitHub
             // caps at 65535 characters; leave room for the report below.
             maxChars: BRIEF_MAX_CHARS,
@@ -53804,21 +54865,10 @@ function formatGateReport(evaluation, riskThreshold) {
     }
     lines.push(`## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`, ``);
     if (mode === "release-ready" || mode === "advisory") {
-        // ADR-011 §1 — once the brief leads, the legacy report stops repeating it.
-        // Verdict, risk-vs-threshold and the input table are the brief's job; stating
-        // them twice is the illegibility class ADR-011 exists to close, and is how a
-        // stale threshold survived next to the live one. Everything the brief does
-        // NOT carry (size, health, DORA, security, files, guidance, remediation,
-        // override feedback, footer) stays exactly where it was.
-        lines.push(`| Dimension | Status |`, `|-----------|--------|`, ...(brief
-            ? []
-            : [
-                `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
-                `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
-            ]), ...(evaluation.sizeScore !== undefined
+        lines.push(`| Dimension | Status |`, `|-----------|--------|`, `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`, `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`, ...(evaluation.sizeScore !== undefined
             ? [`| Size / blast radius | ${evaluation.sizeScore}/100 (reported separately) |`]
-            : []), `| Health | ${healthDisplay} |`, ...(brief ? [] : [`| Gate | ${evaluation.gateDecision.toUpperCase()} |`]), ``);
-        if (!brief && evaluation.ci && evaluation.ci.checks.length > 0) {
+            : []), `| Health | ${healthDisplay} |`, `| Gate | ${evaluation.gateDecision.toUpperCase()} |`, ``);
+        if (evaluation.ci && evaluation.ci.checks.length > 0) {
             lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
             for (const check of evaluation.ci.checks) {
                 lines.push(`| ${formatCiCheckCell(check)} | ${formatCiStatusIcon(check.status)} ${check.status} |`);
@@ -53856,8 +54906,8 @@ function formatGateReport(evaluation, riskThreshold) {
             (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""), ``, `| Metric | Score |`, `|--------|-------|`, `| Health | ${healthDisplay} |`, `| Risk   | ${evaluation.riskScore}/100 |`, ...(evaluation.sizeScore !== undefined
             ? [`| Size / blast radius | ${evaluation.sizeScore}/100 |`]
             : []), `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`, ``);
-        if (effectiveRiskThreshold !== undefined) {
-            lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, effectiveRiskThreshold)}`, ``);
+        if (riskThreshold !== undefined) {
+            lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
         }
     }
     if (evaluation.remediation && evaluation.agentBriefMode !== "off") {
@@ -53886,11 +54936,7 @@ function formatGateReport(evaluation, riskThreshold) {
             ? [`- Resolve SLA: \`${evaluation.escalation_status.resolve_sla_minutes}m\``]
             : []), ``);
     }
-    // The brief enumerates these as `{id, title, evidence, severity}` findings; the
-    // legacy list is the count-string form ADR-011 §1 replaced. It stays on the
-    // evaluation (and in `release-brief-json`) for existing consumers, but a report
-    // that already carries the enumeration does not also print the counts.
-    if (!brief && evaluation.policyFindings && evaluation.policyFindings.length > 0) {
+    if (evaluation.policyFindings && evaluation.policyFindings.length > 0) {
         const findingsBody = evaluation.policyFindings
             .map((finding) => `- ${finding}`)
             .join("\n");
@@ -57183,6 +58229,8 @@ function resolveEvaluationTarget(context) {
 
 
 
+
+
 class PolicyOverrideError extends Error {
     constructor(message) {
         super(message);
@@ -57223,6 +58271,51 @@ function resolveFailMode(failModeInput, environment) {
         return explicitFailMode;
     }
     return environment === "production" ? "closed" : "open";
+}
+function isForkPullRequestContext() {
+    if (github_context.eventName !== "pull_request" &&
+        github_context.eventName !== "pull_request_review") {
+        return false;
+    }
+    const pullRequest = github_context.payload?.pull_request;
+    return pullRequest?.head?.repo?.fork === true;
+}
+function customCheckRecoveryGuidance(missingToken = false) {
+    if (isForkPullRequestContext()) {
+        if (github_context.eventName === "pull_request_review") {
+            return ("This is a fork `pull_request_review` event; its token is read-only and " +
+                "cannot publish the protected custom check. The no-checkout " +
+                "`pull_request_target` publisher does not receive review events and cannot " +
+                "repair this publication. Use an installed GitHub App or external publisher " +
+                "that listens to pull-request review webhooks with a write-capable installation " +
+                "token, and pin that App as the required-check source. Re-running this workflow " +
+                "cannot repair the permission boundary.");
+        }
+        return ("This is a fork `pull_request`; its token is read-only and cannot publish the " +
+            "protected custom check. Use the no-checkout `pull_request_target` publisher " +
+            "documented in `docs/getting-started.md`, or an installed GitHub App token and " +
+            "pin that App. Re-running or reapplying the override label in this workflow " +
+            "cannot repair the permission boundary.");
+    }
+    return missingToken
+        ? "Configure `github-token` and re-run the normal PR workflow."
+        : `Restore GitHub Checks access and re-run; applying or reapplying ` +
+            `\`${OVERRIDE_LABEL}\` triggers \`pull_request:labeled\`.`;
+}
+function checkReportRefreshFailureMessage(checkName, headSha, eventName) {
+    return (`Published custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`, ` +
+        "but its embedded Release Brief could not be refreshed with the publication record " +
+        "after two attempts. Branch protection can use the published conclusion, but the " +
+        "check body is stale. Use the job summary or PR comment for the final state, restore " +
+        "GitHub Checks update access, and re-run.");
+}
+async function refreshCheckReport(publication, evaluation, report, token, attempts) {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+        if (await updateCheckRunReport(publication, evaluation, report, token)) {
+            return true;
+        }
+    }
+    return false;
 }
 function resolvePolicyOverride() {
     const overrideFailModeRaw = getInput("override-fail-mode");
@@ -57335,12 +58428,82 @@ async function postCannotEvaluateBrief(error, failMode) {
         const githubToken = getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
         // backfill/re-evaluation runs suppress PR comments (see evaluate-pr above).
         const backfillMode = Boolean(getInput("evaluate-pr").trim());
-        const brief = buildCannotEvaluateBrief(String(error instanceof Error ? error.message : error), failMode === "open" ? "fail_open" : "fail_closed");
+        const reason = String(error instanceof Error ? error.message : error);
+        const brief = buildCannotEvaluateBrief(reason, failMode === "open" ? "fail_open" : "fail_closed");
+        const { commitSha, prNumber } = resolveEvaluationTarget(github_context);
+        const resolvedContract = getResolvedCheckContract();
+        const gateModeInput = getInput("gate-mode");
+        const inputMode = gateModeInput === "release-ready" ||
+            gateModeInput === "advisory" ||
+            gateModeInput === "risk-only"
+            ? gateModeInput
+            : undefined;
+        // Failures can happen before evaluateGate has loaded .trailhead.yml (for
+        // example, while validating an action-level policy override). In that case
+        // branch protection still expects the repository-configured check contract,
+        // so resolve it here rather than silently falling back to the legacy name.
+        const repoConfig = resolvedContract ? null : await loadRepoConfig(githubToken);
+        const gateMode = resolvedContract?.mode ??
+            resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, inputMode);
+        const checkName = resolvedContract?.name ??
+            resolveCheckName(gateMode, getInput("check-name") || repoConfig?.gate?.check_name);
+        const failOpen = failMode === "open";
+        const evaluation = {
+            id: `dg-cannot-${commitSha.substring(0, 7) || "unknown"}-${Date.now()}`,
+            repoId: `${github_context.repo.owner}/${github_context.repo.repo}`,
+            commitSha,
+            prNumber,
+            healthScore: 0,
+            riskScore: 0,
+            gateDecision: failOpen ? "allow" : "block",
+            healthChecks: [],
+            riskFactors: [],
+            evaluationMs: 0,
+            gateMode,
+            resolvedCheckName: checkName,
+            releaseReady: failOpen,
+            releaseReadyReasons: failOpen ? undefined : [reason],
+            releaseBrief: brief,
+        };
+        let publication;
+        if (githubToken && !backfillMode) {
+            publication = await createCheckRun(evaluation, renderReleaseBrief(brief), githubToken, checkName);
+        }
+        const eventName = github_context.eventName || "unknown";
+        const message = publication
+            ? publication.published
+                ? `Published ${failOpen ? "fail-open" : "fail-closed"} cannot-evaluate custom check ` +
+                    `\`${checkName}\` on \`${commitSha}\` from \`${eventName}\`.`
+                : `Could not publish custom check \`${checkName}\` on \`${commitSha}\` from ` +
+                    `\`${eventName}\`; this run cannot satisfy branch protection. ` +
+                    customCheckRecoveryGuidance()
+            : backfillMode
+                ? `Backfill mode did not publish custom check \`${checkName}\` on \`${commitSha}\`.`
+                : `No GitHub token was available to publish custom check \`${checkName}\` on ` +
+                    `\`${commitSha}\`; this run cannot satisfy branch protection. ` +
+                    customCheckRecoveryGuidance(true);
+        brief.requiredCheck = {
+            published: publication?.published ?? false,
+            reportRefreshed: publication?.published ?? false,
+            name: checkName,
+            headSha: commitSha,
+            eventName,
+            message,
+        };
+        let renderedBrief = renderReleaseBrief(brief);
+        if (publication?.published && githubToken) {
+            const reportRefreshed = await refreshCheckReport(publication, evaluation, renderedBrief, githubToken, 2);
+            if (!reportRefreshed) {
+                brief.requiredCheck.reportRefreshed = false;
+                brief.requiredCheck.message = checkReportRefreshFailureMessage(checkName, commitSha, eventName);
+                renderedBrief = renderReleaseBrief(brief);
+            }
+        }
+        setOutput("evaluation-json", JSON.stringify(evaluation));
         setOutput("release-brief-json", JSON.stringify(brief));
-        const { prNumber } = resolveEvaluationTarget(github_context);
-        if (!githubToken || !prNumber || backfillMode)
-            return;
-        await postPrComment(renderReleaseBrief(brief), prNumber, githubToken);
+        if (githubToken && prNumber && !backfillMode) {
+            await postPrComment(renderedBrief, prNumber, githubToken);
+        }
     }
     catch (postError) {
         core_debug(`Cannot-evaluate brief could not be posted: ${postError}`);
@@ -57665,7 +58828,7 @@ async function run() {
         if (evaluation.reportUrl) {
             setOutput("report-url", evaluation.reportUrl);
         }
-        const report = formatGateReport(evaluation, config.riskThreshold);
+        let report = formatGateReport(evaluation, config.riskThreshold);
         let securityReport = "";
         if (config.securityGate !== false && config.githubToken) {
             try {
@@ -57733,6 +58896,55 @@ async function run() {
         let cloudQuotaExceeded = false;
         let cloudSuspended = false;
         let cloudHardCapped = false;
+        const checkName = evaluation.resolvedCheckName ??
+            resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);
+        let checkPublication;
+        if (config.githubToken && !backfillMode) {
+            checkPublication = await createCheckRun(evaluation, fullReport, config.githubToken, checkName);
+        }
+        if (evaluation.releaseBrief) {
+            const eventName = context.eventName || "unknown";
+            const headSha = evaluation.commitSha;
+            const publicationMessage = checkPublication
+                ? checkPublication.published
+                    ? `Published custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
+                        "Branch protection must require this custom check from the token's " +
+                        "publishing GitHub App, not the workflow job name. For GITHUB_TOKEN, " +
+                        "that source is GitHub Actions."
+                    : `Could not publish custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
+                        "This evaluation cannot satisfy branch protection. " +
+                        customCheckRecoveryGuidance()
+                : backfillMode
+                    ? `Backfill mode did not publish custom check \`${checkName}\` on \`${headSha}\`. ` +
+                        "Run the normal PR workflow to satisfy branch protection."
+                    : `No GitHub token was available to publish custom check \`${checkName}\` on \`${headSha}\`. ` +
+                        customCheckRecoveryGuidance(true);
+            evaluation.releaseBrief.requiredCheck = {
+                published: checkPublication?.published ?? false,
+                reportRefreshed: checkPublication?.published ?? false,
+                name: checkName,
+                headSha,
+                eventName,
+                message: publicationMessage,
+            };
+            const updatedReport = formatGateReport(evaluation, config.riskThreshold);
+            fullReport = fullReport.replace(report, updatedReport);
+            report = updatedReport;
+        }
+        let checkReportRefreshed = false;
+        if (checkPublication?.published && config.githubToken) {
+            checkReportRefreshed = await refreshCheckReport(checkPublication, evaluation, fullReport, config.githubToken, 2);
+            if (!checkReportRefreshed && evaluation.releaseBrief?.requiredCheck) {
+                evaluation.releaseBrief.requiredCheck.reportRefreshed = false;
+                evaluation.releaseBrief.requiredCheck.message = checkReportRefreshFailureMessage(checkName, evaluation.commitSha, context.eventName || "unknown");
+                const refreshFailureReport = formatGateReport(evaluation, config.riskThreshold);
+                fullReport = fullReport.replace(report, refreshFailureReport);
+                report = refreshFailureReport;
+            }
+        }
+        const checkReportBeforePersistence = fullReport;
+        // Persist only after the required-check publication record is attached, so
+        // the store, output, webhook, summary and PR comment all carry the same brief.
         if (config.evaluationStoreUrl) {
             const storeSecretInput = getInput("evaluation-store-secret");
             if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
@@ -57767,13 +58979,23 @@ async function run() {
         if (cloudFooterLine) {
             fullReport = `${fullReport}\n\n${cloudFooterLine}`;
         }
+        if (checkPublication?.published &&
+            config.githubToken &&
+            checkReportRefreshed &&
+            fullReport !== checkReportBeforePersistence) {
+            await refreshCheckReport(checkPublication, evaluation, fullReport, config.githubToken, 1);
+        }
+        // These outputs were first emitted before publication/persistence; replace
+        // them with the final D3 lineage and store record.
+        setOutput("evaluation-json", JSON.stringify(evaluation));
+        if (evaluation.releaseBrief) {
+            setOutput("release-brief-json", JSON.stringify(evaluation.releaseBrief));
+        }
         await summary.addRaw(fullReport).write();
-        const checkName = resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);
         if (config.githubToken && !backfillMode) {
             if (prNumber) {
                 await postPrComment(fullReport, prNumber, config.githubToken);
             }
-            await createCheckRun(evaluation, fullReport, config.githubToken, checkName);
             if (prNumber && config.addRiskLabels && evaluation.gateMode !== "advisory") {
                 await managePrLabels(prNumber, evaluation.gateDecision, config.githubToken);
             }
@@ -57833,7 +59055,7 @@ async function run() {
         if (error instanceof PolicyOverrideError) {
             // An unusable override is still a run that could not evaluate — ADR-011 §1
             // owes the PR a brief here too, with the validation message as the reason.
-            await postCannotEvaluateBrief(error, failMode);
+            await postCannotEvaluateBrief(error, "closed");
             setFailed(`Invalid policy override: ${error.message}`);
             return;
         }

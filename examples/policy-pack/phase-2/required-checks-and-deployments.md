@@ -1,5 +1,9 @@
 # Required Checks and Deployments
 
+> **Legacy pre-ADR-012 guidance.** Do not apply these native job contexts. Current
+> branch protection requires the custom `Trailhead — Release Ready` check from the
+> GitHub Actions app; see the top-level policy-pack rulesets.
+
 Use this to wire Trailhead as an enforced control (not advisory).
 
 ## Required Status Checks
