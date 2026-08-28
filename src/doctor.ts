@@ -389,7 +389,11 @@ export function formatDoctorReport(report: DoctorReport): string {
   }
 
   lines.push(`Gate mode: ${report.gateMode}`);
-  lines.push(`Expected branch protection check: ${report.expectedCheckName}`);
+  lines.push(`Expected custom check name: ${report.expectedCheckName}`);
+  lines.push(
+    "Expected check source: GitHub Actions when using GITHUB_TOKEN; otherwise " +
+      "the token's publishing GitHub App (never the workflow job name).",
+  );
 
   if (report.configuredChecks.length > 0) {
     lines.push(`Configured CI checks: ${report.configuredChecks.join(", ")}`);

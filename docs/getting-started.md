@@ -53,14 +53,118 @@ npx @komatikai/trailhead init --preset solo
 Minimal workflow (wizard generates this):
 
 ```yaml
-- uses: KomatikAI/trailhead@v4
-  with:
-    gate-mode: release-ready
-    wait-for-checks: "true"
-    risk-threshold: "70"
+name: Trailhead
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  security-events: read
+
+jobs:
+  trailhead:
+    if: >-
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: KomatikAI/trailhead@v4
+        with:
+          gate-mode: release-ready
+          wait-for-checks: "true"
+          risk-threshold: "70"
 ```
 
-Branch protection: require check **Trailhead — Release Ready**.
+Branch protection: require the custom GitHub Actions check **Trailhead — Release
+Ready** with **GitHub Actions** as its expected source (`integration_id: 15368` on
+github.com). Do not require the workflow job name (`Trailhead Gate`, `Trailhead / gate`,
+or similar): job checks belong to the triggering event's suite, while Trailhead's
+custom check is published directly on the PR head.
+
+To record a risk override, post `trailhead-override: <rationale>` first, then add the
+`trailhead-override` label. The label action triggers a fresh `pull_request`
+evaluation. If the label was added first, post the reason and re-run the job or remove
+and re-add the label.
+
+Human label changes trigger the workflow normally. GitHub suppresses recursive workflow
+events created with that same workflow's `GITHUB_TOKEN`; automation that records an
+override must use a GitHub App/PAT or explicitly dispatch the gate.
+
+The generated concurrency group also makes the newest real gate event authoritative. This
+prevents an older labeled evaluation from publishing after a newer unlabeled revocation.
+GitHub evaluates workflow concurrency before the job-level label filter, so ignored label
+activity must use a unique group rather than canceling the real gate. The workflow name also
+prevents a separate fork publisher or other gate workflow from canceling it. For existing
+workflows, use:
+
+```yaml
+concurrency:
+  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+  cancel-in-progress: true
+```
+
+### Public fork PRs
+
+GitHub makes `GITHUB_TOKEN` read-only for `pull_request` workflows from forks, even
+when the workflow requests `checks: write`. The generated workflow can evaluate those
+PRs, but it cannot publish the protected custom check or PR comment. Public repositories
+that accept forks need a separate publisher using `pull_request_target` and the base
+repository's released action. It must never check out the fork head or execute fork code:
+
+```yaml
+name: Trailhead fork publisher
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  security-events: read
+
+jobs:
+  trailhead:
+    if: >-
+      github.event.pull_request.head.repo.fork == true &&
+      ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override')
+    runs-on: ubuntu-latest
+    steps:
+      # Security boundary: use the released action only. Do not checkout or run PR code.
+      - uses: KomatikAI/trailhead@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          gate-mode: release-ready
+          wait-for-checks: "true"
+```
+
+This path still publishes as GitHub Actions, so github.com's expected-source id remains
+`15368`. If you instead pass an installation token from a separate GitHub App, pin that
+App—not GitHub Actions—as the ruleset's expected source. The `github.workflow` namespace keeps
+this publisher's concurrency group distinct from the ordinary `pull_request` workflow. To avoid
+duplicating read-only evaluation work once the publisher is installed, also prepend
+`github.event.pull_request.head.repo.fork != true &&` to the ordinary workflow's job filter.
+
+`pull_request_target` does not re-run when a review is submitted or dismissed. The no-checkout
+publisher above is therefore insufficient for fork PRs when Trailhead enforces
+`required_approvals` or code-owner approval. For those policies, use an installed GitHub App or
+external publisher that listens to pull-request review webhooks and evaluates with a write-capable
+installation token, then pin that App as the required-check source. If that bridge is unavailable,
+do not make review state a blocking Trailhead input for fork PRs.
 
 Example repo layout: [`examples/solo-web-app/`](../examples/solo-web-app/).
 

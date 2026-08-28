@@ -1,5 +1,9 @@
 # Pilot Enforcement Checklist
 
+> **Archived checklist.** Its native `Trailhead` requirement predates ADR-012 and is
+> not a current enforcement template. Use `docs/getting-started.md` and the top-level
+> policy-pack rulesets.
+
 Use this before turning on hard enforcement in pilot repositories.
 
 ## Scope and Ownership

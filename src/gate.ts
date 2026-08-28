@@ -81,8 +81,10 @@ import {
   applyLabelOverrideToEvaluation,
   hasOverrideLabel,
   OVERRIDE_LABEL,
+  parseOverrideComment,
   resolveLabelOverride,
 } from "./override.js";
+import type { PrComment } from "./override.js";
 import {
   runSubmissionGate,
   getSubmissionConfigWarnings,
@@ -1689,10 +1691,68 @@ async function resolvePrMatchContext(input: {
   return { ...payloadCtx, labels: liveLabels };
 }
 
-async function fetchPrCommentsForOverride(
+interface OverridePrState {
+  /**
+   * The one live label set resolved by resolvePrMatchContext — passed through
+   * so every override consumer reads the same labels as merge-queue detection
+   * and contexts[].match.labels.
+   */
+  labels: string[];
+  comments: PrComment[];
+  /** Where the COMMENTS came from. Labels always come from prMatchCtx. */
+  source: "live" | "payload_fallback";
+  unavailableReason?: "missing_token" | "api_error";
+}
+
+function payloadOverrideComments(): PrComment[] {
+  // Only issue_comment payloads contain the same PR conversation surfaced by
+  // GraphQL PullRequest.comments. A pull_request_review_comment is a diff
+  // comment and must never be accepted as an override reason.
+  if (github.context.eventName !== "issue_comment") return [];
+  const issue = github.context.payload?.issue as
+    | { pull_request?: Record<string, unknown> }
+    | undefined;
+  if (!issue?.pull_request) return [];
+  const comment = github.context.payload?.comment as
+    | { body?: string; user?: { login?: string } }
+    | undefined;
+  if (!comment?.body) return [];
+  return [{ body: comment.body, author: comment.user?.login }];
+}
+
+/**
+ * ADR-012 D1: evaluate the override against the CURRENT PR state.
+ *
+ * There is exactly ONE live label read in an evaluation — resolvePrMatchContext,
+ * resolved at the top of evaluateGate — and its result is handed in here as
+ * `liveLabels`. This function therefore reads COMMENTS only. Reading labels a
+ * second time here (as an earlier draft did, via a GraphQL query alongside the
+ * REST `pulls.get`) produces two label truths per evaluation that can disagree:
+ * merge-queue detection and `contexts[].match.labels` would see one set and the
+ * override another.
+ *
+ * REST, not GraphQL: `issues.listComments` is the endpoint this path has always
+ * used, and it keeps the override working in environments where the GraphQL API
+ * is blocked or unavailable — a GraphQL-only override path would be fail-closed
+ * exactly there.
+ *
+ * A failed comment read warns and falls back to the triggering event's payload
+ * comment rather than refusing: degradation, not regression, matching the label
+ * fallback in resolvePrMatchContext.
+ */
+async function fetchOverridePrState(
   prNumber: number,
-  token: string,
-): Promise<Array<{ body: string; author?: string }>> {
+  token: string | undefined,
+  liveLabels: string[],
+): Promise<OverridePrState> {
+  const fallback: OverridePrState = {
+    labels: liveLabels,
+    comments: payloadOverrideComments(),
+    source: "payload_fallback",
+    unavailableReason: token ? "api_error" : "missing_token",
+  };
+  if (!token) return fallback;
+
   try {
     const octokit = github.getOctokit(token);
     const { owner, repo } = github.context.repo;
@@ -1702,13 +1762,20 @@ async function fetchPrCommentsForOverride(
       issue_number: prNumber,
       per_page: 100,
     });
-    return comments.map((comment) => ({
-      body: comment.body ?? "",
-      author: comment.user?.login ?? undefined,
-    }));
+    return {
+      labels: liveLabels,
+      comments: comments.map((comment) => ({
+        body: comment.body ?? "",
+        author: comment.user?.login ?? undefined,
+      })),
+      source: "live",
+    };
   } catch (error) {
-    core.debug(`Failed to fetch PR comments for override: ${error}`);
-    return [];
+    core.warning(
+      `Could not read live PR comments for the override on PR #${prNumber} — falling ` +
+        `back to the triggering event's payload comment. ${error}`,
+    );
+    return fallback;
   }
 }
 
@@ -1716,11 +1783,11 @@ async function applyLabelOverrideIfNeeded(input: {
   evaluation: GateEvaluation;
   config: TrailheadConfig;
   repoConfig: RepoConfig | null;
-  prMatchCtx: PrMatchContext;
+  overrideState: OverridePrState;
   prNumber: number;
   releaseResult: ReturnType<typeof computeReleaseReady>;
   gateDecision: GateDecision;
-  githubToken: string;
+  githubToken?: string;
 }): Promise<GateEvaluation> {
   const overrideSettings = input.repoConfig?.override ?? {
     enabled: true,
@@ -1728,21 +1795,57 @@ async function applyLabelOverrideIfNeeded(input: {
     scope: "full" as const,
   };
 
-  const comments = await fetchPrCommentsForOverride(input.prNumber, input.githubToken);
-  const recentOverrideCount = await countRecentLabelOverrides({
-    repoId: input.evaluation.repoId,
-    storeUrl: input.config.evaluationStoreUrl,
-    apiKey: input.config.trailheadApiKey,
-  });
-  if (recentOverrideCount === null) {
+  const labelPresent = hasOverrideLabel(input.overrideState.labels);
+  const commentPresent = Boolean(parseOverrideComment(input.overrideState.comments));
+
+  // A failed live read is a DEGRADATION, not a regression (#362): the payload
+  // still authorizes. What a frozen payload cannot do is supply an override
+  // reason it never carried — that, and only that, is `unavailable`.
+  if (input.overrideState.source === "payload_fallback" && !commentPresent) {
+    const message =
+      input.overrideState.unavailableReason === "missing_token"
+        ? "The `trailhead-override` label is present, but no GitHub token was available " +
+          "to read this PR's comments and the triggering event's payload carried no " +
+          "override reason. Configure `github-token` and re-run."
+        : "The `trailhead-override` label is present, but this PR's comments could not " +
+          "be read from GitHub and the triggering event's payload carried no override " +
+          "reason. Restore API access and re-run.";
+    core.warning(`Label override unavailable: ${message}`);
+    return {
+      ...input.evaluation,
+      labelOverrideFeedback: {
+        status: "unavailable",
+        message,
+        source: "payload_fallback",
+      },
+    };
+  }
+
+  if (!labelPresent && !commentPresent) {
+    return input.evaluation;
+  }
+
+  const needsCapLookup =
+    labelPresent &&
+    commentPresent &&
+    !input.releaseResult.releaseReady &&
+    overrideSettings.enabled;
+  const recentOverrideCount = needsCapLookup
+    ? await countRecentLabelOverrides({
+        repoId: input.evaluation.repoId,
+        storeUrl: input.config.evaluationStoreUrl,
+        apiKey: input.config.trailheadApiKey,
+      })
+    : null;
+  if (needsCapLookup && recentOverrideCount === null) {
     core.warning(
       "Could not verify weekly override cap — proceeding without cap enforcement.",
     );
   }
 
   const outcome = resolveLabelOverride({
-    labels: input.prMatchCtx.labels,
-    comments,
+    labels: input.overrideState.labels,
+    comments: input.overrideState.comments,
     config: {
       enabled: overrideSettings.enabled,
       maxPerWeek: overrideSettings.max_per_week,
@@ -1760,10 +1863,13 @@ async function applyLabelOverrideIfNeeded(input: {
     const retained = applied.policyOverride?.retainedReasons ?? [];
     // ADR-011 §3: a risk_only override never clears mechanical blocking inputs —
     // say so, otherwise the warning reads as a full bypass that it is not.
-    const retainedNote =
+    const retainedNote = retained.length > 0 ? ` — ${retained.join("; ")}` : "";
+    const feedbackMessage =
       retained.length > 0
-        ? ` — ${retained.length} mechanical CI reason(s) still blocking`
-        : "";
+        ? `Override recorded, but scope \`risk_only\` cannot clear mechanical CI: ${retained.join(
+            "; ",
+          )}. Fix those checks; bypassing them requires an extraordinary GitHub admin merge.`
+        : `Release override applied by \`${outcome.audit.owner}\`.`;
     core.warning(
       `Label override applied by ${outcome.audit.owner} (scope ${outcome.audit.scope ?? "full"}): ` +
         `${outcome.audit.reason}${retainedNote}`,
@@ -1771,25 +1877,44 @@ async function applyLabelOverrideIfNeeded(input: {
     return {
       ...applied,
       labelOverrideFeedback: {
-        status: "applied",
-        message: `Release override applied by \`${outcome.audit.owner}\`${retainedNote}.`,
+        status: retained.length > 0 ? "partial" : "applied",
+        message: feedbackMessage,
+        source: input.overrideState.source,
+      },
+    };
+  }
+
+  if (outcome.kind === "revoked") {
+    core.info(`Label override inactive: ${outcome.message}`);
+    return {
+      ...input.evaluation,
+      labelOverrideFeedback: {
+        status: "revoked",
+        message: outcome.message,
+        source: input.overrideState.source,
       },
     };
   }
 
   if (outcome.kind === "rejected") {
     core.warning(`Label override rejected: ${outcome.message}`);
-    await postOverrideRejectionComment(
-      input.prNumber,
-      outcome.message,
-      input.githubToken,
-    );
+    const message = outcome.message;
+    if (input.githubToken) {
+      await postOverrideRejectionComment(input.prNumber, message, input.githubToken);
+    }
+    // `not_needed` is advisory: the release is ALREADY ready, and the only
+    // action owed is removing a stale label. It must never become a
+    // policyFinding — app/src/verdict.ts ingests every policyFinding, so a
+    // rejection line there turns a green server-side verdict red.
+    const advisoryOnly = outcome.code === "not_needed";
+    const existingFindings = input.evaluation.policyFindings;
     return {
       ...input.evaluation,
-      policyFindings: [...(input.evaluation.policyFindings ?? []), outcome.message],
+      ...(advisoryOnly ? {} : { policyFindings: [...(existingFindings ?? []), message] }),
       labelOverrideFeedback: {
         status: "rejected",
-        message: outcome.message,
+        message,
+        source: input.overrideState.source,
       },
     };
   }
@@ -1972,8 +2097,8 @@ function briefActions(
       kind: "override",
       detail:
         `Risk ${evaluation.riskScore} exceeds threshold ${riskThreshold}. To accept it on ` +
-        `the record, add the \`${OVERRIDE_LABEL}\` label and comment ` +
-        `\`${OVERRIDE_LABEL}: <rationale>\` on this PR.`,
+        `the record, first comment \`${OVERRIDE_LABEL}: <rationale>\`, then add the ` +
+        `\`${OVERRIDE_LABEL}\` label so the label event re-evaluates this PR.`,
     });
   }
 
@@ -1992,6 +2117,7 @@ export function buildReleaseBrief(
 ): ReleaseBrief {
   const findings = evaluation.enumeratedFindings ?? [];
   const override = evaluation.policyOverride;
+  const overrideFeedback = evaluation.labelOverrideFeedback;
   const delta = briefDelta(evaluation, previous);
 
   return {
@@ -2033,6 +2159,17 @@ export function buildReleaseBrief(
           rationale: override.reason,
         }
       : null,
+    ...(overrideFeedback &&
+    (overrideFeedback.status !== "applied" ||
+      overrideFeedback.source === "payload_fallback")
+      ? {
+          overrideStatus: {
+            status: overrideFeedback.status,
+            message: overrideFeedback.message,
+            ...(overrideFeedback.source ? { source: overrideFeedback.source } : {}),
+          },
+        }
+      : {}),
     ...(cannotEvaluateReason ? { cannotEvaluateReason } : {}),
   };
 }
@@ -2046,6 +2183,7 @@ export function buildReleaseBrief(
 // after evaluateGate has already thrown. Stashing it here avoids loading and
 // re-matching the repo config a second time just to answer "open or closed?".
 let lastAvailabilityStance: AvailabilityStance | null = null;
+let lastResolvedCheckContract: { name: string; mode: GateMode } | null = null;
 
 /**
  * The availability stance of the context the most recent evaluation matched, or
@@ -2059,6 +2197,18 @@ export function getResolvedAvailabilityStance(): AvailabilityStance | null {
 /** Test seam, and the reset evaluateGate performs on entry. */
 export function setResolvedAvailabilityStance(stance: AvailabilityStance | null): void {
   lastAvailabilityStance = stance;
+}
+
+/** Effective custom-check contract reached by the latest evaluation, for catch paths. */
+export function getResolvedCheckContract(): { name: string; mode: GateMode } | null {
+  return lastResolvedCheckContract;
+}
+
+/** Test seam, and the reset/set performed by evaluateGate. */
+export function setResolvedCheckContract(
+  contract: { name: string; mode: GateMode } | null,
+): void {
+  lastResolvedCheckContract = contract;
 }
 
 /**
@@ -2086,8 +2236,10 @@ export function buildCannotEvaluateBrief(
       : {
           kind: "wait",
           detail:
-            "Availability stance is fail_open: this run did not block the merge, but no " +
-            "Trailhead verdict was recorded for this commit.",
+            "Availability stance is fail_open: Trailhead will publish a NEUTRAL " +
+            "cannot-evaluate custom check when GitHub Checks access is available — it " +
+            "does not block the merge and does not claim a verdict this run never " +
+            "reached. A publication failure can still leave branch protection pending.",
         },
   ];
 
@@ -2114,9 +2266,11 @@ export async function evaluateGate(
   const start = Date.now();
   // Nothing is known about this run's availability stance until a context matches.
   setResolvedAvailabilityStance(null);
+  setResolvedCheckContract(null);
   // Labels are read live here, before anything consumes them, so merge-queue
   // detection, context matching and the label override all see the same
-  // current truth rather than the triggering event's snapshot.
+  // current truth rather than the triggering event's snapshot. This is the ONE
+  // live label read of an evaluation.
   const prMatchCtx = await resolvePrMatchContext({
     metadata: prMetadata,
     prNumber,
@@ -2182,6 +2336,11 @@ export async function evaluateGate(
     repoConfig?.schema_version ?? 1,
     config.gateMode,
   );
+  const resolvedCheckName = resolveCheckName(
+    gateMode,
+    config.checkName ?? repoConfig?.gate?.check_name,
+  );
+  setResolvedCheckContract({ name: resolvedCheckName, mode: gateMode });
   // config.waitForChecks is tri-state: an explicit wait-for-checks input
   // (true/false) always wins. Left unset, default to waiting on the
   // EFFECTIVE gate mode resolved just above — which folds in .trailhead.yml
@@ -2796,6 +2955,7 @@ export async function evaluateGate(
     escalation_status: escalationStatus,
     trust_profile: trustProfile,
     gateMode,
+    resolvedCheckName,
     context: matchedContext?.matched,
     submissionChecks: submissionChecks.length > 0 ? submissionChecks : undefined,
     cross_repo_impact:
@@ -2826,7 +2986,7 @@ export async function evaluateGate(
         missing_required: "fail" as const,
       };
       const excludeCheckNames = [
-        resolveCheckName(gateMode, repoConfig?.gate?.check_name ?? config.checkName),
+        resolvedCheckName,
         "Trailhead",
         "Trailhead — Release Ready",
       ];
@@ -2902,12 +3062,21 @@ export async function evaluateGate(
     gateMode,
   );
 
-  if (prNumber && config.githubToken && hasOverrideLabel(prMatchCtx.labels)) {
+  // Only reach for comments when there is override INTENT. The live labels
+  // resolved at the top of this evaluation are that signal; without the label
+  // there is nothing an override comment could authorize, and fetching 100
+  // comments on every PR evaluation is a rate-limit cost for no answer.
+  if (prNumber && hasOverrideLabel(prMatchCtx.labels)) {
+    const overrideState = await fetchOverridePrState(
+      prNumber,
+      config.githubToken,
+      prMatchCtx.labels,
+    );
     localEvaluation = await applyLabelOverrideIfNeeded({
       evaluation: localEvaluation,
       config,
       repoConfig,
-      prMatchCtx,
+      overrideState,
       prNumber,
       releaseResult,
       gateDecision,
@@ -3068,7 +3237,7 @@ export async function postOverrideRejectionComment(
       `${MARKER}\n` +
       `### Trailhead override rejected\n\n` +
       `${message}\n\n` +
-      `_This comment is updated automatically when the \`trailhead-override\` label is present._`;
+      `_This comment is updated automatically when Trailhead detects override intent it cannot honor._`;
 
     const { data: comments } = await octokit.rest.issues.listComments({
       owner,
@@ -3145,45 +3314,111 @@ export async function postPrComment(
 // GitHub Check Run
 // ---------------------------------------------------------------------------
 
-export async function createCheckRun(
+export interface CheckRunPublication {
+  published: boolean;
+  name: string;
+  headSha: string;
+  checkRunId?: number;
+  checkSuiteId?: number;
+}
+
+function checkRunOutput(
   evaluation: GateEvaluation,
   report: string,
-  token: string,
-  checkName?: string,
-): Promise<void> {
-  try {
-    const octokit = github.getOctokit(token);
-    const { owner, repo } = github.context.repo;
-
-    const mode = evaluation.gateMode ?? "risk-only";
-    const name = checkName ?? resolveCheckName(mode);
-    const conclusion = checkConclusionForEvaluation(evaluation);
-
-    const titleSuffix =
-      mode === "release-ready"
+  name: string,
+): { title: string; summary: string; text?: string } {
+  const mode = evaluation.gateMode ?? "risk-only";
+  const titleSuffix =
+    evaluation.releaseBrief?.verdict === "cannot_evaluate"
+      ? evaluation.gateDecision === "allow"
+        ? "CANNOT EVALUATE (FAIL-OPEN)"
+        : "CANNOT EVALUATE (FAIL-CLOSED)"
+      : mode === "release-ready"
         ? evaluation.releaseReady
           ? "RELEASE READY"
           : "NOT READY"
         : evaluation.gateDecision.toUpperCase();
 
-    await octokit.rest.checks.create({
+  return {
+    title: `${name}: ${titleSuffix}`,
+    summary: clampGateReport(report),
+    ...(evaluation.storePersisted === false
+      ? { text: "Evaluation not persisted — dashboard incomplete." }
+      : {}),
+  };
+}
+
+export async function createCheckRun(
+  evaluation: GateEvaluation,
+  report: string,
+  token: string,
+  checkName?: string,
+): Promise<CheckRunPublication> {
+  const mode = evaluation.gateMode ?? "risk-only";
+  const name = checkName ?? resolveCheckName(mode);
+  try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+
+    const conclusion = checkConclusionForEvaluation(evaluation);
+
+    const response = await octokit.rest.checks.create({
       owner,
       repo,
       name,
       head_sha: evaluation.commitSha,
       status: "completed",
       conclusion,
-      output: {
-        title: `${name}: ${titleSuffix}`,
-        summary: clampGateReport(report),
-        ...(evaluation.storePersisted === false
-          ? { text: "Evaluation not persisted — dashboard incomplete." }
-          : {}),
-      },
+      output: checkRunOutput(evaluation, report, name),
     });
+    return {
+      published: true,
+      name,
+      headSha: evaluation.commitSha,
+      ...(response?.data?.id ? { checkRunId: response.data.id } : {}),
+      ...(response?.data?.check_suite?.id
+        ? { checkSuiteId: response.data.check_suite.id }
+        : {}),
+    };
   } catch (error) {
     // Fail-soft, but never silent — see postPrComment.
     core.warning(`Failed to create check run: ${error}`);
+    return { published: false, name, headSha: evaluation.commitSha };
+  }
+}
+
+/**
+ * Refresh the newly-created custom check after publication lineage and store
+ * outcome are known. This keeps its rendered Release Brief identical to the
+ * action summary and PR comment without creating a second check context.
+ */
+export async function updateCheckRunReport(
+  publication: CheckRunPublication,
+  evaluation: GateEvaluation,
+  report: string,
+  token: string,
+): Promise<boolean> {
+  if (!publication.published) return false;
+  if (!publication.checkRunId) {
+    core.warning(
+      "Created custom check did not return an id; its report could not be refreshed.",
+    );
+    return false;
+  }
+
+  try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+    await octokit.rest.checks.update({
+      owner,
+      repo,
+      check_run_id: publication.checkRunId,
+      output: checkRunOutput(evaluation, report, publication.name),
+    });
+    return true;
+  } catch (error) {
+    core.warning(`Failed to refresh check-run report: ${error}`);
+    return false;
   }
 }
 

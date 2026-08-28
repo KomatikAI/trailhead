@@ -1,5 +1,8 @@
 # Renamed Repo Pilot Scope
 
+> **Archived pre-ADR-012 rollout snapshot.** The bundled v3 workflows and native
+> `Trailhead` contexts are historical evidence, not deployable current policy.
+
 This pack captures the renamed Base Camp repo set you referenced and prepares
 parallel rollout waves for Phase 2.
 

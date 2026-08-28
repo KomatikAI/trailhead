@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+
 import { describe, it, expect } from "vitest";
+import { load } from "js-yaml";
 
 import {
   applyInputRelevance,
@@ -59,6 +62,27 @@ function evaluation(overrides: Partial<GateEvaluation> = {}): GateEvaluation {
     ...overrides,
   };
 }
+
+describe("self-test workflow output handling", () => {
+  it("passes action outputs through env instead of interpolating them into shell source", () => {
+    const workflow = load(
+      readFileSync(
+        new URL("../../.github/workflows/self-test.yml", import.meta.url),
+        "utf8",
+      ),
+    ) as {
+      jobs: Record<string, { steps?: Array<{ run?: string }> }>;
+    };
+    const runScripts = Object.values(workflow.jobs).flatMap((job) =>
+      (job.steps ?? []).flatMap((step) => (step.run ? [step.run] : [])),
+    );
+    const directOutputExpressions = runScripts.flatMap(
+      (script) => script.match(/\$\{\{\s*steps\.[^.]+\.outputs\.[^}]+\}\}/g) ?? [],
+    );
+
+    expect(directOutputExpressions).toEqual([]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // applyInputRelevance
@@ -621,6 +645,42 @@ describe("buildReleaseBrief", () => {
 
   it("reports override as null when there is none", () => {
     expect(buildReleaseBrief(evaluation(), 70).override).toBeNull();
+  });
+
+  it("projects rejected and partial override traces into the brief", () => {
+    const brief = buildReleaseBrief(
+      evaluation({
+        labelOverrideFeedback: {
+          status: "partial",
+          source: "live",
+          message: "risk_only cannot clear required CI check type-check",
+        },
+      }),
+      70,
+    );
+
+    expect(brief.overrideStatus).toEqual({
+      status: "partial",
+      source: "live",
+      message: "risk_only cannot clear required CI check type-check",
+    });
+  });
+
+  it("does not relabel a historical feedback source as live", () => {
+    const brief = buildReleaseBrief(
+      evaluation({
+        labelOverrideFeedback: {
+          status: "rejected",
+          message: "Historical override feedback without source metadata",
+        },
+      }),
+      70,
+    );
+
+    expect(brief.overrideStatus).toEqual({
+      status: "rejected",
+      message: "Historical override feedback without source metadata",
+    });
   });
 
   it("renders a delta only once a previous evaluation exists", () => {

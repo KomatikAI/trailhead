@@ -5,8 +5,10 @@ import {
   evaluateGate,
   formatGateReport,
   getResolvedAvailabilityStance,
+  getResolvedCheckContract,
   postPrComment,
   createCheckRun,
+  updateCheckRunReport,
   managePrLabels,
   requestHighRiskReviewers,
   shouldBlockMerge,
@@ -42,9 +44,17 @@ import { buildGateVerdict } from "./verdict.js";
 import { runGateAutofix, type GateAutofixClient } from "./gate-autofix.js";
 import { runCrossRepoOpener, type CrossRepoOpenerClient } from "./cross-repo-opener.js";
 import { loadRepoConfig } from "./config.js";
+import { resolveGateMode } from "./context-matcher.js";
 import { loadCatalogIndex, loadCatalogOwners } from "./catalog-index.js";
 import { resolveEvaluationTarget } from "./github-event.js";
-import type { TrailheadConfig, TestRepairResult, PolicyOverrideAudit } from "./types.js";
+import { OVERRIDE_LABEL } from "./override.js";
+import type {
+  GateEvaluation,
+  GateMode,
+  TrailheadConfig,
+  TestRepairResult,
+  PolicyOverrideAudit,
+} from "./types.js";
 
 class PolicyOverrideError extends Error {
   constructor(message: string) {
@@ -92,6 +102,109 @@ function resolveFailMode(
     return explicitFailMode;
   }
   return environment === "production" ? "closed" : "open";
+}
+
+function isForkPullRequestContext(): boolean {
+  if (
+    github.context.eventName !== "pull_request" &&
+    github.context.eventName !== "pull_request_review"
+  ) {
+    return false;
+  }
+  const pullRequest = github.context.payload?.pull_request as
+    | { head?: { repo?: { fork?: boolean } } }
+    | undefined;
+  return pullRequest?.head?.repo?.fork === true;
+}
+
+function customCheckRecoveryGuidance(missingToken = false): string {
+  if (isForkPullRequestContext()) {
+    if (github.context.eventName === "pull_request_review") {
+      return (
+        "This is a fork `pull_request_review` event; its token is read-only and " +
+        "cannot publish the protected custom check. The no-checkout " +
+        "`pull_request_target` publisher does not receive review events and cannot " +
+        "repair this publication. Use an installed GitHub App or external publisher " +
+        "that listens to pull-request review webhooks with a write-capable installation " +
+        "token, and pin that App as the required-check source. Re-running this workflow " +
+        "cannot repair the permission boundary."
+      );
+    }
+    return (
+      "This is a fork `pull_request`; its token is read-only and cannot publish the " +
+      "protected custom check. Use the no-checkout `pull_request_target` publisher " +
+      "documented in `docs/getting-started.md`, or an installed GitHub App token and " +
+      "pin that App. Re-running or reapplying the override label in this workflow " +
+      "cannot repair the permission boundary."
+    );
+  }
+  return missingToken
+    ? "Configure `github-token` and re-run the normal PR workflow."
+    : `Restore GitHub Checks access and re-run; applying or reapplying ` +
+        `\`${OVERRIDE_LABEL}\` triggers \`pull_request:labeled\`.`;
+}
+
+function checkReportRefreshFailureMessage(
+  checkName: string,
+  headSha: string,
+  eventName: string,
+): string {
+  return (
+    `Published custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`, ` +
+    "but its embedded Release Brief could not be refreshed with the publication record " +
+    "after two attempts. Branch protection can use the published conclusion, but the " +
+    "check body is stale. Use the job summary or PR comment for the final state, restore " +
+    "GitHub Checks update access, and re-run."
+  );
+}
+
+/**
+ * Swap the gate-report section inside the assembled full report.
+ *
+ * The FUNCTION form of `String.prototype.replace` is mandatory here: with a
+ * string replacement, `$&`, `` $` ``, `$'`, `$$` and `$1` in the REPLACEMENT are
+ * expanded as patterns. Gate reports are arbitrary rendered markdown containing
+ * user/CI text, so a report holding a literal `$&` would silently duplicate the
+ * matched region into the published check and PR comment.
+ */
+function replaceGateReport(
+  fullReport: string,
+  previous: string,
+  updated: string,
+): string {
+  return fullReport.replace(previous, () => updated);
+}
+
+/** Linear backoff base between D3 refresh attempts, in ms. */
+const CHECK_REPORT_RETRY_DELAY_MS = 500;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function refreshCheckReport(
+  publication: Awaited<ReturnType<typeof createCheckRun>>,
+  evaluation: GateEvaluation,
+  report: string,
+  token: string,
+  attempts: number,
+): Promise<boolean> {
+  // Without an id there is nothing to update, and updateCheckRunReport would
+  // warn identically on every pass. Retrying that is pure noise.
+  if (!publication.published || !publication.checkRunId) {
+    return updateCheckRunReport(publication, evaluation, report, token);
+  }
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0) {
+      // A refresh failure is usually a transient Checks API error or a
+      // secondary-rate-limit; an immediate retry re-hits the same window.
+      await sleep(CHECK_REPORT_RETRY_DELAY_MS * attempt);
+    }
+    if (await updateCheckRunReport(publication, evaluation, report, token)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function resolvePolicyOverride(): PolicyOverrideAudit | null {
@@ -225,15 +338,123 @@ async function postCannotEvaluateBrief(
       core.getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
     // backfill/re-evaluation runs suppress PR comments (see evaluate-pr above).
     const backfillMode = Boolean(core.getInput("evaluate-pr").trim());
+    const reason = String(error instanceof Error ? error.message : error);
     const brief = buildCannotEvaluateBrief(
-      String(error instanceof Error ? error.message : error),
+      reason,
       failMode === "open" ? "fail_open" : "fail_closed",
     );
-    core.setOutput("release-brief-json", JSON.stringify(brief));
+    const { commitSha, prNumber } = resolveEvaluationTarget(github.context);
+    const resolvedContract = getResolvedCheckContract();
+    const gateModeInput = core.getInput("gate-mode");
+    const inputMode: GateMode | undefined =
+      gateModeInput === "release-ready" ||
+      gateModeInput === "advisory" ||
+      gateModeInput === "risk-only"
+        ? gateModeInput
+        : undefined;
+    // Failures can happen before evaluateGate has loaded .trailhead.yml (for
+    // example, while validating an action-level policy override). In that case
+    // branch protection still expects the repository-configured check contract,
+    // so resolve it here rather than silently falling back to the legacy name.
+    //
+    // This load is BEST-EFFORT and must never abort the rest of this function.
+    // Everything below it — the check publication and the PR comment that ADR-011
+    // §1 owes the PR — used to happen with no config load at all; letting a
+    // throw here escape into the outer catch would silently drop both.
+    let repoConfig: Awaited<ReturnType<typeof loadRepoConfig>> | null = null;
+    if (!resolvedContract) {
+      try {
+        repoConfig = await loadRepoConfig(githubToken);
+      } catch (configError) {
+        core.debug(
+          `Could not load repo config while building the cannot-evaluate brief: ${configError}`,
+        );
+      }
+    }
+    const gateMode =
+      resolvedContract?.mode ??
+      resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, inputMode);
+    const checkName =
+      resolvedContract?.name ??
+      resolveCheckName(
+        gateMode,
+        core.getInput("check-name") || repoConfig?.gate?.check_name,
+      );
+    const failOpen = failMode === "open";
+    const evaluation: GateEvaluation = {
+      id: `dg-cannot-${commitSha.substring(0, 7) || "unknown"}-${Date.now()}`,
+      repoId: `${github.context.repo.owner}/${github.context.repo.repo}`,
+      commitSha,
+      prNumber,
+      healthScore: 0,
+      riskScore: 0,
+      gateDecision: failOpen ? "allow" : "block",
+      healthChecks: [],
+      riskFactors: [],
+      evaluationMs: 0,
+      gateMode,
+      resolvedCheckName: checkName,
+      releaseReady: failOpen,
+      releaseReadyReasons: failOpen ? undefined : [reason],
+      releaseBrief: brief,
+    };
 
-    const { prNumber } = resolveEvaluationTarget(github.context);
-    if (!githubToken || !prNumber || backfillMode) return;
-    await postPrComment(renderReleaseBrief(brief), prNumber, githubToken);
+    let publication: Awaited<ReturnType<typeof createCheckRun>> | undefined;
+    if (githubToken && !backfillMode) {
+      publication = await createCheckRun(
+        evaluation,
+        renderReleaseBrief(brief),
+        githubToken,
+        checkName,
+      );
+    }
+
+    const eventName = github.context.eventName || "unknown";
+    const message = publication
+      ? publication.published
+        ? `Published ${failOpen ? "fail-open" : "fail-closed"} cannot-evaluate custom check ` +
+          `\`${checkName}\` on \`${commitSha}\` from \`${eventName}\`.`
+        : `Could not publish custom check \`${checkName}\` on \`${commitSha}\` from ` +
+          `\`${eventName}\`; this run cannot satisfy branch protection. ` +
+          customCheckRecoveryGuidance()
+      : backfillMode
+        ? `Backfill mode did not publish custom check \`${checkName}\` on \`${commitSha}\`.`
+        : `No GitHub token was available to publish custom check \`${checkName}\` on ` +
+          `\`${commitSha}\`; this run cannot satisfy branch protection. ` +
+          customCheckRecoveryGuidance(true);
+    brief.requiredCheck = {
+      published: publication?.published ?? false,
+      reportRefreshed: publication?.published ?? false,
+      name: checkName,
+      headSha: commitSha,
+      eventName,
+      message,
+    };
+
+    let renderedBrief = renderReleaseBrief(brief);
+    if (publication?.published && githubToken) {
+      const reportRefreshed = await refreshCheckReport(
+        publication,
+        evaluation,
+        renderedBrief,
+        githubToken,
+        2,
+      );
+      if (!reportRefreshed) {
+        brief.requiredCheck.reportRefreshed = false;
+        brief.requiredCheck.message = checkReportRefreshFailureMessage(
+          checkName,
+          commitSha,
+          eventName,
+        );
+        renderedBrief = renderReleaseBrief(brief);
+      }
+    }
+    core.setOutput("evaluation-json", JSON.stringify(evaluation));
+    core.setOutput("release-brief-json", JSON.stringify(brief));
+    if (githubToken && prNumber && !backfillMode) {
+      await postPrComment(renderedBrief, prNumber, githubToken);
+    }
   } catch (postError) {
     core.debug(`Cannot-evaluate brief could not be posted: ${postError}`);
   }
@@ -629,7 +850,7 @@ async function run(): Promise<void> {
       core.setOutput("report-url", evaluation.reportUrl);
     }
 
-    const report = formatGateReport(evaluation, config.riskThreshold);
+    let report = formatGateReport(evaluation, config.riskThreshold);
 
     let securityReport = "";
     if (config.securityGate !== false && config.githubToken) {
@@ -715,6 +936,76 @@ async function run(): Promise<void> {
     let cloudSuspended = false;
     let cloudHardCapped = false;
 
+    const checkName =
+      evaluation.resolvedCheckName ??
+      resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);
+
+    let checkPublication: Awaited<ReturnType<typeof createCheckRun>> | undefined;
+    if (config.githubToken && !backfillMode) {
+      checkPublication = await createCheckRun(
+        evaluation,
+        fullReport,
+        config.githubToken,
+        checkName,
+      );
+    }
+
+    if (evaluation.releaseBrief) {
+      const eventName = context.eventName || "unknown";
+      const headSha = evaluation.commitSha;
+      const publicationMessage = checkPublication
+        ? checkPublication.published
+          ? `Published custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
+            "Branch protection must require this custom check from the token's " +
+            "publishing GitHub App, not the workflow job name. For GITHUB_TOKEN, " +
+            "that source is GitHub Actions."
+          : `Could not publish custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
+            "This evaluation cannot satisfy branch protection. " +
+            customCheckRecoveryGuidance()
+        : backfillMode
+          ? `Backfill mode did not publish custom check \`${checkName}\` on \`${headSha}\`. ` +
+            "Run the normal PR workflow to satisfy branch protection."
+          : `No GitHub token was available to publish custom check \`${checkName}\` on \`${headSha}\`. ` +
+            customCheckRecoveryGuidance(true);
+      evaluation.releaseBrief.requiredCheck = {
+        published: checkPublication?.published ?? false,
+        reportRefreshed: checkPublication?.published ?? false,
+        name: checkName,
+        headSha,
+        eventName,
+        message: publicationMessage,
+      };
+
+      const updatedReport = formatGateReport(evaluation, config.riskThreshold);
+      fullReport = replaceGateReport(fullReport, report, updatedReport);
+      report = updatedReport;
+    }
+
+    let checkReportRefreshed = false;
+    if (checkPublication?.published && config.githubToken) {
+      checkReportRefreshed = await refreshCheckReport(
+        checkPublication,
+        evaluation,
+        fullReport,
+        config.githubToken,
+        2,
+      );
+      if (!checkReportRefreshed && evaluation.releaseBrief?.requiredCheck) {
+        evaluation.releaseBrief.requiredCheck.reportRefreshed = false;
+        evaluation.releaseBrief.requiredCheck.message = checkReportRefreshFailureMessage(
+          checkName,
+          evaluation.commitSha,
+          context.eventName || "unknown",
+        );
+        const refreshFailureReport = formatGateReport(evaluation, config.riskThreshold);
+        fullReport = replaceGateReport(fullReport, report, refreshFailureReport);
+        report = refreshFailureReport;
+      }
+    }
+    const checkReportBeforePersistence = fullReport;
+
+    // Persist only after the required-check publication record is attached, so
+    // the store, output, webhook, summary and PR comment all carry the same brief.
     if (config.evaluationStoreUrl) {
       const storeSecretInput = core.getInput("evaluation-store-secret");
       if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
@@ -758,18 +1049,34 @@ async function run(): Promise<void> {
       fullReport = `${fullReport}\n\n${cloudFooterLine}`;
     }
 
-    await core.summary.addRaw(fullReport).write();
+    if (
+      checkPublication?.published &&
+      config.githubToken &&
+      checkReportRefreshed &&
+      fullReport !== checkReportBeforePersistence
+    ) {
+      await refreshCheckReport(
+        checkPublication,
+        evaluation,
+        fullReport,
+        config.githubToken,
+        1,
+      );
+    }
 
-    const checkName = resolveCheckName(
-      evaluation.gateMode ?? "risk-only",
-      config.checkName,
-    );
+    // These outputs were first emitted before publication/persistence; replace
+    // them with the final D3 lineage and store record.
+    core.setOutput("evaluation-json", JSON.stringify(evaluation));
+    if (evaluation.releaseBrief) {
+      core.setOutput("release-brief-json", JSON.stringify(evaluation.releaseBrief));
+    }
+
+    await core.summary.addRaw(fullReport).write();
 
     if (config.githubToken && !backfillMode) {
       if (prNumber) {
         await postPrComment(fullReport, prNumber, config.githubToken);
       }
-      await createCheckRun(evaluation, fullReport, config.githubToken, checkName);
       if (prNumber && config.addRiskLabels && evaluation.gateMode !== "advisory") {
         await managePrLabels(prNumber, evaluation.gateDecision, config.githubToken);
       }
@@ -850,6 +1157,10 @@ async function run(): Promise<void> {
     if (error instanceof PolicyOverrideError) {
       // An unusable override is still a run that could not evaluate — ADR-011 §1
       // owes the PR a brief here too, with the validation message as the reason.
+      // The availability stance is a repo/environment contract, not a property of
+      // which error was thrown: an invalid override in a fail-open repo publishes
+      // the same fail-open cannot-evaluate check as any other failure. (The job
+      // itself still fails via setFailed below either way.)
       await postCannotEvaluateBrief(error, failMode);
       core.setFailed(`Invalid policy override: ${error.message}`);
       return;

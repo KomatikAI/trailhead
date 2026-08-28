@@ -38,6 +38,22 @@ export interface BriefOverride {
   rationale: string;
 }
 
+export interface BriefOverrideStatus {
+  status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+  message: string;
+  source?: "live" | "payload_fallback";
+}
+
+export interface BriefRequiredCheck {
+  published: boolean;
+  /** Whether the published check body contains this D3 publication record. */
+  reportRefreshed: boolean;
+  name: string;
+  headSha: string;
+  eventName: string;
+  message: string;
+}
+
 export interface ReleaseBrief {
   verdict: BriefVerdict;
   riskScore?: number;
@@ -48,6 +64,8 @@ export interface ReleaseBrief {
   delta?: string;
   actions: BriefAction[];
   override?: BriefOverride | null;
+  overrideStatus?: BriefOverrideStatus;
+  requiredCheck?: BriefRequiredCheck;
   cannotEvaluateReason?: string;
 }
 
@@ -135,6 +153,10 @@ function cell(value: string): string {
   return escapePipes(flattened);
 }
 
+function inlineMessage(value: string): string {
+  return escapePipes(value.replace(/\r?\n/g, " ").trim());
+}
+
 function verdictLabel(verdict: BriefVerdict): string {
   return verdict.replace(/_/g, " ").toUpperCase();
 }
@@ -199,6 +221,31 @@ function buildBrief(
     const reason = brief.cannotEvaluateReason?.trim();
     lines.push(
       `> ⚠️ **Cannot evaluate:** ${reason && reason.length > 0 ? reason : "no reason recorded"}`,
+      "",
+    );
+  }
+
+  if (brief.requiredCheck) {
+    const reportStale =
+      brief.requiredCheck.published && !brief.requiredCheck.reportRefreshed;
+    const icon = brief.requiredCheck.published && !reportStale ? "✅" : "⚠️";
+    const state = reportStale
+      ? "published, report stale"
+      : brief.requiredCheck.published
+        ? "published"
+        : "not published";
+    lines.push(
+      `> ${icon} **Required check ${state}:** ${inlineMessage(brief.requiredCheck.message)}`,
+      "",
+    );
+  }
+
+  if (brief.overrideStatus) {
+    const source = brief.overrideStatus.source
+      ? ` _(state source: ${brief.overrideStatus.source})_`
+      : "";
+    lines.push(
+      `> ⚠️ **Override ${brief.overrideStatus.status}:** ${inlineMessage(brief.overrideStatus.message)}${source}`,
       "",
     );
   }

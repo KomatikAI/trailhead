@@ -5,6 +5,13 @@
 // Shared across the GitHub Action, MCP server, and GitHub App via the existing
 // prebuild copy pattern. Keep this module free of @actions/*, octokit, and Node
 // runtime imports so it stays portable.
+//
+// `trailhead.remediation.v1` is a consumed contract: fix codes are additive and
+// an existing code never changes meaning. Two rules the derivations below keep:
+// a fix's severity is the severity of the thing it describes (never the gate
+// decision that happens to surround it), and whatever actually produced the
+// verdict has a fix of its own — a block with no matching fix is the defect
+// ADR-011 §1 calls silence.
 
 import type { z } from "zod";
 import { RemediationFix as RemediationFixSchema } from "./types.js";
@@ -22,6 +29,8 @@ export {
 } from "./remediation-lanes.js";
 import type {
   AgentBriefMode,
+  BriefFinding,
+  GateDecision,
   GateEvaluation,
   PrProvenance,
   Remediation,
@@ -43,7 +52,14 @@ export interface BuildRemediationInput {
     | "releaseReadyReasons"
     | "policyFindings"
     | "gateDecision"
-  >;
+  > &
+    // ADR-011 §1 inputs, optional so existing callers keep compiling: the honest
+    // per-finding severities and the risk numbers behind a BLOCK. When they are
+    // absent the derivations below fall back to what the legacy fields carry.
+    Partial<Pick<GateEvaluation, "riskScore" | "enumeratedFindings">> & {
+      /** Effective (post trust/policy adjustment) risk threshold for this evaluation. */
+      riskThreshold?: number;
+    };
   previousEvaluation?: Pick<GateEvaluation, "id" | "remediation"> | null;
   loopRound?: number;
   maxLoopRounds?: number;
@@ -251,17 +267,148 @@ function deriveCiFixes(ci: GateEvaluation["ci"]): RemediationFix[] {
   return fixes;
 }
 
-function derivePolicyFindingFixes(
-  findings: string[] | undefined,
-  severity: RemediationSeverity,
-): RemediationFix[] {
-  if (!findings || findings.length === 0) return [];
+const SEVERITY_RANK: Record<RemediationSeverity, number> = {
+  blocking: 3,
+  warn: 2,
+  advisory: 1,
+};
+
+const SEVERITY_TIERS: RemediationSeverity[] = ["blocking", "warn", "advisory"];
+
+/** Canonical policy-finding code — kept for the highest tier present, so existing
+ * consumers of `policy.finding` keep seeing the findings that carry the verdict.
+ * Lower tiers get a severity-suffixed code (`policy.finding.warn`,
+ * `policy.finding.advisory`) because fixes are deduplicated by code. */
+const POLICY_FINDING_CODE = "policy.finding";
+
+/**
+ * ADR-011 §1: enumerate, never count. The title carries the finding titles
+ * themselves; the detail carries the full enumeration.
+ */
+function policyFindingTitle(titles: string[]): string {
+  const label = titles.length === 1 ? "Policy finding" : "Policy findings";
+  const shown = titles.slice(0, 3);
+  return `${label}: ${shown.join("; ")}${titles.length > shown.length ? "; …" : ""}`;
+}
+
+function enumeratedFindingLine(finding: BriefFinding): string {
+  const evidence = finding.evidence ? ` — ${finding.evidence}` : "";
+  return `- \`${finding.id}\` ${finding.title}${evidence}`;
+}
+
+/**
+ * Policy findings, at their real severity.
+ *
+ * The gate decision is a property of the evaluation, not of any one finding:
+ * deriving each fix's severity from it promoted warn-level change notices (e.g.
+ * "Agent PR risk threshold tightened from 70 to 50") to `blocking`, telling
+ * consuming agents to fix something no code change can fix. When the evaluation
+ * carries `enumeratedFindings` (ADR-011 §1) those per-finding severities win and
+ * the gate decision is ignored; one fix is emitted per severity tier present.
+ * Without them there is no per-finding signal, so the legacy gate-derived
+ * severity stands.
+ */
+function derivePolicyFindingFixes(input: {
+  findings?: string[];
+  enumeratedFindings?: BriefFinding[];
+  gateDecision: GateDecision;
+}): RemediationFix[] {
+  const enumerated = input.enumeratedFindings ?? [];
+  if (enumerated.length > 0) {
+    const tiers = SEVERITY_TIERS.map((severity) => ({
+      severity,
+      findings: enumerated.filter((finding) => finding.severity === severity),
+    })).filter((tier) => tier.findings.length > 0);
+
+    return tiers.map((tier, index) =>
+      RemediationFixSchema.parse({
+        code:
+          index === 0 ? POLICY_FINDING_CODE : `${POLICY_FINDING_CODE}.${tier.severity}`,
+        severity: tier.severity,
+        title: policyFindingTitle(tier.findings.map((finding) => finding.title)),
+        detail: tier.findings.map(enumeratedFindingLine).join("\n"),
+      }),
+    );
+  }
+
+  const findings = input.findings ?? [];
+  if (findings.length === 0) return [];
   return [
     RemediationFixSchema.parse({
-      code: "policy.finding",
-      severity,
-      title: `${findings.length} policy finding${findings.length === 1 ? "" : "s"}`,
+      code: POLICY_FINDING_CODE,
+      severity: input.gateDecision === "block" ? "blocking" : "warn",
+      title: policyFindingTitle(findings),
       detail: findings.map((f) => `- ${f}`).join("\n"),
+    }),
+  ];
+}
+
+/** ADR-011 §3 override mechanism — mirrors `OVERRIDE_LABEL` in `src/override.ts`,
+ * inlined because override.ts is not part of the shared-source copy set. */
+const OVERRIDE_LABEL = "trailhead-override";
+
+const RISK_OVER_THRESHOLD_CODE = "risk.over_threshold";
+
+/** The prose `computeReleaseReady()` emits for the same condition — the fallback
+ * source of the pair when the caller has not threaded the numbers through. */
+const RELEASE_READY_RISK_REASON =
+  /^Risk score (\d+(?:\.\d+)?) exceeds threshold (\d+(?:\.\d+)?)$/;
+
+function resolveRiskOverThreshold(
+  evaluation: BuildRemediationInput["evaluation"],
+): { score: number; threshold: number } | null {
+  const { riskScore, riskThreshold } = evaluation;
+  if (riskScore !== undefined && riskThreshold !== undefined) {
+    return riskScore > riskThreshold
+      ? { score: riskScore, threshold: riskThreshold }
+      : null;
+  }
+  for (const reason of evaluation.releaseReadyReasons ?? []) {
+    const match = RELEASE_READY_RISK_REASON.exec(reason.trim());
+    if (!match) continue;
+    const score = Number(match[1]);
+    const threshold = Number(match[2]);
+    if (Number.isFinite(score) && Number.isFinite(threshold) && score > threshold) {
+      return { score, threshold };
+    }
+  }
+  return null;
+}
+
+/**
+ * The machine-readable block cause when risk carries the verdict.
+ *
+ * Without it the fixes array named every finding except the one thing that
+ * actually blocked the PR, and neither of the two real levers — a smaller PR or
+ * a recorded override — appeared anywhere an agent could read them.
+ */
+function deriveRiskThresholdFixes(
+  evaluation: BuildRemediationInput["evaluation"],
+): RemediationFix[] {
+  if (evaluation.gateDecision !== "block") return [];
+  // A recorded override (ADR-011 §3) leaves the decision at `block` while the
+  // release is ready on the record. Re-emitting the block cause as a blocking fix
+  // would flip `release_ready` back to false and undo the override.
+  if (evaluation.releaseReady === true) return [];
+  const over = resolveRiskOverThreshold(evaluation);
+  if (!over) return [];
+
+  const movers = [...(evaluation.riskFactors ?? [])]
+    .filter((factor) => factor.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  const moversText = movers.length
+    ? movers.map((factor) => `${factor.type} ${factor.score}/100`).join(", ")
+    : "no single factor dominates — the composite carries the score";
+
+  return [
+    RemediationFixSchema.parse({
+      code: RISK_OVER_THRESHOLD_CODE,
+      severity: "blocking",
+      title: `risk ${over.score} exceeds threshold ${over.threshold}`,
+      detail: `Composite risk score ${over.score} is above this PR's effective threshold of ${over.threshold}, so the gate blocks. Top risk factors: ${moversText}. No single file edit clears this: either the PR gets smaller (which lowers the factors above) or the risk is accepted on the record.`,
+      suggested_action: `Reduce PR scope — split the change so the score falls below ${over.threshold} — or record an override: add the \`${OVERRIDE_LABEL}\` label and post a PR comment \`${OVERRIDE_LABEL}: <rationale>\`.`,
+      autofix_eligible: false,
     }),
   ];
 }
@@ -308,28 +455,25 @@ export function buildRemediation(input: BuildRemediationInput): Remediation {
 
   fixes.push(...deriveCiFixes(input.evaluation.ci));
   fixes.push(
-    ...derivePolicyFindingFixes(
-      input.evaluation.policyFindings,
-      input.evaluation.gateDecision === "block" ? "blocking" : "warn",
-    ),
+    ...derivePolicyFindingFixes({
+      findings: input.evaluation.policyFindings,
+      enumeratedFindings: input.evaluation.enumeratedFindings,
+      gateDecision: input.evaluation.gateDecision,
+    }),
   );
+  fixes.push(...deriveRiskThresholdFixes(input.evaluation));
   fixes.push(...deriveSubmissionFixes(input.submissionChecks));
 
   // Deduplicate by code, keeping the highest severity occurrence.
-  const severityRank: Record<RemediationSeverity, number> = {
-    blocking: 3,
-    warn: 2,
-    advisory: 1,
-  };
   const byCode = new Map<string, RemediationFix>();
   for (const fix of fixes) {
     const existing = byCode.get(fix.code);
-    if (!existing || severityRank[fix.severity] > severityRank[existing.severity]) {
+    if (!existing || SEVERITY_RANK[fix.severity] > SEVERITY_RANK[existing.severity]) {
       byCode.set(fix.code, fix);
     }
   }
   const dedupedFixes = Array.from(byCode.values()).sort((a, b) => {
-    const sev = severityRank[b.severity] - severityRank[a.severity];
+    const sev = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
     if (sev !== 0) return sev;
     return a.code.localeCompare(b.code);
   });

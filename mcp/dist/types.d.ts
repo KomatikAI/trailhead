@@ -536,6 +536,44 @@ export declare const BriefOverride: z.ZodObject<{
     rationale: string;
 }>;
 export type BriefOverride = z.infer<typeof BriefOverride>;
+export declare const BriefOverrideStatus: z.ZodObject<{
+    status: z.ZodEnum<["applied", "partial", "rejected", "revoked", "unavailable"]>;
+    message: z.ZodString;
+    source: z.ZodOptional<z.ZodEnum<["live", "payload_fallback"]>>;
+}, "strip", z.ZodTypeAny, {
+    message: string;
+    status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+    source?: "live" | "payload_fallback" | undefined;
+}, {
+    message: string;
+    status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+    source?: "live" | "payload_fallback" | undefined;
+}>;
+export type BriefOverrideStatus = z.infer<typeof BriefOverrideStatus>;
+export declare const BriefRequiredCheck: z.ZodObject<{
+    published: z.ZodBoolean;
+    /** Whether the published check body contains this D3 publication record. */
+    reportRefreshed: z.ZodBoolean;
+    name: z.ZodString;
+    headSha: z.ZodString;
+    eventName: z.ZodString;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    message: string;
+    name: string;
+    published: boolean;
+    reportRefreshed: boolean;
+    headSha: string;
+    eventName: string;
+}, {
+    message: string;
+    name: string;
+    published: boolean;
+    reportRefreshed: boolean;
+    headSha: string;
+    eventName: string;
+}>;
+export type BriefRequiredCheck = z.infer<typeof BriefRequiredCheck>;
 export declare const ReleaseBrief: z.ZodObject<{
     verdict: z.ZodEnum<["allow", "warn", "block", "cannot_evaluate"]>;
     riskScore: z.ZodOptional<z.ZodNumber>;
@@ -614,6 +652,42 @@ export declare const ReleaseBrief: z.ZodObject<{
         by: string;
         rationale: string;
     }>>>;
+    overrideStatus: z.ZodOptional<z.ZodObject<{
+        status: z.ZodEnum<["applied", "partial", "rejected", "revoked", "unavailable"]>;
+        message: z.ZodString;
+        source: z.ZodOptional<z.ZodEnum<["live", "payload_fallback"]>>;
+    }, "strip", z.ZodTypeAny, {
+        message: string;
+        status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+        source?: "live" | "payload_fallback" | undefined;
+    }, {
+        message: string;
+        status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+        source?: "live" | "payload_fallback" | undefined;
+    }>>;
+    requiredCheck: z.ZodOptional<z.ZodObject<{
+        published: z.ZodBoolean;
+        /** Whether the published check body contains this D3 publication record. */
+        reportRefreshed: z.ZodBoolean;
+        name: z.ZodString;
+        headSha: z.ZodString;
+        eventName: z.ZodString;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        message: string;
+        name: string;
+        published: boolean;
+        reportRefreshed: boolean;
+        headSha: string;
+        eventName: string;
+    }, {
+        message: string;
+        name: string;
+        published: boolean;
+        reportRefreshed: boolean;
+        headSha: string;
+        eventName: string;
+    }>>;
     cannotEvaluateReason: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     verdict: "allow" | "warn" | "block" | "cannot_evaluate";
@@ -647,6 +721,19 @@ export declare const ReleaseBrief: z.ZodObject<{
         factor: string;
     }[] | undefined;
     delta?: string | undefined;
+    overrideStatus?: {
+        message: string;
+        status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+        source?: "live" | "payload_fallback" | undefined;
+    } | undefined;
+    requiredCheck?: {
+        message: string;
+        name: string;
+        published: boolean;
+        reportRefreshed: boolean;
+        headSha: string;
+        eventName: string;
+    } | undefined;
     cannotEvaluateReason?: string | undefined;
 }, {
     verdict: "allow" | "warn" | "block" | "cannot_evaluate";
@@ -680,6 +767,19 @@ export declare const ReleaseBrief: z.ZodObject<{
         factor: string;
     }[] | undefined;
     delta?: string | undefined;
+    overrideStatus?: {
+        message: string;
+        status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+        source?: "live" | "payload_fallback" | undefined;
+    } | undefined;
+    requiredCheck?: {
+        message: string;
+        name: string;
+        published: boolean;
+        reportRefreshed: boolean;
+        headSha: string;
+        eventName: string;
+    } | undefined;
     cannotEvaluateReason?: string | undefined;
 }>;
 export type ReleaseBrief = z.infer<typeof ReleaseBrief>;
@@ -866,6 +966,42 @@ export declare const GateEvaluation: z.ZodObject<{
             by: string;
             rationale: string;
         }>>>;
+        overrideStatus: z.ZodOptional<z.ZodObject<{
+            status: z.ZodEnum<["applied", "partial", "rejected", "revoked", "unavailable"]>;
+            message: z.ZodString;
+            source: z.ZodOptional<z.ZodEnum<["live", "payload_fallback"]>>;
+        }, "strip", z.ZodTypeAny, {
+            message: string;
+            status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+            source?: "live" | "payload_fallback" | undefined;
+        }, {
+            message: string;
+            status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+            source?: "live" | "payload_fallback" | undefined;
+        }>>;
+        requiredCheck: z.ZodOptional<z.ZodObject<{
+            published: z.ZodBoolean;
+            /** Whether the published check body contains this D3 publication record. */
+            reportRefreshed: z.ZodBoolean;
+            name: z.ZodString;
+            headSha: z.ZodString;
+            eventName: z.ZodString;
+            message: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            message: string;
+            name: string;
+            published: boolean;
+            reportRefreshed: boolean;
+            headSha: string;
+            eventName: string;
+        }, {
+            message: string;
+            name: string;
+            published: boolean;
+            reportRefreshed: boolean;
+            headSha: string;
+            eventName: string;
+        }>>;
         cannotEvaluateReason: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
         verdict: "allow" | "warn" | "block" | "cannot_evaluate";
@@ -899,6 +1035,19 @@ export declare const GateEvaluation: z.ZodObject<{
             factor: string;
         }[] | undefined;
         delta?: string | undefined;
+        overrideStatus?: {
+            message: string;
+            status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+            source?: "live" | "payload_fallback" | undefined;
+        } | undefined;
+        requiredCheck?: {
+            message: string;
+            name: string;
+            published: boolean;
+            reportRefreshed: boolean;
+            headSha: string;
+            eventName: string;
+        } | undefined;
         cannotEvaluateReason?: string | undefined;
     }, {
         verdict: "allow" | "warn" | "block" | "cannot_evaluate";
@@ -932,6 +1081,19 @@ export declare const GateEvaluation: z.ZodObject<{
             factor: string;
         }[] | undefined;
         delta?: string | undefined;
+        overrideStatus?: {
+            message: string;
+            status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+            source?: "live" | "payload_fallback" | undefined;
+        } | undefined;
+        requiredCheck?: {
+            message: string;
+            name: string;
+            published: boolean;
+            reportRefreshed: boolean;
+            headSha: string;
+            eventName: string;
+        } | undefined;
         cannotEvaluateReason?: string | undefined;
     }>>;
     pr: z.ZodOptional<z.ZodObject<{
@@ -1080,14 +1242,17 @@ export declare const GateEvaluation: z.ZodObject<{
         retainedReasons?: string[] | undefined;
     }>>;
     labelOverrideFeedback: z.ZodOptional<z.ZodObject<{
-        status: z.ZodEnum<["applied", "rejected"]>;
+        status: z.ZodEnum<["applied", "partial", "rejected", "revoked", "unavailable"]>;
         message: z.ZodString;
+        source: z.ZodOptional<z.ZodEnum<["live", "payload_fallback"]>>;
     }, "strip", z.ZodTypeAny, {
         message: string;
-        status: "applied" | "rejected";
+        status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+        source?: "live" | "payload_fallback" | undefined;
     }, {
         message: string;
-        status: "applied" | "rejected";
+        status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+        source?: "live" | "payload_fallback" | undefined;
     }>>;
     releaseReady: z.ZodOptional<z.ZodBoolean>;
     releaseReadyReasons: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
@@ -1185,6 +1350,8 @@ export declare const GateEvaluation: z.ZodObject<{
         environment?: string | undefined;
     }>>;
     gateMode: z.ZodOptional<z.ZodEnum<["release-ready", "advisory", "risk-only"]>>;
+    /** Effective Checks API context after action-input and repo-config resolution. */
+    resolvedCheckName: z.ZodOptional<z.ZodString>;
     storePersisted: z.ZodOptional<z.ZodBoolean>;
     credit_meter: z.ZodOptional<z.ZodObject<{
         metered: z.ZodBoolean;
@@ -1483,6 +1650,19 @@ export declare const GateEvaluation: z.ZodObject<{
             factor: string;
         }[] | undefined;
         delta?: string | undefined;
+        overrideStatus?: {
+            message: string;
+            status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+            source?: "live" | "payload_fallback" | undefined;
+        } | undefined;
+        requiredCheck?: {
+            message: string;
+            name: string;
+            published: boolean;
+            reportRefreshed: boolean;
+            headSha: string;
+            eventName: string;
+        } | undefined;
         cannotEvaluateReason?: string | undefined;
     } | undefined;
     pr?: {
@@ -1532,7 +1712,8 @@ export declare const GateEvaluation: z.ZodObject<{
     } | undefined;
     labelOverrideFeedback?: {
         message: string;
-        status: "applied" | "rejected";
+        status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+        source?: "live" | "payload_fallback" | undefined;
     } | undefined;
     releaseReadyReasons?: string[] | undefined;
     ci?: {
@@ -1558,6 +1739,7 @@ export declare const GateEvaluation: z.ZodObject<{
         environment?: string | undefined;
     } | undefined;
     gateMode?: "release-ready" | "advisory" | "risk-only" | undefined;
+    resolvedCheckName?: string | undefined;
     storePersisted?: boolean | undefined;
     credit_meter?: {
         metered: boolean;
@@ -1688,6 +1870,19 @@ export declare const GateEvaluation: z.ZodObject<{
             factor: string;
         }[] | undefined;
         delta?: string | undefined;
+        overrideStatus?: {
+            message: string;
+            status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+            source?: "live" | "payload_fallback" | undefined;
+        } | undefined;
+        requiredCheck?: {
+            message: string;
+            name: string;
+            published: boolean;
+            reportRefreshed: boolean;
+            headSha: string;
+            eventName: string;
+        } | undefined;
         cannotEvaluateReason?: string | undefined;
     } | undefined;
     pr?: {
@@ -1737,7 +1932,8 @@ export declare const GateEvaluation: z.ZodObject<{
     } | undefined;
     labelOverrideFeedback?: {
         message: string;
-        status: "applied" | "rejected";
+        status: "applied" | "partial" | "rejected" | "revoked" | "unavailable";
+        source?: "live" | "payload_fallback" | undefined;
     } | undefined;
     releaseReadyReasons?: string[] | undefined;
     ci?: {
@@ -1763,6 +1959,7 @@ export declare const GateEvaluation: z.ZodObject<{
         environment?: string | undefined;
     } | undefined;
     gateMode?: "release-ready" | "advisory" | "risk-only" | undefined;
+    resolvedCheckName?: string | undefined;
     storePersisted?: boolean | undefined;
     credit_meter?: {
         metered: boolean;
@@ -2271,11 +2468,11 @@ export declare const TrailheadContext: z.ZodObject<{
 export type TrailheadContext = z.infer<typeof TrailheadContext>;
 export declare const GateConfig: z.ZodObject<{
     mode: z.ZodDefault<z.ZodEnum<["release-ready", "advisory", "risk-only"]>>;
-    check_name: z.ZodDefault<z.ZodString>;
+    check_name: z.ZodOptional<z.ZodString>;
     agent_brief: z.ZodOptional<z.ZodEnum<["off", "collapsed", "expanded"]>>;
 }, "strip", z.ZodTypeAny, {
     mode: "release-ready" | "advisory" | "risk-only";
-    check_name: string;
+    check_name?: string | undefined;
     agent_brief?: "off" | "collapsed" | "expanded" | undefined;
 }, {
     mode?: "release-ready" | "advisory" | "risk-only" | undefined;
@@ -2569,11 +2766,11 @@ export declare const RepoConfig: z.ZodObject<{
     schema_version: z.ZodDefault<z.ZodNumber>;
     gate: z.ZodDefault<z.ZodObject<{
         mode: z.ZodDefault<z.ZodEnum<["release-ready", "advisory", "risk-only"]>>;
-        check_name: z.ZodDefault<z.ZodString>;
+        check_name: z.ZodOptional<z.ZodString>;
         agent_brief: z.ZodOptional<z.ZodEnum<["off", "collapsed", "expanded"]>>;
     }, "strip", z.ZodTypeAny, {
         mode: "release-ready" | "advisory" | "risk-only";
-        check_name: string;
+        check_name?: string | undefined;
         agent_brief?: "off" | "collapsed" | "expanded" | undefined;
     }, {
         mode?: "release-ready" | "advisory" | "risk-only" | undefined;
@@ -3464,7 +3661,7 @@ export declare const RepoConfig: z.ZodObject<{
     };
     gate: {
         mode: "release-ready" | "advisory" | "risk-only";
-        check_name: string;
+        check_name?: string | undefined;
         agent_brief?: "off" | "collapsed" | "expanded" | undefined;
     };
     contexts: {

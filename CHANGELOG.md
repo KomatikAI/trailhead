@@ -2,6 +2,18 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Override liveness and required-check lineage** ([ADR-012](docs/adr/012-override-liveness-and-required-check-lineage.md)) — the label override now evaluates against the PR's current state and says so. `resolvePrMatchContext` remains the **single** live label read of an evaluation; the override consumes those same labels, and PR comments are fetched (REST `issues.listComments`) only when the override label is actually present. A failed live read still warns, falls back to the triggering event's payload, and **still authorizes** — degradation, not regression. The Release Brief gains an `overrideStatus` line narrating revoked, rejected, scope-retained (`partial`) or unavailable override intent, and the `trailhead-override` label present on an already-ready PR is reported as advisory guidance to remove the stale label rather than as a policy finding.
+- **Required-check publication is recorded** — the custom check is published before persistence and its publication (name, head SHA, triggering event, whether the embedded brief was refreshed) is recorded in the Release Brief as `requiredCheck`, so a failed publication can no longer silently masquerade as a branch-protection verdict. A run that cannot evaluate publishes its check too: `neutral` under fail-open, `failure` under fail-closed — a cannot-evaluate run never publishes `success`.
+- **Data-driven `|| true` suppression taxonomy** — exact cleanup, idempotent-ensure, and count-fallback command shapes are reviewed policy data; compound commands and test/build/deploy/verification suppression remain blocking. App/MCP copies and the committed MCP runtime are parity-checked in CI.
+
+### Changed
+
+- **`gate.check_name` now names the published check** — the effective Checks API context is `check-name` (action input) ?? `gate.check_name` (`.trailhead.yml`) ?? the mode default (`Trailhead` for `risk-only`, `Trailhead — Release Ready` otherwise), and it is resolved once in `evaluateGate` and reused by the catch path. **A repo that sets `gate.check_name` will see its published check renamed** to that value — previously `gate.check_name` was consulted by `trailhead doctor` and check-exclusion but never by the publisher, so such a repo published under the mode default. Update the required-status-check contexts in branch protection before upgrading, or the old context stays permanently pending. `gate.check_name` also lost its schema default, so a repo with a `gate:` block that does not set `check_name` now gets the mode default instead of `Trailhead — Release Ready` in every mode. Repos with no `gate:` block are unaffected.
+
 ## [4.7.1] - 2026-08-28
 
 ### Fixed

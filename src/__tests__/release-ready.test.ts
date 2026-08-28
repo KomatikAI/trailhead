@@ -135,25 +135,66 @@ describe("shouldBlockMerge", () => {
 });
 
 describe("checkConclusionForEvaluation", () => {
+  const base: GateEvaluation = {
+    id: "test",
+    repoId: "o/r",
+    commitSha: "abc",
+    healthScore: 100,
+    riskScore: 50,
+    gateDecision: "allow",
+    healthChecks: [],
+    riskFactors: [],
+    evaluationMs: 1,
+  };
+
   it("returns neutral for advisory mode", () => {
     expect(
       checkConclusionForEvaluation({
+        ...base,
         gateMode: "advisory",
         releaseReady: false,
         gateDecision: "block",
-      } as GateEvaluation),
+      }),
     ).toBe("neutral");
   });
 
   it("returns failure when not release ready", () => {
     expect(
       checkConclusionForEvaluation({
+        ...base,
         gateMode: "release-ready",
         releaseReady: false,
         gateDecision: "allow",
-      } as GateEvaluation),
+      }),
     ).toBe("failure");
   });
+
+  // A run that evaluated NOTHING must never publish `success`: that would be an
+  // auto-green path, and a repo that leaves `environment` unset defaults to
+  // fail-open. `neutral` satisfies a required check without claiming a verdict.
+  it.each([
+    { decision: "allow" as const, conclusion: "neutral" },
+    { decision: "block" as const, conclusion: "failure" },
+  ])(
+    "publishes cannot-evaluate availability as $conclusion even in advisory mode",
+    ({ decision, conclusion }) => {
+      expect(
+        checkConclusionForEvaluation({
+          ...base,
+          gateMode: "advisory",
+          releaseReady: decision === "allow",
+          gateDecision: decision,
+          releaseBrief: {
+            verdict: "cannot_evaluate",
+            findings: [],
+            inputs: [],
+            actions: [],
+            override: null,
+          },
+        }),
+      ).toBe(conclusion);
+    },
+  );
 });
 
 describe("resolveCheckName", () => {
@@ -163,5 +204,9 @@ describe("resolveCheckName", () => {
 
   it("uses release ready name by default", () => {
     expect(resolveCheckName("release-ready")).toBe("Trailhead — Release Ready");
+  });
+
+  it("honors a custom name in risk-only mode", () => {
+    expect(resolveCheckName("risk-only", "Custom Risk Gate")).toBe("Custom Risk Gate");
   });
 });

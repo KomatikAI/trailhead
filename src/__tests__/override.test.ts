@@ -99,6 +99,46 @@ describe("resolveLabelOverride", () => {
     });
   });
 
+  it("gives an exact recovery action when label overrides are disabled", () => {
+    const outcome = resolveLabelOverride({
+      labels: ["trailhead-override"],
+      comments: [{ body: "trailhead-override: approved", author: "david" }],
+      config: { enabled: false, maxPerWeek: 3 },
+      recentOverrideCount: 0,
+      releaseResult: blockedRelease,
+      gateDecision: "block",
+      prNumber: 42,
+    });
+
+    expect(outcome).toEqual({
+      kind: "rejected",
+      code: "disabled",
+      message: formatOverrideRejectionMessage("disabled"),
+    });
+    if (outcome.kind !== "rejected") return;
+    expect(outcome.message).toContain("Remove the label");
+    expect(outcome.message).toContain("enable the policy");
+  });
+
+  it("treats a retained reason without the label as inactive/revoked", () => {
+    const outcome = resolveLabelOverride({
+      labels: ["release"],
+      comments: [{ body: "trailhead-override: approved", author: "david" }],
+      config: { enabled: true, maxPerWeek: 5 },
+      recentOverrideCount: 0,
+      releaseResult: blockedRelease,
+      gateDecision: "block",
+      prNumber: 42,
+    });
+
+    expect(outcome).toEqual({
+      kind: "revoked",
+      message: expect.stringContaining("no override is active"),
+    });
+    if (outcome.kind !== "revoked") return;
+    expect(outcome.message).toContain("Add the label only if you intend to authorize");
+  });
+
   it("rejects when weekly cap is exceeded", () => {
     const outcome = resolveLabelOverride({
       labels: ["trailhead-override"],
@@ -113,9 +153,10 @@ describe("resolveLabelOverride", () => {
     expect(outcome.kind).toBe("rejected");
     if (outcome.kind !== "rejected") return;
     expect(outcome.code).toBe("cap_exceeded");
+    expect(outcome.message).toContain("Remove the label");
   });
 
-  it("no-ops when release is already ready", () => {
+  it("names stale override intent when release is already ready", () => {
     const outcome = resolveLabelOverride({
       labels: ["trailhead-override"],
       comments: [{ body: "trailhead-override: unnecessary", author: "david" }],
@@ -126,7 +167,11 @@ describe("resolveLabelOverride", () => {
       prNumber: 42,
     });
 
-    expect(outcome).toEqual({ kind: "none" });
+    expect(outcome).toEqual({
+      kind: "rejected",
+      code: "not_needed",
+      message: formatOverrideRejectionMessage("not_needed"),
+    });
   });
 });
 

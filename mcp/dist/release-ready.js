@@ -77,6 +77,15 @@ export function applyReleaseReadyToEvaluation(evaluation, result, gateMode) {
     };
 }
 export function checkConclusionForEvaluation(evaluation) {
+    // Availability is a separate contract from advisory/risk/release modes. A run
+    // that evaluated NOTHING must never publish `success` — that is an auto-green
+    // path: it would claim a passing verdict the run never reached, and any repo
+    // that leaves `environment` unset defaults to fail-open. Fail-open publishes
+    // `neutral`, which GitHub treats as satisfying a required check without
+    // asserting the gate passed; fail-closed publishes `failure`.
+    if (evaluation.releaseBrief?.verdict === "cannot_evaluate") {
+        return evaluation.gateDecision === "allow" ? "neutral" : "failure";
+    }
     const mode = evaluation.gateMode ?? "risk-only";
     if (mode === "advisory") {
         return "neutral";
@@ -106,7 +115,9 @@ export function shouldBlockMerge(evaluation) {
     return evaluation.gateDecision === "block";
 }
 export function resolveCheckName(gateMode, configuredName) {
+    if (configuredName)
+        return configuredName;
     if (gateMode === "risk-only")
         return "Trailhead";
-    return configuredName ?? "Trailhead — Release Ready";
+    return "Trailhead — Release Ready";
 }

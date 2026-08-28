@@ -3,16 +3,26 @@ name: Trailhead
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+concurrency:
+  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+  cancel-in-progress: true
 
 jobs:
   gate:
+    if: >-
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
       checks: write
+      security-events: read
     steps:
+      - uses: actions/checkout@v4
+
       - uses: KomatikAI/trailhead@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

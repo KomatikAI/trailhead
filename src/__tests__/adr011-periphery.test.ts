@@ -445,7 +445,8 @@ describe("buildCannotEvaluateBrief", () => {
   it("states the fail-open consequence instead when the stance is open", () => {
     const brief = buildCannotEvaluateBrief("token missing", "fail_open");
     expect(brief.actions[1]?.detail).toContain("fail_open");
-    expect(brief.actions[1]?.detail).toContain("did not block");
+    expect(brief.actions[1]?.detail).toContain("NEUTRAL cannot-evaluate custom check");
+    expect(brief.actions[1]?.detail).toContain("publication failure");
   });
 });
 

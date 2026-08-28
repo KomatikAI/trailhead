@@ -3,9 +3,14 @@ name: "Self-Test: Trailhead on own PRs"
 on:
   pull_request:
     branches: [dev]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   # Re-evaluate required_approvals as soon as formal review state changes.
   pull_request_review:
     types: [submitted, dismissed]
+
+concurrency:
+  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -16,9 +21,11 @@ permissions:
 jobs:
   gate:
     name: "Trailhead Self-Test"
-    if: github.event.pull_request.base.ref == 'dev'
+    if: >-
+      github.event.pull_request.base.ref == 'dev' &&
+      ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override')
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
 
@@ -50,30 +57,45 @@ jobs:
 
       - name: Validate structured outputs
         if: always()
+        env:
+          EVALUATION_JSON: ${{ steps.gate.outputs.evaluation-json }}
+          ROLLOUT_READINESS_JSON: ${{ steps.gate.outputs.rollout-readiness-json }}
+          RELEASE_READY: ${{ steps.gate.outputs.release-ready }}
         run: |
-          node -e "const e=JSON.parse(process.argv[1]); if(!e.pr || !e.pr.provenance) { throw new Error('Missing pr.provenance in evaluation-json'); } if(!e.trust_profile){ throw new Error('Missing trust_profile in evaluation-json'); }" '${{ steps.gate.outputs.evaluation-json }}'
-          node -e "const r=JSON.parse(process.argv[1]); if(!['go','review','hold'].includes(r.band)){ throw new Error('Invalid rollout readiness band'); } if(typeof r.ready!=='boolean'){ throw new Error('rollout ready flag missing'); }" '${{ steps.gate.outputs.rollout-readiness-json }}'
-          node -e "const ready=process.argv[1]; if(ready!=='true' && ready!=='false'){ throw new Error('release-ready output must be true or false'); }" '${{ steps.gate.outputs.release-ready }}'
+          node -e "const e=JSON.parse(process.env.EVALUATION_JSON); if(!e.pr || !e.pr.provenance) { throw new Error('Missing pr.provenance in evaluation-json'); } if(!e.trust_profile){ throw new Error('Missing trust_profile in evaluation-json'); }"
+          node -e "const r=JSON.parse(process.env.ROLLOUT_READINESS_JSON); if(!['go','review','hold'].includes(r.band)){ throw new Error('Invalid rollout readiness band'); } if(typeof r.ready!=='boolean'){ throw new Error('rollout ready flag missing'); }"
+          node -e "const ready=process.env.RELEASE_READY; if(ready!=='true' && ready!=='false'){ throw new Error('release-ready output must be true or false'); }"
 
       - name: Print outputs
         if: always()
+        env:
+          GATE_DECISION: ${{ steps.gate.outputs.gate-decision }}
+          RELEASE_READY: ${{ steps.gate.outputs.release-ready }}
+          RISK_SCORE: ${{ steps.gate.outputs.risk-score }}
+          HEALTH_SCORE: ${{ steps.gate.outputs.health-score }}
+          REPORT_URL: ${{ steps.gate.outputs.report-url }}
+          DORA_RATING: ${{ steps.gate.outputs.dora-rating }}
+          ROLLOUT_READINESS_JSON: ${{ steps.gate.outputs.rollout-readiness-json }}
+          EVALUATION_JSON: ${{ steps.gate.outputs.evaluation-json }}
         run: |
-          echo "gate-decision:  ${{ steps.gate.outputs.gate-decision }}"
-          echo "release-ready:  ${{ steps.gate.outputs.release-ready }}"
-          echo "risk-score:     ${{ steps.gate.outputs.risk-score }}"
-          echo "health-score:   ${{ steps.gate.outputs.health-score }}"
-          echo "report-url:     ${{ steps.gate.outputs.report-url }}"
-          echo "dora-rating:    ${{ steps.gate.outputs.dora-rating }}"
-          echo "rollout:        ${{ steps.gate.outputs.rollout-readiness-json }}"
-          echo ""
-          echo "--- evaluation-json (truncated) ---"
-          echo '${{ steps.gate.outputs.evaluation-json }}' | head -c 500
+          printf '%s\n' "gate-decision:  $GATE_DECISION"
+          printf '%s\n' "release-ready:  $RELEASE_READY"
+          printf '%s\n' "risk-score:     $RISK_SCORE"
+          printf '%s\n' "health-score:   $HEALTH_SCORE"
+          printf '%s\n' "report-url:     $REPORT_URL"
+          printf '%s\n' "dora-rating:    $DORA_RATING"
+          printf '%s\n' "rollout:        $ROLLOUT_READINESS_JSON"
+          printf '\n%s\n' "--- evaluation-json (truncated) ---"
+          printf '%s' "$EVALUATION_JSON" | head -c 500
+          printf '\n'
 
   advisory:
     name: "Trailhead Advisory Self-Test"
-    if: github.event.pull_request.base.ref == 'dev'
+    if: >-
+      github.event.pull_request.base.ref == 'dev' &&
+      ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override')
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
 
@@ -89,10 +111,14 @@ jobs:
         uses: ./
         with:
           gate-mode: advisory
+          check-name: "Trailhead — Advisory Self-Test"
           risk-threshold: "1"
           fail-mode: "open"
 
       - name: Validate advisory outputs
+        env:
+          RELEASE_READY: ${{ steps.advisory.outputs.release-ready }}
+          GATE_DECISION: ${{ steps.advisory.outputs.gate-decision }}
         run: |
-          node -e "const ready=process.argv[1]; if(ready!=='true' && ready!=='false'){ throw new Error('release-ready output missing'); }" '${{ steps.advisory.outputs.release-ready }}'
-          echo "Advisory gate-decision: ${{ steps.advisory.outputs.gate-decision }}"
+          node -e "const ready=process.env.RELEASE_READY; if(ready!=='true' && ready!=='false'){ throw new Error('release-ready output missing'); }"
+          printf '%s\n' "Advisory gate-decision: $GATE_DECISION"

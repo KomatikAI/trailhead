@@ -230,7 +230,7 @@ outputs:
   evaluation-json:
     description: "Full gate evaluation as JSON for downstream workflow steps."
   release-brief-json:
-    description: "ADR-011 Release Brief as JSON (verdict, findings, input dispositions, delta, actions, override). Also set — with verdict cannot_evaluate — when the evaluation itself fails."
+    description: "ADR-011/012 Release Brief as JSON (verdict, findings, input dispositions, delta, actions, override status, required-check publication). Also set — with verdict cannot_evaluate — when the evaluation itself fails."
   cross-repo-opener-json:
     description: "Cross-repo PR opener result as JSON (ADR-010): opened/dry-run/exists outcomes per owning repo, plus unresolved dangling contract refs."
   verdict-json:
