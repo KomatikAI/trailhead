@@ -56,8 +56,17 @@ override even when an old labeled run is re-run. Event comments are not merged i
 live read: review/diff comments are a different surface, and stale edited/deleted payload bodies
 must not outrank the PR conversation. A recorded override is therefore visible to _any_
 subsequent evaluation of that PR — including reruns — regardless of which event minted the run.
-When live state is unavailable, payload traces are diagnostic-only and can never authorize an
-override; the brief must say what was observed and how to restore a verified read.
+
+> **D1 fallback — amended at implementation (2026-08-28).** This ADR as accepted said that when
+> live state is unavailable, payload traces are diagnostic-only and can never authorize an
+> override. That is the direct opposite of the pinned production fix shipped in
+> [#362](https://github.com/KomatikAI/trailhead/pull/362), which rules that a failed live label
+> read **warns, falls back to the payload labels, and still authorizes** — "degradation, not
+> regression". #362's policy is what ships; reversing it to fail-closed is **deferred pending an
+> explicit founder ruling** and is not decided here. The one thing the fallback genuinely cannot
+> do is supply an override reason the payload never carried; that case alone is reported as
+> `overrideStatus.status: unavailable`. In every case the brief says what was observed, which
+> source it came from, and how to restore a verified read.
 
 **D2 — Recording an override triggers re-evaluation.** The documented workflow template (and
 `getting-started`) adds `labeled` and `unlabeled` to the `pull_request` trigger types, filtered in
@@ -82,8 +91,11 @@ after creation the same check run is refreshed with the publication record befor
 brief is exposed on its other surfaces. If both refresh attempts fail, those surfaces explicitly
 record `reportRefreshed: false` and **published, report stale** instead of claiming parity. A
 cannot-evaluate run also publishes this contract:
-success for `fail_open`, failure for `fail_closed`, both titled as cannot-evaluate rather than a
-fabricated risk verdict.)
+**neutral** for `fail_open`, failure for `fail_closed`, both titled as cannot-evaluate rather than
+a fabricated risk verdict. Amended at implementation: fail-open publishes `neutral`, not `success`.
+GitHub treats a neutral conclusion as satisfying a required check, so fail-open still does not
+block the merge — but a run that evaluated nothing must never publish a passing verdict it never
+reached, and `environment`-less repos default to fail-open.)
 
 **D4 — `|| true` is classified by what it suppresses, not by its spelling.** The scanner keeps
 fail-closed as the default and adds one general exemption class alongside #359's trap-cleanup
@@ -110,9 +122,11 @@ as inactive/revoked, not as an error instructing the operator to undo the revoca
   komatik runbook rule ("a rerun never picks up new state") still applies to code and config.
 - ci_integrity keeps its teeth: the exemption class is narrow, data-driven, and reviewed; the
   default stays BLOCK.
-- Cost: one GraphQL read per PR evaluation to retrieve live labels and the newest 100 comments
-  (D1), two extra `pull_request` activity types (D2), and one post-create check update plus
-  brief-rendering branches (D3b/D5).
+- Cost: the live label read is the one #362 already pays (`pulls.get`, every PR evaluation); the
+  override adds a REST `issues.listComments` read **only when the live labels carry
+  `trailhead-override`**, so an evaluation with no override intent costs nothing extra. Plus two
+  extra `pull_request` activity types (D2), and one post-create check update plus brief-rendering
+  branches (D3b/D5).
 - Public fork PRs cannot publish checks with their read-only `pull_request` token. They use a
   separate `pull_request_target` publisher that never checks out or executes fork code, or an
   installed GitHub App whose identity is pinned in the ruleset. Because the target-only publisher
@@ -121,10 +135,16 @@ as inactive/revoked, not as an error instructing the operator to undo the revoca
 
 ## Implementation
 
-- D1/D5: `src/gate.ts` reads labels and comments in one GraphQL query immediately before override
-  resolution; unverified payload state is diagnostic-only; `src/override.ts` names revoked,
-  label-only, stale, capped, disabled, and scope-retained states; the Release Brief renders
-  structured override status without falsely upgrading legacy source metadata.
+- D1/D5: `src/gate.ts` has exactly ONE live label read per evaluation — `resolvePrMatchContext`
+  (#362), resolved at the top of `evaluateGate` so merge-queue detection, `contexts[].match.labels`
+  and the override all consume the same set. The override adds a REST `issues.listComments` read
+  (not GraphQL — GraphQL-blocked environments would otherwise lose override capability), gated on
+  the live labels actually carrying `trailhead-override`. A failed read falls back to the payload
+  and still authorizes, per the D1 amendment above. `src/override.ts` names revoked, label-only,
+  stale, capped, disabled, and scope-retained states; the Release Brief renders structured override
+  status without falsely upgrading legacy source metadata. A `not_needed` rejection (label on an
+  already-ready PR) is advisory only and is deliberately kept out of `policyFindings`, which
+  `app/src/verdict.ts` ingests wholesale into the server-side verdict.
 - D2: the CLI generator, current examples, self-test workflow, README, and getting-started guide
   listen for `labeled`/`unlabeled`, filter unrelated label activity at the job, and serialize real
   gate events with an ignored-label-safe concurrency group. The old v3 Phase 2 policy kit is
