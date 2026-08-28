@@ -476,7 +476,12 @@ describe("run — cloud-upsell footer in the check summary", () => {
     }
 
     await import("../main.js");
-    await new Promise((r) => setTimeout(r, 0));
+    // run() is fired at import and never awaited by the module, and the D3
+    // refresh path backs off between attempts — wait for the job summary,
+    // which every successful run writes after publication and persistence.
+    await vi.waitFor(() => expect(freshCore.summary.addRaw).toHaveBeenCalled(), {
+      timeout: 5000,
+    });
 
     const summaryText = vi
       .mocked(freshCore.summary.addRaw)
@@ -845,15 +850,19 @@ describe("run — cannot-evaluate path (ADR-011 §1/§4)", () => {
     freshGate.setResolvedCheckContract(options.checkContract ?? null);
 
     await import("../main.js");
-    await vi.waitFor(() => {
-      const failed = vi.mocked(freshCore.setFailed).mock.calls.length > 0;
-      const failOpenWarning = vi
-        .mocked(freshCore.warning)
-        .mock.calls.some(([message]) =>
-          String(message).startsWith("Trailhead evaluation failed"),
-        );
-      expect(failed || failOpenWarning).toBe(true);
-    });
+    await vi.waitFor(
+      () => {
+        const failed = vi.mocked(freshCore.setFailed).mock.calls.length > 0;
+        const failOpenWarning = vi
+          .mocked(freshCore.warning)
+          .mock.calls.some(([message]) =>
+            String(message).startsWith("Trailhead evaluation failed"),
+          );
+        expect(failed || failOpenWarning).toBe(true);
+        // Generous: the D3 refresh path backs off between attempts.
+      },
+      { timeout: 5000 },
+    );
 
     return {
       freshCore,

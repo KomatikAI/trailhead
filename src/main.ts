@@ -158,6 +158,30 @@ function checkReportRefreshFailureMessage(
   );
 }
 
+/**
+ * Swap the gate-report section inside the assembled full report.
+ *
+ * The FUNCTION form of `String.prototype.replace` is mandatory here: with a
+ * string replacement, `$&`, `` $` ``, `$'`, `$$` and `$1` in the REPLACEMENT are
+ * expanded as patterns. Gate reports are arbitrary rendered markdown containing
+ * user/CI text, so a report holding a literal `$&` would silently duplicate the
+ * matched region into the published check and PR comment.
+ */
+function replaceGateReport(
+  fullReport: string,
+  previous: string,
+  updated: string,
+): string {
+  return fullReport.replace(previous, () => updated);
+}
+
+/** Linear backoff base between D3 refresh attempts, in ms. */
+const CHECK_REPORT_RETRY_DELAY_MS = 500;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function refreshCheckReport(
   publication: Awaited<ReturnType<typeof createCheckRun>>,
   evaluation: GateEvaluation,
@@ -165,7 +189,17 @@ async function refreshCheckReport(
   token: string,
   attempts: number,
 ): Promise<boolean> {
+  // Without an id there is nothing to update, and updateCheckRunReport would
+  // warn identically on every pass. Retrying that is pure noise.
+  if (!publication.published || !publication.checkRunId) {
+    return updateCheckRunReport(publication, evaluation, report, token);
+  }
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0) {
+      // A refresh failure is usually a transient Checks API error or a
+      // secondary-rate-limit; an immediate retry re-hits the same window.
+      await sleep(CHECK_REPORT_RETRY_DELAY_MS * attempt);
+    }
     if (await updateCheckRunReport(publication, evaluation, report, token)) {
       return true;
     }
@@ -322,7 +356,21 @@ async function postCannotEvaluateBrief(
     // example, while validating an action-level policy override). In that case
     // branch protection still expects the repository-configured check contract,
     // so resolve it here rather than silently falling back to the legacy name.
-    const repoConfig = resolvedContract ? null : await loadRepoConfig(githubToken);
+    //
+    // This load is BEST-EFFORT and must never abort the rest of this function.
+    // Everything below it — the check publication and the PR comment that ADR-011
+    // §1 owes the PR — used to happen with no config load at all; letting a
+    // throw here escape into the outer catch would silently drop both.
+    let repoConfig: Awaited<ReturnType<typeof loadRepoConfig>> | null = null;
+    if (!resolvedContract) {
+      try {
+        repoConfig = await loadRepoConfig(githubToken);
+      } catch (configError) {
+        core.debug(
+          `Could not load repo config while building the cannot-evaluate brief: ${configError}`,
+        );
+      }
+    }
     const gateMode =
       resolvedContract?.mode ??
       resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, inputMode);
@@ -929,7 +977,7 @@ async function run(): Promise<void> {
       };
 
       const updatedReport = formatGateReport(evaluation, config.riskThreshold);
-      fullReport = fullReport.replace(report, updatedReport);
+      fullReport = replaceGateReport(fullReport, report, updatedReport);
       report = updatedReport;
     }
 
@@ -950,7 +998,7 @@ async function run(): Promise<void> {
           context.eventName || "unknown",
         );
         const refreshFailureReport = formatGateReport(evaluation, config.riskThreshold);
-        fullReport = fullReport.replace(report, refreshFailureReport);
+        fullReport = replaceGateReport(fullReport, report, refreshFailureReport);
         report = refreshFailureReport;
       }
     }
@@ -1109,7 +1157,11 @@ async function run(): Promise<void> {
     if (error instanceof PolicyOverrideError) {
       // An unusable override is still a run that could not evaluate — ADR-011 §1
       // owes the PR a brief here too, with the validation message as the reason.
-      await postCannotEvaluateBrief(error, "closed");
+      // The availability stance is a repo/environment contract, not a property of
+      // which error was thrown: an invalid override in a fail-open repo publishes
+      // the same fail-open cannot-evaluate check as any other failure. (The job
+      // itself still fails via setFailed below either way.)
+      await postCannotEvaluateBrief(error, failMode);
       core.setFailed(`Invalid policy override: ${error.message}`);
       return;
     }
