@@ -169,8 +169,11 @@ describe("checkConclusionForEvaluation", () => {
     ).toBe("failure");
   });
 
+  // A run that evaluated NOTHING must never publish `success`: that would be an
+  // auto-green path, and a repo that leaves `environment` unset defaults to
+  // fail-open. `neutral` satisfies a required check without claiming a verdict.
   it.each([
-    { decision: "allow" as const, conclusion: "success" },
+    { decision: "allow" as const, conclusion: "neutral" },
     { decision: "block" as const, conclusion: "failure" },
   ])(
     "publishes cannot-evaluate availability as $conclusion even in advisory mode",
