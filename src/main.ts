@@ -414,9 +414,13 @@ async function postCannotEvaluateBrief(
       ? publication.published
         ? `Published ${failOpen ? "fail-open" : "fail-closed"} cannot-evaluate custom check ` +
           `\`${checkName}\` on \`${commitSha}\` from \`${eventName}\`.`
-        : `Could not publish custom check \`${checkName}\` on \`${commitSha}\` from ` +
-          `\`${eventName}\`; this run cannot satisfy branch protection. ` +
-          customCheckRecoveryGuidance()
+        : publication.superseded
+          ? `Did not publish custom check \`${checkName}\` on \`${commitSha}\`: run ` +
+            `${publication.supersededByRunId} already published a newer evaluation for ` +
+            "this PR revision. No action needed."
+          : `Could not publish custom check \`${checkName}\` on \`${commitSha}\` from ` +
+            `\`${eventName}\`; this run cannot satisfy branch protection. ` +
+            customCheckRecoveryGuidance()
       : backfillMode
         ? `Backfill mode did not publish custom check \`${checkName}\` on \`${commitSha}\`.`
         : `No GitHub token was available to publish custom check \`${checkName}\` on ` +
@@ -429,6 +433,7 @@ async function postCannotEvaluateBrief(
       headSha: commitSha,
       eventName,
       message,
+      ...(publication?.superseded ? { superseded: true } : {}),
     };
 
     let renderedBrief = renderReleaseBrief(brief);
@@ -959,9 +964,13 @@ async function run(): Promise<void> {
             "Branch protection must require this custom check from the token's " +
             "publishing GitHub App, not the workflow job name. For GITHUB_TOKEN, " +
             "that source is GitHub Actions."
-          : `Could not publish custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
-            "This evaluation cannot satisfy branch protection. " +
-            customCheckRecoveryGuidance()
+          : checkPublication.superseded
+            ? `Did not publish custom check \`${checkName}\` on \`${headSha}\`: run ` +
+              `${checkPublication.supersededByRunId} already published a newer evaluation ` +
+              "for this PR revision. No action needed."
+            : `Could not publish custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
+              "This evaluation cannot satisfy branch protection. " +
+              customCheckRecoveryGuidance()
         : backfillMode
           ? `Backfill mode did not publish custom check \`${checkName}\` on \`${headSha}\`. ` +
             "Run the normal PR workflow to satisfy branch protection."
@@ -974,6 +983,7 @@ async function run(): Promise<void> {
         headSha,
         eventName,
         message: publicationMessage,
+        ...(checkPublication?.superseded ? { superseded: true } : {}),
       };
 
       const updatedReport = formatGateReport(evaluation, config.riskThreshold);

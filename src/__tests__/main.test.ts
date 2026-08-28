@@ -377,6 +377,7 @@ describe("run — cloud-upsell footer in the check summary", () => {
     fork?: boolean;
     eventName?: string;
     checkPublished?: boolean;
+    supersededByRunId?: number;
     storeOutcome?: {
       stored: boolean;
       quotaExceeded: boolean;
@@ -464,6 +465,9 @@ describe("run — cloud-upsell footer in the check summary", () => {
       name: "Trailhead — Release Ready",
       headSha: "abc123",
       ...(options.checkPublished === false ? {} : { checkRunId: 77 }),
+      ...(options.supersededByRunId !== undefined
+        ? { superseded: true, supersededByRunId: options.supersededByRunId }
+        : {}),
     });
     const updateCheckRunReportSpy = vi
       .spyOn(freshGate, "updateCheckRunReport")
@@ -575,6 +579,33 @@ describe("run — cloud-upsell footer in the check summary", () => {
       }),
     );
     expect(summaryText).toContain("Required check published, report stale");
+  });
+
+  it("reports a superseded publish calmly, not as a branch-protection gap", async () => {
+    const evaluation = makeEvaluation({
+      gateMode: "release-ready",
+      releaseReady: true,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+      },
+    });
+
+    await runMain({
+      inputs: { "github-token": "ghp_test", "disable-cloud-upsell": "true" },
+      evaluation,
+      checkPublished: false,
+      supersededByRunId: 99,
+    });
+
+    const requiredCheck = evaluation.releaseBrief?.requiredCheck;
+    expect(requiredCheck?.superseded).toBe(true);
+    expect(requiredCheck?.message).toContain("run 99 already published");
+    expect(requiredCheck?.message).toContain("No action needed");
+    expect(requiredCheck?.message).not.toContain("cannot satisfy branch protection");
   });
 
   it("names the durable publisher path when a fork token cannot publish", async () => {
