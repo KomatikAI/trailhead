@@ -1,0 +1,214 @@
+{
+  "schema": "komatik.book/1",
+  "generated_from": "docs/book authored Markdown and redirect registries",
+  "project": {
+    "schema": "komatik.project-book/1",
+    "id": "komatikai/trailhead",
+    "title": "Trailhead",
+    "repository": "KomatikAI/trailhead",
+    "default_branch": "dev",
+    "audience": "user",
+    "status": "preview"
+  },
+  "sections": [
+    {
+      "id": "engine",
+      "title": "Engine",
+      "description": "Durable rules for Trailhead evaluation, CI meaning, risk, and release decisions.",
+      "order": 10,
+      "path": "engine/",
+      "owner": "David",
+      "status": "current",
+      "chapters": [
+        {
+          "id": "engine/release-ready-decision",
+          "title": "The Release Ready decision",
+          "path": "engine/release-ready-decision.md",
+          "description": "How Trailhead combines CI meaning, risk, health, policy, and communication into one reviewable verdict.",
+          "owner": "David",
+          "order": 10,
+          "ttl_days": 30,
+          "last_verified": "2026-08-26",
+          "verified_by": "Project Book backfill from merged Trailhead pull requests",
+          "pins": [
+            "pr:12",
+            "pr:214",
+            "pr:348"
+          ],
+          "paragraph_count": 6,
+          "ratified_count": 6,
+          "reported_count": 0,
+          "status": "current"
+        }
+      ]
+    },
+    {
+      "id": "platform",
+      "title": "Platform & Product",
+      "description": "Durable explanations of Trailhead's Action, CLI, App, MCP, and Cloud surfaces.",
+      "order": 20,
+      "path": "platform/",
+      "owner": "David",
+      "status": "current",
+      "chapters": [
+        {
+          "id": "platform/product-surfaces",
+          "title": "Trailhead product surfaces",
+          "path": "platform/product-surfaces.md",
+          "description": "How the Action, CLI, App, MCP server, and Cloud expose one release-readiness product.",
+          "owner": "David",
+          "order": 10,
+          "ttl_days": 60,
+          "last_verified": "2026-08-26",
+          "verified_by": "Project Book backfill from merged Trailhead pull requests",
+          "pins": [
+            "pr:1",
+            "pr:10",
+            "pr:12",
+            "commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6",
+            "pr:220",
+            "pr:246",
+            "pr:314",
+            "pr:315"
+          ],
+          "paragraph_count": 5,
+          "ratified_count": 5,
+          "reported_count": 0,
+          "status": "current"
+        }
+      ]
+    },
+    {
+      "id": "fleet",
+      "title": "Fleet & Agents",
+      "description": "Durable agent-submission, remediation, trust, and reconciliation behavior.",
+      "order": 30,
+      "path": "fleet/",
+      "owner": "David",
+      "status": "current",
+      "chapters": [
+        {
+          "id": "fleet/agent-governance",
+          "title": "Agent governance",
+          "path": "fleet/agent-governance.md",
+          "description": "How Trailhead classifies agent work, returns remediation, learns trust, and reconciles shipped outcomes.",
+          "owner": "David",
+          "order": 10,
+          "ttl_days": 30,
+          "last_verified": "2026-08-26",
+          "verified_by": "Project Book backfill from merged Trailhead pull requests",
+          "pins": [
+            "commit:7fa9803444117335f3a6847d498614fff9f36e52",
+            "commit:b7b0f56a63606f74e7f63a06f05baeaa932653b8",
+            "pr:234",
+            "pr:244",
+            "pr:246",
+            "pr:261",
+            "pr:269",
+            "pr:273",
+            "pr:279",
+            "pr:301"
+          ],
+          "paragraph_count": 7,
+          "ratified_count": 7,
+          "reported_count": 0,
+          "status": "current"
+        }
+      ]
+    },
+    {
+      "id": "infra",
+      "title": "Infra & Substrate",
+      "description": "Durable safety, availability, health, CI, and observability boundaries.",
+      "order": 40,
+      "path": "infra/",
+      "owner": "David",
+      "status": "current",
+      "chapters": [
+        {
+          "id": "infra/safety-and-observability",
+          "title": "Safety and operational truth",
+          "path": "infra/safety-and-observability.md",
+          "description": "Availability, GitHub evidence, health, observability, and current integration-branch repairs.",
+          "owner": "David",
+          "order": 10,
+          "ttl_days": 30,
+          "last_verified": "2026-08-26",
+          "verified_by": "Project Book backfill from merged Trailhead pull requests",
+          "pins": [
+            "pr:8",
+            "pr:12",
+            "pr:53",
+            "pr:328",
+            "pr:345",
+            "pr:348",
+            "pr:357",
+            "pr:358",
+            "pr:359"
+          ],
+          "paragraph_count": 6,
+          "ratified_count": 6,
+          "reported_count": 0,
+          "status": "current"
+        }
+      ]
+    },
+    {
+      "id": "process",
+      "title": "Process & Runbooks",
+      "description": "Durable project history, release sequencing, and communication practice.",
+      "order": 50,
+      "path": "process/",
+      "owner": "David",
+      "status": "current",
+      "chapters": [
+        {
+          "id": "process/project-history",
+          "title": "How Trailhead grew",
+          "path": "process/project-history.md",
+          "description": "The curated development eras that changed Trailhead's durable release-readiness contract.",
+          "owner": "David",
+          "order": 10,
+          "ttl_days": 60,
+          "last_verified": "2026-08-26",
+          "verified_by": "Project Book backfill from merged Trailhead pull requests",
+          "pins": [
+            "pr:1",
+            "pr:10",
+            "pr:12",
+            "pr:14",
+            "pr:16",
+            "pr:35",
+            "pr:214",
+            "commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6",
+            "pr:216",
+            "pr:217",
+            "pr:218",
+            "commit:7fa9803444117335f3a6847d498614fff9f36e52",
+            "pr:244",
+            "pr:261",
+            "pr:263",
+            "pr:273",
+            "pr:280",
+            "pr:284",
+            "pr:314",
+            "pr:315",
+            "pr:321",
+            "pr:279",
+            "pr:301",
+            "pr:328",
+            "pr:345",
+            "pr:348",
+            "pr:349",
+            "commit:622c6e9255f1b124f3c0aea4102eb87d1e54b162"
+          ],
+          "paragraph_count": 10,
+          "ratified_count": 10,
+          "reported_count": 0,
+          "status": "current"
+        }
+      ]
+    }
+  ],
+  "chapter_redirects": {}
+}

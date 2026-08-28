@@ -1,0 +1,9 @@
+{
+  "schema": "komatik.project-book/1",
+  "id": "komatikai/trailhead",
+  "title": "Trailhead",
+  "repository": "KomatikAI/trailhead",
+  "default_branch": "dev",
+  "audience": "user",
+  "status": "preview"
+}
