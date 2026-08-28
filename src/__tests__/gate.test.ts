@@ -29,6 +29,7 @@ const {
   mockUpdateComment,
   mockChecksCreate,
   mockChecksUpdate,
+  mockChecksListForRef,
   mockCreateLabel,
   mockListLabelsOnIssue,
   mockRemoveLabel,
@@ -41,6 +42,7 @@ const {
   mockUpdateComment: vi.fn(),
   mockChecksCreate: vi.fn(),
   mockChecksUpdate: vi.fn(),
+  mockChecksListForRef: vi.fn(),
   mockCreateLabel: vi.fn(),
   mockListLabelsOnIssue: vi.fn(),
   mockRemoveLabel: vi.fn(),
@@ -77,6 +79,7 @@ vi.mock("@actions/github", () => ({
       checks: {
         create: mockChecksCreate,
         update: mockChecksUpdate,
+        listForRef: mockChecksListForRef,
       },
       pulls: {
         get: mockPullsGet,
@@ -1288,6 +1291,7 @@ describe("createCheckRun", () => {
       data: { id: 77, check_suite: { id: 88 } },
     });
     mockChecksUpdate.mockReset().mockResolvedValue({});
+    mockChecksListForRef.mockReset().mockResolvedValue({ data: { check_runs: [] } });
   });
 
   const baseEval: GateEvaluation = {
@@ -1359,6 +1363,101 @@ describe("createCheckRun", () => {
       name: "Trailhead",
       headSha: "abc1234567890",
     });
+  });
+
+  // -------------------------------------------------------------------------
+  // Train-37 concurrency hardening: completion-order guard (ADR-012 D2/D3)
+  // -------------------------------------------------------------------------
+
+  it("tags the published check with the triggering run id", async () => {
+    await createCheckRun(baseEval, "## Report", "ghp_test", undefined, 42);
+    expect(mockChecksListForRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: "test-owner",
+        repo: "test-repo",
+        ref: "abc1234567890",
+        check_name: "Trailhead",
+      }),
+    );
+    expect(mockChecksCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ external_id: "42" }),
+    );
+  });
+
+  it("skips publishing when a newer run already published for this head SHA", async () => {
+    mockChecksListForRef.mockResolvedValue({
+      data: { check_runs: [{ external_id: "99" }] },
+    });
+    const publication = await createCheckRun(
+      baseEval,
+      "## Report",
+      "ghp_test",
+      undefined,
+      5,
+    );
+    expect(publication).toEqual({
+      published: false,
+      name: "Trailhead",
+      headSha: "abc1234567890",
+      superseded: true,
+      supersededByRunId: 99,
+    });
+    expect(mockChecksCreate).not.toHaveBeenCalled();
+  });
+
+  it("publishes when the only prior run is older", async () => {
+    mockChecksListForRef.mockResolvedValue({
+      data: { check_runs: [{ external_id: "3" }] },
+    });
+    const publication = await createCheckRun(
+      baseEval,
+      "## Report",
+      "ghp_test",
+      undefined,
+      10,
+    );
+    expect(publication.published).toBe(true);
+    expect(mockChecksCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ external_id: "10" }),
+    );
+  });
+
+  it("ignores check runs with a non-numeric or missing external_id", async () => {
+    mockChecksListForRef.mockResolvedValue({
+      data: { check_runs: [{ external_id: "" }, { external_id: "not-a-number" }, {}] },
+    });
+    const publication = await createCheckRun(
+      baseEval,
+      "## Report",
+      "ghp_test",
+      undefined,
+      10,
+    );
+    expect(publication.published).toBe(true);
+  });
+
+  it("fails open to publishing when the newer-run lookup errors", async () => {
+    mockChecksListForRef.mockRejectedValue(new Error("rate limited"));
+    const publication = await createCheckRun(
+      baseEval,
+      "## Report",
+      "ghp_test",
+      undefined,
+      10,
+    );
+    expect(publication.published).toBe(true);
+    expect(mockChecksCreate).toHaveBeenCalled();
+  });
+
+  it("does not look up prior runs or tag external_id when no run id is available", async () => {
+    // Default parameter reads github.context.runId, which the test mock leaves
+    // unset — the same shape a local/dry-run invocation without a real Actions
+    // run id would see.
+    await createCheckRun(baseEval, "## Report", "ghp_test");
+    expect(mockChecksListForRef).not.toHaveBeenCalled();
+    expect(mockChecksCreate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ external_id: expect.anything() }),
+    );
   });
 
   it("refreshes the same check run with the final publication brief", async () => {

@@ -3320,6 +3320,16 @@ export interface CheckRunPublication {
   headSha: string;
   checkRunId?: number;
   checkSuiteId?: number;
+  /**
+   * True when this run deliberately did NOT publish because a strictly
+   * newer run (by `external_id` / workflow run id) already published a
+   * completed check for the same name + head SHA. See
+   * `findNewerPublishedRunId` — this is the completion-order guard that
+   * backs up the concurrency group's start-order cancellation (train-37).
+   */
+  superseded?: boolean;
+  /** The run id that superseded this one, when `superseded` is true. */
+  supersededByRunId?: number;
 }
 
 function checkRunOutput(
@@ -3348,17 +3358,96 @@ function checkRunOutput(
   };
 }
 
+/**
+ * ADR-012 D2/D3 concurrency hardening (train-37): the workflow's
+ * `cancel-in-progress` group guarantees at most one LIVE run per PR, but it
+ * cancels by START order — a run cancellation signal races the run's own
+ * remaining steps, so an older run that started before a newer, authoritative
+ * one is not guaranteed to die before it reaches this publish step. Without a
+ * completion-order guard, a slow older run finishing last can publish a
+ * stale conclusion AFTER the newer run already published a fresh one,
+ * stranding the PR on the stale check until another event re-triggers.
+ *
+ * Every publish tags its check run with `external_id` = the triggering
+ * workflow run id (monotonically increasing). Before publishing, this looks
+ * for an already-published check of the same name on the same head SHA whose
+ * `external_id` is a STRICTLY NEWER run id, and skips publishing if so — the
+ * newer run's verdict already stands and must not be overwritten by a late
+ * straggler. It never blocks on an OLDER unpublished run (that run's own
+ * guard — or the concurrency cancellation — handles it), and a lookup
+ * failure fails OPEN to publishing so a lone, ordinary evaluation is never
+ * held back by this safety net.
+ */
+async function findNewerPublishedRunId(input: {
+  octokit: ReturnType<typeof github.getOctokit>;
+  owner: string;
+  repo: string;
+  headSha: string;
+  name: string;
+  runId: number;
+}): Promise<number | undefined> {
+  if (!Number.isFinite(input.runId)) return undefined;
+  try {
+    const { data } = await input.octokit.rest.checks.listForRef({
+      owner: input.owner,
+      repo: input.repo,
+      ref: input.headSha,
+      check_name: input.name,
+      filter: "all",
+      per_page: 30,
+    });
+    let maxSeen: number | undefined;
+    for (const run of data.check_runs) {
+      const externalId = (run as { external_id?: string | null }).external_id;
+      if (!externalId) continue;
+      const parsed = Number(externalId);
+      if (!Number.isFinite(parsed)) continue;
+      if (maxSeen === undefined || parsed > maxSeen) maxSeen = parsed;
+    }
+    if (maxSeen !== undefined && maxSeen > input.runId) return maxSeen;
+    return undefined;
+  } catch (error) {
+    core.debug(`Could not check for a newer published run before publishing: ${error}`);
+    return undefined;
+  }
+}
+
 export async function createCheckRun(
   evaluation: GateEvaluation,
   report: string,
   token: string,
   checkName?: string,
+  runId: number = github.context.runId,
 ): Promise<CheckRunPublication> {
   const mode = evaluation.gateMode ?? "risk-only";
   const name = checkName ?? resolveCheckName(mode);
   try {
     const octokit = github.getOctokit(token);
     const { owner, repo } = github.context.repo;
+
+    const supersededBy = await findNewerPublishedRunId({
+      octokit,
+      owner,
+      repo,
+      headSha: evaluation.commitSha,
+      name,
+      runId,
+    });
+    if (supersededBy !== undefined) {
+      core.info(
+        `Skipping check publication for \`${name}\` on \`${evaluation.commitSha}\`: ` +
+          `this run (${runId}) was superseded by run ${supersededBy}, which already ` +
+          "published a newer evaluation for this PR revision. This is the intended " +
+          "last-write-wins outcome, not a failure.",
+      );
+      return {
+        published: false,
+        name,
+        headSha: evaluation.commitSha,
+        superseded: true,
+        supersededByRunId: supersededBy,
+      };
+    }
 
     const conclusion = checkConclusionForEvaluation(evaluation);
 
@@ -3369,6 +3458,7 @@ export async function createCheckRun(
       head_sha: evaluation.commitSha,
       status: "completed",
       conclusion,
+      ...(Number.isFinite(runId) ? { external_id: String(runId) } : {}),
       output: checkRunOutput(evaluation, report, name),
     });
     return {

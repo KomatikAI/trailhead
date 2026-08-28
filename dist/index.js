@@ -42089,6 +42089,13 @@ const BriefRequiredCheck = objectType({
     headSha: stringType(),
     eventName: stringType(),
     message: stringType(),
+    /**
+     * True when `published` is false because a newer run already published
+     * for this head SHA (the concurrency completion-order guard), not because
+     * publication failed. Distinguishes a healthy last-write-wins outcome from
+     * a genuine gap that needs the recovery guidance in `message`.
+     */
+    superseded: booleanType().optional(),
 });
 const ReleaseBrief = objectType({
     verdict: BriefVerdict,
@@ -44300,12 +44307,15 @@ function buildBrief(brief, keepFindings, evidenceCap, storedEvaluationUrl) {
     }
     if (brief.requiredCheck) {
         const reportStale = brief.requiredCheck.published && !brief.requiredCheck.reportRefreshed;
-        const icon = brief.requiredCheck.published && !reportStale ? "✅" : "⚠️";
-        const state = reportStale
-            ? "published, report stale"
-            : brief.requiredCheck.published
-                ? "published"
-                : "not published";
+        const superseded = !brief.requiredCheck.published && brief.requiredCheck.superseded === true;
+        const icon = superseded || (brief.requiredCheck.published && !reportStale) ? "✅" : "⚠️";
+        const state = superseded
+            ? "superseded by a newer run"
+            : reportStale
+                ? "published, report stale"
+                : brief.requiredCheck.published
+                    ? "published"
+                    : "not published";
         lines.push(`> ${icon} **Required check ${state}:** ${inlineMessage(brief.requiredCheck.message)}`, "");
     }
     if (brief.overrideStatus) {
@@ -54754,12 +54764,85 @@ function checkRunOutput(evaluation, report, name) {
             : {}),
     };
 }
-async function createCheckRun(evaluation, report, token, checkName) {
+/**
+ * ADR-012 D2/D3 concurrency hardening (train-37): the workflow's
+ * `cancel-in-progress` group guarantees at most one LIVE run per PR, but it
+ * cancels by START order — a run cancellation signal races the run's own
+ * remaining steps, so an older run that started before a newer, authoritative
+ * one is not guaranteed to die before it reaches this publish step. Without a
+ * completion-order guard, a slow older run finishing last can publish a
+ * stale conclusion AFTER the newer run already published a fresh one,
+ * stranding the PR on the stale check until another event re-triggers.
+ *
+ * Every publish tags its check run with `external_id` = the triggering
+ * workflow run id (monotonically increasing). Before publishing, this looks
+ * for an already-published check of the same name on the same head SHA whose
+ * `external_id` is a STRICTLY NEWER run id, and skips publishing if so — the
+ * newer run's verdict already stands and must not be overwritten by a late
+ * straggler. It never blocks on an OLDER unpublished run (that run's own
+ * guard — or the concurrency cancellation — handles it), and a lookup
+ * failure fails OPEN to publishing so a lone, ordinary evaluation is never
+ * held back by this safety net.
+ */
+async function findNewerPublishedRunId(input) {
+    if (!Number.isFinite(input.runId))
+        return undefined;
+    try {
+        const { data } = await input.octokit.rest.checks.listForRef({
+            owner: input.owner,
+            repo: input.repo,
+            ref: input.headSha,
+            check_name: input.name,
+            filter: "all",
+            per_page: 30,
+        });
+        let maxSeen;
+        for (const run of data.check_runs) {
+            const externalId = run.external_id;
+            if (!externalId)
+                continue;
+            const parsed = Number(externalId);
+            if (!Number.isFinite(parsed))
+                continue;
+            if (maxSeen === undefined || parsed > maxSeen)
+                maxSeen = parsed;
+        }
+        if (maxSeen !== undefined && maxSeen > input.runId)
+            return maxSeen;
+        return undefined;
+    }
+    catch (error) {
+        core_debug(`Could not check for a newer published run before publishing: ${error}`);
+        return undefined;
+    }
+}
+async function createCheckRun(evaluation, report, token, checkName, runId = github_context.runId) {
     const mode = evaluation.gateMode ?? "risk-only";
     const name = checkName ?? resolveCheckName(mode);
     try {
         const octokit = getOctokit(token);
         const { owner, repo } = github_context.repo;
+        const supersededBy = await findNewerPublishedRunId({
+            octokit,
+            owner,
+            repo,
+            headSha: evaluation.commitSha,
+            name,
+            runId,
+        });
+        if (supersededBy !== undefined) {
+            info(`Skipping check publication for \`${name}\` on \`${evaluation.commitSha}\`: ` +
+                `this run (${runId}) was superseded by run ${supersededBy}, which already ` +
+                "published a newer evaluation for this PR revision. This is the intended " +
+                "last-write-wins outcome, not a failure.");
+            return {
+                published: false,
+                name,
+                headSha: evaluation.commitSha,
+                superseded: true,
+                supersededByRunId: supersededBy,
+            };
+        }
         const conclusion = checkConclusionForEvaluation(evaluation);
         const response = await octokit.rest.checks.create({
             owner,
@@ -54768,6 +54851,7 @@ async function createCheckRun(evaluation, report, token, checkName) {
             head_sha: evaluation.commitSha,
             status: "completed",
             conclusion,
+            ...(Number.isFinite(runId) ? { external_id: String(runId) } : {}),
             output: checkRunOutput(evaluation, report, name),
         });
         return {
@@ -58850,9 +58934,13 @@ async function postCannotEvaluateBrief(error, failMode) {
             ? publication.published
                 ? `Published ${failOpen ? "fail-open" : "fail-closed"} cannot-evaluate custom check ` +
                     `\`${checkName}\` on \`${commitSha}\` from \`${eventName}\`.`
-                : `Could not publish custom check \`${checkName}\` on \`${commitSha}\` from ` +
-                    `\`${eventName}\`; this run cannot satisfy branch protection. ` +
-                    customCheckRecoveryGuidance()
+                : publication.superseded
+                    ? `Did not publish custom check \`${checkName}\` on \`${commitSha}\`: run ` +
+                        `${publication.supersededByRunId} already published a newer evaluation for ` +
+                        "this PR revision. No action needed."
+                    : `Could not publish custom check \`${checkName}\` on \`${commitSha}\` from ` +
+                        `\`${eventName}\`; this run cannot satisfy branch protection. ` +
+                        customCheckRecoveryGuidance()
             : backfillMode
                 ? `Backfill mode did not publish custom check \`${checkName}\` on \`${commitSha}\`.`
                 : `No GitHub token was available to publish custom check \`${checkName}\` on ` +
@@ -58865,6 +58953,7 @@ async function postCannotEvaluateBrief(error, failMode) {
             headSha: commitSha,
             eventName,
             message,
+            ...(publication?.superseded ? { superseded: true } : {}),
         };
         let renderedBrief = renderReleaseBrief(brief);
         if (publication?.published && githubToken) {
@@ -59287,9 +59376,13 @@ async function run() {
                         "Branch protection must require this custom check from the token's " +
                         "publishing GitHub App, not the workflow job name. For GITHUB_TOKEN, " +
                         "that source is GitHub Actions."
-                    : `Could not publish custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
-                        "This evaluation cannot satisfy branch protection. " +
-                        customCheckRecoveryGuidance()
+                    : checkPublication.superseded
+                        ? `Did not publish custom check \`${checkName}\` on \`${headSha}\`: run ` +
+                            `${checkPublication.supersededByRunId} already published a newer evaluation ` +
+                            "for this PR revision. No action needed."
+                        : `Could not publish custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
+                            "This evaluation cannot satisfy branch protection. " +
+                            customCheckRecoveryGuidance()
                 : backfillMode
                     ? `Backfill mode did not publish custom check \`${checkName}\` on \`${headSha}\`. ` +
                         "Run the normal PR workflow to satisfy branch protection."
@@ -59302,6 +59395,7 @@ async function run() {
                 headSha,
                 eventName,
                 message: publicationMessage,
+                ...(checkPublication?.superseded ? { superseded: true } : {}),
             };
             const updatedReport = formatGateReport(evaluation, config.riskThreshold);
             fullReport = replaceGateReport(fullReport, report, updatedReport);
@@ -59368,7 +59462,14 @@ async function run() {
             setOutput("release-brief-json", JSON.stringify(evaluation.releaseBrief));
         }
         await summary.addRaw(fullReport).write();
-        if (config.githubToken && !backfillMode) {
+        // A superseded run's own evaluation is stale by definition (a newer run
+        // already published the authoritative check for this head SHA) — don't
+        // let its late-finishing PR comment or risk labels overwrite what the
+        // newer run already communicated. Branch protection was already handled
+        // by createCheckRun's completion-order guard; this closes the same race
+        // for the other two human-visible artifacts.
+        const isSupersededRun = checkPublication?.superseded === true;
+        if (config.githubToken && !backfillMode && !isSupersededRun) {
             if (prNumber) {
                 await postPrComment(fullReport, prNumber, config.githubToken);
             }

@@ -249,6 +249,13 @@ export const BriefRequiredCheck = z.object({
     headSha: z.string(),
     eventName: z.string(),
     message: z.string(),
+    /**
+     * True when `published` is false because a newer run already published
+     * for this head SHA (the concurrency completion-order guard), not because
+     * publication failed. Distinguishes a healthy last-write-wins outcome from
+     * a genuine gap that needs the recovery guidance in `message`.
+     */
+    superseded: z.boolean().optional(),
 });
 export const ReleaseBrief = z.object({
     verdict: BriefVerdict,

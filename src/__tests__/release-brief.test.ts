@@ -246,6 +246,27 @@ describe("renderReleaseBrief — verdict shapes", () => {
       );
     },
   );
+
+  it("renders a superseded skip as a calm last-write-wins outcome, not a publication gap", () => {
+    const output = renderReleaseBrief(
+      brief({
+        requiredCheck: {
+          published: false,
+          reportRefreshed: false,
+          superseded: true,
+          name: "Trailhead — Release Ready",
+          headSha: "abc123",
+          eventName: "pull_request_review",
+          message:
+            "Did not publish custom check on abc123: run 99 already published a " +
+            "newer evaluation for this PR revision. No action needed.",
+        },
+      }),
+    );
+
+    expect(output).toContain("> ✅ **Required check superseded by a newer run:**");
+    expect(output).not.toContain("Required check not published");
+  });
 });
 
 describe("renderReleaseBrief — empty and partial data", () => {

@@ -52,6 +52,13 @@ export interface BriefRequiredCheck {
   headSha: string;
   eventName: string;
   message: string;
+  /**
+   * True when `published` is false because a newer run already published
+   * for this head SHA (the concurrency completion-order guard), not because
+   * publication failed. Distinguishes a healthy last-write-wins outcome from
+   * a genuine gap that needs the recovery guidance in `message`.
+   */
+  superseded?: boolean;
 }
 
 export interface ReleaseBrief {
@@ -228,12 +235,17 @@ function buildBrief(
   if (brief.requiredCheck) {
     const reportStale =
       brief.requiredCheck.published && !brief.requiredCheck.reportRefreshed;
-    const icon = brief.requiredCheck.published && !reportStale ? "✅" : "⚠️";
-    const state = reportStale
-      ? "published, report stale"
-      : brief.requiredCheck.published
-        ? "published"
-        : "not published";
+    const superseded =
+      !brief.requiredCheck.published && brief.requiredCheck.superseded === true;
+    const icon =
+      superseded || (brief.requiredCheck.published && !reportStale) ? "✅" : "⚠️";
+    const state = superseded
+      ? "superseded by a newer run"
+      : reportStale
+        ? "published, report stale"
+        : brief.requiredCheck.published
+          ? "published"
+          : "not published";
     lines.push(
       `> ${icon} **Required check ${state}:** ${inlineMessage(brief.requiredCheck.message)}`,
       "",
