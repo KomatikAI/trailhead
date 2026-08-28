@@ -2,7 +2,7 @@
 
 All notable changes to Trailhead will be documented in this file.
 
-## [4.7.1] - 2026-08-28
+## [Unreleased]
 
 ### Added
 
@@ -13,6 +13,8 @@ All notable changes to Trailhead will be documented in this file.
 ### Changed
 
 - **`gate.check_name` now names the published check** — the effective Checks API context is `check-name` (action input) ?? `gate.check_name` (`.trailhead.yml`) ?? the mode default (`Trailhead` for `risk-only`, `Trailhead — Release Ready` otherwise), and it is resolved once in `evaluateGate` and reused by the catch path. **A repo that sets `gate.check_name` will see its published check renamed** to that value — previously `gate.check_name` was consulted by `trailhead doctor` and check-exclusion but never by the publisher, so such a repo published under the mode default. Update the required-status-check contexts in branch protection before upgrading, or the old context stays permanently pending. `gate.check_name` also lost its schema default, so a repo with a `gate:` block that does not set `check_name` now gets the mode default instead of `Trailhead — Release Ready` in every mode. Repos with no `gate:` block are unaffected.
+
+## [4.7.1] - 2026-08-28
 
 ### Fixed
 
