@@ -447,7 +447,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-@swc/core-linux-arm64-gnu
+@swc/core-linux-x64-gnu
 Apache-2.0 AND MIT
                               Apache License
                         Version 2.0, January 2004
@@ -651,7 +651,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-@swc/core-linux-arm64-musl
+@swc/core-linux-x64-musl
 Apache-2.0 AND MIT
                               Apache License
                         Version 2.0, January 2004
