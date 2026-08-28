@@ -43,7 +43,7 @@ import {
   resolveCheckName,
   shouldBlockMerge,
 } from "./release-ready.js";
-import { applyInputRelevance } from "./input-relevance.js";
+import { applyInputRelevance, resolveDisposition } from "./input-relevance.js";
 import { formatEvaluationDelta, renderReleaseBrief } from "./release-brief.js";
 import {
   computeRiskScore as computeRiskScoreShared,
@@ -2002,13 +2002,26 @@ export function buildReleaseBrief(
       ? { topMovers: briefTopMovers(evaluation.riskFactors) }
       : {}),
     findings,
-    // Every input gets a row, including the ones that did not count (ADR-011 §1).
-    inputs: (evaluation.ci?.checks ?? []).map((check) => ({
-      checkName: check.name,
-      status: check.status,
-      disposition: check.disposition?.kind ?? (check.required ? "blocking" : "advisory"),
-      ...(check.disposition?.reason ? { reason: check.disposition.reason } : {}),
-    })),
+    // Every input gets a row, including the ones that did not count, and every
+    // row states its reason (ADR-011 §1).
+    inputs: (evaluation.ci?.checks ?? []).map((check) => {
+      // No disposition attached means a summary built outside applyInputRelevance
+      // (or a pre-ADR-011 stored evaluation being re-rendered). Resolving against
+      // an empty policy table IS the default mapping, and keeps the reason column
+      // self-describing instead of blank.
+      const disposition =
+        check.disposition ??
+        resolveDisposition(
+          { name: check.name, status: check.status, required: check.required },
+          [],
+        );
+      return {
+        checkName: check.name,
+        status: check.status,
+        disposition: disposition.kind,
+        ...(disposition.reason ? { reason: disposition.reason } : {}),
+      };
+    }),
     ...(delta ? { delta } : {}),
     actions: briefActions(evaluation, findings, riskThreshold),
     // ADR-011 §3 maps the audit's {owner, appliedAt, reason} onto {by, at, rationale}.
@@ -2958,6 +2971,12 @@ export async function evaluateGate(
         releaseReadyReasons: localEvaluation.releaseReadyReasons,
         policyFindings: localEvaluation.policyFindings,
         gateDecision: localEvaluation.gateDecision,
+        // Without these three, derivePolicyFindingFixes falls back to the
+        // gate-decision severity (warn findings surface as blocking) and
+        // risk.over_threshold has nothing to resolve in risk-only mode.
+        enumeratedFindings: localEvaluation.enumeratedFindings,
+        riskScore: localEvaluation.riskScore,
+        riskThreshold: adjustedRiskThreshold,
       },
       previousEvaluation,
       maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
@@ -3358,6 +3377,27 @@ function buildScoreBar(score: number, threshold: number): string {
   return `\`${bar}\` ${score}/100 (threshold: ${threshold})`;
 }
 
+/** A directory segment that names a migrations directory: `migrations`, `migration`, `db_migrations`. */
+const MIGRATIONS_SEGMENT = /^[\w.-]*migrations?$/i;
+
+/**
+ * True only when the path genuinely lives under a migrations directory — the first
+ * two *directory* segments (never the filename) are what a repo layout puts it in.
+ *
+ * The bucket used to be earned by `/^(migrations?|supabase)/` on the top segment,
+ * which labelled every `supabase/**` file as schema: komatik#4041's six
+ * `supabase/functions/_shared/` edge-function files were narrated as
+ * "database/migrations/ changes (6 files)" on a PR carrying no migration at all.
+ * A split suggestion is guidance a reviewer acts on, so it names the repo's real
+ * layout or nothing.
+ */
+function isMigrationsPath(parts: string[]): boolean {
+  return parts
+    .slice(0, -1)
+    .slice(0, 2)
+    .some((segment) => MIGRATIONS_SEGMENT.test(segment));
+}
+
 export function suggestSplitBoundaries(files: string[]): string[] {
   if (files.length < 5) return [];
 
@@ -3368,9 +3408,11 @@ export function suggestSplitBoundaries(files: string[]): string[] {
 
     if (parts[0] === ".github") {
       bucket = "CI/workflow";
-    } else if (/^(migrations?|supabase)/i.test(parts[0])) {
+    } else if (isMigrationsPath(parts)) {
       bucket = "database/migrations";
     } else if (parts.length >= 2) {
+      // Everything else is labelled by its literal two-segment prefix, so the
+      // suggestion can only ever name a directory the PR actually touched.
       bucket = parts.slice(0, 2).join("/");
     } else {
       bucket = parts[0];
@@ -3577,7 +3619,15 @@ export function formatGateReport(
         ? "✅"
         : "🚫"
       : decisionIcon(evaluation.gateDecision);
-  const threshold = riskThreshold ?? 70;
+  const brief = evaluation.releaseBrief;
+  // ADR-011 §1 — one threshold per report. `riskThreshold` is the caller's BASE
+  // input; the brief carries the threshold the evaluation was actually judged
+  // against (context/environment overrides, agent-PR policy, trust deltas). A
+  // live brief read "risk 53 (threshold 50)" over a legacy table saying
+  // "(threshold 70)" — the brief is the single source, and every threshold
+  // mention below reads from it.
+  const effectiveRiskThreshold = brief?.riskThreshold ?? riskThreshold;
+  const threshold = effectiveRiskThreshold ?? 70;
   const healthDisplay =
     evaluation.healthChecks.length > 0
       ? `${evaluation.healthScore}/100`
@@ -3599,9 +3649,9 @@ export function formatGateReport(
 
   // ADR-011 §1 — the brief leads; the pre-existing report stays below it so the
   // same `<!-- trailhead-gate-report -->` comment upgrades in place.
-  if (evaluation.releaseBrief) {
+  if (brief) {
     lines.push(
-      renderReleaseBrief(evaluation.releaseBrief, {
+      renderReleaseBrief(brief, {
         // The same markdown becomes a check run's output.summary, which GitHub
         // caps at 65535 characters; leave room for the report below.
         maxChars: BRIEF_MAX_CHARS,
@@ -3616,20 +3666,30 @@ export function formatGateReport(
   lines.push(`## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`, ``);
 
   if (mode === "release-ready" || mode === "advisory") {
+    // ADR-011 §1 — once the brief leads, the legacy report stops repeating it.
+    // Verdict, risk-vs-threshold and the input table are the brief's job; stating
+    // them twice is the illegibility class ADR-011 exists to close, and is how a
+    // stale threshold survived next to the live one. Everything the brief does
+    // NOT carry (size, health, DORA, security, files, guidance, remediation,
+    // override feedback, footer) stays exactly where it was.
     lines.push(
       `| Dimension | Status |`,
       `|-----------|--------|`,
-      `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
-      `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
+      ...(brief
+        ? []
+        : [
+            `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
+            `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
+          ]),
       ...(evaluation.sizeScore !== undefined
         ? [`| Size / blast radius | ${evaluation.sizeScore}/100 (reported separately) |`]
         : []),
       `| Health | ${healthDisplay} |`,
-      `| Gate | ${evaluation.gateDecision.toUpperCase()} |`,
+      ...(brief ? [] : [`| Gate | ${evaluation.gateDecision.toUpperCase()} |`]),
       ``,
     );
 
-    if (evaluation.ci && evaluation.ci.checks.length > 0) {
+    if (!brief && evaluation.ci && evaluation.ci.checks.length > 0) {
       lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
       for (const check of evaluation.ci.checks) {
         lines.push(
@@ -3683,8 +3743,11 @@ export function formatGateReport(
       ``,
     );
 
-    if (riskThreshold !== undefined) {
-      lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+    if (effectiveRiskThreshold !== undefined) {
+      lines.push(
+        `**Risk:** ${buildScoreBar(evaluation.riskScore, effectiveRiskThreshold)}`,
+        ``,
+      );
     }
   }
 
@@ -3749,7 +3812,11 @@ export function formatGateReport(
     );
   }
 
-  if (evaluation.policyFindings && evaluation.policyFindings.length > 0) {
+  // The brief enumerates these as `{id, title, evidence, severity}` findings; the
+  // legacy list is the count-string form ADR-011 §1 replaced. It stays on the
+  // evaluation (and in `release-brief-json`) for existing consumers, but a report
+  // that already carries the enumeration does not also print the counts.
+  if (!brief && evaluation.policyFindings && evaluation.policyFindings.length > 0) {
     const findingsBody = evaluation.policyFindings
       .map((finding) => `- ${finding}`)
       .join("\n");

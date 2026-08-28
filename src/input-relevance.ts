@@ -41,6 +41,31 @@ export const MISSING_IRRELEVANT_REASON =
   "(no reason configured — reason is mandatory for irrelevant; fix .trailhead.yml)";
 
 /**
+ * Reasons the DEFAULT source supplies, so no brief row ever renders a bare
+ * `advisory / —`. ADR-011 §1 requires every input to carry a disposition *with a
+ * reason*, but only policy-authored `irrelevant` entries had one — the first
+ * live-brief audit found every Inputs row on a dev PR reading `advisory / —`.
+ * A default disposition can always describe itself: it came from the check's
+ * required/optional flag, and saying so is the whole reason.
+ */
+export const DEFAULT_BLOCKING_REASON = "required check";
+export const DEFAULT_ADVISORY_REASON = "not required";
+
+/**
+ * ADR-009 `skip` on a check no policy entry claims. The workflow's own path
+ * filter or `if:` condition already decided this check has nothing to say about
+ * these files, so it is irrelevant to THIS decision — and now says so instead of
+ * being narrated as a blocking input that happens not to have run.
+ *
+ * Outcome-neutral by construction: `skip` never counted against release
+ * readiness anyway (`computeReleaseReady` counts fail/missing/stale, and the
+ * blocking-set rollup in `applyInputRelevance` treats skip as passing), so
+ * moving these rows out of the blocking set changes narration only.
+ */
+export const DEFAULT_SKIPPED_UPSTREAM_REASON =
+  "skipped upstream (path filter or workflow condition)";
+
+/**
  * Pattern matching precedence, per entry:
  *   1. exact name match                      (checkNameMatches)
  *   2. case-insensitive name match           (checkNameMatches)
@@ -65,8 +90,16 @@ function hasText(value: string | undefined): value is string {
 /**
  * Resolve one check to a disposition.
  *
- * - First matching entry wins; no match falls back to `required ? blocking : advisory`
- *   with source `default`.
+ * - First matching entry wins. A policy-sourced disposition is never rewritten — the
+ *   table is the author's stated intent for this branch pair — with one exception:
+ *   ADR-009 status `skip` always resolves to `irrelevant(skipped upstream …)`,
+ *   whatever the source. A blocking-configured check the workflow itself classified
+ *   out (path filter, job condition) is not blocking THIS decision, and `skip`
+ *   contributes zero to every blocking rollup, so this is narration-only
+ *   (promotion-zero correction, trailhead#350). A policy `irrelevant` entry's own
+ *   reason survives the rewrite.
+ * - No match falls back to `required ? blocking : advisory` with source `default`, each
+ *   carrying a self-describing reason.
  * - `missing_blocking` is DERIVED: ADR-009 status `missing` on a check that would otherwise
  *   resolve to `blocking`. It is never configurable.
  */
@@ -87,9 +120,24 @@ export function resolveDisposition(
     if (kind === "irrelevant" && reason === undefined) {
       reason = MISSING_IRRELEVANT_REASON;
     }
+    if (check.status === "skip") {
+      // Rendering "skip | blocking | —" contradicts itself; keep the policy's own
+      // reason only when the policy already classified the check out.
+      if (kind !== "irrelevant") reason = DEFAULT_SKIPPED_UPSTREAM_REASON;
+      kind = "irrelevant";
+    }
   } else {
-    kind = check.required ? "blocking" : "advisory";
     source = "default";
+    if (check.status === "skip") {
+      kind = "irrelevant";
+      reason = DEFAULT_SKIPPED_UPSTREAM_REASON;
+    } else if (check.required) {
+      kind = "blocking";
+      reason = DEFAULT_BLOCKING_REASON;
+    } else {
+      kind = "advisory";
+      reason = DEFAULT_ADVISORY_REASON;
+    }
   }
 
   if (check.status === "missing" && kind === "blocking") {

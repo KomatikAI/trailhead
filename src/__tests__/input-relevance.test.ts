@@ -3,6 +3,9 @@ import {
   resolveDisposition,
   resolveDispositions,
   dispositionCountsTowardBlocking,
+  DEFAULT_ADVISORY_REASON,
+  DEFAULT_BLOCKING_REASON,
+  DEFAULT_SKIPPED_UPSTREAM_REASON,
   MISSING_IRRELEVANT_REASON,
 } from "../input-relevance.js";
 import type {
@@ -29,15 +32,18 @@ function check(
 }
 
 describe("resolveDisposition — defaults (no entry matches)", () => {
-  it("required check with empty policy defaults to blocking", () => {
-    const result = resolveDisposition(check("CI Gate", "fail"), []);
-    expect(result).toEqual({ kind: "blocking", source: "default" });
-    expect(result.reason).toBeUndefined();
+  it("required check with empty policy defaults to blocking, and says why", () => {
+    expect(resolveDisposition(check("CI Gate", "fail"), [])).toEqual({
+      kind: "blocking",
+      reason: DEFAULT_BLOCKING_REASON,
+      source: "default",
+    });
   });
 
-  it("optional check with empty policy defaults to advisory", () => {
+  it("optional check with empty policy defaults to advisory, and says why", () => {
     expect(resolveDisposition(check("Lint", "fail", false), [])).toEqual({
       kind: "advisory",
+      reason: DEFAULT_ADVISORY_REASON,
       source: "default",
     });
   });
@@ -52,12 +58,24 @@ describe("resolveDisposition — defaults (no entry matches)", () => {
     ];
     expect(resolveDisposition(check("type-check", "fail"), entries)).toEqual({
       kind: "blocking",
+      reason: DEFAULT_BLOCKING_REASON,
       source: "default",
     });
   });
 
-  it("defaults hold across every ADR-009 status", () => {
+  it("never leaves a default disposition without a reason (no bare `advisory / —`)", () => {
     for (const status of ALL_STATUSES) {
+      for (const required of [true, false]) {
+        const resolved = resolveDisposition(check("CI Gate", status, required), []);
+        expect(resolved.source).toBe("default");
+        expect(resolved.reason?.trim()).toBeTruthy();
+      }
+    }
+  });
+
+  it("defaults hold across every ADR-009 status except skip", () => {
+    for (const status of ALL_STATUSES) {
+      if (status === "skip") continue;
       const required = resolveDisposition(check("CI Gate", status), []);
       const optional = resolveDisposition(check("CI Gate", status, false), []);
       expect(required.source).toBe("default");
@@ -65,6 +83,90 @@ describe("resolveDisposition — defaults (no entry matches)", () => {
       expect(required.kind).toBe(status === "missing" ? "missing_blocking" : "blocking");
       expect(optional.kind).toBe("advisory");
     }
+  });
+});
+
+// ADR-011 §2 — a path-filtered check has already been classified out by the
+// workflow itself; the brief says so instead of listing it as a silent input.
+describe("resolveDisposition — skip status is irrelevant, any source", () => {
+  it("resolves a skipped required check to irrelevant with a self-describing reason", () => {
+    expect(resolveDisposition(check("web e2e", "skip"), [])).toEqual({
+      kind: "irrelevant",
+      reason: DEFAULT_SKIPPED_UPSTREAM_REASON,
+      source: "default",
+    });
+  });
+
+  it("resolves a skipped optional check the same way", () => {
+    expect(resolveDisposition(check("web e2e", "skip", false), [])).toEqual({
+      kind: "irrelevant",
+      reason: DEFAULT_SKIPPED_UPSTREAM_REASON,
+      source: "default",
+    });
+  });
+
+  // Promotion-zero correction (trailhead#350): komatik#4043 rendered
+  // "skip | blocking | —" for path-filtered checks the seed table marks blocking.
+  // A skip resolves to irrelevant whatever the source; only a policy entry that
+  // already classified the check out keeps its own reason.
+  it("rewrites a policy-sourced blocking/advisory skip to irrelevant(skipped upstream)", () => {
+    const entries: InputRelevanceEntry[] = [
+      { pattern: "web e2e", disposition: "blocking", reason: "required on this pair" },
+      { pattern: "Lint", disposition: "advisory", reason: "style only" },
+    ];
+    expect(resolveDisposition(check("web e2e", "skip"), entries)).toEqual({
+      kind: "irrelevant",
+      reason: DEFAULT_SKIPPED_UPSTREAM_REASON,
+      source: "policy",
+    });
+    expect(resolveDisposition(check("Lint", "skip", false), entries)).toEqual({
+      kind: "irrelevant",
+      reason: DEFAULT_SKIPPED_UPSTREAM_REASON,
+      source: "policy",
+    });
+  });
+
+  it("keeps a policy irrelevant entry's own reason on a skip", () => {
+    const entries: InputRelevanceEntry[] = [
+      { pattern: "Deploy *", disposition: "irrelevant", reason: "staging unconfigured" },
+    ];
+    expect(resolveDisposition(check("Deploy Edge Functions", "skip"), entries)).toEqual({
+      kind: "irrelevant",
+      reason: "staging unconfigured",
+      source: "policy",
+    });
+  });
+
+  it("never rewrites a policy-sourced disposition for any non-skip status", () => {
+    const entries: InputRelevanceEntry[] = [
+      { pattern: "web e2e", disposition: "blocking", reason: "required on this pair" },
+    ];
+    for (const status of ["pass", "fail", "pending", "stale"] as const) {
+      expect(resolveDisposition(check("web e2e", status), entries)).toEqual({
+        kind: "blocking",
+        reason: "required on this pair",
+        source: "policy",
+      });
+    }
+  });
+
+  it("policy-sourced skip leaves the blocking set (outcome-neutral)", () => {
+    const entries: InputRelevanceEntry[] = [
+      { pattern: "web e2e", disposition: "blocking", reason: "required on this pair" },
+    ];
+    expect(
+      dispositionCountsTowardBlocking(
+        resolveDisposition(check("web e2e", "skip"), entries),
+      ),
+    ).toBe(false);
+  });
+
+  // Leaving the blocking set is outcome-neutral because every rollup already
+  // treated `skip` as passing; adr011-wiring.test.ts proves that end to end.
+  it("leaves the blocking set", () => {
+    expect(
+      dispositionCountsTowardBlocking(resolveDisposition(check("web e2e", "skip"), [])),
+    ).toBe(false);
   });
 });
 
@@ -232,9 +334,10 @@ describe("resolveDisposition — missing_blocking derivation", () => {
     });
   });
 
-  it("derives missing_blocking from the required default", () => {
+  it("derives missing_blocking from the required default, keeping its reason", () => {
     expect(resolveDisposition(check("CI Gate", "missing"), [])).toEqual({
       kind: "missing_blocking",
+      reason: DEFAULT_BLOCKING_REASON,
       source: "default",
     });
   });
@@ -255,6 +358,7 @@ describe("resolveDisposition — missing_blocking derivation", () => {
     for (const status of ALL_STATUSES) {
       const kind = resolveDisposition(check("CI Gate", status), []).kind;
       if (status === "missing") expect(kind).toBe("missing_blocking");
+      else if (status === "skip") expect(kind).toBe("irrelevant");
       else expect(kind).toBe("blocking");
     }
   });
@@ -286,12 +390,18 @@ describe("resolveDisposition — full status x disposition matrix", () => {
             entries,
           );
           const expectedKind =
-            disposition === "blocking" && status === "missing"
-              ? "missing_blocking"
-              : disposition;
+            status === "skip"
+              ? "irrelevant"
+              : disposition === "blocking" && status === "missing"
+                ? "missing_blocking"
+                : disposition;
+          const expectedReason =
+            status === "skip" && disposition !== "irrelevant"
+              ? DEFAULT_SKIPPED_UPSTREAM_REASON
+              : "because";
           expect(result).toEqual({
             kind: expectedKind,
-            reason: "because",
+            reason: expectedReason,
             source: "policy",
           });
         }
@@ -321,7 +431,11 @@ describe("resolveDispositions", () => {
       entries,
     );
     expect(map.size).toBe(4);
-    expect(map.get("CI Gate")).toEqual({ kind: "blocking", source: "default" });
+    expect(map.get("CI Gate")).toEqual({
+      kind: "blocking",
+      reason: DEFAULT_BLOCKING_REASON,
+      source: "default",
+    });
     expect(map.get("Deploy Edge Functions")).toEqual({
       kind: "irrelevant",
       reason: "staging unconfigured by design",
@@ -330,6 +444,7 @@ describe("resolveDispositions", () => {
     expect(map.get("Lint")).toEqual({ kind: "advisory", source: "policy" });
     expect(map.get("migration lint")).toEqual({
       kind: "missing_blocking",
+      reason: DEFAULT_BLOCKING_REASON,
       source: "default",
     });
   });
@@ -340,7 +455,11 @@ describe("resolveDispositions", () => {
 
   it("works with an empty policy table", () => {
     const map = resolveDispositions([check("CI Gate", "fail")], []);
-    expect(map.get("CI Gate")).toEqual({ kind: "blocking", source: "default" });
+    expect(map.get("CI Gate")).toEqual({
+      kind: "blocking",
+      reason: DEFAULT_BLOCKING_REASON,
+      source: "default",
+    });
   });
 
   it("keeps the first occurrence on duplicate check names", () => {
@@ -349,7 +468,11 @@ describe("resolveDispositions", () => {
       [],
     );
     expect(map.size).toBe(1);
-    expect(map.get("CI Gate")).toEqual({ kind: "blocking", source: "default" });
+    expect(map.get("CI Gate")).toEqual({
+      kind: "blocking",
+      reason: DEFAULT_BLOCKING_REASON,
+      source: "default",
+    });
   });
 
   it("returns undefined for an unknown check name", () => {

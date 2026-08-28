@@ -45,12 +45,24 @@ Three rules the implementation enforces:
 
 ### Where it appears
 
-| Surface                              | Content                                                      |
-| ------------------------------------ | ------------------------------------------------------------ |
-| PR comment (`trailhead-gate-report`) | Brief first, then the existing gate report. Edited in place. |
-| Job summary / check-run summary      | The same markdown.                                           |
-| `release-brief-json` output          | The brief as JSON.                                           |
-| Evaluation store                     | `release_brief` + `enumerated_findings` columns.             |
+| Surface                              | Content                                                         |
+| ------------------------------------ | --------------------------------------------------------------- |
+| PR comment (`trailhead-gate-report`) | Brief first, then the rest of the gate report. Edited in place. |
+| Job summary / check-run summary      | The same markdown.                                              |
+| `release-brief-json` output          | The brief as JSON.                                              |
+| Evaluation store                     | `release_brief` + `enumerated_findings` columns.                |
+
+**The brief is stated once.** When a brief is attached, the legacy report below it drops
+the sections the brief already carries — the verdict / risk-vs-threshold summary rows, the
+CI-checks table, and the counted policy-findings list — and keeps everything else (size and
+health, risk-factor breakdown, guidance, health checks, provenance and trust, files changed,
+the remediation/agent brief, override feedback, footer). Restating them was how a stale
+threshold once rendered beside the live one. Evaluations stored before the brief existed
+re-render with the full legacy report, since there is nothing above it to defer to.
+
+Every threshold the report prints is the **effective** threshold — the one the evaluation
+was judged against after context, environment, agent-PR policy and trust adjustments — read
+from the brief, not from the action's base `risk-threshold` input.
 
 ### Truncation
 
@@ -91,6 +103,19 @@ Resolution rules:
 - A pattern matches on exact name, case-insensitive name, configured-value-as-prefix, or glob.
 - No matching entry falls back to `required ? blocking : advisory` — so a config with no
   `input_relevance` block behaves exactly as it did before ADR-011.
+- **A default disposition describes itself.** It came from the check's required/optional
+  flag, so it says so: `blocking → "required check"`, `advisory → "not required"`. No brief
+  row ever renders as a bare `advisory / —`.
+- **A `skip` resolves to `irrelevant` whatever its source**, reason
+  `"skipped upstream (path filter or workflow condition)"` — the workflow's own path filter
+  or `if:` condition already classified it out, and the brief says that rather than rendering
+  the self-contradiction `skip | blocking | —` (the promotion-zero correction on
+  trailhead#350). A policy `irrelevant` entry's own reason survives; a policy `blocking` or
+  `advisory` entry still governs the check whenever it actually runs. This is narration-only
+  and outcome-neutral: `skip` never counted against release readiness (which counts
+  `fail`/`missing`/`stale`) and the blocking-set rollup already treated it as passing.
+- **Policy-sourced dispositions are otherwise never rewritten.** A check an entry claims
+  keeps that entry's disposition and reason for every non-`skip` ADR-009 status.
 - An `irrelevant` entry with no `reason` is a config error. It is **warned, not fatal**
   (a hard failure would drop the whole repo config to defaults over one missing string) and
   the brief prints a placeholder reason that is obviously wrong on sight.

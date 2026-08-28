@@ -378,6 +378,54 @@ describe("suggestSplitBoundaries", () => {
     expect(suggestions.length).toBeGreaterThanOrEqual(1);
     expect(suggestions[0]).toContain("src/components/");
     expect(suggestions[0]).toContain("separate PR");
+    // Files genuinely under a migrations directory keep the schema label.
+    expect(suggestions[0]).toContain("database/migrations");
+  });
+
+  it("labels every migrations directory layout as database/migrations", () => {
+    for (const prefix of ["migrations", "supabase/migrations", "db/migrations"]) {
+      const suggestions = suggestSplitBoundaries([
+        "src/components/Header.tsx",
+        "src/components/Footer.tsx",
+        "src/components/Nav.tsx",
+        `${prefix}/001.sql`,
+        `${prefix}/002.sql`,
+      ]);
+      expect(suggestions[0]).toContain("database/migrations");
+    }
+  });
+
+  // komatik#4041: six `supabase/functions/_shared/` files were narrated as
+  // "database/migrations/ changes (6 files)" on a PR carrying no schema change,
+  // because the bucket matched `supabase/**` wholesale.
+  it("labels supabase edge-function source by its real prefix, not as migrations", () => {
+    const files = [
+      "supabase/functions/_shared/auth.ts",
+      "supabase/functions/_shared/db.ts",
+      "supabase/functions/_shared/env.ts",
+      "supabase/functions/_shared/log.ts",
+      "supabase/functions/_shared/types.ts",
+      "supabase/functions/_shared/util.ts",
+      "pipeline-engine/src/run.ts",
+      "pipeline-engine/src/plan.ts",
+    ];
+    const suggestions = suggestSplitBoundaries(files);
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]).toContain("`supabase/functions/` changes (6 files)");
+    expect(suggestions[0]).toContain("`pipeline-engine/src/` changes (2 files)");
+    expect(suggestions.join("\n")).not.toContain("database/migrations");
+  });
+
+  it("does not treat a file merely named like a migration as a migrations directory", () => {
+    const suggestions = suggestSplitBoundaries([
+      "src/db/migration.ts",
+      "src/db/migrations.ts",
+      "src/db/client.ts",
+      "app/routes/home.tsx",
+      "app/routes/about.tsx",
+    ]);
+    expect(suggestions.join("\n")).not.toContain("database/migrations");
+    expect(suggestions[0]).toContain("src/db/");
   });
 
   it("groups .github files under CI/workflow", () => {
@@ -888,6 +936,8 @@ describe("formatGateReport", () => {
     const report = formatGateReport(evaluation);
     expect(report).toContain("Suggested split");
     expect(report).toContain("separate PR");
+    expect(report).toContain("`src/components/` changes (3 files)");
+    expect(report).toContain("`database/migrations/` changes (2 files)");
   });
 
   it("includes collapsed agent brief when remediation and agentBriefMode are set", () => {
