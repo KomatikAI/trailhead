@@ -51988,6 +51988,13 @@ async function callGateApi(config, localEvaluation) {
         return null;
     }
 }
+/**
+ * Branch/label context derived from the triggering event payload alone.
+ *
+ * The payload is a SNAPSHOT taken when the event was created. It is the
+ * correct source for base/head refs (they cannot change without a new event)
+ * but NOT for labels — see resolvePrMatchContext. Kept as the fallback layer.
+ */
 function getPrMatchContext(metadata) {
     const pr = github_context.payload?.pull_request;
     return {
@@ -52001,6 +52008,83 @@ function getPrMatchContext(metadata) {
             "main",
         labels: metadata?.labels ?? (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
     };
+}
+/**
+ * Read the PR's CURRENT labels from the API.
+ *
+ * Returns null — never [] — when the labels could not be read, so the caller
+ * can distinguish "this PR genuinely has no labels" (a valid live answer that
+ * must be honored, otherwise removing a label would never be seen) from "the
+ * live read failed" (fall back to the payload).
+ */
+async function fetchLivePrLabels(prNumber, token) {
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const { data: pr } = await octokit.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: prNumber,
+        });
+        const labels = pr
+            .labels;
+        if (!Array.isArray(labels))
+            return null;
+        return labels
+            .map((label) => (typeof label === "string" ? label : (label?.name ?? "")))
+            .filter(Boolean);
+    }
+    catch (error) {
+        core_debug(`Failed to read live labels for PR #${prNumber}: ${error}`);
+        return null;
+    }
+}
+/**
+ * PR context for every label consumer in this evaluation — merge-queue
+ * detection, v4 context matching, and the label override.
+ *
+ * Labels are read LIVE from the API rather than taken from the triggering
+ * event payload. A rerun of an earlier run replays that run's ORIGINAL
+ * payload, so a label applied after the run was created is invisible to the
+ * rerun. That made the sanctioned `trailhead-override` label unusable as a
+ * remedy: GitHub requires every check suite bearing a required context name
+ * to end green, and a failed suite can only be made green by rerunning it —
+ * which is exactly the path that could never see the new label. Applying the
+ * override then still left the PR unmergeable without an admin merge.
+ *
+ * Resolved at the START of evaluateGate, which also keeps it clear of the
+ * action's own `add-risk-labels` writes — those run after the evaluation.
+ */
+async function resolvePrMatchContext(input) {
+    const payloadCtx = getPrMatchContext(input.metadata);
+    // Explicit metadata wins, unchanged: the `evaluate-pr` backfill path builds
+    // it in main.ts from its own live pulls.get, so it is already current.
+    if (input.metadata?.labels)
+        return payloadCtx;
+    if (!input.prNumber || !input.token) {
+        if (payloadCtx.labels.length > 0) {
+            core_debug("No PR number or github-token available — using event payload labels for PR context.");
+        }
+        return payloadCtx;
+    }
+    const liveLabels = await fetchLivePrLabels(input.prNumber, input.token);
+    if (!liveLabels) {
+        core_warning(`Could not read live labels for PR #${input.prNumber} — falling back to the ` +
+            `triggering event's payload labels ` +
+            `(${payloadCtx.labels.length > 0 ? payloadCtx.labels.join(", ") : "none"}). ` +
+            `A label applied after this run's event was created — including ` +
+            `\`${OVERRIDE_LABEL}\` — is not visible to this evaluation.`);
+        return payloadCtx;
+    }
+    const payloadLabels = payloadCtx.labels;
+    const drifted = liveLabels.length !== payloadLabels.length ||
+        liveLabels.some((label) => !payloadLabels.includes(label));
+    if (drifted) {
+        info(`PR #${input.prNumber} labels changed since this run's triggering event — ` +
+            `using live labels [${liveLabels.join(", ") || "none"}] ` +
+            `instead of payload labels [${payloadLabels.join(", ") || "none"}].`);
+    }
+    return { ...payloadCtx, labels: liveLabels };
 }
 async function fetchPrCommentsForOverride(prNumber, token) {
     try {
@@ -52329,7 +52413,14 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
     const start = Date.now();
     // Nothing is known about this run's availability stance until a context matches.
     setResolvedAvailabilityStance(null);
-    const prMatchCtx = getPrMatchContext(prMetadata);
+    // Labels are read live here, before anything consumes them, so merge-queue
+    // detection, context matching and the label override all see the same
+    // current truth rather than the triggering event's snapshot.
+    const prMatchCtx = await resolvePrMatchContext({
+        metadata: prMetadata,
+        prNumber,
+        token: config.githubToken,
+    });
     const isMergeQueue = github_context.eventName === "merge_group" ||
         prMatchCtx.labels.some((label) => label === "queue" || label.includes("merge-queue"));
     if (isMergeQueue) {

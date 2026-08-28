@@ -120,6 +120,17 @@ carries a scope:
 Under `risk_only`, reasons the override cleared are recorded as `overriddenReasons` and
 reasons that survived as `retainedReasons`, both on the stored `policy_override`.
 
+#### Label liveness
+
+Labels are read **live** from the GitHub API at the start of every evaluation, not taken
+from the triggering event's payload. The payload is a snapshot: re-running a workflow
+replays the run's original event, so a label applied afterwards would never appear in it.
+Since GitHub only turns a failed check suite green by rerunning it, a payload-only read
+made the override unusable exactly where it is needed — apply the label, rerun, and the
+rerun could not see it. The same live read backs context matching and merge-queue
+detection, so every consumer sees one current set of labels. If the live read fails, the
+run warns and falls back to the payload labels for that evaluation.
+
 ## Example `.trailhead.yml`
 
 This is ADR-011's seed table for the dogfood consumer (komatik), written out in full.

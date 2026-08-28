@@ -2,6 +2,12 @@
 
 All notable changes to Trailhead will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **PR labels are read live, not from the event payload** — every label consumer in an evaluation (the `trailhead-override` label, `contexts[].match.labels`, and merge-queue detection) now reads the PR's current labels from the API at the start of the evaluation. `github.context.payload` is a snapshot of the event that created the run, so a **rerun** replays the original payload and could never see a label applied since. Because GitHub only turns a failed required check suite green by rerunning it, that made the sanctioned override unusable at the one moment it is needed: apply the label, rerun, and the rerun still could not see it — forcing an admin merge. Explicit `evaluate-pr` backfill metadata (already resolved live in `main.ts`) stays authoritative, and a failed live read warns and falls back to the payload labels. The action's own `add-risk-labels` writes run after the evaluation and cannot race the read.
+
 ## [4.7.0] - 2026-08-08
 
 ### Added
