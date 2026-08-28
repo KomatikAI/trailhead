@@ -56,13 +56,19 @@ const githubMockState = vi.hoisted(() => ({
     merged_at: string | null;
     user?: { login?: string };
   }>,
-  overrideLabels: [] as string[],
+  /**
+   * Labels the API reports for this PR right now. `null` leaves `pulls.get`
+   * without a `labels` key, which is what every non-override test wants: the
+   * live read then reports "could not read" and the payload labels stand.
+   */
+  overrideLabels: null as string[] | null,
   overrideComments: [] as Array<{
     body: string;
-    author?: { login: string } | null;
+    user?: { login: string } | null;
   }>,
-  overrideGraphqlError: null as Error | null,
-  overrideGraphqlCalls: 0,
+  overrideCommentsError: null as Error | null,
+  /** Every issues.listComments call, so "no fetch without intent" is provable. */
+  commentFetches: [] as number[],
   eventName: "pull_request",
 }));
 
@@ -88,23 +94,20 @@ vi.mock("@actions/github", () => ({
     },
   },
   getOctokit: (_token: string) => ({
-    graphql: vi.fn().mockImplementation(async () => {
-      githubMockState.overrideGraphqlCalls += 1;
-      if (githubMockState.overrideGraphqlError) {
-        throw githubMockState.overrideGraphqlError;
-      }
-      return {
-        repository: {
-          pullRequest: {
-            labels: {
-              nodes: githubMockState.overrideLabels.map((name) => ({ name })),
-            },
-            comments: { nodes: githubMockState.overrideComments },
-          },
-        },
-      };
-    }),
     rest: {
+      issues: {
+        listComments: vi
+          .fn()
+          .mockImplementation(async ({ issue_number }: { issue_number: number }) => {
+            githubMockState.commentFetches.push(issue_number);
+            if (githubMockState.overrideCommentsError) {
+              throw githubMockState.overrideCommentsError;
+            }
+            return { data: githubMockState.overrideComments };
+          }),
+        createComment: vi.fn().mockResolvedValue({ data: {} }),
+        updateComment: vi.fn().mockResolvedValue({ data: {} }),
+      },
       pulls: {
         listFiles: vi.fn().mockImplementation(async ({ page = 1 }) => {
           githubMockState.listFileCalls.push(page);
@@ -139,7 +142,12 @@ vi.mock("@actions/github", () => ({
           ],
         }),
         get: vi.fn().mockImplementation(async () => ({
-          data: githubMockState.pullRequest,
+          data: githubMockState.overrideLabels
+            ? {
+                ...githubMockState.pullRequest,
+                labels: githubMockState.overrideLabels.map((name) => ({ name })),
+              }
+            : githubMockState.pullRequest,
         })),
         listReviews: vi.fn().mockImplementation(async () => ({
           data: githubMockState.reviews,
@@ -236,10 +244,10 @@ describe("evaluateGate (integration)", () => {
     githubMockState.routeContents = {};
     githubMockState.contentRequests = [];
     githubMockState.closedPrs = [];
-    githubMockState.overrideLabels = [];
+    githubMockState.overrideLabels = null;
     githubMockState.overrideComments = [];
-    githubMockState.overrideGraphqlError = null;
-    githubMockState.overrideGraphqlCalls = 0;
+    githubMockState.overrideCommentsError = null;
+    githubMockState.commentFetches = [];
     githubMockState.eventName = "pull_request";
     // Avoid loading repo .trailhead.yml on CI (GITHUB_WORKSPACE is set there).
     vi.stubEnv("GITHUB_WORKSPACE", "");
@@ -1743,7 +1751,7 @@ submission:
       githubMockState.overrideComments = [
         {
           body: "trailhead-override: operator accepted the promotion risk",
-          author: { login: "david" },
+          user: { login: "david" },
         },
       ];
 
@@ -1758,7 +1766,6 @@ submission:
       );
       expect(result.releaseReady).toBe(true);
       expect(result.labelOverrideFeedback?.source).toBe("live");
-      expect(githubMockState.overrideGraphqlCalls).toBe(1);
     });
 
     it("treats live label removal as authoritative over a stale payload", async () => {
@@ -1772,30 +1779,27 @@ submission:
       githubMockState.overrideComments = [
         {
           body: "trailhead-override: superseded decision",
-          author: { login: "david" },
+          user: { login: "david" },
         },
       ];
 
       const result = await evaluateGate(overrideConfig(), "pull-request-head-sha", 42);
 
       expect(result.policyOverride).toBeUndefined();
-      expect(result.labelOverrideFeedback).toEqual(
-        expect.objectContaining({ status: "revoked", source: "live" }),
-      );
-      expect(result.labelOverrideFeedback?.message).toContain("no override is active");
+      expect(result.releaseReady).toBe(false);
+      // No override intent in the LIVE labels, so nothing was even fetched.
+      expect(githubMockState.commentFetches).toEqual([]);
     });
 
-    it("ignores a frozen top-level comment when the live PR has no reason", async () => {
-      githubMockState.payload = {
-        pull_request: {
-          ...githubMockState.pullRequest,
-          labels: [{ name: "trailhead-override" }],
-        },
-        comment: {
-          body: "trailhead-override: stale diff-comment approval",
-          user: { login: "reviewer" },
-        },
-      };
+    it("does not fetch PR comments when the live labels carry no override intent", async () => {
+      githubMockState.overrideLabels = ["needs-review"];
+
+      await evaluateGate(overrideConfig(), "pull-request-head-sha", 42);
+
+      expect(githubMockState.commentFetches).toEqual([]);
+    });
+
+    it("rejects override intent with no recorded reason", async () => {
       githubMockState.overrideLabels = ["trailhead-override"];
       githubMockState.overrideComments = [];
 
@@ -1808,38 +1812,61 @@ submission:
       expect(result.labelOverrideFeedback?.message).toContain("no valid override reason");
     });
 
-    it("keeps frozen label and reason traces diagnostic-only when live state fails", async () => {
-      githubMockState.overrideGraphqlError = new Error("forbidden");
+    it("still authorizes from the payload when the live comment read fails", async () => {
+      // #362's ruling: a failed live read is a DEGRADATION, not a regression.
+      // The label is live; only the comment read broke, and the triggering
+      // issue_comment payload carries the reason.
+      githubMockState.overrideLabels = ["trailhead-override"];
+      githubMockState.overrideCommentsError = new Error("forbidden");
       githubMockState.eventName = "issue_comment";
       githubMockState.payload = {
         issue: { pull_request: {} },
         comment: {
-          body: "trailhead-override: revoked before this stale event reran",
+          body: "trailhead-override: prod outage, accepted on the record",
           user: { login: "david" },
         },
       };
 
-      const result = await evaluateGate(overrideConfig(), "pull-request-head-sha", 42, {
-        baseRef: "main",
-        headRef: "feature/test",
-        labels: ["trailhead-override"],
-        authorLogin: "david",
-      });
+      const result = await evaluateGate(overrideConfig(), "pull-request-head-sha", 42);
+
+      expect(result.policyOverride).toEqual(
+        expect.objectContaining({ source: "label", owner: "david" }),
+      );
+      expect(result.releaseReady).toBe(true);
+      // The degradation is disclosed rather than silently swallowed.
+      expect(result.labelOverrideFeedback?.source).toBe("payload_fallback");
+      expect(result.releaseBrief?.overrideStatus?.source).toBe("payload_fallback");
+    });
+
+    it("reports unavailable when the read fails and the payload carries no reason", async () => {
+      // A frozen payload cannot invent an override reason it never carried —
+      // the one case the fallback genuinely cannot answer.
+      githubMockState.overrideLabels = ["trailhead-override"];
+      githubMockState.overrideCommentsError = new Error("forbidden");
+
+      const result = await evaluateGate(overrideConfig(), "pull-request-head-sha", 42);
 
       expect(result.policyOverride).toBeUndefined();
       expect(result.releaseReady).toBe(false);
-      expect(result.labelOverrideFeedback).toEqual(
+      expect(result.releaseBrief?.overrideStatus).toEqual(
         expect.objectContaining({
           status: "unavailable",
           source: "payload_fallback",
         }),
       );
       expect(result.releaseBrief?.overrideStatus?.message).toContain(
-        "never trusted to authorize an override",
+        "could not be read from GitHub",
       );
     });
 
-    it("discloses no-token payload fallback even when no trace is visible", async () => {
+    it("reports unavailable when there is no token to read comments with", async () => {
+      githubMockState.payload = {
+        pull_request: {
+          ...githubMockState.pullRequest,
+          labels: [{ name: "trailhead-override" }],
+        },
+      };
+
       const result = await evaluateGate(
         makeConfig({
           securityGate: false,
@@ -1857,6 +1884,33 @@ submission:
         }),
       );
       expect(result.releaseBrief?.overrideStatus?.message).toContain("no GitHub token");
+    });
+
+    it("keeps an already-ready PR's stale override label out of policy findings", async () => {
+      // app/src/verdict.ts ingests every policyFinding: a `not_needed` rejection
+      // there would turn a green server-side verdict red.
+      githubMockState.overrideLabels = ["trailhead-override"];
+      githubMockState.overrideComments = [
+        { body: "trailhead-override: kept from an earlier round", user: { login: "d" } },
+      ];
+
+      const result = await evaluateGate(
+        makeConfig({
+          githubToken: "ghp_test",
+          securityGate: false,
+          gateMode: "release-ready",
+          riskThreshold: 100,
+        }),
+        "pull-request-head-sha",
+        42,
+      );
+
+      expect(result.releaseReady).toBe(true);
+      expect(result.labelOverrideFeedback?.status).toBe("rejected");
+      expect(result.labelOverrideFeedback?.message).toContain("already ready");
+      expect(result.policyFindings ?? []).not.toContain(
+        result.labelOverrideFeedback?.message,
+      );
     });
   });
 });

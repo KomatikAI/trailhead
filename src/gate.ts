@@ -1910,9 +1910,7 @@ async function applyLabelOverrideIfNeeded(input: {
     const existingFindings = input.evaluation.policyFindings;
     return {
       ...input.evaluation,
-      ...(advisoryOnly
-        ? {}
-        : { policyFindings: [...(existingFindings ?? []), message] }),
+      ...(advisoryOnly ? {} : { policyFindings: [...(existingFindings ?? []), message] }),
       labelOverrideFeedback: {
         status: "rejected",
         message,
@@ -2238,9 +2236,10 @@ export function buildCannotEvaluateBrief(
       : {
           kind: "wait",
           detail:
-            "Availability stance is fail_open: Trailhead will publish a successful " +
-            "cannot-evaluate custom check when GitHub Checks access is available. A " +
-            "publication failure can still leave branch protection pending.",
+            "Availability stance is fail_open: Trailhead will publish a NEUTRAL " +
+            "cannot-evaluate custom check when GitHub Checks access is available — it " +
+            "does not block the merge and does not claim a verdict this run never " +
+            "reached. A publication failure can still leave branch protection pending.",
         },
   ];
 
