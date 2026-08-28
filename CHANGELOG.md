@@ -2,7 +2,7 @@
 
 All notable changes to Trailhead will be documented in this file.
 
-## [Unreleased]
+## [4.7.1] - 2026-08-28
 
 ### Fixed
 
