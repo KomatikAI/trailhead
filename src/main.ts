@@ -1083,7 +1083,15 @@ async function run(): Promise<void> {
 
     await core.summary.addRaw(fullReport).write();
 
-    if (config.githubToken && !backfillMode) {
+    // A superseded run's own evaluation is stale by definition (a newer run
+    // already published the authoritative check for this head SHA) — don't
+    // let its late-finishing PR comment or risk labels overwrite what the
+    // newer run already communicated. Branch protection was already handled
+    // by createCheckRun's completion-order guard; this closes the same race
+    // for the other two human-visible artifacts.
+    const isSupersededRun = checkPublication?.superseded === true;
+
+    if (config.githubToken && !backfillMode && !isSupersededRun) {
       if (prNumber) {
         await postPrComment(fullReport, prNumber, config.githubToken);
       }

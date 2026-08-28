@@ -72,6 +72,11 @@ describe("workflow trigger determinism parity", () => {
     // copies of the concurrency contract (the middle one is concurrency-only
     // by design, same shape as the reusable workflow).
     { file: "docs/getting-started.md", minBlocks: 3, expectLabelTypesAndJobIf: false },
+    // README.md's "Option C — Manual workflow" section carries two complete,
+    // byte-identical copies of the full workflow (the plain version and the
+    // branches-filtered variant) — the highest-traffic copy, since it's the
+    // one a consuming repo actually pastes from. Both own real triggers.
+    { file: "README.md", minBlocks: 2, expectLabelTypesAndJobIf: false },
   ];
 
   it.each(targets)(
@@ -134,6 +139,11 @@ describe("workflow trigger determinism parity", () => {
     expect(
       countOccurrences(gettingStartedNormalized, normalizedJobIf),
     ).toBeGreaterThanOrEqual(2);
+
+    // README.md's two "Option C" copies both own real triggers and must
+    // each carry the job-if filter as a substring of their (broader) `if`.
+    const readmeNormalized = read("README.md").replace(/[ \t]+/g, " ");
+    expect(countOccurrences(readmeNormalized, normalizedJobIf)).toBeGreaterThanOrEqual(2);
   });
 
   it("the CLI generator's own output satisfies its own contract", async () => {

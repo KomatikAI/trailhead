@@ -44307,12 +44307,15 @@ function buildBrief(brief, keepFindings, evidenceCap, storedEvaluationUrl) {
     }
     if (brief.requiredCheck) {
         const reportStale = brief.requiredCheck.published && !brief.requiredCheck.reportRefreshed;
-        const icon = brief.requiredCheck.published && !reportStale ? "✅" : "⚠️";
-        const state = reportStale
-            ? "published, report stale"
-            : brief.requiredCheck.published
-                ? "published"
-                : "not published";
+        const superseded = !brief.requiredCheck.published && brief.requiredCheck.superseded === true;
+        const icon = superseded || (brief.requiredCheck.published && !reportStale) ? "✅" : "⚠️";
+        const state = superseded
+            ? "superseded by a newer run"
+            : reportStale
+                ? "published, report stale"
+                : brief.requiredCheck.published
+                    ? "published"
+                    : "not published";
         lines.push(`> ${icon} **Required check ${state}:** ${inlineMessage(brief.requiredCheck.message)}`, "");
     }
     if (brief.overrideStatus) {
@@ -54790,6 +54793,7 @@ async function findNewerPublishedRunId(input) {
             repo: input.repo,
             ref: input.headSha,
             check_name: input.name,
+            filter: "all",
             per_page: 30,
         });
         let maxSeen;
@@ -59458,7 +59462,14 @@ async function run() {
             setOutput("release-brief-json", JSON.stringify(evaluation.releaseBrief));
         }
         await summary.addRaw(fullReport).write();
-        if (config.githubToken && !backfillMode) {
+        // A superseded run's own evaluation is stale by definition (a newer run
+        // already published the authoritative check for this head SHA) — don't
+        // let its late-finishing PR comment or risk labels overwrite what the
+        // newer run already communicated. Branch protection was already handled
+        // by createCheckRun's completion-order guard; this closes the same race
+        // for the other two human-visible artifacts.
+        const isSupersededRun = checkPublication?.superseded === true;
+        if (config.githubToken && !backfillMode && !isSupersededRun) {
             if (prNumber) {
                 await postPrComment(fullReport, prNumber, config.githubToken);
             }

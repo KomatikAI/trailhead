@@ -558,6 +558,13 @@ export declare const BriefRequiredCheck: z.ZodObject<{
     headSha: z.ZodString;
     eventName: z.ZodString;
     message: z.ZodString;
+    /**
+     * True when `published` is false because a newer run already published
+     * for this head SHA (the concurrency completion-order guard), not because
+     * publication failed. Distinguishes a healthy last-write-wins outcome from
+     * a genuine gap that needs the recovery guidance in `message`.
+     */
+    superseded: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     message: string;
     name: string;
@@ -565,6 +572,7 @@ export declare const BriefRequiredCheck: z.ZodObject<{
     reportRefreshed: boolean;
     headSha: string;
     eventName: string;
+    superseded?: boolean | undefined;
 }, {
     message: string;
     name: string;
@@ -572,6 +580,7 @@ export declare const BriefRequiredCheck: z.ZodObject<{
     reportRefreshed: boolean;
     headSha: string;
     eventName: string;
+    superseded?: boolean | undefined;
 }>;
 export type BriefRequiredCheck = z.infer<typeof BriefRequiredCheck>;
 export declare const ReleaseBrief: z.ZodObject<{
@@ -673,6 +682,13 @@ export declare const ReleaseBrief: z.ZodObject<{
         headSha: z.ZodString;
         eventName: z.ZodString;
         message: z.ZodString;
+        /**
+         * True when `published` is false because a newer run already published
+         * for this head SHA (the concurrency completion-order guard), not because
+         * publication failed. Distinguishes a healthy last-write-wins outcome from
+         * a genuine gap that needs the recovery guidance in `message`.
+         */
+        superseded: z.ZodOptional<z.ZodBoolean>;
     }, "strip", z.ZodTypeAny, {
         message: string;
         name: string;
@@ -680,6 +696,7 @@ export declare const ReleaseBrief: z.ZodObject<{
         reportRefreshed: boolean;
         headSha: string;
         eventName: string;
+        superseded?: boolean | undefined;
     }, {
         message: string;
         name: string;
@@ -687,6 +704,7 @@ export declare const ReleaseBrief: z.ZodObject<{
         reportRefreshed: boolean;
         headSha: string;
         eventName: string;
+        superseded?: boolean | undefined;
     }>>;
     cannotEvaluateReason: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
@@ -733,6 +751,7 @@ export declare const ReleaseBrief: z.ZodObject<{
         reportRefreshed: boolean;
         headSha: string;
         eventName: string;
+        superseded?: boolean | undefined;
     } | undefined;
     cannotEvaluateReason?: string | undefined;
 }, {
@@ -779,6 +798,7 @@ export declare const ReleaseBrief: z.ZodObject<{
         reportRefreshed: boolean;
         headSha: string;
         eventName: string;
+        superseded?: boolean | undefined;
     } | undefined;
     cannotEvaluateReason?: string | undefined;
 }>;
@@ -987,6 +1007,13 @@ export declare const GateEvaluation: z.ZodObject<{
             headSha: z.ZodString;
             eventName: z.ZodString;
             message: z.ZodString;
+            /**
+             * True when `published` is false because a newer run already published
+             * for this head SHA (the concurrency completion-order guard), not because
+             * publication failed. Distinguishes a healthy last-write-wins outcome from
+             * a genuine gap that needs the recovery guidance in `message`.
+             */
+            superseded: z.ZodOptional<z.ZodBoolean>;
         }, "strip", z.ZodTypeAny, {
             message: string;
             name: string;
@@ -994,6 +1021,7 @@ export declare const GateEvaluation: z.ZodObject<{
             reportRefreshed: boolean;
             headSha: string;
             eventName: string;
+            superseded?: boolean | undefined;
         }, {
             message: string;
             name: string;
@@ -1001,6 +1029,7 @@ export declare const GateEvaluation: z.ZodObject<{
             reportRefreshed: boolean;
             headSha: string;
             eventName: string;
+            superseded?: boolean | undefined;
         }>>;
         cannotEvaluateReason: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
@@ -1047,6 +1076,7 @@ export declare const GateEvaluation: z.ZodObject<{
             reportRefreshed: boolean;
             headSha: string;
             eventName: string;
+            superseded?: boolean | undefined;
         } | undefined;
         cannotEvaluateReason?: string | undefined;
     }, {
@@ -1093,6 +1123,7 @@ export declare const GateEvaluation: z.ZodObject<{
             reportRefreshed: boolean;
             headSha: string;
             eventName: string;
+            superseded?: boolean | undefined;
         } | undefined;
         cannotEvaluateReason?: string | undefined;
     }>>;
@@ -1662,6 +1693,7 @@ export declare const GateEvaluation: z.ZodObject<{
             reportRefreshed: boolean;
             headSha: string;
             eventName: string;
+            superseded?: boolean | undefined;
         } | undefined;
         cannotEvaluateReason?: string | undefined;
     } | undefined;
@@ -1882,6 +1914,7 @@ export declare const GateEvaluation: z.ZodObject<{
             reportRefreshed: boolean;
             headSha: string;
             eventName: string;
+            superseded?: boolean | undefined;
         } | undefined;
         cannotEvaluateReason?: string | undefined;
     } | undefined;

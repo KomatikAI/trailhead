@@ -3393,6 +3393,7 @@ async function findNewerPublishedRunId(input: {
       repo: input.repo,
       ref: input.headSha,
       check_name: input.name,
+      filter: "all",
       per_page: 30,
     });
     let maxSeen: number | undefined;

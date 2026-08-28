@@ -388,6 +388,7 @@ describe("run — cloud-upsell footer in the check summary", () => {
     freshCore: typeof import("@actions/core");
     summaryText: string;
     updateCheckRunReportSpy: ReturnType<typeof vi.spyOn>;
+    postPrCommentSpy: ReturnType<typeof vi.spyOn>;
     storeSpy?: ReturnType<typeof vi.spyOn>;
   }> {
     vi.resetModules();
@@ -459,7 +460,7 @@ describe("run — cloud-upsell footer in the check summary", () => {
         : "not published";
       return `## Report\nRequired check ${state}`;
     });
-    vi.spyOn(freshGate, "postPrComment").mockResolvedValue();
+    const postPrCommentSpy = vi.spyOn(freshGate, "postPrComment").mockResolvedValue();
     vi.spyOn(freshGate, "createCheckRun").mockResolvedValue({
       published: options.checkPublished ?? true,
       name: "Trailhead — Release Ready",
@@ -492,7 +493,13 @@ describe("run — cloud-upsell footer in the check summary", () => {
       .mock.calls.map((call) => call[0])
       .join("\n");
 
-    return { freshCore, summaryText, updateCheckRunReportSpy, storeSpy };
+    return {
+      freshCore,
+      summaryText,
+      updateCheckRunReportSpy,
+      postPrCommentSpy,
+      storeSpy,
+    };
   }
 
   it("refreshes D3 publication before persistence", async () => {
@@ -594,7 +601,7 @@ describe("run — cloud-upsell footer in the check summary", () => {
       },
     });
 
-    await runMain({
+    const { postPrCommentSpy } = await runMain({
       inputs: { "github-token": "ghp_test", "disable-cloud-upsell": "true" },
       evaluation,
       checkPublished: false,
@@ -606,6 +613,11 @@ describe("run — cloud-upsell footer in the check summary", () => {
     expect(requiredCheck?.message).toContain("run 99 already published");
     expect(requiredCheck?.message).toContain("No action needed");
     expect(requiredCheck?.message).not.toContain("cannot satisfy branch protection");
+
+    // postPrComment/managePrLabels must not fire for a superseded run — its
+    // evaluation is stale by definition, and a late-finishing comment or
+    // label change would overwrite what the newer run already posted.
+    expect(postPrCommentSpy).not.toHaveBeenCalled();
   });
 
   it("names the durable publisher path when a fork token cannot publish", async () => {
