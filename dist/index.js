@@ -1,10 +1,17 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 8066:
+/***/ 6390:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
+module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-gnu.node")
+
+/***/ }),
+
+/***/ 7064:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-musl.node")
 
 /***/ }),
 
@@ -951,7 +958,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8066)
+        return __nccwpck_require__(9763)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1085,7 +1092,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(5254)
+        return __nccwpck_require__(7064)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1097,7 +1104,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6571)
+        return __nccwpck_require__(6390)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -29769,22 +29776,6 @@ module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
 
 /***/ }),
 
-/***/ 6571:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-linux-arm64-gnu");
-
-
-/***/ }),
-
-/***/ 5254:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-linux-arm64-musl");
-
-
-/***/ }),
-
 /***/ 3586:
 /***/ ((module) => {
 
@@ -29853,6 +29844,14 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
+
+
+/***/ }),
+
+/***/ 9763:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-win32-x64-msvc");
 
 
 /***/ }),
@@ -43839,6 +43838,28 @@ function formatCiStatusIcon(status) {
  */
 const MISSING_IRRELEVANT_REASON = "(no reason configured — reason is mandatory for irrelevant; fix .trailhead.yml)";
 /**
+ * Reasons the DEFAULT source supplies, so no brief row ever renders a bare
+ * `advisory / —`. ADR-011 §1 requires every input to carry a disposition *with a
+ * reason*, but only policy-authored `irrelevant` entries had one — the first
+ * live-brief audit found every Inputs row on a dev PR reading `advisory / —`.
+ * A default disposition can always describe itself: it came from the check's
+ * required/optional flag, and saying so is the whole reason.
+ */
+const DEFAULT_BLOCKING_REASON = "required check";
+const DEFAULT_ADVISORY_REASON = "not required";
+/**
+ * ADR-009 `skip` on a check no policy entry claims. The workflow's own path
+ * filter or `if:` condition already decided this check has nothing to say about
+ * these files, so it is irrelevant to THIS decision — and now says so instead of
+ * being narrated as a blocking input that happens not to have run.
+ *
+ * Outcome-neutral by construction: `skip` never counted against release
+ * readiness anyway (`computeReleaseReady` counts fail/missing/stale, and the
+ * blocking-set rollup in `applyInputRelevance` treats skip as passing), so
+ * moving these rows out of the blocking set changes narration only.
+ */
+const DEFAULT_SKIPPED_UPSTREAM_REASON = "skipped upstream (path filter or workflow condition)";
+/**
  * Pattern matching precedence, per entry:
  *   1. exact name match                      (checkNameMatches)
  *   2. case-insensitive name match           (checkNameMatches)
@@ -43863,8 +43884,16 @@ function hasText(value) {
 /**
  * Resolve one check to a disposition.
  *
- * - First matching entry wins; no match falls back to `required ? blocking : advisory`
- *   with source `default`.
+ * - First matching entry wins. A policy-sourced disposition is never rewritten — the
+ *   table is the author's stated intent for this branch pair — with one exception:
+ *   ADR-009 status `skip` always resolves to `irrelevant(skipped upstream …)`,
+ *   whatever the source. A blocking-configured check the workflow itself classified
+ *   out (path filter, job condition) is not blocking THIS decision, and `skip`
+ *   contributes zero to every blocking rollup, so this is narration-only
+ *   (promotion-zero correction, trailhead#350). A policy `irrelevant` entry's own
+ *   reason survives the rewrite.
+ * - No match falls back to `required ? blocking : advisory` with source `default`, each
+ *   carrying a self-describing reason.
  * - `missing_blocking` is DERIVED: ADR-009 status `missing` on a check that would otherwise
  *   resolve to `blocking`. It is never configurable.
  */
@@ -43880,10 +43909,28 @@ function resolveDisposition(check, entries) {
         if (kind === "irrelevant" && reason === undefined) {
             reason = MISSING_IRRELEVANT_REASON;
         }
+        if (check.status === "skip") {
+            // Rendering "skip | blocking | —" contradicts itself; keep the policy's own
+            // reason only when the policy already classified the check out.
+            if (kind !== "irrelevant")
+                reason = DEFAULT_SKIPPED_UPSTREAM_REASON;
+            kind = "irrelevant";
+        }
     }
     else {
-        kind = check.required ? "blocking" : "advisory";
         source = "default";
+        if (check.status === "skip") {
+            kind = "irrelevant";
+            reason = DEFAULT_SKIPPED_UPSTREAM_REASON;
+        }
+        else if (check.required) {
+            kind = "blocking";
+            reason = DEFAULT_BLOCKING_REASON;
+        }
+        else {
+            kind = "advisory";
+            reason = DEFAULT_ADVISORY_REASON;
+        }
     }
     if (check.status === "missing" && kind === "blocking") {
         kind = "missing_blocking";
@@ -44082,10 +44129,14 @@ function applyReleaseReadyToEvaluation(evaluation, result, gateMode) {
     };
 }
 function checkConclusionForEvaluation(evaluation) {
-    // Availability is a separate contract from advisory/risk/release modes. A
-    // cannot-evaluate check explicitly satisfies fail-open or fails fail-closed.
+    // Availability is a separate contract from advisory/risk/release modes. A run
+    // that evaluated NOTHING must never publish `success` — that is an auto-green
+    // path: it would claim a passing verdict the run never reached, and any repo
+    // that leaves `environment` unset defaults to fail-open. Fail-open publishes
+    // `neutral`, which GitHub treats as satisfying a required check without
+    // asserting the gate passed; fail-closed publishes `failure`.
     if (evaluation.releaseBrief?.verdict === "cannot_evaluate") {
-        return evaluation.gateDecision === "allow" ? "success" : "failure";
+        return evaluation.gateDecision === "allow" ? "neutral" : "failure";
     }
     const mode = evaluation.gateMode ?? "risk-only";
     if (mode === "advisory") {
@@ -49636,6 +49687,9 @@ const RED_LANE_FIX_CODES = new Set([
     "security.code_scanning",
     "risk.sensitive_files",
     "risk.supply_chain",
+    // Over-threshold risk on an agent PR resolves via human levers only
+    // (scope split or a recorded override), never an agent retry loop.
+    "risk.over_threshold",
 ]);
 /** Routine (yellow-lane) fix codes — agent should fix_and_retry. */
 const ROUTINE_FIX_CODES = new Set([
@@ -49645,6 +49699,10 @@ const ROUTINE_FIX_CODES = new Set([
     "policy.duplicate_logic",
     "ci.failed",
     "ci.missing",
+    // Severity-suffixed policy findings are the non-blocking tiers; the
+    // canonical blocking `policy.finding` stays red.
+    "policy.finding.warn",
+    "policy.finding.advisory",
 ]);
 function classifyFixLane(code) {
     if (RED_LANE_FIX_CODES.has(code))
@@ -49690,6 +49748,13 @@ function computeNextAction(args) {
 // Shared across the GitHub Action, MCP server, and GitHub App via the existing
 // prebuild copy pattern. Keep this module free of @actions/*, octokit, and Node
 // runtime imports so it stays portable.
+//
+// `trailhead.remediation.v1` is a consumed contract: fix codes are additive and
+// an existing code never changes meaning. Two rules the derivations below keep:
+// a fix's severity is the severity of the thing it describes (never the gate
+// decision that happens to surround it), and whatever actually produced the
+// verdict has a fix of its own — a block with no matching fix is the defect
+// ADR-011 §1 calls silence.
 
 
 
@@ -49866,15 +49931,127 @@ function deriveCiFixes(ci) {
     }
     return fixes;
 }
-function derivePolicyFindingFixes(findings, severity) {
-    if (!findings || findings.length === 0)
+const SEVERITY_RANK = {
+    blocking: 3,
+    warn: 2,
+    advisory: 1,
+};
+const SEVERITY_TIERS = ["blocking", "warn", "advisory"];
+/** Canonical policy-finding code — kept for the highest tier present, so existing
+ * consumers of `policy.finding` keep seeing the findings that carry the verdict.
+ * Lower tiers get a severity-suffixed code (`policy.finding.warn`,
+ * `policy.finding.advisory`) because fixes are deduplicated by code. */
+const POLICY_FINDING_CODE = "policy.finding";
+/**
+ * ADR-011 §1: enumerate, never count. The title carries the finding titles
+ * themselves; the detail carries the full enumeration.
+ */
+function policyFindingTitle(titles) {
+    const label = titles.length === 1 ? "Policy finding" : "Policy findings";
+    const shown = titles.slice(0, 3);
+    return `${label}: ${shown.join("; ")}${titles.length > shown.length ? "; …" : ""}`;
+}
+function enumeratedFindingLine(finding) {
+    const evidence = finding.evidence ? ` — ${finding.evidence}` : "";
+    return `- \`${finding.id}\` ${finding.title}${evidence}`;
+}
+/**
+ * Policy findings, at their real severity.
+ *
+ * The gate decision is a property of the evaluation, not of any one finding:
+ * deriving each fix's severity from it promoted warn-level change notices (e.g.
+ * "Agent PR risk threshold tightened from 70 to 50") to `blocking`, telling
+ * consuming agents to fix something no code change can fix. When the evaluation
+ * carries `enumeratedFindings` (ADR-011 §1) those per-finding severities win and
+ * the gate decision is ignored; one fix is emitted per severity tier present.
+ * Without them there is no per-finding signal, so the legacy gate-derived
+ * severity stands.
+ */
+function derivePolicyFindingFixes(input) {
+    const enumerated = input.enumeratedFindings ?? [];
+    if (enumerated.length > 0) {
+        const tiers = SEVERITY_TIERS.map((severity) => ({
+            severity,
+            findings: enumerated.filter((finding) => finding.severity === severity),
+        })).filter((tier) => tier.findings.length > 0);
+        return tiers.map((tier, index) => RemediationFix.parse({
+            code: index === 0 ? POLICY_FINDING_CODE : `${POLICY_FINDING_CODE}.${tier.severity}`,
+            severity: tier.severity,
+            title: policyFindingTitle(tier.findings.map((finding) => finding.title)),
+            detail: tier.findings.map(enumeratedFindingLine).join("\n"),
+        }));
+    }
+    const findings = input.findings ?? [];
+    if (findings.length === 0)
         return [];
     return [
         RemediationFix.parse({
-            code: "policy.finding",
-            severity,
-            title: `${findings.length} policy finding${findings.length === 1 ? "" : "s"}`,
+            code: POLICY_FINDING_CODE,
+            severity: input.gateDecision === "block" ? "blocking" : "warn",
+            title: policyFindingTitle(findings),
             detail: findings.map((f) => `- ${f}`).join("\n"),
+        }),
+    ];
+}
+/** ADR-011 §3 override mechanism — mirrors `OVERRIDE_LABEL` in `src/override.ts`,
+ * inlined because override.ts is not part of the shared-source copy set. */
+const OVERRIDE_LABEL = "trailhead-override";
+const RISK_OVER_THRESHOLD_CODE = "risk.over_threshold";
+/** The prose `computeReleaseReady()` emits for the same condition — the fallback
+ * source of the pair when the caller has not threaded the numbers through. */
+const RELEASE_READY_RISK_REASON = /^Risk score (\d+(?:\.\d+)?) exceeds threshold (\d+(?:\.\d+)?)$/;
+function resolveRiskOverThreshold(evaluation) {
+    const { riskScore, riskThreshold } = evaluation;
+    if (riskScore !== undefined && riskThreshold !== undefined) {
+        return riskScore > riskThreshold
+            ? { score: riskScore, threshold: riskThreshold }
+            : null;
+    }
+    for (const reason of evaluation.releaseReadyReasons ?? []) {
+        const match = RELEASE_READY_RISK_REASON.exec(reason.trim());
+        if (!match)
+            continue;
+        const score = Number(match[1]);
+        const threshold = Number(match[2]);
+        if (Number.isFinite(score) && Number.isFinite(threshold) && score > threshold) {
+            return { score, threshold };
+        }
+    }
+    return null;
+}
+/**
+ * The machine-readable block cause when risk carries the verdict.
+ *
+ * Without it the fixes array named every finding except the one thing that
+ * actually blocked the PR, and neither of the two real levers — a smaller PR or
+ * a recorded override — appeared anywhere an agent could read them.
+ */
+function deriveRiskThresholdFixes(evaluation) {
+    if (evaluation.gateDecision !== "block")
+        return [];
+    // A recorded override (ADR-011 §3) leaves the decision at `block` while the
+    // release is ready on the record. Re-emitting the block cause as a blocking fix
+    // would flip `release_ready` back to false and undo the override.
+    if (evaluation.releaseReady === true)
+        return [];
+    const over = resolveRiskOverThreshold(evaluation);
+    if (!over)
+        return [];
+    const movers = [...(evaluation.riskFactors ?? [])]
+        .filter((factor) => factor.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+    const moversText = movers.length
+        ? movers.map((factor) => `${factor.type} ${factor.score}/100`).join(", ")
+        : "no single factor dominates — the composite carries the score";
+    return [
+        RemediationFix.parse({
+            code: RISK_OVER_THRESHOLD_CODE,
+            severity: "blocking",
+            title: `risk ${over.score} exceeds threshold ${over.threshold}`,
+            detail: `Composite risk score ${over.score} is above this PR's effective threshold of ${over.threshold}, so the gate blocks. Top risk factors: ${moversText}. No single file edit clears this: either the PR gets smaller (which lowers the factors above) or the risk is accepted on the record.`,
+            suggested_action: `Reduce PR scope — split the change so the score falls below ${over.threshold} — or record an override: add the \`${OVERRIDE_LABEL}\` label and post a PR comment \`${OVERRIDE_LABEL}: <rationale>\`.`,
+            autofix_eligible: false,
         }),
     ];
 }
@@ -49915,23 +50092,23 @@ function buildRemediation(input) {
         fixes.push(RemediationFix.parse({ ...built, severity }));
     }
     fixes.push(...deriveCiFixes(input.evaluation.ci));
-    fixes.push(...derivePolicyFindingFixes(input.evaluation.policyFindings, input.evaluation.gateDecision === "block" ? "blocking" : "warn"));
+    fixes.push(...derivePolicyFindingFixes({
+        findings: input.evaluation.policyFindings,
+        enumeratedFindings: input.evaluation.enumeratedFindings,
+        gateDecision: input.evaluation.gateDecision,
+    }));
+    fixes.push(...deriveRiskThresholdFixes(input.evaluation));
     fixes.push(...deriveSubmissionFixes(input.submissionChecks));
     // Deduplicate by code, keeping the highest severity occurrence.
-    const severityRank = {
-        blocking: 3,
-        warn: 2,
-        advisory: 1,
-    };
     const byCode = new Map();
     for (const fix of fixes) {
         const existing = byCode.get(fix.code);
-        if (!existing || severityRank[fix.severity] > severityRank[existing.severity]) {
+        if (!existing || SEVERITY_RANK[fix.severity] > SEVERITY_RANK[existing.severity]) {
             byCode.set(fix.code, fix);
         }
     }
     const dedupedFixes = Array.from(byCode.values()).sort((a, b) => {
-        const sev = severityRank[b.severity] - severityRank[a.severity];
+        const sev = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
         if (sev !== 0)
             return sev;
         return a.code.localeCompare(b.code);
@@ -50296,10 +50473,10 @@ async function countRecentLabelOverrides(params) {
 
 ;// CONCATENATED MODULE: ./src/override.ts
 
-const OVERRIDE_LABEL = "trailhead-override";
+const override_OVERRIDE_LABEL = "trailhead-override";
 const OVERRIDE_COMMENT_PATTERN = /^trailhead-override:\s*(.+)/im;
 function hasOverrideLabel(labels) {
-    return labels.some((label) => label.toLowerCase() === OVERRIDE_LABEL);
+    return labels.some((label) => label.toLowerCase() === override_OVERRIDE_LABEL);
 }
 function parseOverrideComment(comments) {
     for (let index = comments.length - 1; index >= 0; index -= 1) {
@@ -53190,6 +53367,13 @@ async function callGateApi(config, localEvaluation) {
         return null;
     }
 }
+/**
+ * Branch/label context derived from the triggering event payload alone.
+ *
+ * The payload is a SNAPSHOT taken when the event was created. It is the
+ * correct source for base/head refs (they cannot change without a new event)
+ * but NOT for labels — see resolvePrMatchContext. Kept as the fallback layer.
+ */
 function getPrMatchContext(metadata) {
     const pr = github_context.payload?.pull_request;
     return {
@@ -53204,16 +53388,83 @@ function getPrMatchContext(metadata) {
         labels: metadata?.labels ?? (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
     };
 }
-const LIVE_OVERRIDE_QUERY = `
-  query TrailheadOverrideState($owner: String!, $repo: String!, $number: Int!) {
-    repository(owner: $owner, name: $repo) {
-      pullRequest(number: $number) {
-        labels(first: 100) { nodes { name } }
-        comments(last: 100) { nodes { body author { login } } }
-      }
+/**
+ * Read the PR's CURRENT labels from the API.
+ *
+ * Returns null — never [] — when the labels could not be read, so the caller
+ * can distinguish "this PR genuinely has no labels" (a valid live answer that
+ * must be honored, otherwise removing a label would never be seen) from "the
+ * live read failed" (fall back to the payload).
+ */
+async function fetchLivePrLabels(prNumber, token) {
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const { data: pr } = await octokit.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: prNumber,
+        });
+        const labels = pr
+            .labels;
+        if (!Array.isArray(labels))
+            return null;
+        return labels
+            .map((label) => (typeof label === "string" ? label : (label?.name ?? "")))
+            .filter(Boolean);
     }
-  }
-`;
+    catch (error) {
+        core_debug(`Failed to read live labels for PR #${prNumber}: ${error}`);
+        return null;
+    }
+}
+/**
+ * PR context for every label consumer in this evaluation — merge-queue
+ * detection, v4 context matching, and the label override.
+ *
+ * Labels are read LIVE from the API rather than taken from the triggering
+ * event payload. A rerun of an earlier run replays that run's ORIGINAL
+ * payload, so a label applied after the run was created is invisible to the
+ * rerun. That made the sanctioned `trailhead-override` label unusable as a
+ * remedy: GitHub requires every check suite bearing a required context name
+ * to end green, and a failed suite can only be made green by rerunning it —
+ * which is exactly the path that could never see the new label. Applying the
+ * override then still left the PR unmergeable without an admin merge.
+ *
+ * Resolved at the START of evaluateGate, which also keeps it clear of the
+ * action's own `add-risk-labels` writes — those run after the evaluation.
+ */
+async function resolvePrMatchContext(input) {
+    const payloadCtx = getPrMatchContext(input.metadata);
+    // Explicit metadata wins, unchanged: the `evaluate-pr` backfill path builds
+    // it in main.ts from its own live pulls.get, so it is already current.
+    if (input.metadata?.labels)
+        return payloadCtx;
+    if (!input.prNumber || !input.token) {
+        if (payloadCtx.labels.length > 0) {
+            core_debug("No PR number or github-token available — using event payload labels for PR context.");
+        }
+        return payloadCtx;
+    }
+    const liveLabels = await fetchLivePrLabels(input.prNumber, input.token);
+    if (!liveLabels) {
+        core_warning(`Could not read live labels for PR #${input.prNumber} — falling back to the ` +
+            `triggering event's payload labels ` +
+            `(${payloadCtx.labels.length > 0 ? payloadCtx.labels.join(", ") : "none"}). ` +
+            `A label applied after this run's event was created — including ` +
+            `\`${override_OVERRIDE_LABEL}\` — is not visible to this evaluation.`);
+        return payloadCtx;
+    }
+    const payloadLabels = payloadCtx.labels;
+    const drifted = liveLabels.length !== payloadLabels.length ||
+        liveLabels.some((label) => !payloadLabels.includes(label));
+    if (drifted) {
+        info(`PR #${input.prNumber} labels changed since this run's triggering event — ` +
+            `using live labels [${liveLabels.join(", ") || "none"}] ` +
+            `instead of payload labels [${payloadLabels.join(", ") || "none"}].`);
+    }
+    return { ...payloadCtx, labels: liveLabels };
+}
 function payloadOverrideComments() {
     // Only issue_comment payloads contain the same PR conversation surfaced by
     // GraphQL PullRequest.comments. A pull_request_review_comment is a diff
@@ -53229,16 +53480,28 @@ function payloadOverrideComments() {
     return [{ body: comment.body, author: comment.user?.login }];
 }
 /**
- * ADR-012 D1: evaluate overrides from the current PR snapshot. Live labels are
- * authoritative so removing a label revokes an override even when an old run is
- * re-run. Frozen payload traces are diagnostic-only when live state cannot be
- * read and can never authorize an override.
- * GraphQL keeps labels + comments to one API read and asks for the newest 100
- * comments, unlike the former first-page REST request.
+ * ADR-012 D1: evaluate the override against the CURRENT PR state.
+ *
+ * There is exactly ONE live label read in an evaluation — resolvePrMatchContext,
+ * resolved at the top of evaluateGate — and its result is handed in here as
+ * `liveLabels`. This function therefore reads COMMENTS only. Reading labels a
+ * second time here (as an earlier draft did, via a GraphQL query alongside the
+ * REST `pulls.get`) produces two label truths per evaluation that can disagree:
+ * merge-queue detection and `contexts[].match.labels` would see one set and the
+ * override another.
+ *
+ * REST, not GraphQL: `issues.listComments` is the endpoint this path has always
+ * used, and it keeps the override working in environments where the GraphQL API
+ * is blocked or unavailable — a GraphQL-only override path would be fail-closed
+ * exactly there.
+ *
+ * A failed comment read warns and falls back to the triggering event's payload
+ * comment rather than refusing: degradation, not regression, matching the label
+ * fallback in resolvePrMatchContext.
  */
-async function fetchLiveOverrideState(prNumber, token, payloadLabels) {
+async function fetchOverridePrState(prNumber, token, liveLabels) {
     const fallback = {
-        labels: payloadLabels,
+        labels: liveLabels,
         comments: payloadOverrideComments(),
         source: "payload_fallback",
         unavailableReason: token ? "api_error" : "missing_token",
@@ -53248,25 +53511,24 @@ async function fetchLiveOverrideState(prNumber, token, payloadLabels) {
     try {
         const octokit = getOctokit(token);
         const { owner, repo } = github_context.repo;
-        const data = await octokit.graphql(LIVE_OVERRIDE_QUERY, {
+        const { data: comments } = await octokit.rest.issues.listComments({
             owner,
             repo,
-            number: prNumber,
+            issue_number: prNumber,
+            per_page: 100,
         });
-        const pr = data.repository?.pullRequest;
-        if (!pr)
-            throw new Error("Pull request was not returned by GitHub");
-        const comments = pr.comments.nodes.flatMap((comment) => comment
-            ? [{ body: comment.body ?? "", author: comment.author?.login ?? undefined }]
-            : []);
         return {
-            labels: pr.labels.nodes.flatMap((label) => (label?.name ? [label.name] : [])),
-            comments,
+            labels: liveLabels,
+            comments: comments.map((comment) => ({
+                body: comment.body ?? "",
+                author: comment.user?.login ?? undefined,
+            })),
             source: "live",
         };
     }
     catch (error) {
-        core_warning(`Could not read live PR override state; event payload is diagnostic-only: ${error}`);
+        core_warning(`Could not read live PR comments for the override on PR #${prNumber} — falling ` +
+            `back to the triggering event's payload comment. ${error}`);
         return fallback;
     }
 }
@@ -53278,22 +53540,18 @@ async function applyLabelOverrideIfNeeded(input) {
     };
     const labelPresent = hasOverrideLabel(input.overrideState.labels);
     const commentPresent = Boolean(parseOverrideComment(input.overrideState.comments));
-    if (input.overrideState.source === "payload_fallback") {
-        const traces = [
-            ...(labelPresent ? ["the override label"] : []),
-            ...(commentPresent ? ["an override reason"] : []),
-        ];
-        const observed = traces.length > 0
-            ? ` The frozen event payload contained ${traces.join(" and ")}, but unverified ` +
-                "payload state is never trusted to authorize an override."
-            : " No override trace was visible in the frozen event payload.";
+    // A failed live read is a DEGRADATION, not a regression (#362): the payload
+    // still authorizes. What a frozen payload cannot do is supply an override
+    // reason it never carried — that, and only that, is `unavailable`.
+    if (input.overrideState.source === "payload_fallback" && !commentPresent) {
         const message = input.overrideState.unavailableReason === "missing_token"
-            ? "Live PR labels and comments were not read because no GitHub token was available." +
-                observed +
-                " Configure `github-token` and re-run."
-            : "Live PR labels and comments could not be read from GitHub." +
-                observed +
-                " Restore API access and re-run.";
+            ? "The `trailhead-override` label is present, but no GitHub token was available " +
+                "to read this PR's comments and the triggering event's payload carried no " +
+                "override reason. Configure `github-token` and re-run."
+            : "The `trailhead-override` label is present, but this PR's comments could not " +
+                "be read from GitHub and the triggering event's payload carried no override " +
+                "reason. Restore API access and re-run.";
+        core_warning(`Label override unavailable: ${message}`);
         return {
             ...input.evaluation,
             labelOverrideFeedback: {
@@ -53361,7 +53619,7 @@ async function applyLabelOverrideIfNeeded(input) {
             labelOverrideFeedback: {
                 status: "revoked",
                 message: outcome.message,
-                source: "live",
+                source: input.overrideState.source,
             },
         };
     }
@@ -53371,9 +53629,15 @@ async function applyLabelOverrideIfNeeded(input) {
         if (input.githubToken) {
             await postOverrideRejectionComment(input.prNumber, message, input.githubToken);
         }
+        // `not_needed` is advisory: the release is ALREADY ready, and the only
+        // action owed is removing a stale label. It must never become a
+        // policyFinding — app/src/verdict.ts ingests every policyFinding, so a
+        // rejection line there turns a green server-side verdict red.
+        const advisoryOnly = outcome.code === "not_needed";
+        const existingFindings = input.evaluation.policyFindings;
         return {
             ...input.evaluation,
-            policyFindings: [...(input.evaluation.policyFindings ?? []), message],
+            ...(advisoryOnly ? {} : { policyFindings: [...(existingFindings ?? []), message] }),
             labelOverrideFeedback: {
                 status: "rejected",
                 message,
@@ -53527,8 +53791,8 @@ function briefActions(evaluation, findings, riskThreshold) {
         actions.push({
             kind: "override",
             detail: `Risk ${evaluation.riskScore} exceeds threshold ${riskThreshold}. To accept it on ` +
-                `the record, first comment \`${OVERRIDE_LABEL}: <rationale>\`, then add the ` +
-                `\`${OVERRIDE_LABEL}\` label so the label event re-evaluates this PR.`,
+                `the record, first comment \`${override_OVERRIDE_LABEL}: <rationale>\`, then add the ` +
+                `\`${override_OVERRIDE_LABEL}\` label so the label event re-evaluates this PR.`,
         });
     }
     return actions;
@@ -53550,13 +53814,22 @@ function buildReleaseBrief(evaluation, riskThreshold, cannotEvaluateReason, prev
             ? { topMovers: briefTopMovers(evaluation.riskFactors) }
             : {}),
         findings,
-        // Every input gets a row, including the ones that did not count (ADR-011 §1).
-        inputs: (evaluation.ci?.checks ?? []).map((check) => ({
-            checkName: check.name,
-            status: check.status,
-            disposition: check.disposition?.kind ?? (check.required ? "blocking" : "advisory"),
-            ...(check.disposition?.reason ? { reason: check.disposition.reason } : {}),
-        })),
+        // Every input gets a row, including the ones that did not count, and every
+        // row states its reason (ADR-011 §1).
+        inputs: (evaluation.ci?.checks ?? []).map((check) => {
+            // No disposition attached means a summary built outside applyInputRelevance
+            // (or a pre-ADR-011 stored evaluation being re-rendered). Resolving against
+            // an empty policy table IS the default mapping, and keeps the reason column
+            // self-describing instead of blank.
+            const disposition = check.disposition ??
+                resolveDisposition({ name: check.name, status: check.status, required: check.required }, []);
+            return {
+                checkName: check.name,
+                status: check.status,
+                disposition: disposition.kind,
+                ...(disposition.reason ? { reason: disposition.reason } : {}),
+            };
+        }),
         ...(delta ? { delta } : {}),
         actions: briefActions(evaluation, findings, riskThreshold),
         // ADR-011 §3 maps the audit's {owner, appliedAt, reason} onto {by, at, rationale}.
@@ -53630,9 +53903,10 @@ function buildCannotEvaluateBrief(reason, stance) {
             }
             : {
                 kind: "wait",
-                detail: "Availability stance is fail_open: Trailhead will publish a successful " +
-                    "cannot-evaluate custom check when GitHub Checks access is available. A " +
-                    "publication failure can still leave branch protection pending.",
+                detail: "Availability stance is fail_open: Trailhead will publish a NEUTRAL " +
+                    "cannot-evaluate custom check when GitHub Checks access is available — it " +
+                    "does not block the merge and does not claim a verdict this run never " +
+                    "reached. A publication failure can still leave branch protection pending.",
             },
     ];
     return {
@@ -53652,7 +53926,15 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
     // Nothing is known about this run's availability stance until a context matches.
     setResolvedAvailabilityStance(null);
     setResolvedCheckContract(null);
-    const prMatchCtx = getPrMatchContext(prMetadata);
+    // Labels are read live here, before anything consumes them, so merge-queue
+    // detection, context matching and the label override all see the same
+    // current truth rather than the triggering event's snapshot. This is the ONE
+    // live label read of an evaluation.
+    const prMatchCtx = await resolvePrMatchContext({
+        metadata: prMetadata,
+        prNumber,
+        token: config.githubToken,
+    });
     const isMergeQueue = github_context.eventName === "merge_group" ||
         prMatchCtx.labels.some((label) => label === "queue" || label.includes("merge-queue"));
     if (isMergeQueue) {
@@ -54247,8 +54529,12 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
         securityBlocked,
     });
     localEvaluation = applyReleaseReadyToEvaluation(localEvaluation, releaseResult, gateMode);
-    if (prNumber) {
-        const overrideState = await fetchLiveOverrideState(prNumber, config.githubToken, prMatchCtx.labels);
+    // Only reach for comments when there is override INTENT. The live labels
+    // resolved at the top of this evaluation are that signal; without the label
+    // there is nothing an override comment could authorize, and fetching 100
+    // comments on every PR evaluation is a rate-limit cost for no answer.
+    if (prNumber && hasOverrideLabel(prMatchCtx.labels)) {
+        const overrideState = await fetchOverridePrState(prNumber, config.githubToken, prMatchCtx.labels);
         localEvaluation = await applyLabelOverrideIfNeeded({
             evaluation: localEvaluation,
             config,
@@ -54313,6 +54599,12 @@ async function evaluateGate(config, commitSha, prNumber, prMetadata) {
                 releaseReadyReasons: localEvaluation.releaseReadyReasons,
                 policyFindings: localEvaluation.policyFindings,
                 gateDecision: localEvaluation.gateDecision,
+                // Without these three, derivePolicyFindingFixes falls back to the
+                // gate-decision severity (warn findings surface as blocking) and
+                // risk.over_threshold has nothing to resolve in risk-only mode.
+                enumeratedFindings: localEvaluation.enumeratedFindings,
+                riskScore: localEvaluation.riskScore,
+                riskThreshold: adjustedRiskThreshold,
             },
             previousEvaluation,
             maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
@@ -54674,6 +54966,25 @@ function buildScoreBar(score, threshold) {
     const bar = "█".repeat(filled) + "░".repeat(width - filled);
     return `\`${bar}\` ${score}/100 (threshold: ${threshold})`;
 }
+/** A directory segment that names a migrations directory: `migrations`, `migration`, `db_migrations`. */
+const MIGRATIONS_SEGMENT = /^[\w.-]*migrations?$/i;
+/**
+ * True only when the path genuinely lives under a migrations directory — the first
+ * two *directory* segments (never the filename) are what a repo layout puts it in.
+ *
+ * The bucket used to be earned by `/^(migrations?|supabase)/` on the top segment,
+ * which labelled every `supabase/**` file as schema: komatik#4041's six
+ * `supabase/functions/_shared/` edge-function files were narrated as
+ * "database/migrations/ changes (6 files)" on a PR carrying no migration at all.
+ * A split suggestion is guidance a reviewer acts on, so it names the repo's real
+ * layout or nothing.
+ */
+function isMigrationsPath(parts) {
+    return parts
+        .slice(0, -1)
+        .slice(0, 2)
+        .some((segment) => MIGRATIONS_SEGMENT.test(segment));
+}
 function suggestSplitBoundaries(files) {
     if (files.length < 5)
         return [];
@@ -54684,10 +54995,12 @@ function suggestSplitBoundaries(files) {
         if (parts[0] === ".github") {
             bucket = "CI/workflow";
         }
-        else if (/^(migrations?|supabase)/i.test(parts[0])) {
+        else if (isMigrationsPath(parts)) {
             bucket = "database/migrations";
         }
         else if (parts.length >= 2) {
+            // Everything else is labelled by its literal two-segment prefix, so the
+            // suggestion can only ever name a directory the PR actually touched.
             bucket = parts.slice(0, 2).join("/");
         }
         else {
@@ -54839,7 +55152,15 @@ function formatGateReport(evaluation, riskThreshold) {
             ? "✅"
             : "🚫"
         : decisionIcon(evaluation.gateDecision);
-    const threshold = riskThreshold ?? 70;
+    const brief = evaluation.releaseBrief;
+    // ADR-011 §1 — one threshold per report. `riskThreshold` is the caller's BASE
+    // input; the brief carries the threshold the evaluation was actually judged
+    // against (context/environment overrides, agent-PR policy, trust deltas). A
+    // live brief read "risk 53 (threshold 50)" over a legacy table saying
+    // "(threshold 70)" — the brief is the single source, and every threshold
+    // mention below reads from it.
+    const effectiveRiskThreshold = brief?.riskThreshold ?? riskThreshold;
+    const threshold = effectiveRiskThreshold ?? 70;
     const healthDisplay = evaluation.healthChecks.length > 0
         ? `${evaluation.healthScore}/100`
         : "n/a (not configured)";
@@ -54855,8 +55176,8 @@ function formatGateReport(evaluation, riskThreshold) {
     const lines = [];
     // ADR-011 §1 — the brief leads; the pre-existing report stays below it so the
     // same `<!-- trailhead-gate-report -->` comment upgrades in place.
-    if (evaluation.releaseBrief) {
-        lines.push(renderReleaseBrief(evaluation.releaseBrief, {
+    if (brief) {
+        lines.push(renderReleaseBrief(brief, {
             // The same markdown becomes a check run's output.summary, which GitHub
             // caps at 65535 characters; leave room for the report below.
             maxChars: BRIEF_MAX_CHARS,
@@ -54865,10 +55186,21 @@ function formatGateReport(evaluation, riskThreshold) {
     }
     lines.push(`## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`, ``);
     if (mode === "release-ready" || mode === "advisory") {
-        lines.push(`| Dimension | Status |`, `|-----------|--------|`, `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`, `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`, ...(evaluation.sizeScore !== undefined
+        // ADR-011 §1 — once the brief leads, the legacy report stops repeating it.
+        // Verdict, risk-vs-threshold and the input table are the brief's job; stating
+        // them twice is the illegibility class ADR-011 exists to close, and is how a
+        // stale threshold survived next to the live one. Everything the brief does
+        // NOT carry (size, health, DORA, security, files, guidance, remediation,
+        // override feedback, footer) stays exactly where it was.
+        lines.push(`| Dimension | Status |`, `|-----------|--------|`, ...(brief
+            ? []
+            : [
+                `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
+                `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
+            ]), ...(evaluation.sizeScore !== undefined
             ? [`| Size / blast radius | ${evaluation.sizeScore}/100 (reported separately) |`]
-            : []), `| Health | ${healthDisplay} |`, `| Gate | ${evaluation.gateDecision.toUpperCase()} |`, ``);
-        if (evaluation.ci && evaluation.ci.checks.length > 0) {
+            : []), `| Health | ${healthDisplay} |`, ...(brief ? [] : [`| Gate | ${evaluation.gateDecision.toUpperCase()} |`]), ``);
+        if (!brief && evaluation.ci && evaluation.ci.checks.length > 0) {
             lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
             for (const check of evaluation.ci.checks) {
                 lines.push(`| ${formatCiCheckCell(check)} | ${formatCiStatusIcon(check.status)} ${check.status} |`);
@@ -54906,8 +55238,8 @@ function formatGateReport(evaluation, riskThreshold) {
             (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""), ``, `| Metric | Score |`, `|--------|-------|`, `| Health | ${healthDisplay} |`, `| Risk   | ${evaluation.riskScore}/100 |`, ...(evaluation.sizeScore !== undefined
             ? [`| Size / blast radius | ${evaluation.sizeScore}/100 |`]
             : []), `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`, ``);
-        if (riskThreshold !== undefined) {
-            lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+        if (effectiveRiskThreshold !== undefined) {
+            lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, effectiveRiskThreshold)}`, ``);
         }
     }
     if (evaluation.remediation && evaluation.agentBriefMode !== "off") {
@@ -54936,7 +55268,11 @@ function formatGateReport(evaluation, riskThreshold) {
             ? [`- Resolve SLA: \`${evaluation.escalation_status.resolve_sla_minutes}m\``]
             : []), ``);
     }
-    if (evaluation.policyFindings && evaluation.policyFindings.length > 0) {
+    // The brief enumerates these as `{id, title, evidence, severity}` findings; the
+    // legacy list is the count-string form ADR-011 §1 replaced. It stays on the
+    // evaluation (and in `release-brief-json`) for existing consumers, but a report
+    // that already carries the enumeration does not also print the counts.
+    if (!brief && evaluation.policyFindings && evaluation.policyFindings.length > 0) {
         const findingsBody = evaluation.policyFindings
             .map((finding) => `- ${finding}`)
             .join("\n");
@@ -58300,7 +58636,7 @@ function customCheckRecoveryGuidance(missingToken = false) {
     return missingToken
         ? "Configure `github-token` and re-run the normal PR workflow."
         : `Restore GitHub Checks access and re-run; applying or reapplying ` +
-            `\`${OVERRIDE_LABEL}\` triggers \`pull_request:labeled\`.`;
+            `\`${override_OVERRIDE_LABEL}\` triggers \`pull_request:labeled\`.`;
 }
 function checkReportRefreshFailureMessage(checkName, headSha, eventName) {
     return (`Published custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`, ` +
@@ -58309,8 +58645,35 @@ function checkReportRefreshFailureMessage(checkName, headSha, eventName) {
         "check body is stale. Use the job summary or PR comment for the final state, restore " +
         "GitHub Checks update access, and re-run.");
 }
+/**
+ * Swap the gate-report section inside the assembled full report.
+ *
+ * The FUNCTION form of `String.prototype.replace` is mandatory here: with a
+ * string replacement, `$&`, `` $` ``, `$'`, `$$` and `$1` in the REPLACEMENT are
+ * expanded as patterns. Gate reports are arbitrary rendered markdown containing
+ * user/CI text, so a report holding a literal `$&` would silently duplicate the
+ * matched region into the published check and PR comment.
+ */
+function replaceGateReport(fullReport, previous, updated) {
+    return fullReport.replace(previous, () => updated);
+}
+/** Linear backoff base between D3 refresh attempts, in ms. */
+const CHECK_REPORT_RETRY_DELAY_MS = 500;
+function main_sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
 async function refreshCheckReport(publication, evaluation, report, token, attempts) {
+    // Without an id there is nothing to update, and updateCheckRunReport would
+    // warn identically on every pass. Retrying that is pure noise.
+    if (!publication.published || !publication.checkRunId) {
+        return updateCheckRunReport(publication, evaluation, report, token);
+    }
     for (let attempt = 0; attempt < attempts; attempt += 1) {
+        if (attempt > 0) {
+            // A refresh failure is usually a transient Checks API error or a
+            // secondary-rate-limit; an immediate retry re-hits the same window.
+            await main_sleep(CHECK_REPORT_RETRY_DELAY_MS * attempt);
+        }
         if (await updateCheckRunReport(publication, evaluation, report, token)) {
             return true;
         }
@@ -58442,7 +58805,20 @@ async function postCannotEvaluateBrief(error, failMode) {
         // example, while validating an action-level policy override). In that case
         // branch protection still expects the repository-configured check contract,
         // so resolve it here rather than silently falling back to the legacy name.
-        const repoConfig = resolvedContract ? null : await loadRepoConfig(githubToken);
+        //
+        // This load is BEST-EFFORT and must never abort the rest of this function.
+        // Everything below it — the check publication and the PR comment that ADR-011
+        // §1 owes the PR — used to happen with no config load at all; letting a
+        // throw here escape into the outer catch would silently drop both.
+        let repoConfig = null;
+        if (!resolvedContract) {
+            try {
+                repoConfig = await loadRepoConfig(githubToken);
+            }
+            catch (configError) {
+                core_debug(`Could not load repo config while building the cannot-evaluate brief: ${configError}`);
+            }
+        }
         const gateMode = resolvedContract?.mode ??
             resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, inputMode);
         const checkName = resolvedContract?.name ??
@@ -58928,7 +59304,7 @@ async function run() {
                 message: publicationMessage,
             };
             const updatedReport = formatGateReport(evaluation, config.riskThreshold);
-            fullReport = fullReport.replace(report, updatedReport);
+            fullReport = replaceGateReport(fullReport, report, updatedReport);
             report = updatedReport;
         }
         let checkReportRefreshed = false;
@@ -58938,7 +59314,7 @@ async function run() {
                 evaluation.releaseBrief.requiredCheck.reportRefreshed = false;
                 evaluation.releaseBrief.requiredCheck.message = checkReportRefreshFailureMessage(checkName, evaluation.commitSha, context.eventName || "unknown");
                 const refreshFailureReport = formatGateReport(evaluation, config.riskThreshold);
-                fullReport = fullReport.replace(report, refreshFailureReport);
+                fullReport = replaceGateReport(fullReport, report, refreshFailureReport);
                 report = refreshFailureReport;
             }
         }
@@ -59055,7 +59431,11 @@ async function run() {
         if (error instanceof PolicyOverrideError) {
             // An unusable override is still a run that could not evaluate — ADR-011 §1
             // owes the PR a brief here too, with the validation message as the reason.
-            await postCannotEvaluateBrief(error, "closed");
+            // The availability stance is a repo/environment contract, not a property of
+            // which error was thrown: an invalid override in a fail-open repo publishes
+            // the same fail-open cannot-evaluate check as any other failure. (The job
+            // itself still fails via setFailed below either way.)
+            await postCannotEvaluateBrief(error, failMode);
             setFailed(`Invalid policy override: ${error.message}`);
             return;
         }
