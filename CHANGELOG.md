@@ -15,6 +15,10 @@ All notable changes to Trailhead will be documented in this file.
 
 - **`gate.check_name` now names the published check** — the effective Checks API context is `check-name` (action input) ?? `gate.check_name` (`.trailhead.yml`) ?? the mode default (`Trailhead` for `risk-only`, `Trailhead — Release Ready` otherwise), and it is resolved once in `evaluateGate` and reused by the catch path. **A repo that sets `gate.check_name` will see its published check renamed** to that value — previously `gate.check_name` was consulted by `trailhead doctor` and check-exclusion but never by the publisher, so such a repo published under the mode default. Update the required-status-check contexts in branch protection before upgrading, or the old context stays permanently pending. `gate.check_name` also lost its schema default, so a repo with a `gate:` block that does not set `check_name` now gets the mode default instead of `Trailhead — Release Ready` in every mode. Repos with no `gate:` block are unaffected.
 
+### Fixed
+
+- **`mock_placeholder` no longer flags standard frontend `placeholder` vocabulary** — the bare-word pattern now skips `placeholder` used as an HTML/JSX attribute (`placeholder="…"`), a Tailwind utility or variant (`placeholder-white/15`, `placeholder:text-sm`), a CSS pseudo-element (`::placeholder`), a property access (`input.placeholder`), or an object key (`placeholder: "…"`). Any frontend PR adding a form input previously blocked on the detector (first real-world hit: KomatikAI/sundog#517, which forced that repo to demote `mock_placeholder` to `severity: warn`). Bare-word stubs (`// placeholder until real API lands`) still block, and screaming-case constants like `PLACEHOLDER_RESPONSE` are now caught explicitly — the underscore removed the trailing word boundary the old pattern relied on, so they were never actually flagged.
+
 ## [4.7.1] - 2026-08-28
 
 ### Fixed
