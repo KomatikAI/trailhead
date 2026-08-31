@@ -262,6 +262,87 @@ describe("mock_placeholder", () => {
     );
     expect(check?.code).toBe("mock_placeholder");
   });
+
+  it("ignores the JSX/HTML placeholder attribute", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/components/CheckpointTimeline.tsx",
+            patch: '@@\n+          placeholder="Game title"\n',
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("ignores Tailwind placeholder utilities and variants", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/components/CheckpointTimeline.tsx",
+            patch:
+              '@@\n+          className="placeholder-white/15 placeholder:text-zinc-500"\n',
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("ignores CSS ::placeholder and placeholder property access", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/styles/form.css",
+            patch: "@@\n+input::placeholder { color: gray; }\n",
+          },
+          {
+            filename: "src/form.ts",
+            patch: '@@\n+input.placeholder = "Search";\n',
+          },
+          {
+            filename: "src/config.ts",
+            patch: '@@\n+const field = { placeholder: "Enter name" };\n',
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("still flags a bare placeholder comment", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/api.ts",
+            patch: "@@\n+// placeholder until real API lands\n",
+          },
+        ],
+      }),
+    );
+    expect(check?.code).toBe("mock_placeholder");
+  });
+
+  it("flags SCREAMING_CASE PLACEHOLDER_ constants", () => {
+    // The word pattern alone can't catch these (the underscore removes the
+    // trailing word boundary), and MOCK_ only covers the MOCK_ prefix.
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/api.ts",
+            patch: "@@\n+const PLACEHOLDER_RESPONSE = { ok: true };\n",
+          },
+        ],
+      }),
+    );
+    expect(check?.code).toBe("mock_placeholder");
+  });
 });
 
 describe("secrets fixture precision", () => {

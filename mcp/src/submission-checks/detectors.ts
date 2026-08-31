@@ -37,7 +37,12 @@ const MOCK_PATTERNS = [
   /\bTODO:\s*implement\b/gi,
   /\bFIXME\b/g,
   /\bIn production,\s*use\b/i,
-  /\bplaceholder\b/gi,
+  /\bPLACEHOLDER_[A-Z0-9_]+\b/,
+  // Bare "placeholder" only — the word as an HTML/JSX attribute (placeholder="…"),
+  // a Tailwind utility/variant (placeholder-white/15, placeholder:text-sm), a CSS
+  // pseudo-element (::placeholder), a property access (input.placeholder), or an
+  // object key (placeholder: "…") is standard frontend vocabulary, not a stub.
+  /(?<![.:])\bplaceholder\b(?![=:-])/gi,
   /\blorem ipsum\b/gi,
 ];
 
