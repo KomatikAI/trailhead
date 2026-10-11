@@ -1,4 +1,4 @@
-const DEFAULT_CLOUD_BASE = "https://api.trailhead.dev";
+const DEFAULT_CLOUD_BASE = "https://trailhead.komatik.xyz/api/cloud";
 function cloudBaseUrl() {
     const url = process.env.TRAILHEAD_CLOUD_API_URL?.trim();
     return url ? url.replace(/\/$/, "") : null;

@@ -136,9 +136,11 @@ export declare const DigestSubscribePayload: z.ZodObject<{
     fpThreshold?: number | undefined;
 }>;
 export type DigestSubscribePayload = z.infer<typeof DigestSubscribePayload>;
+/** Caller-editable org settings. `plan` and `seats` are deliberately absent:
+ *  they are billing state and must not be self-service (`plan` is written only
+ *  by the Stripe webhook / reconcile path). `.strict()` rejects them with a 400
+ *  instead of silently stripping them. */
 export declare const OrgSettingsPatch: z.ZodObject<{
-    plan: z.ZodOptional<z.ZodEnum<["free", "pro", "team"]>>;
-    seats: z.ZodOptional<z.ZodNumber>;
     sso: z.ZodOptional<z.ZodObject<{
         enabled: z.ZodBoolean;
         provider: z.ZodEnum<["saml", "oidc"]>;
@@ -155,9 +157,7 @@ export declare const OrgSettingsPatch: z.ZodObject<{
         issuerUrl?: string | undefined;
         clientId?: string | undefined;
     }>>;
-}, "strip", z.ZodTypeAny, {
-    plan?: "free" | "pro" | "team" | undefined;
-    seats?: number | undefined;
+}, "strict", z.ZodTypeAny, {
     sso?: {
         enabled: boolean;
         provider: "saml" | "oidc";
@@ -165,8 +165,6 @@ export declare const OrgSettingsPatch: z.ZodObject<{
         clientId?: string | undefined;
     } | undefined;
 }, {
-    plan?: "free" | "pro" | "team" | undefined;
-    seats?: number | undefined;
     sso?: {
         enabled: boolean;
         provider: "saml" | "oidc";

@@ -250,7 +250,7 @@ Each evaluation produces a span with risk score, health score, gate decision, an
 
 See **[evaluation-storage.md](evaluation-storage.md)** for the full guide. Summary:
 
-1. **Trailhead Cloud (Pro/Team)** — set `trailhead-api-key` in the Action; evaluations POST to `https://api.trailhead.dev/v1/evaluations`.
+1. **Trailhead Cloud (Pro/Team)** — set `trailhead-api-key` in the Action; evaluations POST to `https://trailhead.komatik.xyz/api/cloud/v1/evaluations`.
 2. **Bring-your-own-store** — POST JSON to `evaluation-store-url` with `evaluation-store-secret` as Bearer token.
 3. **Supabase fallback** — direct REST insert when primary store fails and `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set.
 

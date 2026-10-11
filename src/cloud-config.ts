@@ -1,5 +1,5 @@
 /** Default Trailhead Cloud API base URL (override with TRAILHEAD_CLOUD_API_BASE). */
-export const DEFAULT_CLOUD_API_BASE = "https://api.trailhead.dev";
+export const DEFAULT_CLOUD_API_BASE = "https://trailhead.komatik.xyz/api/cloud";
 
 export function resolveCloudApiBase(): string {
   const fromEnv = process.env.TRAILHEAD_CLOUD_API_BASE?.trim();

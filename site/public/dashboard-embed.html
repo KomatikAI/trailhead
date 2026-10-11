@@ -296,7 +296,11 @@
     <div class="config-bar">
       <label>
         API Base
-        <input type="text" id="apiBase" placeholder="https://api.trailhead.dev" />
+        <input
+          type="text"
+          id="apiBase"
+          placeholder="https://trailhead.komatik.xyz/api/cloud"
+        />
       </label>
       <label>
         API Key
@@ -478,7 +482,7 @@
     <script>
       // Embedded copy of cloud/public/dashboard.html, served same-origin under
       // site/ and pointed at the Hono-mounted Cloud API (/api/cloud/v1/*)
-      // instead of a standalone api.trailhead.dev host. Key storage uses
+      // instead of a separate API host. Key storage uses
       // sessionStorage (never localStorage/cookies) so the API key does not
       // outlive the browser tab.
       const DEFAULT_BASE = window.location.origin + "/api/cloud";

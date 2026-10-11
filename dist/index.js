@@ -1,17 +1,10 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 6390:
+/***/ 8066:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-gnu.node")
-
-/***/ }),
-
-/***/ 7064:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-module.exports = require(__nccwpck_require__.ab + "swc.linux-arm64-musl.node")
+module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
 
 /***/ }),
 
@@ -958,7 +951,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(9763)
+        return __nccwpck_require__(8066)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1092,7 +1085,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(7064)
+        return __nccwpck_require__(5254)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1104,7 +1097,7 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6390)
+        return __nccwpck_require__(6571)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -29776,6 +29769,22 @@ module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
 
 /***/ }),
 
+/***/ 6571:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-linux-arm64-gnu");
+
+
+/***/ }),
+
+/***/ 5254:
+/***/ ((module) => {
+
+module.exports = eval("require")("@swc/core-linux-arm64-musl");
+
+
+/***/ }),
+
 /***/ 3586:
 /***/ ((module) => {
 
@@ -29844,14 +29853,6 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
-
-
-/***/ }),
-
-/***/ 9763:
-/***/ ((module) => {
-
-module.exports = eval("require")("@swc/core-win32-x64-msvc");
 
 
 /***/ }),
@@ -48977,7 +48978,12 @@ const MOCK_PATTERNS = [
     /\bTODO:\s*implement\b/gi,
     /\bFIXME\b/g,
     /\bIn production,\s*use\b/i,
-    /\bplaceholder\b/gi,
+    /\bPLACEHOLDER_[A-Z0-9_]+\b/,
+    // Bare "placeholder" only — the word as an HTML/JSX attribute (placeholder="…"),
+    // a Tailwind utility/variant (placeholder-white/15, placeholder:text-sm), a CSS
+    // pseudo-element (::placeholder), a property access (input.placeholder), or an
+    // object key (placeholder: "…") is standard frontend vocabulary, not a stub.
+    /(?<![.:])\bplaceholder\b(?![=:-])/gi,
     /\blorem ipsum\b/gi,
 ];
 const SECRET_PATTERNS = [
@@ -57442,7 +57448,7 @@ const cypressHealer = {
 
 ;// CONCATENATED MODULE: ./src/cloud-config.ts
 /** Default Trailhead Cloud API base URL (override with TRAILHEAD_CLOUD_API_BASE). */
-const DEFAULT_CLOUD_API_BASE = "https://api.trailhead.dev";
+const DEFAULT_CLOUD_API_BASE = "https://trailhead.komatik.xyz/api/cloud";
 function resolveCloudApiBase() {
     const fromEnv = process.env.TRAILHEAD_CLOUD_API_BASE?.trim();
     return (fromEnv || DEFAULT_CLOUD_API_BASE).replace(/\/$/, "");
