@@ -4,9 +4,8 @@
 
 | Version | Supported |
 | ------- | --------- |
-| 3.x     | Yes       |
-| 2.x     | No        |
-| 1.x     | No        |
+| 4.x     | Yes       |
+| < 4.0   | No        |
 
 ## Reporting a Vulnerability
 
@@ -14,7 +13,9 @@ If you discover a security vulnerability in Trailhead, please report it responsi
 
 **Do not open a public issue.**
 
-Instead, email **security@komatik.dev** with:
+Instead, report it privately through
+[GitHub private vulnerability reporting](https://github.com/KomatikAI/trailhead/security/advisories/new),
+or email **security@komatik.ai**. Include:
 
 1. A description of the vulnerability
 2. Steps to reproduce
@@ -32,6 +33,7 @@ The following are in scope:
 - The CLI (`cli/`)
 - Risk scoring logic (`src/risk-engine.ts`)
 - Configuration parsing (`src/config.ts`, `.trailhead.yml`)
+- Trailhead Cloud: the hosted API (`cloud/`) and the site's billing and key-claim routes (`site/`)
 
 The following are out of scope:
 

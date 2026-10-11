@@ -1038,7 +1038,7 @@ policies:
 
     const config = makeConfig({
       githubToken: "ghp_test",
-      evaluationStoreUrl: "https://api.trailhead.dev/v1/evaluations",
+      evaluationStoreUrl: "https://trailhead.komatik.xyz/api/cloud/v1/evaluations",
       trailheadApiKey: "th_test",
     });
     const result = await evaluateGate(config, "abc1234567890", 42);

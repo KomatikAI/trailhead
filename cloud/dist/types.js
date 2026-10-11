@@ -53,9 +53,12 @@ export const DigestSubscribePayload = z.object({
     destination: z.string().min(3),
     fpThreshold: z.number().min(0).max(100).default(15),
 });
-export const OrgSettingsPatch = z.object({
-    plan: z.enum(["free", "pro", "team"]).optional(),
-    seats: z.number().int().min(1).optional(),
+/** Caller-editable org settings. `plan` and `seats` are deliberately absent:
+ *  they are billing state and must not be self-service (`plan` is written only
+ *  by the Stripe webhook / reconcile path). `.strict()` rejects them with a 400
+ *  instead of silently stripping them. */
+export const OrgSettingsPatch = z
+    .object({
     sso: z
         .object({
         enabled: z.boolean(),
@@ -64,4 +67,5 @@ export const OrgSettingsPatch = z.object({
         clientId: z.string().optional(),
     })
         .optional(),
-});
+})
+    .strict();

@@ -25,14 +25,14 @@ The simplest path — one API key, no store URL configuration.
 
 When `trailhead-api-key` is set:
 
-| Setting       | Value                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------ |
-| Store URL     | `https://api.trailhead.dev/v1/evaluations` (override base with `TRAILHEAD_CLOUD_API_BASE`) |
-| Auth          | Bearer token = your API key                                                                |
-| Deploy events | `https://api.trailhead.dev/v1/deploy-events`                                               |
-| Idempotency   | `Idempotency-Key: <evaluation.id>` on every POST                                           |
+| Setting       | Value                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| Store URL     | `https://trailhead.komatik.xyz/api/cloud/v1/evaluations` (override base with `TRAILHEAD_CLOUD_API_BASE`) |
+| Auth          | Bearer token = your API key                                                                              |
+| Deploy events | `https://trailhead.komatik.xyz/api/cloud/v1/deploy-events`                                               |
+| Idempotency   | `Idempotency-Key: <evaluation.id>` on every POST                                                         |
 
-Repos are **auto-registered** on first evaluation. Open the hosted dashboard at `/dashboard` on the Cloud API (e.g. `https://api.trailhead.dev/dashboard`). See [cloud/openapi.yaml](../cloud/openapi.yaml) for the full API.
+Repos are **auto-registered** on first evaluation. Open the hosted dashboard at `https://trailhead.komatik.xyz/dashboard`. See [cloud/openapi.yaml](../cloud/openapi.yaml) for the full API.
 
 ### Local Cloud API
 

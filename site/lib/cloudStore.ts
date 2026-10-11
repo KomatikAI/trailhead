@@ -16,6 +16,9 @@ export type BillingStore = CloudStore;
  *
  * Selection: Postgres store when DATABASE_URL is set (production/preview),
  * otherwise the in-memory store (local dev / tests inject their own mock).
+ * A production deployment without DATABASE_URL throws instead: the memory
+ * store would silently lose paid orgs, subscriptions and API keys on every
+ * cold start.
  *
  * `createPgStore` (cloud/src/pg-store.ts) is synchronous and takes a `pg.Pool`
  * instance directly — NOT an async factory over `{ connectionString }` (that
@@ -28,6 +31,11 @@ export function getBillingStore(): Promise<BillingStore> {
   if (storePromise) return storePromise;
 
   const connectionString = process.env.DATABASE_URL;
+  if (!connectionString && process.env.VERCEL_ENV === "production") {
+    throw new Error(
+      "DATABASE_URL is not set in production; refusing to fall back to the in-memory billing store",
+    );
+  }
   storePromise = connectionString
     ? Promise.resolve(createPgStore(new pg.Pool({ connectionString })))
     : Promise.resolve(createMemoryStore());

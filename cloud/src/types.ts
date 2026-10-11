@@ -69,18 +69,22 @@ export const DigestSubscribePayload = z.object({
 
 export type DigestSubscribePayload = z.infer<typeof DigestSubscribePayload>;
 
-export const OrgSettingsPatch = z.object({
-  plan: z.enum(["free", "pro", "team"]).optional(),
-  seats: z.number().int().min(1).optional(),
-  sso: z
-    .object({
-      enabled: z.boolean(),
-      provider: z.enum(["saml", "oidc"]),
-      issuerUrl: z.string().url().optional(),
-      clientId: z.string().optional(),
-    })
-    .optional(),
-});
+/** Caller-editable org settings. `plan` and `seats` are deliberately absent:
+ *  they are billing state and must not be self-service (`plan` is written only
+ *  by the Stripe webhook / reconcile path). `.strict()` rejects them with a 400
+ *  instead of silently stripping them. */
+export const OrgSettingsPatch = z
+  .object({
+    sso: z
+      .object({
+        enabled: z.boolean(),
+        provider: z.enum(["saml", "oidc"]),
+        issuerUrl: z.string().url().optional(),
+        clientId: z.string().optional(),
+      })
+      .optional(),
+  })
+  .strict();
 
 export type OrgSettingsPatch = z.infer<typeof OrgSettingsPatch>;
 
