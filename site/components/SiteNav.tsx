@@ -64,10 +64,7 @@ export default function SiteNav() {
           >
             Status
           </Link>
-          <Link
-            href={`${REPO_URL}#quick-start`}
-            className="btn btn-primary"
-          >
+          <Link href={`${REPO_URL}#quick-start`} className="btn btn-primary">
             Install
           </Link>
         </div>
