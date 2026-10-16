@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "Trailhead is free as a GitHub Action. Trailhead Cloud adds hosted evaluation storage, dashboards, and agent-governance policy: Pro $39/mo, Team $399/mo.",
 };
 
-const MARKETPLACE_URL = "https://github.com/marketplace/actions/trailhead";
+const INSTALL_URL = "https://github.com/KomatikAI/trailhead#quick-start";
 
 export default function PricingPage() {
   return (
@@ -44,11 +44,11 @@ export default function PricingPage() {
           ]}
           cta={
             <Link
-              href={MARKETPLACE_URL}
+              href={INSTALL_URL}
               className="btn btn-secondary"
               style={{ width: "100%" }}
             >
-              Install from Marketplace
+              Install the GitHub Action
             </Link>
           }
         />

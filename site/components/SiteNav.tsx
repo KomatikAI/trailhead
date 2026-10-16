@@ -65,7 +65,7 @@ export default function SiteNav() {
             Status
           </Link>
           <Link
-            href="https://github.com/marketplace/actions/trailhead"
+            href={`${REPO_URL}#quick-start`}
             className="btn btn-primary"
           >
             Install
