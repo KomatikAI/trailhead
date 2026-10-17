@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TrailheadMark } from "@/components/SiteNav";
 
-const MARKETPLACE_URL = "https://github.com/marketplace/actions/trailhead";
+const INSTALL_URL = "https://github.com/KomatikAI/trailhead#quick-start";
 const REPO_URL = "https://github.com/KomatikAI/trailhead";
 
 // Fully static server component — no client JS on the landing page.
@@ -75,11 +75,11 @@ function Hero() {
         }}
       >
         <Link
-          href={MARKETPLACE_URL}
+          href={INSTALL_URL}
           className="btn btn-primary"
           style={{ padding: "12px 22px" }}
         >
-          Install from GitHub Marketplace
+          Install the GitHub Action
         </Link>
         <Link
           href="/pricing"
@@ -381,11 +381,11 @@ function FinalCta() {
           style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}
         >
           <Link
-            href={MARKETPLACE_URL}
+            href={INSTALL_URL}
             className="btn btn-primary"
             style={{ padding: "12px 22px" }}
           >
-            Install from GitHub Marketplace
+            Install the GitHub Action
           </Link>
           <Link
             href={REPO_URL}
