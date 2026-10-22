@@ -33,6 +33,8 @@ node scripts/check-lodge-evidence.mjs \
 Every argument is required, unique and case-sensitive. Unknown arguments or
 invalid expectations exit 1. Production requires Stripe live mode; staging can
 exercise test or live mode. Selecting a mode never creates or pays for a checkout.
+Test-mode top-ups remain `not_promotable` on staging even if all other evidence
+passes; production eligibility always needs a live-mode top-up.
 
 The command writes a JSON report containing exactly eleven condition checks,
 remediation for each failure, and non-secret evidence links. It never prints the

@@ -522,7 +522,7 @@ test("test billing can be exercised on staging but cannot qualify for production
   d.topup.mode = "test";
   assert.equal(
     evaluate(d, { ...expected, environment: "staging", stripeMode: "test" }).promotable,
-    true,
+    false,
   );
   assert.equal(evaluate(d).promotable, false);
 });

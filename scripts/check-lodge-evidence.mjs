@@ -217,6 +217,7 @@ export function evaluateLodgeEvidence(document, expected, now = Date.now()) {
     "topup",
     proof(t) &&
       t.mode === expected.stripeMode &&
+      t.mode === "live" &&
       t.linkedUser === true &&
       nonempty(t.subjectId) &&
       nonempty(t.checkoutSessionId) &&
@@ -237,7 +238,7 @@ export function evaluateLodgeEvidence(document, expected, now = Date.now()) {
       t.refreshedWalletBalance === t.walletAfter &&
       https(t.checkoutUrl) &&
       https(t.eventUrl),
-    "Complete a Stripe top-up in the configured mode; correlate paid checkout, fulfilled webhook, ledger credit and refreshed wallet.",
+    "Complete a live-mode Stripe top-up in the configured mode; test-mode evidence is not promotable. Correlate paid checkout, fulfilled webhook, ledger credit and refreshed wallet.",
     [t],
   );
   const usage = list(d.usage);
