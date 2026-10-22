@@ -4,6 +4,7 @@ import {
   detectContextFreshness,
   detectExternalPackageDeps,
   detectAuthRouteAuth,
+  detectRlsNewTables,
   detectMockPlaceholder,
   detectSecrets,
   detectSqlSyntaxBasic,
@@ -87,7 +88,88 @@ describe("syntax_validity (@swc/core)", () => {
   });
 });
 
+describe("rls_new_tables schema identity", () => {
+  const check = (create: string, alter: string) =>
+    detectRlsNewTables(
+      ctx({
+        files: [
+          { filename: "create.sql", content: create },
+          { filename: "rls.sql", content: alter },
+        ],
+      }),
+    );
+
+  it.each([
+    ["public.widgets", "public.widgets"],
+    ["public.widgets", "widgets"],
+    ["widgets", "public.widgets"],
+    ['"public"."widgets"', '"public"."widgets"'],
+    ['"internal" . "Widget.Events"', 'ONLY "internal" . "Widget.Events"'],
+    ["PUBLIC.WIDGETS", "public.widgets"],
+    ['"public"."a""b"', '"public"."a""b"'],
+    ["public.widgets$archive", "public.widgets$archive"],
+  ])("recognizes matching CREATE %s and ALTER %s", (created, altered) => {
+    expect(
+      check(
+        `CREATE TABLE IF NOT EXISTS ${created} (id uuid);`,
+        `ALTER TABLE ${altered} ENABLE ROW LEVEL SECURITY;`,
+      ),
+    ).toBeNull();
+  });
+
+  it.each([
+    ["public.widgets", "other.widgets"],
+    ["internal.widgets", "widgets"],
+    ['public."Widgets"', "public.widgets"],
+    ['"Internal".widgets', "internal.widgets"],
+    ["public.widgets", "public.widget"],
+  ])("does not let %s borrow RLS from %s", (created, altered) => {
+    expect(
+      check(
+        `CREATE TABLE ${created} (id uuid);`,
+        `ALTER TABLE ${altered} ENABLE ROW LEVEL SECURITY;`,
+      )?.severity,
+    ).toBe("blocking");
+  });
+
+  it("checks every table and still rejects disabled or missing RLS", () => {
+    expect(
+      check(
+        "CREATE TABLE public.one(id uuid); CREATE TABLE public.two(id uuid);",
+        "ALTER TABLE public.one ENABLE ROW LEVEL SECURITY; ALTER TABLE public.two DISABLE ROW LEVEL SECURITY;",
+      )?.files,
+    ).toEqual(["create.sql"]);
+  });
+
+  it("does not require RLS for temporary tables", () => {
+    expect(
+      check("CREATE TEMP TABLE one(id uuid); CREATE TEMPORARY TABLE two(id uuid);", ""),
+    ).toBeNull();
+  });
+});
+
 describe("sql_syntax_basic", () => {
+  it("accepts a SQL transaction around a complete PL/pgSQL function", () => {
+    const content = `BEGIN;
+CREATE FUNCTION demo() RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+  NULL;
+END;
+$$;
+COMMIT;`;
+    expect(
+      detectSqlSyntaxBasic(ctx({ files: [{ filename: "transaction.sql", content }] })),
+    ).toBeNull();
+  });
+
+  it("does not let a transaction hide an unclosed PL/pgSQL block", () => {
+    const content = `BEGIN; DO $$ BEGIN NULL; $$; COMMIT;`;
+    expect(
+      detectSqlSyntaxBasic(ctx({ files: [{ filename: "transaction.sql", content }] }))
+        ?.severity,
+    ).toBe("warn");
+  });
+
   it("does not flag valid PL/pgSQL with CASE/END IF/END LOOP", () => {
     const sql = `
 CREATE OR REPLACE FUNCTION demo() RETURNS void AS $$
