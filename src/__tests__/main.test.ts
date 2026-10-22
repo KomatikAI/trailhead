@@ -123,6 +123,7 @@ describe("run (main entrypoint)", () => {
       "webhook-url": "https://hooks.slack.com/test",
       "webhook-events": "warn,block",
       "evaluation-store-url": "https://example.com/api/trailhead/store",
+      "evaluation-store-retries": "2",
       "disable-cloud-upsell": "true",
     });
 
@@ -186,7 +187,7 @@ describe("run (main entrypoint)", () => {
     expect(storeSpy).toHaveBeenCalledWith(
       "https://example.com/api/trailhead/store",
       eval_,
-      { maxRetries: 3 },
+      { maxRetries: 2 },
     );
     expect(storedSnapshot?.releaseBrief?.requiredCheck).toEqual(
       expect.objectContaining({
