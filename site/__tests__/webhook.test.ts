@@ -2,10 +2,28 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import type Stripe from "stripe";
 import { createMemoryStore } from "trailhead-cloud";
 import type { BillingStore } from "@/lib/cloudStore";
-import { handleStripeEvent } from "@/lib/webhookHandlers";
+import { handleStripeEvent as applyEvent } from "@/lib/webhookHandlers";
 import { decryptClaim } from "@/lib/claimCrypto";
 
 const SECRET = "webhook-test-secret";
+
+function subscription(overrides: Record<string, unknown> = {}): Stripe.Subscription {
+  return {
+    id: "sub_1",
+    customer: "cus_1",
+    status: "active",
+    items: { data: [{ price: { id: "price_pro_123" }, current_period_end: 1893456000 }] },
+    ...overrides,
+  } as unknown as Stripe.Subscription;
+}
+
+function handleStripeEvent(event: Stripe.Event, store: BillingStore) {
+  return applyEvent(event, store, async () =>
+    event.type.startsWith("customer.subscription.")
+      ? (event.data.object as Stripe.Subscription)
+      : subscription(),
+  );
+}
 
 beforeEach(() => {
   vi.unstubAllEnvs();
@@ -215,6 +233,64 @@ describe("handleStripeEvent — subscription lifecycle", () => {
  * string|null updateSubscriptionByStripeId, discriminated-union claimKey).
  */
 describe("handleStripeEvent — real store integration (createMemoryStore)", () => {
+  it("does not restore access when a canceled subscription's Checkout arrives late", async () => {
+    const store = createMemoryStore();
+    const current = subscription({ status: "canceled" });
+    const retrieve = vi.fn(async () => current);
+    const deleted = {
+      id: "evt_deleted_first",
+      type: "customer.subscription.deleted",
+      data: { object: current },
+    } as Stripe.Event;
+    await applyEvent(deleted, store, retrieve);
+    const result = await applyEvent(checkoutEvent(), store, retrieve);
+    const claim = await store.claimKey("cs_test_1");
+    const secret = decryptClaim((claim as { ciphertext: string }).ciphertext, SECRET);
+    expect((await store.getOrgForKey(secret))?.suspended).toBe(true);
+    expect((await store.getSubscriptionForOrg(result.orgId!))?.status).toBe("canceled");
+  });
+
+  it("uses current Stripe status when an old active update arrives after cancellation", async () => {
+    const store = createMemoryStore();
+    const created = await handleStripeEvent(checkoutEvent(), store);
+    const oldUpdate = {
+      id: "evt_old_active",
+      type: "customer.subscription.updated",
+      data: { object: subscription() },
+    } as Stripe.Event;
+    await applyEvent(oldUpdate, store, async () => subscription({ status: "canceled" }));
+    expect((await store.getSubscriptionForOrg(created.orgId!))?.status).toBe("canceled");
+  });
+
+  it("leaves a failed Stripe lookup retryable without provisioning access", async () => {
+    const store = createMemoryStore();
+    await expect(
+      applyEvent(checkoutEvent(), store, async () => {
+        throw new Error("Stripe unavailable");
+      }),
+    ).rejects.toThrow("Stripe unavailable");
+    expect(await store.hasStripeEvent("evt_checkout_1")).toBe(false);
+    expect(await store.listSubscriptions()).toHaveLength(0);
+    expect((await handleStripeEvent(checkoutEvent(), store)).handled).toBe(true);
+  });
+
+  it("uses the current price and rejects mismatched subscription ownership", async () => {
+    const store = mockStore();
+    await expect(
+      applyEvent(checkoutEvent(), store, async () =>
+        subscription({ customer: "cus_other" }),
+      ),
+    ).rejects.toThrow("customer mismatch");
+    expect(store.fulfillCheckout).not.toHaveBeenCalled();
+    await applyEvent(checkoutEvent(), store, async () =>
+      subscription({ items: { data: [{ price: { id: "price_team_456" } }] } }),
+    );
+    expect(store.fulfillCheckout).toHaveBeenCalledWith(
+      expect.objectContaining({ plan: "team" }),
+      expect.anything(),
+    );
+  });
+
   it("waits for a delayed payment before granting paid access", async () => {
     const store = createMemoryStore();
     expect(

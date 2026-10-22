@@ -131,9 +131,15 @@ export function createPgStore(pool: Pool): CloudStore {
     const secret = generateApiKey();
     const keyRes = await client.query(
       `INSERT INTO api_keys (org_id, key_hash, key_preview, label, suspended)
-             VALUES ($1, $2, $3, $4, false)
+             VALUES ($1, $2, $3, $4, $5)
              RETURNING id`,
-      [orgId, hashApiKey(secret), maskApiKey(secret), input.keyLabel ?? "Primary key"],
+      [
+        orgId,
+        hashApiKey(secret),
+        maskApiKey(secret),
+        input.keyLabel ?? "Primary key",
+        !UNSUSPEND_STATUSES.has(input.status),
+      ],
     );
 
     const org: OrgRecord = {
@@ -147,7 +153,7 @@ export function createPgStore(pool: Pool): CloudStore {
       orgId,
       orgName: input.orgName,
       label: input.keyLabel ?? "Primary key",
-      suspended: false,
+      suspended: !UNSUSPEND_STATUSES.has(input.status),
     };
     return { org, keySecret: secret, keyRecord };
   }
@@ -822,7 +828,8 @@ export function createPgStore(pool: Pool): CloudStore {
         if (row.claimed_at) return { alreadyClaimed: true };
         if (new Date(row.expires_at).getTime() <= Date.now()) return { expired: true };
         await client.query(
-          `UPDATE key_claims SET claimed_at = now() WHERE checkout_session_id = $1`,
+          `UPDATE key_claims SET claimed_at = now(), key_ciphertext = ''
+             WHERE checkout_session_id = $1`,
           [sessionId],
         );
         return { ciphertext: row.key_ciphertext as string };
@@ -831,7 +838,9 @@ export function createPgStore(pool: Pool): CloudStore {
 
     async purgeExpiredClaims(): Promise<number> {
       const res = await pool.query(
-        `DELETE FROM key_claims WHERE claimed_at IS NULL AND expires_at <= now()`,
+        // Retain session receipts for idempotency after encrypted claims expire.
+        `UPDATE key_claims SET key_ciphertext = ''
+           WHERE expires_at <= now() AND key_ciphertext <> ''`,
       );
       return res.rowCount ?? 0;
     },

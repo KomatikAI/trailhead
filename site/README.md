@@ -57,6 +57,17 @@ API key and encrypted claim in one transaction. A retry for the same session
 cannot create another key or reopen a revealed claim. Unpaid delayed-payment
 sessions wait for `checkout.session.async_payment_succeeded`.
 
+Webhook handlers retrieve current subscription status and price from Stripe;
+event delivery order is not guaranteed. A delayed Checkout for a canceled
+subscription creates a suspended key. Stripe lookup failures return an error for
+retry. Reconciliation still repairs drift from concurrent upstream changes.
+
+Claim cleanup erases encrypted secrets while retaining the session/org receipt.
+Deleting that receipt would allow a later distinct Stripe event for the same
+Checkout session to issue another key. Revealed secrets are erased immediately;
+expired claims continue to return 410. This intentionally replaces the original
+contract's deletion of expired claim rows without requiring a schema change.
+
 The dashboard's **Manage billing** button accepts an existing Cloud key, including
 a suspended key so customers can recover payment. SSO configuration is a preview;
 it does not implement SSO sign-in. A lost API key requires a working secondary key

@@ -311,6 +311,7 @@ export interface CloudStore {
     expiresAt: string,
   ): Promise<void>;
   claimKey(sessionId: string): Promise<KeyClaimResult>;
+  /** Erase expired ciphertext, retaining session receipts to prevent replay. */
   purgeExpiredClaims(): Promise<number>;
   getSubscriptionForOrg(orgId: string): Promise<SubscriptionRecord | null>;
   listSubscriptions(): Promise<SubscriptionRecord[]>;

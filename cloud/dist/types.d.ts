@@ -342,6 +342,7 @@ export interface CloudStore {
     removeStripeEvent(eventId: string): Promise<void>;
     createKeyClaim(sessionId: string, orgId: string, ciphertext: string, expiresAt: string): Promise<void>;
     claimKey(sessionId: string): Promise<KeyClaimResult>;
+    /** Erase expired ciphertext, retaining session receipts to prevent replay. */
     purgeExpiredClaims(): Promise<number>;
     getSubscriptionForOrg(orgId: string): Promise<SubscriptionRecord | null>;
     listSubscriptions(): Promise<SubscriptionRecord[]>;

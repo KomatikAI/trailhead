@@ -55,7 +55,7 @@ export function createMemoryStore(seedKeys = []) {
             orgId,
             orgName: input.orgName,
             label: input.keyLabel ?? "Primary key",
-            suspended: false,
+            suspended: !UNSUSPEND_STATUSES.has(input.status),
         };
         storeKey(keyRecord);
         managedKeys.set(keyId, {
@@ -480,6 +480,8 @@ export function createMemoryStore(seedKeys = []) {
             stripeEvents.delete(eventId);
         },
         async createKeyClaim(sessionId, orgId, ciphertext, expiresAt) {
+            if (keyClaims.has(sessionId))
+                return;
             keyClaims.set(sessionId, {
                 sessionId,
                 orgId,
@@ -496,15 +498,19 @@ export function createMemoryStore(seedKeys = []) {
                 return { alreadyClaimed: true };
             if (new Date(claim.expiresAt).getTime() <= Date.now())
                 return { expired: true };
+            const ciphertext = claim.ciphertext;
             claim.claimedAt = new Date().toISOString();
-            return { ciphertext: claim.ciphertext };
+            claim.ciphertext = "";
+            return { ciphertext };
         },
         async purgeExpiredClaims() {
             const now = Date.now();
             let purged = 0;
-            for (const [sessionId, claim] of keyClaims) {
-                if (!claim.claimedAt && new Date(claim.expiresAt).getTime() <= now) {
-                    keyClaims.delete(sessionId);
+            for (const claim of keyClaims.values()) {
+                if (claim.ciphertext && new Date(claim.expiresAt).getTime() <= now) {
+                    // Keep the session receipt: removing it allows a later webhook to
+                    // provision another key. Only the encrypted secret is disposable.
+                    claim.ciphertext = "";
                     purged += 1;
                 }
             }

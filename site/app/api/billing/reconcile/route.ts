@@ -16,7 +16,7 @@ import { ownedPriceIds, planForPriceId, type PaidPlan } from "@/lib/plans";
  *  - active sub whose org_settings.plan disagrees with Stripe → re-sync the
  *    org plan (repairs any plan write that bypassed billing)
  *  - active sub, zero active keys → needs_attention log line
- *  - purge expired unclaimed key_claims
+ *  - erase expired claim ciphertext, preserving session receipts against replay
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

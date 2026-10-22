@@ -48,12 +48,13 @@ function planFromSubscription(sub: Stripe.Subscription): PaidPlan | undefined {
 export async function handleStripeEvent(
   event: Stripe.Event,
   store: BillingStore,
+  retrieveSubscription: (id: string) => Promise<Stripe.Subscription>,
 ): Promise<HandleResult> {
   if (await store.hasStripeEvent(event.id)) {
     return { handled: false, reason: "duplicate" };
   }
 
-  const result = await applyStripeEvent(event, store);
+  const result = await applyStripeEvent(event, store, retrieveSubscription);
   await store.recordStripeEvent(event.id, event.type, event);
   return result;
 }
@@ -61,6 +62,7 @@ export async function handleStripeEvent(
 async function applyStripeEvent(
   event: Stripe.Event,
   store: BillingStore,
+  retrieveSubscription: (id: string) => Promise<Stripe.Subscription>,
 ): Promise<HandleResult> {
   switch (event.type) {
     case "checkout.session.completed":
@@ -87,17 +89,25 @@ async function applyStripeEvent(
         return { handled: false, reason: "missing_customer_or_subscription" };
       }
 
-      // Create org + org_settings.plan + subscriptions row + first api_key, all
-      // in one store transaction. Precise status/current_period_end are synced
-      // by the following customer.subscription.updated event (and reconcile).
+      // Events can arrive out of order. A delayed Checkout must not resurrect
+      // paid access after cancellation or overwrite a newer plan with metadata.
+      const sub = await retrieveSubscription(stripeSubscriptionId);
+      if (idOf(sub.customer) !== stripeCustomerId) {
+        throw new Error("Checkout subscription customer mismatch");
+      }
+      const currentPlan = planFromSubscription(sub);
+      if (!currentPlan) throw new Error("Unrecognized subscription price");
+
+      // Create org + subscription + key + encrypted claim atomically, using
+      // Stripe's current state rather than assuming a later event will fix it.
       const orgId = await store.fulfillCheckout(
         {
           orgName: orgNameFromEmail(email),
-          plan,
+          plan: currentPlan,
           stripeCustomerId,
           stripeSubscriptionId,
-          status: "active",
-          currentPeriodEnd: null,
+          status: sub.status,
+          currentPeriodEnd: periodEndIso(sub),
           keyLabel: "Initial key",
         },
         {
@@ -110,8 +120,10 @@ async function applyStripeEvent(
       return { handled: true, orgId };
     }
 
-    case "customer.subscription.updated": {
-      const sub = event.data.object as Stripe.Subscription;
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted": {
+      const snapshot = event.data.object as Stripe.Subscription;
+      const sub = await retrieveSubscription(snapshot.id);
       const orgId = await store.updateSubscriptionByStripeId(sub.id, {
         plan: planFromSubscription(sub),
         status: sub.status,
@@ -119,15 +131,6 @@ async function applyStripeEvent(
       });
       // Key suspend/unsuspend by status happens inside the store (single source
       // of truth), per contract flow 2.
-      return { handled: true, orgId: orgId ?? undefined };
-    }
-
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
-      const orgId = await store.updateSubscriptionByStripeId(sub.id, {
-        status: "canceled",
-        currentPeriodEnd: periodEndIso(sub),
-      });
       return { handled: true, orgId: orgId ?? undefined };
     }
 

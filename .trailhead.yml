@@ -22,9 +22,40 @@ contexts:
       risk: 90
       warn: 50
     ci:
-      required_checks: [Lint]
+      required_checks:
+        - "Lint, Test & Build"
+        - "Website lint, test & build"
+        - "Cloud PostgreSQL contracts"
+        - "Dependency audit (.)"
+        - "Dependency audit (app)"
+        - "Dependency audit (cli)"
+        - "Dependency audit (cloud)"
+        - "Dependency audit (mcp)"
+        - "Dependency audit (site)"
+        - "security-guard"
       optional_checks: []
-      missing_required: skip
+      missing_required: fail
+  - name: integration-pr
+    match:
+      base_branch: [dev, staging]
+    environment: staging
+    thresholds:
+      risk: 90
+      warn: 50
+    ci:
+      required_checks:
+        - "Lint, Test & Build"
+        - "Website lint, test & build"
+        - "Cloud PostgreSQL contracts"
+        - "Dependency audit (.)"
+        - "Dependency audit (app)"
+        - "Dependency audit (cli)"
+        - "Dependency audit (cloud)"
+        - "Dependency audit (mcp)"
+        - "Dependency audit (site)"
+        - "security-guard"
+      optional_checks: []
+      missing_required: fail
 
 ignore:
   - "dist/index.js"

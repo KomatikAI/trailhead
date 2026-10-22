@@ -41,6 +41,32 @@ approval workflow, Lodge evidence and promotion calibration remain open.
   webhooks and reconciliation.
 - Updated local setup documentation and regenerated shared App/MCP runtime copies.
 
+## PR #370 review follow-up
+
+- Retain the Checkout session/org receipt after claim expiry, while erasing its
+  encrypted secret at reveal or expiry. Deleting the receipt allowed a different
+  late event to mint another key for the same Checkout.
+- Retrieve current Stripe subscription state for Checkout and lifecycle events.
+  A late Checkout for a canceled subscription now creates a suspended key; an
+  old active event cannot overwrite a cancellation snapshot. Stripe lookup
+  failures remain retryable. Periodic reconcile remains necessary for drift and
+  concurrent upstream changes; these tests are not a live billing canary.
+- Require the real test, audit and security-guard jobs in the repository's
+  release-ready policy on dev, staging and main. Previously the composite check
+  could pass while security-guard failed because no required CI names matched.
+  CI now also runs on promotion PRs. Tests fail each required job individually
+  and remove each job to verify that neither condition produces release-ready.
+- Human security review is still required for workflow changes under
+  `docs/SECURITY-GUARD.md`; an automated code review does not grant that label.
+- The submission auth heuristic initially flags four routes because it expects
+  user/session helpers. Manual review verifies the actual boundaries: Stripe
+  `constructEvent` signature verification, cron `secretMatches` with a timing-safe
+  comparison, the one-time `claimKey` capability, and `createCloudApp`'s mounted
+  bearer-key middleware. Signature tampering, invalid cron keys, unknown/expired
+  claims and unauthorized ingestion are covered by tests. Interactive submission
+  validation supplies those four reviewed helper names; no detector is disabled
+  and no repository auth allowlist is broadened.
+
 ## Recent PR audit
 
 - **#369:** Marketplace links replaced with Quick Start; no Marketplace listing
@@ -62,10 +88,10 @@ re-run every external fleet scenario from these PRs.
 
 ## Validation
 
-The engine regression run passes **1,328 tests**, with **81.10% statements,
+The engine regression run passes **1,331 tests**. The prior coverage run reports **81.10% statements,
 74.74% branches, 90.79% functions and 82.43% lines**, above configured thresholds.
-The Cloud suite passes **72 tests**, including a dedicated local PostgreSQL 18
-database. The website passes **55 tests**, lint, route type generation and its
+The Cloud suite passes **76 tests**, including a dedicated local PostgreSQL 18
+database. The website passes **62 tests**, lint, route type generation and its
 production build. All six dependency audits report zero vulnerabilities. Root
 lint, formatting, App/MCP builds, CLI typecheck and offline doctor also pass.
 Local browser checks verify dashboard
