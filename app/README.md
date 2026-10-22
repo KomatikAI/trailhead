@@ -21,26 +21,42 @@ or rejects deployments without any workflow YAML changes.
 
 ## Endpoints
 
-| Method | Path                          | Purpose                                         |
-| ------ | ----------------------------- | ----------------------------------------------- |
-| POST   | `/webhook`                    | GitHub deployment protection rule webhook       |
-| POST   | `/webhook/deploy-outcome`     | Canary/deploy outcome signals (Vercel, generic) |
-| GET    | `/health`                     | Health check for load balancers                 |
-| GET    | `/.well-known/trailhead.json` | Service discovery and capabilities              |
+| Method | Path                              | Purpose                                         |
+| ------ | --------------------------------- | ----------------------------------------------- |
+| POST   | `/webhook`                        | GitHub deployment protection rule webhook       |
+| POST   | `/webhook/deploy-outcome`         | Canary/deploy outcome signals (Vercel, generic) |
+| POST   | `/webhook/ci-status`              | Signed, repository-scoped external CI status    |
+| GET    | `/v1/ci-status/:owner/:repo/:sha` | Authenticated external CI status read           |
+| GET    | `/health`                         | Health check for load balancers                 |
+| GET    | `/.well-known/trailhead.json`     | Service discovery and capabilities              |
 
 ## Environment Variables
 
-| Variable                 | Required | Description                                           |
-| ------------------------ | -------- | ----------------------------------------------------- |
-| `GITHUB_APP_ID`          | Yes      | GitHub App ID                                         |
-| `GITHUB_APP_PRIVATE_KEY` | Yes      | PEM private key (newlines as `\n`)                    |
-| `GITHUB_WEBHOOK_SECRET`  | No       | Webhook secret for HMAC-SHA256 signature verification |
-| `RISK_THRESHOLD`         | No       | Block above this score (default: 70)                  |
-| `WARN_THRESHOLD`         | No       | Warn above this score (default: 55)                   |
-| `CANARY_WEBHOOK_SECRET`  | No       | HMAC secret for deploy outcome webhook verification   |
-| `PORT`                   | No       | Server port (default: 3000)                           |
+| Variable                  | Required           | Description                                                                            |
+| ------------------------- | ------------------ | -------------------------------------------------------------------------------------- |
+| `GITHUB_APP_ID`           | Yes                | GitHub App ID                                                                          |
+| `GITHUB_APP_PRIVATE_KEY`  | Yes                | PEM private key (newlines as `\n`)                                                     |
+| `GITHUB_WEBHOOK_SECRET`   | Yes for `/webhook` | HMAC-SHA256 secret; missing configuration returns 503                                  |
+| `RISK_THRESHOLD`          | No                 | Block above this score (default: 70)                                                   |
+| `WARN_THRESHOLD`          | No                 | Warn above this score (default: 55)                                                    |
+| `CANARY_WEBHOOK_SECRET`   | For canary ingest  | Required HMAC secret; missing configuration returns 503                                |
+| `CI_WEBHOOK_SECRET`       | For CI ingest      | Required HMAC-SHA256 write secret                                                      |
+| `CI_STATUS_READ_SECRET`   | For CI reads       | Separate bearer token; configure as Action `ci-external-status-secret`                 |
+| `CI_ALLOWED_REPOSITORIES` | For CI             | Comma-separated exact `owner/repo` allowlist; defaults to `GITHUB_REPOSITORY` if unset |
+| `PORT`                    | No                 | Server port (default: 3000)                                                            |
 
 ## Setup
+
+All webhook mutation routes reject absent/invalid signatures and limit bodies to
+256 KiB. The deployment handler also verifies signatures when called directly.
+No unsigned development mode is available. These authentication boundaries do not
+alter the Action's fail-open default for normal evaluator failures.
+
+Existing App operators must provision the corresponding secrets before deploying
+this update. CI publishers must include a full 40-character SHA and an observation
+timestamp within five minutes. Reads require a distinct token and an allowed
+repository. See [the external CI contract](../docs/ci-external-webhook.md). No live
+configuration is changed by the code update.
 
 ### Deploy
 
