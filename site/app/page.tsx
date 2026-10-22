@@ -319,8 +319,7 @@ function PlanTeaser() {
         />
         <p className="muted" style={{ maxWidth: 560, margin: "16px auto 32px" }}>
           The Action is free forever — no API key, no store. Trailhead Cloud adds hosted
-          evaluation history, dashboards, and org-wide agent-governance policy for teams
-          that need the record.
+          evaluation history and dashboards for teams that need the record.
         </p>
         <div
           style={{
@@ -332,9 +331,9 @@ function PlanTeaser() {
           }}
         >
           {[
-            ["Free", "Risk-only gate, local", "$0"],
+            ["Free", "CI, risk, health, and agent-policy gates", "$0"],
             ["Pro", "5,000 evals/mo + dashboard", "$39/mo"],
-            ["Team", "50,000 evals/mo + org rollup + SSO", "$399/mo"],
+            ["Team", "50,000 evals/mo + org rollup", "$399/mo"],
           ].map(([name, desc, price]) => (
             <div key={name} className="card" style={{ textAlign: "left" }}>
               <div

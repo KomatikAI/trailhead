@@ -97,6 +97,20 @@ describe("GET /api/billing/reconcile", () => {
     expect((await store.getOrgSettings(orgId)).plan).toBe("pro");
   });
 
+  it("reads the billing period from subscription items on current Stripe versions", async () => {
+    const store = createMemoryStore();
+    __setBillingStoreForTest(store);
+    const orgId = await seedProOrg(store);
+    const sub = stripeSub("sub_1", "price_pro_123");
+    const itemEnd = 1_910_000_000;
+    sub.items.data[0].current_period_end = itemEnd;
+    stripeSubs.push(sub);
+    expect((await GET(cronRequest())).status).toBe(200);
+    expect((await store.getSubscriptionForOrg(orgId))?.currentPeriodEnd).toBe(
+      new Date(itemEnd * 1000).toISOString(),
+    );
+  });
+
   it("does not repair plans from canceled subscriptions", async () => {
     const store = createMemoryStore();
     __setBillingStoreForTest(store);

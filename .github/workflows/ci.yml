@@ -10,6 +10,78 @@ permissions:
   contents: read
 
 jobs:
+  cloud-contract:
+    name: Cloud PostgreSQL contracts
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: trailhead_test
+          POSTGRES_PASSWORD: local_contract_test
+          POSTGRES_DB: trailhead_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U trailhead_test -d trailhead_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: cloud/package-lock.json
+      - run: npm ci
+        working-directory: cloud
+      - run: npm test
+        working-directory: cloud
+        env:
+          TEST_DATABASE_URL: postgresql://trailhead_test:local_contract_test@localhost:5432/trailhead_test
+
+  site:
+    name: Website lint, test & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            cloud/package-lock.json
+            site/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: cloud
+      - run: npm ci
+        working-directory: site
+      - run: npm run lint
+        working-directory: site
+      - run: npm run typecheck
+        working-directory: site
+      - run: npm test
+        working-directory: site
+      - run: npm run build
+        working-directory: site
+
+  dependencies:
+    name: Dependency audit (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [".", app, cli, cloud, mcp, site]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm audit --package-lock-only --audit-level=high
+        working-directory: ${{ matrix.package }}
+
   check:
     name: Lint, Test & Build
     runs-on: ubuntu-latest

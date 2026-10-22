@@ -320,7 +320,9 @@
         </select>
       </label>
       <button type="button" id="loadBtn">Load</button>
+      <button type="button" id="billingBtn">Manage billing</button>
     </div>
+    <p id="billingError" role="alert" style="color: var(--red)"></p>
 
     <div class="tabs" id="tabs" style="display: none">
       <button type="button" class="active" data-tab="analytics">Analytics</button>
@@ -405,7 +407,11 @@
         </div>
         <div class="grid-2" style="margin-top: 16px">
           <div class="panel">
-            <h3>SSO (Team plan)</h3>
+            <h3>SSO configuration (preview)</h3>
+            <p>
+              Saving this configuration does not enable SSO sign-in. Dashboard access
+              currently uses an API key.
+            </p>
             <label
               >Provider
               <select id="ssoProvider">
@@ -988,6 +994,41 @@
       }
 
       document.getElementById("loadBtn").addEventListener("click", loadData);
+      document.getElementById("billingBtn").addEventListener("click", async function () {
+        const button = document.getElementById("billingBtn");
+        const error = document.getElementById("billingError");
+        error.textContent = "";
+        if (!document.getElementById("apiKey").value.trim()) {
+          error.textContent = "Enter your Cloud API key to manage billing.";
+          return;
+        }
+        if (apiBase() !== DEFAULT_BASE) {
+          error.textContent =
+            "Billing is available only for the hosted Trailhead Cloud API.";
+          return;
+        }
+        button.disabled = true;
+        try {
+          const response = await fetch("/api/billing/portal", {
+            method: "POST",
+            headers: authHeaders(),
+          });
+          const body = await response.json();
+          if (!response.ok)
+            throw new Error(body.error || "Could not open billing. Please try again.");
+          const url = new URL(body.url);
+          if (url.protocol !== "https:" || url.hostname !== "billing.stripe.com")
+            throw new Error("Invalid billing portal response.");
+          window.top.location.assign(url.href);
+        } catch (err) {
+          error.textContent =
+            err instanceof Error
+              ? err.message
+              : "Could not open billing. Please try again.";
+        } finally {
+          button.disabled = false;
+        }
+      });
       document.getElementById("copyYamlBtn").addEventListener("click", function () {
         navigator.clipboard.writeText(latestTuningYaml);
       });

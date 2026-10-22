@@ -2,6 +2,7 @@ import type { Pool, PoolClient } from "pg";
 import type {
   ApiKeyRecord,
   CloudStore,
+  CheckoutClaim,
   CreateOrgWithSubscriptionInput,
   CreateOrgWithSubscriptionResult,
   DeployEventPayload,
@@ -93,6 +94,62 @@ export function createPgStore(pool: Pool): CloudStore {
     } finally {
       client.release();
     }
+  }
+
+  async function createSubscription(
+    client: PoolClient,
+    input: CreateOrgWithSubscriptionInput,
+  ): Promise<CreateOrgWithSubscriptionResult> {
+    const orgRes = await client.query(
+      `INSERT INTO orgs (name, github_org) VALUES ($1, $2)
+             RETURNING id, name, created_at`,
+      [input.orgName, input.githubOrg ?? null],
+    );
+    const orgRow = orgRes.rows[0];
+    const orgId = orgRow.id as string;
+
+    await client.query(
+      `INSERT INTO org_settings (org_id, plan, seats, seats_used)
+             VALUES ($1, $2, $3, 1)`,
+      [orgId, input.plan, PLANS[input.plan].seatsIncluded],
+    );
+
+    await client.query(
+      `INSERT INTO subscriptions
+             (org_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        orgId,
+        input.stripeCustomerId,
+        input.stripeSubscriptionId,
+        input.plan,
+        input.status,
+        input.currentPeriodEnd ?? null,
+      ],
+    );
+
+    const secret = generateApiKey();
+    const keyRes = await client.query(
+      `INSERT INTO api_keys (org_id, key_hash, key_preview, label, suspended)
+             VALUES ($1, $2, $3, $4, false)
+             RETURNING id`,
+      [orgId, hashApiKey(secret), maskApiKey(secret), input.keyLabel ?? "Primary key"],
+    );
+
+    const org: OrgRecord = {
+      id: orgId,
+      name: orgRow.name,
+      createdAt: iso(orgRow.created_at) as string,
+    };
+    const keyRecord: ApiKeyRecord = {
+      keyId: keyRes.rows[0].id,
+      key: secret,
+      orgId,
+      orgName: input.orgName,
+      label: input.keyLabel ?? "Primary key",
+      suspended: false,
+    };
+    return { org, keySecret: secret, keyRecord };
   }
 
   async function applyStatusToKeys(
@@ -540,62 +597,53 @@ export function createPgStore(pool: Pool): CloudStore {
     async createOrgWithSubscription(
       input: CreateOrgWithSubscriptionInput,
     ): Promise<CreateOrgWithSubscriptionResult> {
+      return tx((client) => createSubscription(client, input));
+    },
+
+    async fulfillCheckout(
+      input: CreateOrgWithSubscriptionInput,
+      claim: CheckoutClaim,
+    ): Promise<string> {
       return tx(async (client) => {
-        const orgRes = await client.query(
-          `INSERT INTO orgs (name, github_org) VALUES ($1, $2)
-             RETURNING id, name, created_at`,
-          [input.orgName, input.githubOrg ?? null],
+        // Serialize distinct Stripe events for the same Checkout session.
+        await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [
+          claim.sessionId,
+        ]);
+        const claimed = await client.query(
+          "SELECT org_id FROM key_claims WHERE checkout_session_id = $1",
+          [claim.sessionId],
         );
-        const orgRow = orgRes.rows[0];
-        const orgId = orgRow.id as string;
-
+        if (claimed.rows[0]) return claimed.rows[0].org_id as string;
+        const existing = await client.query(
+          "SELECT org_id, status FROM subscriptions WHERE stripe_subscription_id = $1 FOR UPDATE",
+          [input.stripeSubscriptionId],
+        );
+        let orgId: string;
+        let keySecret: string;
+        if (existing.rows[0]) {
+          // Reconcile may have recovered the subscription before Checkout arrived.
+          orgId = existing.rows[0].org_id as string;
+          keySecret = generateApiKey();
+          await client.query(
+            "INSERT INTO api_keys (org_id, key_hash, key_preview, label, suspended) VALUES ($1, $2, $3, $4, $5)",
+            [
+              orgId,
+              hashApiKey(keySecret),
+              maskApiKey(keySecret),
+              input.keyLabel ?? "Initial key",
+              !UNSUSPEND_STATUSES.has(existing.rows[0].status as string),
+            ],
+          );
+        } else {
+          const created = await createSubscription(client, input);
+          orgId = created.org.id;
+          keySecret = created.keySecret;
+        }
         await client.query(
-          `INSERT INTO org_settings (org_id, plan, seats, seats_used)
-             VALUES ($1, $2, $3, 1)`,
-          [orgId, input.plan, PLANS[input.plan].seatsIncluded],
+          "INSERT INTO key_claims (checkout_session_id, org_id, key_ciphertext, expires_at) VALUES ($1, $2, $3, $4)",
+          [claim.sessionId, orgId, claim.encryptKey(keySecret), claim.expiresAt],
         );
-
-        await client.query(
-          `INSERT INTO subscriptions
-             (org_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-          [
-            orgId,
-            input.stripeCustomerId,
-            input.stripeSubscriptionId,
-            input.plan,
-            input.status,
-            input.currentPeriodEnd ?? null,
-          ],
-        );
-
-        const secret = generateApiKey();
-        const keyRes = await client.query(
-          `INSERT INTO api_keys (org_id, key_hash, key_preview, label, suspended)
-             VALUES ($1, $2, $3, $4, false)
-             RETURNING id`,
-          [
-            orgId,
-            hashApiKey(secret),
-            maskApiKey(secret),
-            input.keyLabel ?? "Primary key",
-          ],
-        );
-
-        const org: OrgRecord = {
-          id: orgId,
-          name: orgRow.name,
-          createdAt: iso(orgRow.created_at) as string,
-        };
-        const keyRecord: ApiKeyRecord = {
-          keyId: keyRes.rows[0].id,
-          key: secret,
-          orgId,
-          orgName: input.orgName,
-          label: input.keyLabel ?? "Primary key",
-          suspended: false,
-        };
-        return { org, keySecret: secret, keyRecord };
+        return orgId;
       });
     },
 
@@ -719,6 +767,14 @@ export function createPgStore(pool: Pool): CloudStore {
         orgId,
         suspended,
       ]);
+    },
+
+    async hasStripeEvent(eventId: string): Promise<boolean> {
+      const { rows } = await pool.query(
+        "SELECT 1 FROM stripe_webhook_events WHERE event_id = $1",
+        [eventId],
+      );
+      return rows.length > 0;
     },
 
     async recordStripeEvent(

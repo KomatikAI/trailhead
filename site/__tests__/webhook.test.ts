@@ -24,6 +24,16 @@ beforeEach(() => {
 function mockStore(overrides: Partial<BillingStore> = {}): BillingStore {
   const seen = new Set<string>();
   const base: Partial<BillingStore> = {
+    hasStripeEvent: vi.fn(async (eventId: string) => seen.has(eventId)),
+    fulfillCheckout: vi.fn(async (_input, claim) => {
+      await base.createKeyClaim!(
+        claim.sessionId,
+        "org_1",
+        claim.encryptKey("thk_generatedsecretkey"),
+        claim.expiresAt,
+      );
+      return "org_1";
+    }),
     recordStripeEvent: vi.fn(async (eventId: string) => {
       const firstSeen = !seen.has(eventId);
       seen.add(eventId);
@@ -56,6 +66,7 @@ function checkoutEvent(overrides: Record<string, unknown> = {}): Stripe.Event {
     data: {
       object: {
         id: "cs_test_1",
+        payment_status: "paid",
         metadata: { plan: "pro", email: "dev@acme.com" },
         customer: "cus_1",
         subscription: "sub_1",
@@ -66,42 +77,32 @@ function checkoutEvent(overrides: Record<string, unknown> = {}): Stripe.Event {
 }
 
 describe("handleStripeEvent — idempotency", () => {
-  it("skips a duplicate event id (insert-first ledger)", async () => {
+  it("skips an event whose effects already completed", async () => {
     const store = mockStore();
     const evt = checkoutEvent();
     const first = await handleStripeEvent(evt, store);
     const second = await handleStripeEvent(evt, store);
     expect(first.handled).toBe(true);
     expect(second).toEqual({ handled: false, reason: "duplicate" });
-    expect(store.createOrgWithSubscription).toHaveBeenCalledTimes(1);
+    expect(store.fulfillCheckout).toHaveBeenCalledTimes(1);
   });
 
-  it("rolls the ledger back on handler failure so Stripe's retry can reprocess", async () => {
+  it("records no completion on handler failure so Stripe's retry can reprocess", async () => {
     const store = mockStore({
-      createOrgWithSubscription: vi
+      fulfillCheckout: vi
         .fn()
         .mockRejectedValueOnce(new Error("transient db error"))
-        .mockResolvedValueOnce({
-          org: { id: "org_1", name: "acme.com", createdAt: new Date().toISOString() },
-          keySecret: "thk_generatedsecretkey",
-          keyRecord: {
-            keyId: "key_1",
-            key: "thk_generatedsecretkey",
-            orgId: "org_1",
-            orgName: "acme.com",
-            suspended: false,
-          },
-        }),
+        .mockResolvedValueOnce("org_1"),
     });
     const evt = checkoutEvent();
 
     await expect(handleStripeEvent(evt, store)).rejects.toThrow("transient db error");
-    expect(store.removeStripeEvent).toHaveBeenCalledWith(evt.id);
+    expect(store.recordStripeEvent).not.toHaveBeenCalled();
 
     // Stripe retries the SAME event id — it must NOT short-circuit as duplicate.
     const retry = await handleStripeEvent(evt, store);
     expect(retry.handled).toBe(true);
-    expect(store.createOrgWithSubscription).toHaveBeenCalledTimes(2);
+    expect(store.fulfillCheckout).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -111,13 +112,14 @@ describe("handleStripeEvent — checkout.session.completed", () => {
     const res = await handleStripeEvent(checkoutEvent(), store);
 
     expect(res).toEqual({ handled: true, orgId: "org_1" });
-    expect(store.createOrgWithSubscription).toHaveBeenCalledWith(
+    expect(store.fulfillCheckout).toHaveBeenCalledWith(
       expect.objectContaining({
         plan: "pro",
         orgName: "acme.com", // email domain per contract
         stripeCustomerId: "cus_1",
         stripeSubscriptionId: "sub_1",
       }),
+      expect.objectContaining({ sessionId: "cs_test_1" }),
     );
 
     // createKeyClaim is positional: (sessionId, orgId, ciphertext, expiresAt).
@@ -140,7 +142,7 @@ describe("handleStripeEvent — checkout.session.completed", () => {
     const res = await handleStripeEvent(evt, store);
     expect(res.handled).toBe(false);
     expect(res.reason).toBe("missing_or_invalid_plan_metadata");
-    expect(store.createOrgWithSubscription).not.toHaveBeenCalled();
+    expect(store.fulfillCheckout).not.toHaveBeenCalled();
   });
 
   it("rejects when customer or subscription id is absent", async () => {
@@ -213,6 +215,35 @@ describe("handleStripeEvent — subscription lifecycle", () => {
  * string|null updateSubscriptionByStripeId, discriminated-union claimKey).
  */
 describe("handleStripeEvent — real store integration (createMemoryStore)", () => {
+  it("waits for a delayed payment before granting paid access", async () => {
+    const store = createMemoryStore();
+    expect(
+      await handleStripeEvent(checkoutEvent({ payment_status: "unpaid" }), store),
+    ).toEqual({ handled: false, reason: "payment_pending" });
+    expect(await store.listSubscriptions()).toHaveLength(0);
+    const paid = checkoutEvent();
+    paid.id = "evt_async_paid";
+    paid.type = "checkout.session.async_payment_succeeded";
+    expect((await handleStripeEvent(paid, store)).handled).toBe(true);
+    expect(await store.listSubscriptions()).toHaveLength(1);
+  });
+
+  it("retries a ledger failure after fulfillment without issuing another key", async () => {
+    const store = createMemoryStore();
+    vi.spyOn(store, "recordStripeEvent").mockRejectedValueOnce(
+      new Error("ledger unavailable"),
+    );
+    await expect(handleStripeEvent(checkoutEvent(), store)).rejects.toThrow(
+      "ledger unavailable",
+    );
+    const retried = await handleStripeEvent(checkoutEvent(), store);
+    expect(await store.listSubscriptions()).toHaveLength(1);
+    expect(await store.listManagedKeys(retried.orgId as string)).toHaveLength(1);
+    expect(await store.claimKey("cs_test_1")).toEqual(
+      expect.objectContaining({ ciphertext: expect.any(String) }),
+    );
+  });
+
   it("checkout.session.completed → org+key+claim created, key revealed once via claimKey", async () => {
     const store = createMemoryStore();
 

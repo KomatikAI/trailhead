@@ -5,7 +5,7 @@ The Next.js (App Router, TypeScript) app that deploys to **Vercel** at
 
 - Stripe **billing** routes (`/api/billing/*`) — checkout, webhook, key claim, portal, reconcile.
 - The **Cloud API** (Hono app from `../cloud`) mounted at **`/api/cloud/[[...route]]`** via the `hono/vercel` adapter.
-- Marketing / pricing / welcome / dashboard pages — **owned by Lane D** (this branch ships only an unopinionated skeleton `app/layout.tsx` + placeholder `app/page.tsx`).
+- Marketing, pricing, one-time key delivery, and the embedded Cloud dashboard.
 
 Auth model v1: **possession-of-key = auth**. No login system. The first API key is
 issued on payment and revealed once at `/welcome` (the claim flow); billing is
@@ -15,16 +15,16 @@ self-managed through the Stripe Customer Portal.
 
 ## Environment matrix
 
-| Var                      | Required   | Where                                              | Purpose                                                                                                          |
-| ------------------------ | ---------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `STRIPE_SECRET_KEY`      | yes        | Vercel (prod: `sk_live_`, preview/dev: `sk_test_`) | Stripe SDK. `assertStripeMode` refuses a live key outside prod and a test key in prod.                           |
-| `STRIPE_WEBHOOK_SECRET`  | yes        | Vercel                                             | Verifies `POST /api/billing/webhook` signatures.                                                                 |
-| `STRIPE_PRICE_PRO`       | yes        | Vercel                                             | Recurring Price id for Pro ($39/mo).                                                                             |
-| `STRIPE_PRICE_TEAM`      | yes        | Vercel                                             | Recurring Price id for Team ($399/mo).                                                                           |
-| `DATABASE_URL`           | yes (prod) | Vercel                                             | Postgres (dedicated Supabase project). Unset → in-memory store (dev only). Consumed by Lane A's `createPgStore`. |
-| `TRAILHEAD_CLAIM_SECRET` | yes        | Vercel                                             | AES-256-GCM key that encrypts the one-time key claim. `openssl rand -hex 32`.                                    |
-| `CRON_SECRET`            | yes        | Vercel                                             | Bearer secret for the daily reconcile cron. `openssl rand -hex 32`.                                              |
-| `NEXT_PUBLIC_SITE_URL`   | yes        | Vercel                                             | Public origin for Stripe success/cancel + portal return URLs. Prod = `https://trailhead.komatik.xyz`.            |
+| Var                      | Required   | Where                                              | Purpose                                                                                                                 |
+| ------------------------ | ---------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `STRIPE_SECRET_KEY`      | yes        | Vercel (prod: `sk_live_`, preview/dev: `sk_test_`) | Stripe SDK. `assertStripeMode` refuses a live key outside prod and a test key in prod.                                  |
+| `STRIPE_WEBHOOK_SECRET`  | yes        | Vercel                                             | Verifies `POST /api/billing/webhook` signatures.                                                                        |
+| `STRIPE_PRICE_PRO`       | yes        | Vercel                                             | Recurring Price id for Pro ($39/mo).                                                                                    |
+| `STRIPE_PRICE_TEAM`      | yes        | Vercel                                             | Recurring Price id for Team ($399/mo).                                                                                  |
+| `DATABASE_URL`           | yes (prod) | Vercel                                             | Postgres (dedicated Supabase project). Unset → in-memory store locally; production refuses to start billing without it. |
+| `TRAILHEAD_CLAIM_SECRET` | yes        | Vercel                                             | AES-256-GCM key that encrypts the one-time key claim. `openssl rand -hex 32`.                                           |
+| `CRON_SECRET`            | yes        | Vercel                                             | Bearer secret for the daily reconcile cron. `openssl rand -hex 32`.                                                     |
+| `NEXT_PUBLIC_SITE_URL`   | yes        | Vercel                                             | Public origin for Stripe success/cancel + portal return URLs. Prod = `https://trailhead.komatik.xyz`.                   |
 
 See `.env.example`. Local dev: `cp .env.example .env.local` and fill in test-mode values.
 
@@ -32,32 +32,35 @@ See `.env.example`. Local dev: `cp .env.example .env.local` and fill in test-mod
 
 ## Route map
 
-| Method | Path                             | Auth                        | Notes                                                                                                                                                          |
-| ------ | -------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/billing/checkout`          | public (IP rate-limited)    | `{ plan: 'pro'\|'team', email }` → Stripe Checkout Session (mode=subscription).                                                                                |
-| POST   | `/api/billing/webhook`           | Stripe signature            | Idempotent via `stripe_webhook_events` (insert-first). Handles `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. |
-| GET    | `/api/billing/claim?session_id=` | one-time token (session id) | Atomic one-time API-key reveal. 410 if already claimed/expired.                                                                                                |
-| POST   | `/api/billing/portal`            | Bearer API key              | Stripe Customer Portal session for the key's org.                                                                                                              |
-| GET    | `/api/billing/reconcile`         | Bearer `CRON_SECRET`        | Daily Vercel cron. Diffs Stripe ↔ `subscriptions`, repairs drift, purges expired claims.                                                                       |
-| ANY    | `/api/cloud/[[...route]]`        | Bearer API key (`/v1/*`)    | The mounted Cloud API. e.g. `POST /api/cloud/v1/evaluations`, `GET /api/cloud/health`.                                                                         |
+| Method | Path                             | Auth                        | Notes                                                                                                                                                                            |
+| ------ | -------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/billing/checkout`          | public (IP rate-limited)    | `{ plan: 'pro'\|'team', email }` → Stripe Checkout Session (mode=subscription).                                                                                                  |
+| POST   | `/api/billing/webhook`           | Stripe signature            | Atomic, session-idempotent Checkout fulfillment; ledger records successful effects. Handles completed Checkout, asynchronous payment success, and subscription updates/deletion. |
+| GET    | `/api/billing/claim?session_id=` | one-time token (session id) | Atomic one-time API-key reveal. 410 if already claimed/expired.                                                                                                                  |
+| POST   | `/api/billing/portal`            | Bearer API key              | Stripe Customer Portal session for the key's org.                                                                                                                                |
+| GET    | `/api/billing/reconcile`         | Bearer `CRON_SECRET`        | Daily Vercel cron. Diffs Stripe ↔ `subscriptions`, repairs drift, purges expired claims.                                                                                         |
+| ANY    | `/api/cloud/[[...route]]`        | Bearer API key (`/v1/*`)    | The mounted Cloud API. e.g. `POST /api/cloud/v1/evaluations`, `GET /api/cloud/health`.                                                                                           |
 
 ---
 
-## Store wiring (⚠️ Lane A dependency)
+## Store wiring
 
 The billing routes and the mounted Cloud API share **one** store, selected in
-`lib/cloudStore.ts`: `createPgStore({ connectionString })` when `DATABASE_URL`
-is set, else `createMemoryStore()` for dev.
+`lib/cloudStore.ts`: `createPgStore(new pg.Pool({ connectionString }))` when
+`DATABASE_URL` is set, else `createMemoryStore()` for local development. Production
+requires persistent storage. `BillingStore` is an alias for the real `CloudStore`
+interface; there is no ambient stub.
 
-`createPgStore` and the async `BillingStore` surface are being built **in parallel
-on Lane A** (`feat/cloud-pg-store`). On this branch they resolve against the
-ambient declaration in **`types/trailhead-cloud.d.ts`** (a typed stub mirroring
-`TRAILHEAD-BILLING-CONTRACT.md`). **On merge**: delete that `.d.ts`, add a real
-`exports` map + built types to `cloud/package.json`, and verify the method
-signatures line up. Runtime wiring: `trailhead-cloud` is a `file:../cloud`
-dependency + `transpilePackages` in `next.config.ts` so Next compiles the cloud
-ESM TypeScript (note: `cloud/` uses `.js`-suffixed ESM imports and copies
-`feedback-core.ts` in at build via `npm run prebuild`).
+`trailhead-cloud` is a `file:../cloud` dependency with built ESM exports. Install
+and build `cloud/` before running the site. Checkout creates the org, subscription,
+API key and encrypted claim in one transaction. A retry for the same session
+cannot create another key or reopen a revealed claim. Unpaid delayed-payment
+sessions wait for `checkout.session.async_payment_succeeded`.
+
+The dashboard's **Manage billing** button accepts an existing Cloud key, including
+a suspended key so customers can recover payment. SSO configuration is a preview;
+it does not implement SSO sign-in. A lost API key requires a working secondary key
+or support recovery; the Stripe portal does not issue Cloud keys.
 
 ---
 
@@ -99,7 +102,7 @@ they go in Vercel env only.
    `STRIPE_SECRET_KEY` on the matching Vercel environment.
 3. **Webhook endpoint**: Dashboard → Developers → Webhooks → Add endpoint:
    - URL: `https://trailhead.komatik.xyz/api/billing/webhook`
-   - Events: `checkout.session.completed`, `customer.subscription.updated`,
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.updated`,
      `customer.subscription.deleted`.
    - Copy the **Signing secret** into `STRIPE_WEBHOOK_SECRET`.
 4. **Customer Portal**: Dashboard → Settings → Billing → Customer portal → enable
@@ -112,9 +115,24 @@ they go in Vercel env only.
 ## Develop / test
 
 ```bash
-cd site
-npm install
+ npm ci
+ npm ci --prefix cloud
+ npm ci --prefix site
+ cd site
 npm run dev        # http://localhost:3200
-npm run typecheck  # tsc --noEmit
+npm run lint
+npm run typecheck  # generate Next route types, then tsc --noEmit
 npm run test       # vitest (webhook logic, claim one-time semantics, checkout validation, crypto)
+npm run build
 ```
+
+Run the install commands from the repository root. Use Node 24 to match CI.
+Root dependencies provide ESLint; Cloud's install runs its build automatically.
+For real database contract tests, point `TEST_DATABASE_URL` at a **disposable test
+database** and run `npm test --prefix cloud`; the suite resets its test tables.
+CI supplies an isolated PostgreSQL service. Local UI development works without
+Stripe credentials, but paid Checkout and portal flows require test-mode keys.
+
+Keep Production and Preview Stripe keys, prices and webhook secrets scoped
+separately. Before promotion, verify a test Checkout, webhook, one-time claim,
+authenticated ingestion, portal cancellation/reactivation and reconcile run.

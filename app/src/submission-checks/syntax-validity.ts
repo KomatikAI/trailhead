@@ -7,6 +7,51 @@ import { extensionOf } from "./helpers.js";
 
 const PARSEABLE = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"] as const;
 
+/** Parse real import nodes, never import-looking text in comments or templates. */
+export function relativeImportSpecifiers(filename: string, content: string): string[] {
+  const imports = new Set<string>();
+  function add(value: unknown): void {
+    if (typeof value === "string" && /^(?:\.\/|\.\.\/)/.test(value)) imports.add(value);
+  }
+  function visit(value: unknown): void {
+    if (!value || typeof value !== "object") return;
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    const node = value as Record<string, unknown>;
+    if (
+      ["ImportDeclaration", "ExportAllDeclaration", "ExportNamedDeclaration"].includes(
+        String(node.type),
+      )
+    ) {
+      add((node.source as { value?: unknown } | undefined)?.value);
+    }
+    if (node.type === "CallExpression") {
+      const callee = node.callee as { type?: string; value?: string };
+      if (
+        callee.type === "Import" ||
+        (callee.type === "Identifier" && callee.value === "require")
+      ) {
+        const args = node.arguments as {
+          expression?: { type?: string; value?: unknown };
+        }[];
+        if (args[0]?.expression?.type === "StringLiteral") add(args[0].expression.value);
+      }
+    }
+    for (const [key, child] of Object.entries(node)) {
+      if (key !== "span") visit(child);
+    }
+  }
+  try {
+    visit(parseSync(content, parserOptionsFor(extensionOf(filename))));
+  } catch {
+    // syntax_validity owns parse failures; an incomplete file is not proof of
+    // an unresolved import. In particular, never parse partial diff text here.
+  }
+  return [...imports];
+}
+
 function parserOptionsFor(ext: string): ParseOptions {
   const isTs = ext === ".ts" || ext === ".tsx";
   return {

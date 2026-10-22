@@ -21,7 +21,7 @@ import { detectSafeDeprecation } from "./safe-deprecation.js";
 import { detectDestructiveChange } from "./destructive-change.js";
 import { detectClaimAnchoring } from "./claim-anchoring.js";
 import { detectPromotionCoherence } from "./promotion-coherence.js";
-import { validateFileSyntax } from "./syntax-validity.js";
+import { relativeImportSpecifiers, validateFileSyntax } from "./syntax-validity.js";
 import { matchesGlobs } from "../risk-engine.js";
 import { applyDetectorPolicy, artifactFileGlobs } from "./detector-policy.js";
 export { DEFAULT_RENAME_PATTERNS, OLD_NAME_PATTERNS } from "./policy-defaults.js";
@@ -427,20 +427,6 @@ export function detectLargeFile(
   });
 }
 
-function extractRelativeImports(content: string): string[] {
-  const imports: string[] = [];
-  const patterns = [
-    /\bimport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?['"](\.\.?[^'"]+)['"]/g,
-    /\brequire\(\s*['"](\.\.?[^'"]+)['"]\s*\)/g,
-  ];
-  for (const pattern of patterns) {
-    for (const match of content.matchAll(pattern)) {
-      if (match[1]) imports.push(match[1]);
-    }
-  }
-  return imports;
-}
-
 function resolveRelativeImport(
   fromFile: string,
   specifier: string,
@@ -461,8 +447,15 @@ function resolveRelativeImport(
     `${resolved}.js`,
     `${resolved}.jsx`,
     `${resolved}/index.ts`,
+    `${resolved}/index.tsx`,
     `${resolved}/index.js`,
+    `${resolved}/index.jsx`,
   ];
+  // TypeScript sources legitimately spell runtime ESM imports with .js/.mjs/.cjs.
+  if (resolved.endsWith(".js"))
+    candidates.push(resolved.slice(0, -3) + ".ts", resolved.slice(0, -3) + ".tsx");
+  if (resolved.endsWith(".mjs")) candidates.push(resolved.slice(0, -4) + ".mts");
+  if (resolved.endsWith(".cjs")) candidates.push(resolved.slice(0, -4) + ".cts");
   return candidates.some((c) => prPaths.has(c));
 }
 
@@ -477,12 +470,19 @@ export function detectImportResolution(
   if (!ctx.repoPaths) return null;
   const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
   const known = new Set<string>([...ctx.prPaths, ...ctx.repoPaths]);
+  for (const file of ctx.files) {
+    if (file.status === "removed") known.delete(file.filename);
+  }
   const hits: string[] = [];
 
   for (const file of ctx.files) {
-    if (!codeExts.has(extensionOf(file.filename))) continue;
-    const content = fileContent(file);
-    for (const specifier of extractRelativeImports(content)) {
+    if (
+      !codeExts.has(extensionOf(file.filename)) ||
+      file.status === "removed" ||
+      typeof file.content !== "string"
+    )
+      continue;
+    for (const specifier of relativeImportSpecifiers(file.filename, file.content)) {
       if (!resolveRelativeImport(file.filename, specifier, known)) {
         hits.push(file.filename);
         break;

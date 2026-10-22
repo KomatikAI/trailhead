@@ -25,7 +25,9 @@ function orgNameFromEmail(email: string | null | undefined): string {
 }
 
 function periodEndIso(sub: Stripe.Subscription): string | null {
-  const end = (sub as unknown as { current_period_end?: number }).current_period_end;
+  const end =
+    sub.items?.data?.[0]?.current_period_end ??
+    (sub as unknown as { current_period_end?: number }).current_period_end;
   return typeof end === "number" ? new Date(end * 1000).toISOString() : null;
 }
 
@@ -39,37 +41,21 @@ function planFromSubscription(sub: Stripe.Subscription): PaidPlan | undefined {
  * billing store and applies the contract's webhook flows. Kept separate from
  * the route so it can be unit-tested with a mocked store.
  *
- * Idempotency is insert-first: recordStripeEvent inserts into
- * stripe_webhook_events and a duplicate event id short-circuits (komatik lesson).
+ * Mark events processed only AFTER their effects succeed. Checkout fulfillment
+ * is atomic and session-idempotent; subscription updates are idempotent writes.
+ * A crash must never leave a completed ledger entry with missing effects.
  */
 export async function handleStripeEvent(
   event: Stripe.Event,
   store: BillingStore,
 ): Promise<HandleResult> {
-  const firstSeen = await store.recordStripeEvent(event.id, event.type, event);
-  if (!firstSeen) {
+  if (await store.hasStripeEvent(event.id)) {
     return { handled: false, reason: "duplicate" };
   }
 
-  try {
-    return await applyStripeEvent(event, store);
-  } catch (err) {
-    // Insert-first alone is a trap: the route 500s so Stripe retries, but the
-    // retry would hit firstSeen=false and short-circuit as a duplicate — a
-    // transient store failure would permanently drop the event (paid customer,
-    // no org/key/claim ever created). Roll the ledger row back so the retry
-    // can actually reprocess. Concurrent duplicate delivery is still deduped
-    // by the insert; rollback only happens on handler failure.
-    try {
-      await store.removeStripeEvent(event.id);
-    } catch (rollbackErr) {
-      console.error(
-        `[webhook] Ledger rollback failed for ${event.id} — event may be dropped until reconcile:`,
-        rollbackErr,
-      );
-    }
-    throw err;
-  }
+  const result = await applyStripeEvent(event, store);
+  await store.recordStripeEvent(event.id, event.type, event);
+  return result;
 }
 
 async function applyStripeEvent(
@@ -77,8 +63,15 @@ async function applyStripeEvent(
   store: BillingStore,
 ): Promise<HandleResult> {
   switch (event.type) {
-    case "checkout.session.completed": {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded": {
       const session = event.data.object as Stripe.Checkout.Session;
+      if (
+        session.payment_status !== "paid" &&
+        session.payment_status !== "no_payment_required"
+      ) {
+        return { handled: false, reason: "payment_pending" };
+      }
       const plan = session.metadata?.plan;
       if (!isPaidPlan(plan)) {
         return { handled: false, reason: "missing_or_invalid_plan_metadata" };
@@ -97,26 +90,21 @@ async function applyStripeEvent(
       // Create org + org_settings.plan + subscriptions row + first api_key, all
       // in one store transaction. Precise status/current_period_end are synced
       // by the following customer.subscription.updated event (and reconcile).
-      const { org, keySecret } = await store.createOrgWithSubscription({
-        orgName: orgNameFromEmail(email),
-        plan,
-        stripeCustomerId,
-        stripeSubscriptionId,
-        status: "active",
-        currentPeriodEnd: null,
-        keyLabel: "Initial key",
-      });
-      const orgId = org.id;
-
-      // Encrypt the plaintext key under TRAILHEAD_CLAIM_SECRET and stash the
-      // one-time claim. Plaintext is never persisted (only key_hash + this
-      // AES-256-GCM ciphertext).
-      const keyCiphertext = encryptClaim(keySecret);
-      await store.createKeyClaim(
-        session.id,
-        orgId,
-        keyCiphertext,
-        new Date(Date.now() + CLAIM_TTL_MS).toISOString(),
+      const orgId = await store.fulfillCheckout(
+        {
+          orgName: orgNameFromEmail(email),
+          plan,
+          stripeCustomerId,
+          stripeSubscriptionId,
+          status: "active",
+          currentPeriodEnd: null,
+          keyLabel: "Initial key",
+        },
+        {
+          sessionId: session.id,
+          expiresAt: new Date(Date.now() + CLAIM_TTL_MS).toISOString(),
+          encryptKey: encryptClaim,
+        },
       );
 
       return { handled: true, orgId };

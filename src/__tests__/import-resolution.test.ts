@@ -37,6 +37,41 @@ const HARNESS = {
 };
 
 describe("detectImportResolution", () => {
+  it("ignores aliases and import text in generated source templates (#366)", () => {
+    const content = [
+      'import { readFileSync } from "node:fs";',
+      'import { tool } from "@/src/tool";',
+      '// import missing from "./comment-only";',
+      'const template = `import { initPortal } from "./portal";`;',
+      "const example = \"require('./example-only')\";",
+    ].join("\n");
+    expect(
+      detectImportResolution(ctx([{ filename: "src/tool.ts", content }], [])),
+    ).toBeNull();
+  });
+
+  it.each([
+    ['import { x } from "./types.js";', "src/arena/types.ts"],
+    ['export * from "./types.js";', "src/arena/types.ts"],
+    ['const m = import("./types.js");', "src/arena/types.ts"],
+    ['const m = require("./types.js");', "src/arena/types.ts"],
+    ['import X from "./view";', "src/arena/view/index.tsx"],
+  ])(
+    "resolves real imports with TypeScript extension substitution: %s",
+    (content, path) => {
+      expect(detectImportResolution(ctx([{ ...HARNESS, content }], [path]))).toBeNull();
+    },
+  );
+
+  it.each(['export * from "./missing";', 'const m = import("./missing");'])(
+    "blocks missing real re-exports and dynamic imports: %s",
+    (content) => {
+      expect(detectImportResolution(ctx([{ ...HARNESS, content }], []))?.severity).toBe(
+        "blocking",
+      );
+    },
+  );
+
   it("does NOT false-block an import to an existing, unchanged sibling (the bug)", () => {
     // ./types resolves to src/arena/types.ts which exists in the repo but is not
     // part of this PR's changed files.

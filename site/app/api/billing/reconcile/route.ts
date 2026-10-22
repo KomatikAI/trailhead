@@ -28,7 +28,9 @@ function idOf(v: string | { id: string } | null | undefined): string | null {
 }
 
 function periodEndIso(sub: Stripe.Subscription): string | null {
-  const end = (sub as unknown as { current_period_end?: number }).current_period_end;
+  const end =
+    sub.items?.data?.[0]?.current_period_end ??
+    (sub as unknown as { current_period_end?: number }).current_period_end;
   return typeof end === "number" ? new Date(end * 1000).toISOString() : null;
 }
 

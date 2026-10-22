@@ -24,6 +24,59 @@ export function createMemoryStore(seedKeys = []) {
     const subscriptions = new Map(); // by stripeSubscriptionId
     const stripeEvents = new Set();
     const keyClaims = new Map();
+    function createSubscription(input, claim) {
+        const secret = generateApiKey();
+        const ciphertext = claim?.encryptKey(secret);
+        const orgId = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const org = { id: orgId, name: input.orgName, createdAt: now };
+        orgs.set(orgId, org);
+        orgSettings.set(orgId, {
+            plan: input.plan,
+            seats: PLANS[input.plan].seatsIncluded,
+            seatsUsed: 1,
+        });
+        const subscription = {
+            id: crypto.randomUUID(),
+            orgId,
+            stripeCustomerId: input.stripeCustomerId,
+            stripeSubscriptionId: input.stripeSubscriptionId,
+            plan: input.plan,
+            status: input.status,
+            currentPeriodEnd: input.currentPeriodEnd ?? null,
+            createdAt: now,
+            updatedAt: now,
+        };
+        subscriptions.set(subscription.stripeSubscriptionId, subscription);
+        const keyId = `key_${crypto.randomUUID()}`;
+        const keyRecord = {
+            keyId,
+            key: secret,
+            orgId,
+            orgName: input.orgName,
+            label: input.keyLabel ?? "Primary key",
+            suspended: false,
+        };
+        storeKey(keyRecord);
+        managedKeys.set(keyId, {
+            id: keyId,
+            orgId,
+            key: secret,
+            label: keyRecord.label ?? "Primary key",
+            keyPreview: maskApiKey(secret),
+            createdAt: now,
+            revokedAt: null,
+        });
+        if (claim && ciphertext)
+            keyClaims.set(claim.sessionId, {
+                sessionId: claim.sessionId,
+                orgId,
+                ciphertext,
+                expiresAt: claim.expiresAt,
+                claimedAt: null,
+            });
+        return { org, keySecret: secret, keyRecord };
+    }
     function ensureOrg(orgId, orgName) {
         const existing = orgs.get(orgId);
         if (existing)
@@ -305,48 +358,43 @@ export function createMemoryStore(seedKeys = []) {
         },
         // --- Billing surface ---
         async createOrgWithSubscription(input) {
-            const orgId = crypto.randomUUID();
-            const now = new Date().toISOString();
-            const org = { id: orgId, name: input.orgName, createdAt: now };
-            orgs.set(orgId, org);
-            orgSettings.set(orgId, {
-                plan: input.plan,
-                seats: PLANS[input.plan].seatsIncluded,
-                seatsUsed: 1,
-            });
-            const subscription = {
-                id: crypto.randomUUID(),
-                orgId,
-                stripeCustomerId: input.stripeCustomerId,
-                stripeSubscriptionId: input.stripeSubscriptionId,
-                plan: input.plan,
-                status: input.status,
-                currentPeriodEnd: input.currentPeriodEnd ?? null,
-                createdAt: now,
-                updatedAt: now,
-            };
-            subscriptions.set(subscription.stripeSubscriptionId, subscription);
+            return createSubscription(input);
+        },
+        async fulfillCheckout(input, claim) {
+            const prior = keyClaims.get(claim.sessionId);
+            if (prior)
+                return prior.orgId;
+            const existing = subscriptions.get(input.stripeSubscriptionId);
+            if (!existing)
+                return createSubscription(input, claim).org.id;
             const secret = generateApiKey();
-            const keyId = `key_${crypto.randomUUID()}`;
-            const keyRecord = {
+            const ciphertext = claim.encryptKey(secret);
+            const keyId = "key_" + crypto.randomUUID();
+            storeKey({
                 keyId,
                 key: secret,
-                orgId,
-                orgName: input.orgName,
-                label: input.keyLabel ?? "Primary key",
-                suspended: false,
-            };
-            storeKey(keyRecord);
+                orgId: existing.orgId,
+                orgName: orgs.get(existing.orgId)?.name ?? input.orgName,
+                label: input.keyLabel ?? "Initial key",
+                suspended: !UNSUSPEND_STATUSES.has(existing.status),
+            });
             managedKeys.set(keyId, {
                 id: keyId,
-                orgId,
+                orgId: existing.orgId,
                 key: secret,
-                label: keyRecord.label ?? "Primary key",
+                label: input.keyLabel ?? "Initial key",
                 keyPreview: maskApiKey(secret),
-                createdAt: now,
+                createdAt: new Date().toISOString(),
                 revokedAt: null,
             });
-            return { org, keySecret: secret, keyRecord };
+            keyClaims.set(claim.sessionId, {
+                sessionId: claim.sessionId,
+                orgId: existing.orgId,
+                ciphertext,
+                expiresAt: claim.expiresAt,
+                claimedAt: null,
+            });
+            return existing.orgId;
         },
         async updateSubscriptionByStripeId(stripeSubscriptionId, patch) {
             const existing = subscriptions.get(stripeSubscriptionId);
@@ -418,6 +466,9 @@ export function createMemoryStore(seedKeys = []) {
         },
         async setKeysSuspended(orgId, suspended) {
             setKeySuspension(orgId, suspended);
+        },
+        async hasStripeEvent(eventId) {
+            return stripeEvents.has(eventId);
         },
         async recordStripeEvent(eventId, _eventType, _payload) {
             if (stripeEvents.has(eventId))
