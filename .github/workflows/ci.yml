@@ -32,7 +32,11 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: cloud/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            cloud/package-lock.json
+      # Cloud's tests inherit the repository Vitest configuration.
+      - run: npm ci
       - run: npm ci
         working-directory: cloud
       - run: npm test
