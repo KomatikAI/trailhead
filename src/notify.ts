@@ -52,13 +52,21 @@ function slackTextForEvaluation(
   };
   const emoji = decisionEmoji[evaluation.gateDecision] ?? "";
   const prefix = eventLabel ? `[${eventLabel}] ` : "";
+  const ci = evaluation.ci;
+  const ciText = ci
+    ? ` | CI: ${ci.checks.filter((check) => check.status === "pass").length} passed, ${ci.failedCount} blocking failures, ${ci.pendingCount} blocking pending, ${ci.missingCount} missing`
+    : "";
   return (
     `${prefix}${emoji} Trailhead *${evaluation.gateDecision.toUpperCase()}* — ` +
     `risk ${evaluation.riskScore}/100` +
     (prUrl
       ? ` | <${prUrl}|PR #${evaluation.prNumber}>`
       : ` | ${evaluation.commitSha.substring(0, 7)}`) +
-    ` on \`${evaluation.repoId}\``
+    ` on \`${evaluation.repoId}\`` +
+    ciText +
+    (evaluation.releaseReady === undefined
+      ? ""
+      : ` | Release ready: ${evaluation.releaseReady ? "yes" : "no"}`)
   );
 }
 
@@ -69,6 +77,8 @@ function buildLegacyWebhookPayload(
   return {
     text: slackTextForEvaluation(evaluation, prUrl),
     decision: evaluation.gateDecision,
+    releaseReady: evaluation.releaseReady,
+    ci: evaluation.ci,
     riskScore: evaluation.riskScore,
     sizeScore: evaluation.sizeScore,
     healthScore: evaluation.healthScore,
@@ -96,6 +106,7 @@ function buildTrailheadEventPayload(
     evaluationId: evaluation.id,
     decision: evaluation.gateDecision,
     releaseReady: evaluation.releaseReady,
+    ci: evaluation.ci,
     riskScore: evaluation.riskScore,
     sizeScore: evaluation.sizeScore,
     sizeFactors: evaluation.sizeFactors,

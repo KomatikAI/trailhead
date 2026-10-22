@@ -98,14 +98,29 @@ export async function fetchCiExternalStatus(
   }
 
   try {
-    const response = await fetch(fetchUrl, { headers });
+    const parsedUrl = new URL(fetchUrl);
+    if (parsedUrl.protocol !== "https:" || parsedUrl.username || parsedUrl.password)
+      return null;
+    const response = await fetch(fetchUrl, {
+      headers,
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!response.ok) return null;
     const raw: unknown = await response.json();
+    let manifest: CiManifestType;
     try {
-      return externalStatusToManifest(parseCiExternalWebhook(raw));
+      manifest = externalStatusToManifest(parseCiExternalWebhook(raw));
     } catch {
-      return parseCiManifest(raw);
+      manifest = parseCiManifest(raw);
     }
+    if (
+      options.commitSha &&
+      (!/^[a-f0-9]{40}$/.test(options.commitSha) ||
+        manifest.commit_sha !== options.commitSha)
+    )
+      return null;
+    return manifest;
   } catch {
     return null;
   }

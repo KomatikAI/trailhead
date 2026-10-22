@@ -13,7 +13,7 @@ describe("parseCiExternalWebhook", () => {
   it("accepts a valid external CI payload", () => {
     const payload = parseCiExternalWebhook({
       schema_version: 1,
-      commit_sha: "abc1234567890",
+      commit_sha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       repo: "KomatikAI/trailhead",
       source: "gitlab",
       jobs: [{ name: "test", outcome: "passed" }],
@@ -45,7 +45,7 @@ describe("externalStatusToManifest", () => {
     const manifest = externalStatusToManifest(
       parseCiExternalWebhook({
         schema_version: 1,
-        commit_sha: "abc1234567890",
+        commit_sha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         source: "webhook",
         jobs: [{ name: "E2E", outcome: "passed" }],
       }),
@@ -69,7 +69,7 @@ describe("fetchCiExternalStatus", () => {
       new Response(
         JSON.stringify({
           schema_version: 1,
-          commit_sha: "abc1234567890",
+          commit_sha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           source: "generic",
           jobs: [{ name: "Deploy", outcome: "passed" }],
         }),
@@ -78,10 +78,32 @@ describe("fetchCiExternalStatus", () => {
     );
 
     const manifest = await fetchCiExternalStatus("https://example.com/ci-status", {
-      commitSha: "abc1234567890",
+      commitSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     });
     expect(manifest?.jobs[0]?.name).toBe("Deploy");
   });
+
+  it.each([undefined, "abc1234", "b".repeat(40)])(
+    "rejects missing or wrong remote SHA %s",
+    async (commit_sha) => {
+      vi.mocked(fetch).mockResolvedValue(
+        Response.json({
+          schema_version: 1,
+          commit_sha,
+          jobs: [{ name: "Build", outcome: "passed" }],
+        }),
+      );
+      expect(
+        await fetchCiExternalStatus("https://example.com/status", {
+          commitSha: "a".repeat(40),
+        }),
+      ).toBeNull();
+      expect(fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ redirect: "error", signal: expect.any(AbortSignal) }),
+      );
+    },
+  );
 });
 
 describe("resolveCiManifests", () => {
@@ -97,7 +119,13 @@ describe("resolveCiManifests", () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify([{ id: 42, sha: "abc1234567890", status: "success" }]),
+          JSON.stringify([
+            {
+              id: 42,
+              sha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              status: "success",
+            },
+          ]),
           {
             status: 200,
           },
@@ -113,7 +141,7 @@ describe("resolveCiManifests", () => {
       );
 
     const manifest = await resolveCiManifests({
-      commitSha: "abc1234567890",
+      commitSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       gitlabToken: "token",
       gitlabProjectId: "123",
       gitlabApiUrl: "https://gitlab.example/api/v4",

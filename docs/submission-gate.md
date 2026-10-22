@@ -132,7 +132,7 @@ Role-specific heuristics (e.g. coordinator action extraction, knowledge-scout de
 | `apply-autofix`       | Plan allowlisted autofixes from remediation fixes (dry-run default) |
 | `get-trust-score`     | Compute trust profile from rolling evaluation metrics               |
 
-See [mcp/README.md](../mcp/README.md) for the full 26-tool catalog.
+See [mcp/README.md](../mcp/README.md) for the full 27-tool catalog.
 
 ## Trust scoring (Phase B3)
 

@@ -41,7 +41,7 @@ export function verifySignature(
   signature: string,
   secret: string,
 ): boolean {
-  if (!secret || !signature) return !secret;
+  if (!secret || !signature) return false;
   const expected = `sha256=${crypto
     .createHmac("sha256", secret)
     .update(payload)
@@ -349,10 +349,8 @@ export async function handleDeploymentProtectionRule(
 ): Promise<void> {
   const config = getConfig();
 
-  if (config.webhookSecret) {
-    if (!verifySignature(rawBody, signature, config.webhookSecret)) {
-      throw new Error("Invalid webhook signature");
-    }
+  if (!verifySignature(rawBody, signature, config.webhookSecret)) {
+    throw new Error("Webhook secret missing or invalid signature");
   }
 
   const [owner, repo] = payload.repository.full_name.split("/");

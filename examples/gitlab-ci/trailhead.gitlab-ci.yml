@@ -1,75 +1,24 @@
-# Trailhead for GitLab CI (release-ready mode)
-#
-# Pair this pipeline with the Trailhead GitHub Action on the same repo/PR:
-#   gitlab-token + gitlab-project-id inputs poll GitLab automatically, OR
-#   post job outcomes to the Trailhead App webhook (see docs/ci-external-webhook.md).
-#
-# Prerequisites:
-# - GitHub PR gate: KomatikAI/trailhead@v4 with gate-mode: release-ready
-# - .trailhead.yml lists GitLab job names in contexts[].ci.required_checks
-# - Optional: TRAILHEAD_CI_WEBHOOK_URL + TRAILHEAD_CI_WEBHOOK_SECRET for POST ingest
-#
-# Copy to your repo's .gitlab-ci.yml or include it.
-
+# Copy to .gitlab-ci.yml. The GitHub Trailhead Action polls actual provider jobs:
+#   gitlab-token: ${{ secrets.GITLAB_TOKEN }}
+#   gitlab-project-id: '123'
+#   gitlab-api-url: https://gitlab.com/api/v4
+# Configure lint and test as required jobs in .trailhead.yml.
+# Do not infer sibling job outcomes from a reporter job's CI_JOB_STATUS.
 stages:
   - test
-  - gate
-
 lint:
   stage: test
-  image: node:20-slim
+  image: node:22-slim
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   script:
     - npm ci
     - npm run lint
-
 test:
   stage: test
-  image: node:20-slim
+  image: node:22-slim
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   script:
     - npm ci
     - npm test
-
-report-trailhead:
-  stage: gate
-  image: curlimages/curl:8.5.0
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  needs:
-    - job: lint
-      optional: true
-    - job: test
-      optional: true
-  script:
-    - |
-      if [ -z "$TRAILHEAD_CI_WEBHOOK_URL" ]; then
-        echo "TRAILHEAD_CI_WEBHOOK_URL not set — skipping webhook POST (use gitlab-* Action inputs instead)."
-        exit 0
-      fi
-
-      LINT_OUTCOME="passed"
-      TEST_OUTCOME="passed"
-      if [ "$CI_JOB_STATUS" != "success" ]; then TEST_OUTCOME="failed"; fi
-
-      PAYLOAD=$(cat <<EOF
-      {
-        "schema_version": 1,
-        "commit_sha": "${CI_COMMIT_SHA}",
-        "repo": "${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}",
-        "source": "gitlab",
-        "workflow": "gitlab:${CI_PIPELINE_ID}",
-        "jobs": [
-          { "name": "lint", "outcome": "${LINT_OUTCOME}" },
-          { "name": "test", "outcome": "${TEST_OUTCOME}" }
-        ]
-      }
-      EOF
-      )
-
-      curl -fsS -X POST "$TRAILHEAD_CI_WEBHOOK_URL" \
-        -H "Content-Type: application/json" \
-        ${TRAILHEAD_CI_WEBHOOK_SECRET:+-H "x-trailhead-signature-256: sha256=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$TRAILHEAD_CI_WEBHOOK_SECRET" | awk '{print $2}')"} \
-        -d "$PAYLOAD"

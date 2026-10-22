@@ -4,11 +4,11 @@
   "title": "Trailhead External CI Webhook",
   "description": "Webhook payload for non-GitHub CI systems (GitLab, CircleCI, generic).",
   "type": "object",
-  "required": ["schema_version", "commit_sha", "jobs"],
+  "required": ["schema_version", "commit_sha", "generated_at", "jobs"],
   "additionalProperties": false,
   "properties": {
     "schema_version": { "const": 1 },
-    "commit_sha": { "type": "string", "minLength": 7 },
+    "commit_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
     "repo": {
       "type": "string",
       "pattern": "^[^/]+/[^/]+$"

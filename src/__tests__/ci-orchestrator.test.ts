@@ -150,6 +150,50 @@ describe("waitForChecks", () => {
     expect(core.warning).not.toHaveBeenCalled();
   });
 
+  it("returns already-green CI in one fetch without scheduling a poll", async () => {
+    const { octokit, listForRef } = makeOctokit([
+      [{ name: "Build", status: "completed", conclusion: "success" }],
+    ]);
+    const result = await waitForChecks({
+      octokit,
+      owner: "o",
+      repo: "r",
+      headSha: "sha",
+      ciConfig: baseCiConfig,
+      timeoutMinutes: 30,
+      pollIntervalSeconds: 15,
+    });
+    expect(result.allRequiredPassed).toBe(true);
+    expect(listForRef).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("keeps already-green orchestration overhead below 15 seconds p95", async () => {
+    vi.useRealTimers();
+    // Measure orchestration overhead, not GitHub network latency. A mistaken
+    // 15-second polling delay fails this budget (and the test deadline).
+    const elapsed: number[] = [];
+    for (let sample = 0; sample < 50; sample++) {
+      const { octokit, listForRef } = makeOctokit([
+        [{ name: "Build", status: "completed", conclusion: "success" }],
+      ]);
+      const start = performance.now();
+      const result = await waitForChecks({
+        octokit,
+        owner: "o",
+        repo: "r",
+        headSha: "sha",
+        ciConfig: baseCiConfig,
+        pollIntervalSeconds: 15,
+      });
+      elapsed.push(performance.now() - start);
+      expect(result.allRequiredPassed).toBe(true);
+      expect(listForRef).toHaveBeenCalledTimes(1);
+    }
+    elapsed.sort((a, b) => a - b);
+    expect(elapsed[Math.ceil(elapsed.length * 0.95) - 1]).toBeLessThan(15_000);
+  });
+
   it("returns on the very first fetch — no waiting — once a required check has genuinely failed, even with another still pending", async () => {
     const { octokit, listForRef } = makeOctokit([
       [

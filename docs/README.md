@@ -6,7 +6,7 @@ Trailhead is a release readiness gate available in three forms:
 
 1. **GitHub Action** (`@v4`) — the primary distribution. Runs in CI on every PR, waits for required checks, and publishes a composite **Release Ready** check.
 2. **GitHub App** (`app/`) — a webhook server that acts as a Custom Deployment Protection Rule with the same composite gate logic.
-3. **MCP Server** (`mcp/`) — 26 tools for AI agents via the Model Context Protocol.
+3. **MCP Server** (`mcp/`) — [27 tools](../mcp/README.md#tools) for AI agents via the Model Context Protocol, including `get-pr-release-status` for a current CI and risk snapshot.
 4. **Trailhead Cloud** (`cloud/`) — optional hosted evaluation store, analytics dashboard, feedback loop, and org billing tiers (v4.1).
 
 All three runtime interfaces plus Cloud share a single **risk engine** (`src/risk-engine.ts`) and v4 modules (`ci-core.ts`, `release-ready.ts`, `context-matcher.ts`, `deployment-gate.ts`, `feedback-core.ts`) — pure TypeScript with no framework dependencies.

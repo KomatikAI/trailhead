@@ -1,6 +1,6 @@
 # Trailhead MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Trailhead's deployment gate capabilities as 26 tools for AI agents.
+A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Trailhead's deployment gate capabilities as 27 tools for AI agents.
 
 ## Tools
 
