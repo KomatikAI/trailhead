@@ -494,6 +494,29 @@ test("expected model inventory cannot silently omit a hosted model", () => {
   });
   assert.equal(result.checks.find((v) => v.id === "model_rates").status, "fail");
 });
+
+test("provider/model boundaries cannot be changed by concatenation", () => {
+  const d = fixture();
+  d.modelRates[0].model = "vendor/model";
+  for (const u of d.usage) u.model = "vendor/model";
+  const e = { ...expected, models: ["fixture/vendor/model"] };
+  assert.equal(evaluate(d, e).promotable, true);
+  d.modelRates[0].provider = "fixture/vendor";
+  d.modelRates[0].model = "model";
+  assert.equal(evaluate(d, e).promotable, false);
+});
+
+test("usage cannot change the provider/model boundary either", () => {
+  const d = fixture();
+  d.modelRates[0].model = "vendor/model";
+  for (const u of d.usage) u.model = "vendor/model";
+  d.usage[0].provider = "fixture/vendor";
+  d.usage[0].model = "model";
+  assert.equal(
+    evaluate(d, { ...expected, models: ["fixture/vendor/model"] }).promotable,
+    false,
+  );
+});
 test("invalid observations do not throw or pass", () => {
   for (const value of [null, 1, "pass", true, [], {}]) {
     const d = fixture();

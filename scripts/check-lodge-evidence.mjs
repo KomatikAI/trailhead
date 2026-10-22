@@ -28,7 +28,13 @@ const https = (v) => {
     return false;
   }
 };
-const key = (v) => `${v?.provider}/${v?.model}`;
+const key = (v) =>
+  typeof v?.provider === "string" &&
+  /^[^/\s]+$/.test(v.provider) &&
+  typeof v?.model === "string" &&
+  /^\S+$/.test(v.model)
+    ? `${v.provider}/${v.model}`
+    : null;
 const fresh = (v, now) => {
   if (typeof v !== "string" || !/^\d{4}-\d\d-\d\dT.*Z$/.test(v)) return false;
   const age = now - Date.parse(v);
