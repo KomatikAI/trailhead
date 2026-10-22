@@ -16,6 +16,10 @@
 
 Full walkthrough: **[docs/getting-started.md](docs/getting-started.md)** · Fleet/advanced: **[docs/advanced-fleet.md](docs/advanced-fleet.md)**
 
+Lodge promotion tooling: **[credit evidence gate](docs/lodge-evidence-gate.md)** —
+standalone validator; requires a trusted collector and a required consumer check
+before it protects production.
+
 ## Quick Start
 
 **Option A — Interactive setup (recommended):**
