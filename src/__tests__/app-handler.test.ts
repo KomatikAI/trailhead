@@ -1,27 +1,20 @@
 import crypto from "node:crypto";
+// Dynamic file import runs the actual App code without pulling the separately
+// typechecked App project into the Action's src-only TypeScript build.
+const { verifySignature } = (await import(
+  new URL("../../app/src/handler.ts", import.meta.url).href
+)) as {
+  verifySignature: (payload: string, signature: string, secret: string) => boolean;
+};
 
 /**
  * Tests for the GitHub App handler (app/src/handler.ts).
- * Since app/ is a separate TypeScript project, we test the core logic
- * by re-implementing and testing the pure functions directly.
+ * Signature tests import the real App implementation so auth cannot drift.
  */
 
 // ---------------------------------------------------------------------------
-// verifySignature — re-implemented from app/src/handler.ts
+// verifySignature — actual App handler
 // ---------------------------------------------------------------------------
-
-function verifySignature(payload: string, signature: string, secret: string): boolean {
-  if (!secret || !signature) return !secret;
-  const expected = `sha256=${crypto
-    .createHmac("sha256", secret)
-    .update(payload)
-    .digest("hex")}`;
-  try {
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-  } catch {
-    return false;
-  }
-}
 
 function createSignature(payload: string, secret: string): string {
   return `sha256=${crypto.createHmac("sha256", secret).update(payload).digest("hex")}`;
@@ -45,8 +38,8 @@ describe("App: verifySignature", () => {
     expect(verifySignature(payload + "tampered", sig, secret)).toBe(false);
   });
 
-  it("returns true when no secret is configured (open mode)", () => {
-    expect(verifySignature(payload, "", "")).toBe(true);
+  it("rejects requests when no secret is configured", () => {
+    expect(verifySignature(payload, "", "")).toBe(false);
   });
 
   it("returns false when secret is set but signature is missing", () => {
