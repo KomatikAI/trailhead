@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "Trailhead is free as a GitHub Action. Trailhead Cloud adds hosted evaluation storage, dashboards, and agent-governance policy: Pro $39/mo, Team $399/mo.",
 };
 
-const MARKETPLACE_URL = "https://github.com/marketplace/actions/trailhead";
+const INSTALL_URL = "https://github.com/KomatikAI/trailhead#quick-start";
 
 export default function PricingPage() {
   return (
@@ -44,11 +44,11 @@ export default function PricingPage() {
           ]}
           cta={
             <Link
-              href={MARKETPLACE_URL}
+              href={INSTALL_URL}
               className="btn btn-secondary"
               style={{ width: "100%" }}
             >
-              Install from Marketplace
+              Install the GitHub Action
             </Link>
           }
         />
@@ -62,7 +62,6 @@ export default function PricingPage() {
             "Everything in Free",
             `${PLANS.pro.evaluationsPerMonth.toLocaleString()} stored evaluations / month`,
             "Hosted trend dashboard",
-            `Up to ${PLANS.pro.seatsIncluded} seats included`,
             "API keys for CI ingest",
           ]}
           cta={<CheckoutForm plan="pro" label="Start Pro" />}
@@ -76,9 +75,6 @@ export default function PricingPage() {
             "Everything in Pro",
             `${PLANS.team.evaluationsPerMonth.toLocaleString()} stored evaluations / month`,
             "Org-wide rollup dashboard across repos",
-            "SSO",
-            "Agent-governance policies: provenance classification, sensitive-path gates, session-burst detection, trust profiles, escalation SLAs",
-            `Up to ${PLANS.team.seatsIncluded} seats included`,
           ]}
           cta={<CheckoutForm plan="team" label="Start Team" />}
         />
@@ -201,7 +197,7 @@ function Faq() {
     ],
     [
       "Do I need Trailhead Cloud to use the risk gate?",
-      "No. The GitHub Action's risk-only and release-ready gate modes run entirely in your CI with no API key. Cloud only adds hosted history, dashboards, org rollup, and SSO.",
+      "No. The GitHub Action's risk-only and release-ready gate modes, including configured agent-governance policies, run entirely in your CI with no API key. Cloud adds hosted history, dashboards, and org rollup. Dashboard access currently uses an API key; SSO sign-in is not available.",
     ],
   ];
   return (

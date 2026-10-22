@@ -25,14 +25,14 @@ The simplest path — one API key, no store URL configuration.
 
 When `trailhead-api-key` is set:
 
-| Setting       | Value                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------ |
-| Store URL     | `https://api.trailhead.dev/v1/evaluations` (override base with `TRAILHEAD_CLOUD_API_BASE`) |
-| Auth          | Bearer token = your API key                                                                |
-| Deploy events | `https://api.trailhead.dev/v1/deploy-events`                                               |
-| Idempotency   | `Idempotency-Key: <evaluation.id>` on every POST                                           |
+| Setting       | Value                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| Store URL     | `https://trailhead.komatik.xyz/api/cloud/v1/evaluations` (override base with `TRAILHEAD_CLOUD_API_BASE`) |
+| Auth          | Bearer token = your API key                                                                              |
+| Deploy events | `https://trailhead.komatik.xyz/api/cloud/v1/deploy-events`                                               |
+| Idempotency   | `Idempotency-Key: <evaluation.id>` on every POST                                                         |
 
-Repos are **auto-registered** on first evaluation. Open the hosted dashboard at `/dashboard` on the Cloud API (e.g. `https://api.trailhead.dev/dashboard`). See [cloud/openapi.yaml](../cloud/openapi.yaml) for the full API.
+Repos are **auto-registered** on first evaluation. Open the hosted dashboard at `https://trailhead.komatik.xyz/dashboard`. See [cloud/openapi.yaml](../cloud/openapi.yaml) for the full API.
 
 ### Local Cloud API
 
@@ -107,8 +107,43 @@ This is **fail-open** — storage failures never block merges.
 | Rate limits   | 120 req/min/org with `RateLimit-*` headers | Your infrastructure                                                  |
 | Idempotency   | Built-in via `Idempotency-Key`             | Implement in your store                                              |
 
+## Correlating deployment outcomes
+
+Copy [the tracker example](../examples/github-actions/trailhead-deploy-tracker.yml)
+and [its standalone script](../scripts/record-deploy-correlation.mjs) into the
+consumer's reviewed default branch. The provider must publish a successful
+GitHub `deployment_status` event with the full deployed SHA, a production flag
+and the expected environment (default `Production`; configurable with
+`TRAILHEAD_PRODUCTION_ENVIRONMENT`). A branch push is not deployment evidence.
+This example uses the BYOS table and its existing `deploy_outcome`/`deployed_at`
+columns, not the Cloud ingest API. Credentials remain consumer-managed.
+
+The primary match is repository plus exact full `commit_sha`, using the latest
+evaluation at or before the deployment event. Explicit blocked/false-readiness
+rows are never marked successful and never cause fallback to an older row.
+Legacy null readiness is accepted only with an allow/warn gate decision.
+Conditional updates preserve a later recorded deployment outcome or newly
+blocked evaluation. Store errors warn without blocking the deployment.
+
+`TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS` optionally permits a 0–24 hour fallback
+when there is no exact match (0/unset disables it). The window is anchored to the
+deployment event, not the time a delayed workflow runs. More than one candidate
+is ambiguous and produces no write. Even a unique time-window match is a
+heuristic: prefer recording the gate SHA with deployment metadata. Do not use
+fallback correlation as proof of release eligibility or a successful canary.
+
+## Notification CI summary
+
+Both legacy webhook payloads and `trailhead.webhook.v1` events include `ci` and
+`releaseReady` when those fields exist in the evaluation. `ci` is the evaluation's
+summary with checks, required-check failure/pending/missing counts and
+`allRequiredPassed`. Slack-compatible text includes passed-check count, blocking
+failure/pending counts and release readiness. Risk-only historical evaluations
+without CI remain valid; an absent summary is not reported as passing CI.
+
 ## Related
 
 - [Trailhead v4 roadmap](./roadmap-v4.md)
 - [Migration v3 → v4](./migration-v3-to-v4.md)
+- [Branch protection setup](./branch-protection-setup.md)
 - [Komatik hosted store](./komatik-hosted-store.md) — fleet `komatik.ai` endpoint

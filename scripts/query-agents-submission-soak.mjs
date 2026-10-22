@@ -1,97 +1,167 @@
 #!/usr/bin/env node
-/**
- * Per-PR submission-gate soak metrics for KomatikAI/agents (latest eval per PR).
- *
- * Usage:
- *   node scripts/query-agents-submission-soak.mjs
- *   STORE_URL=https://komatik.ai/api/trailhead/evaluations node scripts/query-agents-submission-soak.mjs
- *
- * Requires INTERNAL_API_SECRET or EVALUATION_STORE_SECRET in env for GET.
- */
+/** Read-only soak report. False positives require human classifications. */
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
-const STORE_URL = process.env.STORE_URL || "https://komatik.ai/api/trailhead/evaluations";
-const REPO = process.env.SOAK_REPO || "KomatikAI/agents";
-const FP_THRESHOLD = Number(process.env.SOAK_FP_THRESHOLD || "0.10");
-const MIN_PRS = Number(process.env.SOAK_MIN_PRS || "30");
+export function evaluateSoak(
+  rows,
+  reviews = [],
+  {
+    minPrs = 30,
+    threshold = 0.1,
+    since = "2026-06-06T00:00:00Z",
+    repo = "KomatikAI/agents",
+    now = Date.now(),
+  } = {},
+) {
+  if (
+    !Number.isInteger(minPrs) ||
+    minPrs < 30 ||
+    !Number.isFinite(threshold) ||
+    threshold <= 0 ||
+    threshold > 0.1 ||
+    !Number.isFinite(Date.parse(since)) ||
+    Date.parse(since) < Date.parse("2026-06-06T00:00:00Z")
+  )
+    throw new Error(
+      "Soak options must preserve the post-baseline 30-PR / <10% requirement",
+    );
+  if (!Array.isArray(rows) || !Array.isArray(reviews))
+    throw new Error("Evaluations and reviews must be arrays");
+  const latest = new Map();
+  for (const row of rows) {
+    const time = Date.parse(row.created_at);
+    if (
+      row.repo_id !== repo ||
+      !Number.isInteger(row.pr_number) ||
+      row.pr_number <= 0 ||
+      !Number.isFinite(time) ||
+      time < Date.parse(since) ||
+      time > now
+    )
+      continue;
+    if (
+      !latest.has(row.pr_number) ||
+      time > Date.parse(latest.get(row.pr_number).created_at)
+    )
+      latest.set(row.pr_number, row);
+  }
+  let qualified = 0;
+  let falsePositives = 0;
+  let findings = 0;
+  const unresolved = [];
+  for (const row of latest.values()) {
+    const checks = row.submission_checks;
+    const valid =
+      Array.isArray(checks) &&
+      checks.every(
+        (c) =>
+          c &&
+          typeof c.code === "string" &&
+          ["blocking", "warn", "advisory"].includes(c.severity),
+      );
+    if (!valid || !/^[a-f0-9]{40}$/i.test(row.commit_sha ?? "")) {
+      unresolved.push({
+        pr: row.pr_number,
+        reason: "missing current submission schema or full commit SHA",
+      });
+      continue;
+    }
+    const hasFinding = checks.some((c) => c.severity !== "advisory");
+    if (hasFinding) findings++;
+    // Bind review to the exact evaluation, not just the PR number or commit:
+    // re-evaluation can change the detector output without changing the head.
+    const matches = reviews.filter(
+      (r) =>
+        r.repo_id === repo &&
+        r.pr_number === row.pr_number &&
+        r.commit_sha === row.commit_sha &&
+        r.evaluated_at === row.created_at,
+    );
+    const review = matches.length === 1 ? matches[0] : null;
+    const reviewedAt = Date.parse(review?.reviewed_at);
+    const classificationMatches = hasFinding
+      ? ["true_positive", "false_positive"].includes(review?.classification)
+      : review?.classification === "clean";
+    if (
+      !review ||
+      !classificationMatches ||
+      typeof review.reviewer !== "string" ||
+      !review.reviewer.trim() ||
+      !/^https:\/\//.test(review.evidence_url ?? "") ||
+      !Number.isFinite(reviewedAt) ||
+      reviewedAt < Date.parse(row.created_at) ||
+      reviewedAt > now
+    ) {
+      unresolved.push({
+        pr: row.pr_number,
+        reason:
+          "needs one matching human classification with reviewer, timestamp and evidence URL",
+      });
+      continue;
+    }
+    qualified++;
+    if (review.classification === "false_positive") falsePositives++;
+  }
+  const fpRate = qualified ? falsePositives / qualified : null;
+  return {
+    repo,
+    since,
+    distinctPrs: latest.size,
+    qualified,
+    findings,
+    falsePositives,
+    fpRate,
+    unresolved,
+    ready: qualified >= minPrs && unresolved.length === 0 && fpRate < threshold,
+  };
+}
 
 async function main() {
   const secret = process.env.INTERNAL_API_SECRET || process.env.EVALUATION_STORE_SECRET;
-  if (!secret) {
-    console.error("Set INTERNAL_API_SECRET or EVALUATION_STORE_SECRET");
-    process.exit(1);
-  }
-
-  const url = `${STORE_URL}?repo_id=${encodeURIComponent(REPO)}&limit=200`;
-  const res = await fetch(url, {
+  if (!secret) throw new Error("Set INTERNAL_API_SECRET or EVALUATION_STORE_SECRET");
+  const url = new URL(
+    process.env.STORE_URL || "https://komatik.ai/api/trailhead/evaluations",
+  );
+  if (url.protocol !== "https:")
+    throw new Error("The authenticated store endpoint must use HTTPS");
+  const repo = process.env.SOAK_REPO || "KomatikAI/agents";
+  url.searchParams.set("repo_id", repo);
+  url.searchParams.set("limit", "200");
+  const response = await fetch(url, {
     headers: { Authorization: `Bearer ${secret}`, Accept: "application/json" },
+    redirect: "error",
+    signal: AbortSignal.timeout(30_000),
   });
-  if (!res.ok) {
-    console.error(`Store GET failed: HTTP ${res.status}`);
-    process.exit(1);
+  if (!response.ok) throw new Error(`Store GET failed: HTTP ${response.status}`);
+  const body = await response.json();
+  if (!Array.isArray(body.evaluations))
+    throw new Error("Store response has no evaluations array");
+  const reviews = process.env.SOAK_REVIEW_FILE
+    ? JSON.parse(readFileSync(process.env.SOAK_REVIEW_FILE, "utf8"))
+    : [];
+  const report = evaluateSoak(body.evaluations, reviews, {
+    repo,
+    minPrs: Number(process.env.SOAK_MIN_PRS || 30),
+    threshold: Number(process.env.SOAK_FP_THRESHOLD || 0.1),
+    since: process.env.SOAK_SINCE || "2026-06-06T00:00:00Z",
+  });
+  // A full page can cut off the review window; never call a truncated sample ready.
+  if (body.evaluations.length >= 200 || body.has_more || body.next_cursor) {
+    report.ready = false;
+    report.unresolved.push({
+      reason:
+        "store result may be truncated; supply a complete bounded review window before flipping",
+    });
   }
-
-  const body = await res.json();
-  const rows = body.evaluations ?? [];
-
-  const latestByPr = new Map();
-  for (const row of rows) {
-    const pr = row.pr_number;
-    if (!pr) continue;
-    const created = String(row.created_at ?? "");
-    const prev = latestByPr.get(pr);
-    if (!prev || String(prev.created_at ?? "") < created) {
-      latestByPr.set(pr, row);
-    }
-  }
-
-  const prs = [...latestByPr.values()].sort((a, b) =>
-    String(b.created_at).localeCompare(String(a.created_at)),
-  );
-
-  let withSubmission = 0;
-  let submissionFp = 0;
-  let riskWarnBlock = 0;
-
-  for (const row of prs) {
-    if (row.submission_checks != null) withSubmission += 1;
-    const submission = row.submission_checks;
-    if (
-      Array.isArray(submission) &&
-      submission.some((c) => c.passed === false && c.severity !== "advisory")
-    ) {
-      submissionFp += 1;
-    }
-    if (row.gate_decision === "warn" || row.gate_decision === "block") {
-      riskWarnBlock += 1;
-    }
-  }
-
-  const distinctPrs = prs.length;
-  const submissionFpRate = distinctPrs > 0 ? submissionFp / distinctPrs : 0;
-  const riskFpRate = distinctPrs > 0 ? riskWarnBlock / distinctPrs : 0;
-  const ready =
-    withSubmission >= MIN_PRS &&
-    distinctPrs >= MIN_PRS &&
-    submissionFpRate < FP_THRESHOLD;
-
-  console.log(`Repo: ${REPO}`);
-  console.log(`Distinct PRs (latest eval each): ${distinctPrs}`);
-  console.log(`Rows with submission_checks: ${withSubmission}`);
-  console.log(`Submission FP-ish (failed non-advisory): ${submissionFp}`);
-  console.log(`Submission FP rate: ${(submissionFpRate * 100).toFixed(1)}%`);
-  console.log(`Risk warn/block rate (informational): ${(riskFpRate * 100).toFixed(1)}%`);
-  console.log(
-    `Flip-ready (submission FP < ${FP_THRESHOLD * 100}% over ${MIN_PRS} PRs with data): ${ready ? "YES" : "NO"}`,
-  );
-
-  if (withSubmission === 0) {
-    console.log(
-      "\nNote: submission_checks empty — soak cannot start until gate runs v4.5.1+ with submission-gate: true and store mapper persists analytics columns.",
-    );
-  }
+  console.log(JSON.stringify(report, null, 2));
+  console.log(`Flip-ready: ${report.ready ? "YES" : "NO"}`);
+  process.exitCode = report.ready ? 0 : 1;
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}

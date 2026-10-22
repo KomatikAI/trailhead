@@ -3,6 +3,7 @@ import * as github from "@actions/github";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import {
+  collectConfigWarnings,
   CURRENT_CONFIG_SCHEMA_VERSION,
   parseRepoConfigContent,
   parseYaml,
@@ -67,6 +68,10 @@ function validateSchemaVersion(
       `${configPath}: schema_version=${parsedConfig.schema_version} is newer than ` +
         `supported ${CURRENT_CONFIG_SCHEMA_VERSION}. Some features may be ignored.`,
     );
+  }
+
+  for (const warning of collectConfigWarnings(parsedConfig)) {
+    core.warning(`${configPath}: ${warning}`);
   }
 
   return parsedConfig;

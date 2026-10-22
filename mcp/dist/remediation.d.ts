@@ -2,7 +2,10 @@ import type { SubmissionCheckResult } from "./submission-remediation.js";
 export { RED_LANE_FIX_CODES, ROUTINE_FIX_CODES, classifyFixLane, hasRedLaneFindings, isAgentProvenanceType, computeNextAction, } from "./remediation-lanes.js";
 import type { AgentBriefMode, GateEvaluation, PrProvenance, Remediation } from "./types.js";
 export interface BuildRemediationInput {
-    evaluation: Pick<GateEvaluation, "id" | "riskFactors" | "ci" | "releaseReady" | "releaseReadyReasons" | "policyFindings" | "gateDecision">;
+    evaluation: Pick<GateEvaluation, "id" | "riskFactors" | "ci" | "releaseReady" | "releaseReadyReasons" | "policyFindings" | "gateDecision"> & Partial<Pick<GateEvaluation, "riskScore" | "enumeratedFindings">> & {
+        /** Effective (post trust/policy adjustment) risk threshold for this evaluation. */
+        riskThreshold?: number;
+    };
     previousEvaluation?: Pick<GateEvaluation, "id" | "remediation"> | null;
     loopRound?: number;
     maxLoopRounds?: number;

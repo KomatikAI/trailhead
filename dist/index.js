@@ -1,14 +1,14 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 8066:
+/***/ 4559:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 module.exports = require(__nccwpck_require__.ab + "swc.win32-x64-msvc.node")
 
 /***/ }),
 
-/***/ 4844:
+/***/ 9772:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -62,9 +62,9 @@ exports.getProxyUrl = getProxyUrl;
 exports.isHttps = isHttps;
 const http = __importStar(__nccwpck_require__(8611));
 const https = __importStar(__nccwpck_require__(5692));
-const pm = __importStar(__nccwpck_require__(4988));
-const tunnel = __importStar(__nccwpck_require__(770));
-const undici_1 = __nccwpck_require__(6752);
+const pm = __importStar(__nccwpck_require__(5964));
+const tunnel = __importStar(__nccwpck_require__(9090));
+const undici_1 = __nccwpck_require__(5056);
 var HttpCodes;
 (function (HttpCodes) {
     HttpCodes[HttpCodes["OK"] = 200] = "OK";
@@ -752,7 +752,7 @@ const lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCa
 
 /***/ }),
 
-/***/ 4988:
+/***/ 5964:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -853,7 +853,7 @@ class DecodedURL extends URL {
 
 /***/ }),
 
-/***/ 898:
+/***/ 1922:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 // prettier-ignore
@@ -918,24 +918,24 @@ function requireNative() {
   if (process.platform === 'android') {
     if (process.arch === 'arm64') {
       try {
-        return __nccwpck_require__(8685)
+        return __nccwpck_require__(6366)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(607)
+        return __nccwpck_require__(7798)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'arm') {
       try {
-        return __nccwpck_require__(9665)
+        return __nccwpck_require__(2952)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(727)
+        return __nccwpck_require__(9660)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -946,36 +946,36 @@ function requireNative() {
   } else if (process.platform === 'win32') {
     if (process.arch === 'x64') {
       try {
-        return __nccwpck_require__(2665)
+        return __nccwpck_require__(6624)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8066)
+        return __nccwpck_require__(4559)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'ia32') {
       try {
-        return __nccwpck_require__(8152)
+        return __nccwpck_require__(7735)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(1612)
+        return __nccwpck_require__(8189)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'arm64') {
       try {
-        return __nccwpck_require__(3535)
+        return __nccwpck_require__(5074)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(293)
+        return __nccwpck_require__(1974)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -985,36 +985,36 @@ function requireNative() {
     }
   } else if (process.platform === 'darwin') {
     try {
-        return __nccwpck_require__(8818)
+        return __nccwpck_require__(6655)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(3890)
+        return __nccwpck_require__(2553)
       } catch (e) {
         loadErrors.push(e)
       }
 
     if (process.arch === 'x64') {
       try {
-        return __nccwpck_require__(8009)
+        return __nccwpck_require__(6768)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8139)
+        return __nccwpck_require__(8648)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'arm64') {
       try {
-        return __nccwpck_require__(475)
+        return __nccwpck_require__(5322)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(5049)
+        return __nccwpck_require__(9254)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1025,24 +1025,24 @@ function requireNative() {
   } else if (process.platform === 'freebsd') {
     if (process.arch === 'x64') {
       try {
-        return __nccwpck_require__(3291)
+        return __nccwpck_require__(1932)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6229)
+        return __nccwpck_require__(3412)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 'arm64') {
       try {
-        return __nccwpck_require__(3873)
+        return __nccwpck_require__(9486)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(5367)
+        return __nccwpck_require__(4170)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1054,24 +1054,24 @@ function requireNative() {
     if (process.arch === 'x64') {
       if (isMusl()) {
         try {
-        return __nccwpck_require__(2356)
+        return __nccwpck_require__(6645)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6900)
+        return __nccwpck_require__(6375)
       } catch (e) {
         loadErrors.push(e)
       }
 
       } else {
         try {
-        return __nccwpck_require__(4675)
+        return __nccwpck_require__(8524)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(7793)
+        return __nccwpck_require__(3320)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1080,24 +1080,24 @@ function requireNative() {
     } else if (process.arch === 'arm64') {
       if (isMusl()) {
         try {
-        return __nccwpck_require__(7602)
+        return __nccwpck_require__(2687)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(5254)
+        return __nccwpck_require__(9245)
       } catch (e) {
         loadErrors.push(e)
       }
 
       } else {
         try {
-        return __nccwpck_require__(8337)
+        return __nccwpck_require__(6926)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(6571)
+        return __nccwpck_require__(5662)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1105,12 +1105,12 @@ function requireNative() {
       }
     } else if (process.arch === 'arm') {
       try {
-        return __nccwpck_require__(7222)
+        return __nccwpck_require__(7565)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(1638)
+        return __nccwpck_require__(639)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1118,24 +1118,24 @@ function requireNative() {
     } else if (process.arch === 'riscv64') {
       if (isMusl()) {
         try {
-        return __nccwpck_require__(8593)
+        return __nccwpck_require__(5500)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8879)
+        return __nccwpck_require__(7904)
       } catch (e) {
         loadErrors.push(e)
       }
 
       } else {
         try {
-        return __nccwpck_require__(9312)
+        return __nccwpck_require__(3931)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(9008)
+        return __nccwpck_require__(8645)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1143,24 +1143,24 @@ function requireNative() {
       }
     } else if (process.arch === 'ppc64') {
       try {
-        return __nccwpck_require__(1446)
+        return __nccwpck_require__(9397)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(3586)
+        return __nccwpck_require__(9699)
       } catch (e) {
         loadErrors.push(e)
       }
 
     } else if (process.arch === 's390x') {
       try {
-        return __nccwpck_require__(2644)
+        return __nccwpck_require__(943)
       } catch (e) {
         loadErrors.push(e)
       }
       try {
-        return __nccwpck_require__(8600)
+        return __nccwpck_require__(9365)
       } catch (e) {
         loadErrors.push(e)
       }
@@ -1177,7 +1177,7 @@ nativeBinding = requireNative()
 
 if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
   try {
-    nativeBinding = __nccwpck_require__(6681)
+    nativeBinding = __nccwpck_require__(554)
   } catch (err) {
     if (process.env.NAPI_RS_FORCE_WASI) {
       console.error(err)
@@ -1185,7 +1185,7 @@ if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
   }
   if (!nativeBinding) {
     try {
-      nativeBinding = __nccwpck_require__(9301)
+      nativeBinding = __nccwpck_require__(8856)
     } catch (err) {
       if (process.env.NAPI_RS_FORCE_WASI) {
         console.error(err)
@@ -1228,7 +1228,7 @@ module.exports.transformSync = nativeBinding.transformSync
 
 /***/ }),
 
-/***/ 5971:
+/***/ 4659:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1297,9 +1297,9 @@ exports.__experimental_registerGlobalTraceConfig = __experimental_registerGlobal
 exports.getBinaryMetadata = getBinaryMetadata;
 const path_1 = __nccwpck_require__(6928);
 // @ts-ignore
-var binding_1 = __nccwpck_require__(898);
+var binding_1 = __nccwpck_require__(1922);
 Object.defineProperty(exports, "experimental_newMangleNameCache", ({ enumerable: true, get: function () { return binding_1.newMangleNameCache; } }));
-const spack_1 = __nccwpck_require__(8579);
+const spack_1 = __nccwpck_require__(1747);
 const assert = __importStar(__nccwpck_require__(2613));
 // Allow overrides to the location of the .node binding file
 const bindingsOverride = process.env["SWC_BINARY_PATH"];
@@ -1311,7 +1311,7 @@ const bindings = (() => {
     try {
         binding = !!bindingsOverride
             ? require((0, path_1.resolve)(bindingsOverride))
-            : __nccwpck_require__(898);
+            : __nccwpck_require__(1922);
         // If native binding loaded successfully, it should return proper target triple constant.
         const triple = binding.getTargetTriple();
         assert.ok(triple, "Failed to read target triple from native binary.");
@@ -1319,7 +1319,7 @@ const bindings = (() => {
     }
     catch (_) {
         // postinstall supposed to install `@swc/wasm` already
-        fallbackBindings = __nccwpck_require__(5855);
+        fallbackBindings = __nccwpck_require__(4574);
     }
     finally {
         return binding;
@@ -1328,7 +1328,7 @@ const bindings = (() => {
 /**
  * Version of the swc binding.
  */
-exports.version = __nccwpck_require__(155).version;
+exports.version = __nccwpck_require__(4222).version;
 /**
  * @deprecated JavaScript API is deprecated. Please use Wasm plugin instead.
  */
@@ -1679,7 +1679,7 @@ function toBuffer(t) {
 
 /***/ }),
 
-/***/ 8579:
+/***/ 1747:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1774,15 +1774,15 @@ function config(c) {
 
 /***/ }),
 
-/***/ 770:
+/***/ 9090:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = __nccwpck_require__(218);
+module.exports = __nccwpck_require__(906);
 
 
 /***/ }),
 
-/***/ 218:
+/***/ 906:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2054,34 +2054,34 @@ exports.debug = debug; // for test
 
 /***/ }),
 
-/***/ 6752:
+/***/ 5056:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const Client = __nccwpck_require__(3701)
-const Dispatcher = __nccwpck_require__(883)
-const Pool = __nccwpck_require__(628)
-const BalancedPool = __nccwpck_require__(837)
-const Agent = __nccwpck_require__(7405)
-const ProxyAgent = __nccwpck_require__(6672)
-const EnvHttpProxyAgent = __nccwpck_require__(3137)
-const RetryAgent = __nccwpck_require__(50)
-const errors = __nccwpck_require__(8707)
-const util = __nccwpck_require__(3440)
+const Client = __nccwpck_require__(3573)
+const Dispatcher = __nccwpck_require__(8131)
+const Pool = __nccwpck_require__(4020)
+const BalancedPool = __nccwpck_require__(8069)
+const Agent = __nccwpck_require__(9213)
+const ProxyAgent = __nccwpck_require__(5120)
+const EnvHttpProxyAgent = __nccwpck_require__(2433)
+const RetryAgent = __nccwpck_require__(6322)
+const errors = __nccwpck_require__(7251)
+const util = __nccwpck_require__(1344)
 const { InvalidArgumentError } = errors
-const api = __nccwpck_require__(6615)
-const buildConnector = __nccwpck_require__(9136)
-const MockClient = __nccwpck_require__(7365)
-const MockAgent = __nccwpck_require__(7501)
-const MockPool = __nccwpck_require__(4004)
-const mockErrors = __nccwpck_require__(2429)
-const RetryHandler = __nccwpck_require__(7816)
-const { getGlobalDispatcher, setGlobalDispatcher } = __nccwpck_require__(2581)
-const DecoratorHandler = __nccwpck_require__(8155)
-const RedirectHandler = __nccwpck_require__(8754)
-const createRedirectInterceptor = __nccwpck_require__(5092)
+const api = __nccwpck_require__(1559)
+const buildConnector = __nccwpck_require__(5696)
+const MockClient = __nccwpck_require__(8373)
+const MockAgent = __nccwpck_require__(6781)
+const MockPool = __nccwpck_require__(8388)
+const mockErrors = __nccwpck_require__(1213)
+const RetryHandler = __nccwpck_require__(9400)
+const { getGlobalDispatcher, setGlobalDispatcher } = __nccwpck_require__(85)
+const DecoratorHandler = __nccwpck_require__(5899)
+const RedirectHandler = __nccwpck_require__(7794)
+const createRedirectInterceptor = __nccwpck_require__(68)
 
 Object.assign(Dispatcher.prototype, api)
 
@@ -2099,10 +2099,10 @@ module.exports.DecoratorHandler = DecoratorHandler
 module.exports.RedirectHandler = RedirectHandler
 module.exports.createRedirectInterceptor = createRedirectInterceptor
 module.exports.interceptors = {
-  redirect: __nccwpck_require__(1514),
-  retry: __nccwpck_require__(2026),
-  dump: __nccwpck_require__(8060),
-  dns: __nccwpck_require__(379)
+  redirect: __nccwpck_require__(9402),
+  retry: __nccwpck_require__(5626),
+  dump: __nccwpck_require__(7772),
+  dns: __nccwpck_require__(5643)
 }
 
 module.exports.buildConnector = buildConnector
@@ -2164,7 +2164,7 @@ function makeDispatcher (fn) {
 module.exports.setGlobalDispatcher = setGlobalDispatcher
 module.exports.getGlobalDispatcher = getGlobalDispatcher
 
-const fetchImpl = (__nccwpck_require__(4398).fetch)
+const fetchImpl = (__nccwpck_require__(9726).fetch)
 module.exports.fetch = async function fetch (init, options = undefined) {
   try {
     return await fetchImpl(init, options)
@@ -2176,39 +2176,39 @@ module.exports.fetch = async function fetch (init, options = undefined) {
     throw err
   }
 }
-module.exports.Headers = __nccwpck_require__(660).Headers
-module.exports.Response = __nccwpck_require__(9051).Response
-module.exports.Request = __nccwpck_require__(9967).Request
-module.exports.FormData = __nccwpck_require__(5910).FormData
+module.exports.Headers = __nccwpck_require__(9060).Headers
+module.exports.Response = __nccwpck_require__(4667).Response
+module.exports.Request = __nccwpck_require__(6399).Request
+module.exports.FormData = __nccwpck_require__(5174).FormData
 module.exports.File = globalThis.File ?? (__nccwpck_require__(4573).File)
-module.exports.FileReader = __nccwpck_require__(8355).FileReader
+module.exports.FileReader = __nccwpck_require__(115).FileReader
 
-const { setGlobalOrigin, getGlobalOrigin } = __nccwpck_require__(1059)
+const { setGlobalOrigin, getGlobalOrigin } = __nccwpck_require__(7955)
 
 module.exports.setGlobalOrigin = setGlobalOrigin
 module.exports.getGlobalOrigin = getGlobalOrigin
 
-const { CacheStorage } = __nccwpck_require__(3245)
-const { kConstruct } = __nccwpck_require__(109)
+const { CacheStorage } = __nccwpck_require__(1757)
+const { kConstruct } = __nccwpck_require__(1677)
 
 // Cache & CacheStorage are tightly coupled with fetch. Even if it may run
 // in an older version of Node, it doesn't have any use without fetch.
 module.exports.caches = new CacheStorage(kConstruct)
 
-const { deleteCookie, getCookies, getSetCookies, setCookie } = __nccwpck_require__(9061)
+const { deleteCookie, getCookies, getSetCookies, setCookie } = __nccwpck_require__(7586)
 
 module.exports.deleteCookie = deleteCookie
 module.exports.getCookies = getCookies
 module.exports.getSetCookies = getSetCookies
 module.exports.setCookie = setCookie
 
-const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(1900)
+const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(3468)
 
 module.exports.parseMIMEType = parseMIMEType
 module.exports.serializeAMimeType = serializeAMimeType
 
-const { CloseEvent, ErrorEvent, MessageEvent } = __nccwpck_require__(5188)
-module.exports.WebSocket = __nccwpck_require__(3726).WebSocket
+const { CloseEvent, ErrorEvent, MessageEvent } = __nccwpck_require__(3796)
+module.exports.WebSocket = __nccwpck_require__(7310).WebSocket
 module.exports.CloseEvent = CloseEvent
 module.exports.ErrorEvent = ErrorEvent
 module.exports.MessageEvent = MessageEvent
@@ -2224,18 +2224,18 @@ module.exports.MockPool = MockPool
 module.exports.MockAgent = MockAgent
 module.exports.mockErrors = mockErrors
 
-const { EventSource } = __nccwpck_require__(1238)
+const { EventSource } = __nccwpck_require__(4022)
 
 module.exports.EventSource = EventSource
 
 
 /***/ }),
 
-/***/ 158:
+/***/ 5310:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { addAbortListener } = __nccwpck_require__(3440)
-const { RequestAbortedError } = __nccwpck_require__(8707)
+const { addAbortListener } = __nccwpck_require__(1344)
+const { RequestAbortedError } = __nccwpck_require__(7251)
 
 const kListener = Symbol('kListener')
 const kSignal = Symbol('kSignal')
@@ -2295,7 +2295,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2279:
+/***/ 7252:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2303,9 +2303,9 @@ module.exports = {
 
 const assert = __nccwpck_require__(4589)
 const { AsyncResource } = __nccwpck_require__(6698)
-const { InvalidArgumentError, SocketError } = __nccwpck_require__(8707)
-const util = __nccwpck_require__(3440)
-const { addSignal, removeSignal } = __nccwpck_require__(158)
+const { InvalidArgumentError, SocketError } = __nccwpck_require__(7251)
+const util = __nccwpck_require__(1344)
+const { addSignal, removeSignal } = __nccwpck_require__(5310)
 
 class ConnectHandler extends AsyncResource {
   constructor (opts, callback) {
@@ -2411,7 +2411,7 @@ module.exports = connect
 
 /***/ }),
 
-/***/ 6862:
+/***/ 1470:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2426,10 +2426,10 @@ const {
   InvalidArgumentError,
   InvalidReturnValueError,
   RequestAbortedError
-} = __nccwpck_require__(8707)
-const util = __nccwpck_require__(3440)
+} = __nccwpck_require__(7251)
+const util = __nccwpck_require__(1344)
 const { AsyncResource } = __nccwpck_require__(6698)
-const { addSignal, removeSignal } = __nccwpck_require__(158)
+const { addSignal, removeSignal } = __nccwpck_require__(5310)
 const assert = __nccwpck_require__(4589)
 
 const kResume = Symbol('resume')
@@ -2670,17 +2670,17 @@ module.exports = pipeline
 
 /***/ }),
 
-/***/ 4043:
+/***/ 9259:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const assert = __nccwpck_require__(4589)
-const { Readable } = __nccwpck_require__(9927)
-const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(8707)
-const util = __nccwpck_require__(3440)
-const { getResolveErrorBodyCallback } = __nccwpck_require__(7655)
+const { Readable } = __nccwpck_require__(2615)
+const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(7251)
+const util = __nccwpck_require__(1344)
+const { getResolveErrorBodyCallback } = __nccwpck_require__(135)
 const { AsyncResource } = __nccwpck_require__(6698)
 
 class RequestHandler extends AsyncResource {
@@ -2892,7 +2892,7 @@ module.exports.RequestHandler = RequestHandler
 
 /***/ }),
 
-/***/ 3560:
+/***/ 9784:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -2900,11 +2900,11 @@ module.exports.RequestHandler = RequestHandler
 
 const assert = __nccwpck_require__(4589)
 const { finished, PassThrough } = __nccwpck_require__(7075)
-const { InvalidArgumentError, InvalidReturnValueError } = __nccwpck_require__(8707)
-const util = __nccwpck_require__(3440)
-const { getResolveErrorBodyCallback } = __nccwpck_require__(7655)
+const { InvalidArgumentError, InvalidReturnValueError } = __nccwpck_require__(7251)
+const util = __nccwpck_require__(1344)
+const { getResolveErrorBodyCallback } = __nccwpck_require__(135)
 const { AsyncResource } = __nccwpck_require__(6698)
-const { addSignal, removeSignal } = __nccwpck_require__(158)
+const { addSignal, removeSignal } = __nccwpck_require__(5310)
 
 class StreamHandler extends AsyncResource {
   constructor (opts, factory, callback) {
@@ -3120,16 +3120,16 @@ module.exports = stream
 
 /***/ }),
 
-/***/ 1882:
+/***/ 5098:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { InvalidArgumentError, SocketError } = __nccwpck_require__(8707)
+const { InvalidArgumentError, SocketError } = __nccwpck_require__(7251)
 const { AsyncResource } = __nccwpck_require__(6698)
-const util = __nccwpck_require__(3440)
-const { addSignal, removeSignal } = __nccwpck_require__(158)
+const util = __nccwpck_require__(1344)
+const { addSignal, removeSignal } = __nccwpck_require__(5310)
 const assert = __nccwpck_require__(4589)
 
 class UpgradeHandler extends AsyncResource {
@@ -3236,22 +3236,22 @@ module.exports = upgrade
 
 /***/ }),
 
-/***/ 6615:
+/***/ 1559:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-module.exports.request = __nccwpck_require__(4043)
-module.exports.stream = __nccwpck_require__(3560)
-module.exports.pipeline = __nccwpck_require__(6862)
-module.exports.upgrade = __nccwpck_require__(1882)
-module.exports.connect = __nccwpck_require__(2279)
+module.exports.request = __nccwpck_require__(9259)
+module.exports.stream = __nccwpck_require__(9784)
+module.exports.pipeline = __nccwpck_require__(1470)
+module.exports.upgrade = __nccwpck_require__(5098)
+module.exports.connect = __nccwpck_require__(7252)
 
 
 /***/ }),
 
-/***/ 9927:
+/***/ 2615:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -3261,9 +3261,9 @@ module.exports.connect = __nccwpck_require__(2279)
 
 const assert = __nccwpck_require__(4589)
 const { Readable } = __nccwpck_require__(7075)
-const { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError } = __nccwpck_require__(8707)
-const util = __nccwpck_require__(3440)
-const { ReadableStreamFrom } = __nccwpck_require__(3440)
+const { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError } = __nccwpck_require__(7251)
+const util = __nccwpck_require__(1344)
+const { ReadableStreamFrom } = __nccwpck_require__(1344)
 
 const kConsume = Symbol('kConsume')
 const kReading = Symbol('kReading')
@@ -3644,15 +3644,15 @@ module.exports = { Readable: BodyReadable, chunksDecode }
 
 /***/ }),
 
-/***/ 7655:
+/***/ 135:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const assert = __nccwpck_require__(4589)
 const {
   ResponseStatusCodeError
-} = __nccwpck_require__(8707)
+} = __nccwpck_require__(7251)
 
-const { chunksDecode } = __nccwpck_require__(9927)
+const { chunksDecode } = __nccwpck_require__(2615)
 const CHUNK_LIMIT = 128 * 1024
 
 async function getResolveErrorBodyCallback ({ callback, body, contentType, statusCode, statusMessage, headers }) {
@@ -3744,7 +3744,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9136:
+/***/ 5696:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -3752,9 +3752,9 @@ module.exports = {
 
 const net = __nccwpck_require__(7030)
 const assert = __nccwpck_require__(4589)
-const util = __nccwpck_require__(3440)
-const { InvalidArgumentError, ConnectTimeoutError } = __nccwpck_require__(8707)
-const timers = __nccwpck_require__(6603)
+const util = __nccwpck_require__(1344)
+const { InvalidArgumentError, ConnectTimeoutError } = __nccwpck_require__(7251)
+const timers = __nccwpck_require__(3979)
 
 function noop () {}
 
@@ -3992,7 +3992,7 @@ module.exports = buildConnector
 
 /***/ }),
 
-/***/ 735:
+/***/ 3231:
 /***/ ((module) => {
 
 "use strict";
@@ -4118,7 +4118,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2414:
+/***/ 7902:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -4328,7 +4328,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8707:
+/***/ 7251:
 /***/ ((module) => {
 
 "use strict";
@@ -4761,7 +4761,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4655:
+/***/ 6287:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -4770,7 +4770,7 @@ module.exports = {
 const {
   InvalidArgumentError,
   NotSupportedError
-} = __nccwpck_require__(8707)
+} = __nccwpck_require__(7251)
 const assert = __nccwpck_require__(4589)
 const {
   isValidHTTPToken,
@@ -4785,9 +4785,9 @@ const {
   validateHandler,
   getServerName,
   normalizedMethodRecords
-} = __nccwpck_require__(3440)
-const { channels } = __nccwpck_require__(2414)
-const { headerNameLowerCasedRecord } = __nccwpck_require__(735)
+} = __nccwpck_require__(1344)
+const { channels } = __nccwpck_require__(7902)
+const { headerNameLowerCasedRecord } = __nccwpck_require__(3231)
 
 // Verifies that a given path is valid does not contain control chars \x00 to \x20
 const invalidPathRegex = /[^\u0021-\u00ff]/
@@ -5030,11 +5030,77 @@ class Request {
     }
   }
 
-  onUpgrade (statusCode, headers, socket) {
+  /**
+   * @param {number|null} statusCode
+   * @param {Buffer[]|null} headers
+   * @param {import('node:stream').Duplex} socket
+   * @param {string} [statusText]
+   */
+  onUpgrade (statusCode, headers, socket, statusText = '') {
+    this.onFinally()
+
     assert(!this.aborted)
     assert(!this.completed)
 
-    return this[kHandler].onUpgrade(statusCode, headers, socket)
+    if (statusCode !== null) {
+      this.#publishUpgradeHeaders(statusCode, headers, statusText)
+    }
+
+    const result = this[kHandler].onUpgrade(statusCode, headers, socket)
+
+    if (!this.aborted) {
+      this.completed = true
+      if (statusCode !== null) {
+        this.#publishUpgradeTrailers()
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * @param {number} statusCode
+   * @param {import('node:http2').IncomingHttpHeaders} headers
+   * @param {(headers: import('node:http2').IncomingHttpHeaders) => Buffer[]} parseHeaders
+   * @param {string} [statusText]
+   */
+  onUpgradeResponse (statusCode, headers, parseHeaders, statusText = '') {
+    assert(!this.aborted)
+    assert(this.completed)
+
+    if (channels.headers.hasSubscribers) {
+      this.#publishUpgradeHeaders(statusCode, parseHeaders(headers), statusText)
+    }
+    this.#publishUpgradeTrailers()
+  }
+
+  /**
+   * @param {Error} error
+   */
+  onUpgradeError (error) {
+    assert(!this.aborted)
+    assert(this.completed)
+
+    if (channels.error.hasSubscribers) {
+      channels.error.publish({ request: this, error })
+    }
+  }
+
+  /**
+   * @param {number} statusCode
+   * @param {Buffer[]} headers
+   * @param {string} statusText
+   */
+  #publishUpgradeHeaders (statusCode, headers, statusText) {
+    if (channels.headers.hasSubscribers) {
+      channels.headers.publish({ request: this, response: { statusCode, headers, statusText } })
+    }
+  }
+
+  #publishUpgradeTrailers () {
+    if (channels.trailers.hasSubscribers) {
+      channels.trailers.publish({ request: this, trailers: [] })
+    }
   }
 
   onComplete (trailers) {
@@ -5117,7 +5183,13 @@ function processHeader (request, key, val) {
       } else if (typeof val[i] === 'object') {
         throw new InvalidArgumentError(`invalid ${key} header`)
       } else {
-        arr.push(`${val[i]}`)
+        // Coerce primitives (and reject unsafe coercions such as functions
+        // with a crafted toString/Symbol.toPrimitive).
+        const str = `${val[i]}`
+        if (!isValidHeaderValue(str)) {
+          throw new InvalidArgumentError(`invalid ${key} header`)
+        }
+        arr.push(str)
       }
     }
     val = arr
@@ -5128,7 +5200,12 @@ function processHeader (request, key, val) {
   } else if (val === null) {
     val = ''
   } else {
+    // Coerce primitives (and reject unsafe coercions such as functions
+    // with a crafted toString/Symbol.toPrimitive).
     val = `${val}`
+    if (!isValidHeaderValue(val)) {
+      throw new InvalidArgumentError(`invalid ${key} header`)
+    }
   }
 
   if (headerName === 'host') {
@@ -5174,7 +5251,7 @@ module.exports = Request
 
 /***/ }),
 
-/***/ 6443:
+/***/ 1099:
 /***/ ((module) => {
 
 module.exports = {
@@ -5248,7 +5325,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7752:
+/***/ 8184:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -5257,7 +5334,7 @@ module.exports = {
 const {
   wellknownHeaderNames,
   headerNameLowerCasedRecord
-} = __nccwpck_require__(735)
+} = __nccwpck_require__(3231)
 
 class TstNode {
   /** @type {any} */
@@ -5408,14 +5485,14 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3440:
+/***/ 1344:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const assert = __nccwpck_require__(4589)
-const { kDestroyed, kBodyUsed, kListeners, kBody } = __nccwpck_require__(6443)
+const { kDestroyed, kBodyUsed, kListeners, kBody } = __nccwpck_require__(1099)
 const { IncomingMessage } = __nccwpck_require__(7067)
 const stream = __nccwpck_require__(7075)
 const net = __nccwpck_require__(7030)
@@ -5423,9 +5500,9 @@ const { Blob } = __nccwpck_require__(4573)
 const nodeUtil = __nccwpck_require__(7975)
 const { stringify } = __nccwpck_require__(1792)
 const { EventEmitter: EE } = __nccwpck_require__(8474)
-const { InvalidArgumentError } = __nccwpck_require__(8707)
-const { headerNameLowerCasedRecord } = __nccwpck_require__(735)
-const { tree } = __nccwpck_require__(7752)
+const { InvalidArgumentError } = __nccwpck_require__(7251)
+const { headerNameLowerCasedRecord } = __nccwpck_require__(3231)
+const { tree } = __nccwpck_require__(8184)
 
 const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(v => Number(v))
 
@@ -6135,19 +6212,19 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7405:
+/***/ 9213:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { InvalidArgumentError } = __nccwpck_require__(8707)
-const { kClients, kRunning, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(6443)
-const DispatcherBase = __nccwpck_require__(1841)
-const Pool = __nccwpck_require__(628)
-const Client = __nccwpck_require__(3701)
-const util = __nccwpck_require__(3440)
-const createRedirectInterceptor = __nccwpck_require__(5092)
+const { InvalidArgumentError } = __nccwpck_require__(7251)
+const { kClients, kRunning, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(1099)
+const DispatcherBase = __nccwpck_require__(721)
+const Pool = __nccwpck_require__(4020)
+const Client = __nccwpck_require__(3573)
+const util = __nccwpck_require__(1344)
+const createRedirectInterceptor = __nccwpck_require__(68)
 
 const kOnConnect = Symbol('onConnect')
 const kOnDisconnect = Symbol('onDisconnect')
@@ -6164,9 +6241,7 @@ function defaultFactory (origin, opts) {
 }
 
 class Agent extends DispatcherBase {
-  constructor ({ factory = defaultFactory, maxRedirections = 0, connect, ...options } = {}) {
-    super()
-
+  constructor ({ factory = defaultFactory, maxRedirections = 0, connect, tls, ...options } = {}) {
     if (typeof factory !== 'function') {
       throw new InvalidArgumentError('factory must be a function.')
     }
@@ -6179,15 +6254,21 @@ class Agent extends DispatcherBase {
       throw new InvalidArgumentError('maxRedirections must be a positive number')
     }
 
+    super(options)
+
     if (connect && typeof connect !== 'function') {
       connect = { ...connect }
+    }
+
+    if (tls && typeof tls !== 'function') {
+      tls = { ...tls }
     }
 
     this[kInterceptors] = options.interceptors?.Agent && Array.isArray(options.interceptors.Agent)
       ? options.interceptors.Agent
       : [createRedirectInterceptor({ maxRedirections })]
 
-    this[kOptions] = { ...util.deepClone(options), connect }
+    this[kOptions] = { ...util.deepClone(options), connect, tls }
     this[kOptions].interceptors = options.interceptors
       ? { ...options.interceptors }
       : undefined
@@ -6272,7 +6353,7 @@ module.exports = Agent
 
 /***/ }),
 
-/***/ 837:
+/***/ 8069:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -6281,7 +6362,7 @@ module.exports = Agent
 const {
   BalancedPoolMissingUpstreamError,
   InvalidArgumentError
-} = __nccwpck_require__(8707)
+} = __nccwpck_require__(7251)
 const {
   PoolBase,
   kClients,
@@ -6289,10 +6370,10 @@ const {
   kAddClient,
   kRemoveClient,
   kGetDispatcher
-} = __nccwpck_require__(2128)
-const Pool = __nccwpck_require__(628)
-const { kUrl, kInterceptors } = __nccwpck_require__(6443)
-const { parseOrigin } = __nccwpck_require__(3440)
+} = __nccwpck_require__(9152)
+const Pool = __nccwpck_require__(4020)
+const { kUrl, kInterceptors } = __nccwpck_require__(1099)
+const { parseOrigin } = __nccwpck_require__(1344)
 const kFactory = Symbol('factory')
 
 const kOptions = Symbol('options')
@@ -6489,7 +6570,7 @@ module.exports = BalancedPool
 
 /***/ }),
 
-/***/ 637:
+/***/ 8893:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -6498,13 +6579,14 @@ module.exports = BalancedPool
 /* global WebAssembly */
 
 const assert = __nccwpck_require__(4589)
-const util = __nccwpck_require__(3440)
-const { channels } = __nccwpck_require__(2414)
-const timers = __nccwpck_require__(6603)
+const util = __nccwpck_require__(1344)
+const { channels } = __nccwpck_require__(7902)
+const timers = __nccwpck_require__(3979)
 const {
   RequestContentLengthMismatchError,
   ResponseContentLengthMismatchError,
   RequestAbortedError,
+  InvalidArgumentError,
   HeadersTimeoutError,
   HeadersOverflowError,
   SocketError,
@@ -6512,7 +6594,7 @@ const {
   BodyTimeoutError,
   HTTPParserError,
   ResponseExceededMaxSizeError
-} = __nccwpck_require__(8707)
+} = __nccwpck_require__(7251)
 const {
   kUrl,
   kReset,
@@ -6545,22 +6627,25 @@ const {
   kOnError,
   kResume,
   kHTTPContext
-} = __nccwpck_require__(6443)
+} = __nccwpck_require__(1099)
 
-const constants = __nccwpck_require__(2824)
+const constants = __nccwpck_require__(5688)
 const EMPTY_BUF = Buffer.alloc(0)
 const FastBuffer = Buffer[Symbol.species]
 const addListener = util.addListener
 const removeAllListeners = util.removeAllListeners
+const kIdleSocketValidation = Symbol('kIdleSocketValidation')
+const kIdleSocketValidationTimeout = Symbol('kIdleSocketValidationTimeout')
+const kSocketUsed = Symbol('kSocketUsed')
 
 let extractBody
 
 async function lazyllhttp () {
-  const llhttpWasmData = process.env.JEST_WORKER_ID ? __nccwpck_require__(3870) : undefined
+  const llhttpWasmData = process.env.JEST_WORKER_ID ? __nccwpck_require__(4670) : undefined
 
   let mod
   try {
-    mod = await WebAssembly.compile(__nccwpck_require__(3434))
+    mod = await WebAssembly.compile(__nccwpck_require__(6778))
   } catch (e) {
     /* istanbul ignore next */
 
@@ -6568,7 +6653,7 @@ async function lazyllhttp () {
     // being enabled, but the occurring of this other error
     // * https://github.com/emscripten-core/emscripten/issues/11495
     // got me to remove that check to avoid breaking Node 12.
-    mod = await WebAssembly.compile(llhttpWasmData || __nccwpck_require__(3870))
+    mod = await WebAssembly.compile(llhttpWasmData || __nccwpck_require__(4670))
   }
 
   return await WebAssembly.instantiate(mod, {
@@ -6774,27 +6859,69 @@ class Parser {
 
       const offset = llhttp.llhttp_get_error_pos(this.ptr) - currentBufferPtr
 
-      if (ret === constants.ERROR.PAUSED_UPGRADE) {
-        this.onUpgrade(data.slice(offset))
-      } else if (ret === constants.ERROR.PAUSED) {
-        this.paused = true
-        socket.unshift(data.slice(offset))
-      } else if (ret !== constants.ERROR.OK) {
-        const ptr = llhttp.llhttp_get_error_reason(this.ptr)
-        let message = ''
-        /* istanbul ignore else: difficult to make a test case for */
-        if (ptr) {
-          const len = new Uint8Array(llhttp.memory.buffer, ptr).indexOf(0)
-          message =
-            'Response does not match the HTTP/1.1 protocol (' +
-            Buffer.from(llhttp.memory.buffer, ptr, len).toString() +
-            ')'
+      if (ret !== constants.ERROR.OK) {
+        const body = data.subarray(offset)
+
+        if (ret === constants.ERROR.PAUSED_UPGRADE) {
+          this.onUpgrade(body)
+        } else if (ret === constants.ERROR.PAUSED) {
+          this.paused = true
+          socket.unshift(body)
+        } else {
+          throw this.createError(ret, body)
         }
-        throw new HTTPParserError(message, constants.ERROR[ret], data.slice(offset))
       }
     } catch (err) {
       util.destroy(socket, err)
     }
+  }
+
+  finish () {
+    assert(currentParser === null)
+    assert(this.ptr != null)
+    assert(!this.paused)
+
+    const { llhttp } = this
+
+    let ret
+
+    try {
+      currentParser = this
+      ret = llhttp.llhttp_finish(this.ptr)
+    } finally {
+      currentParser = null
+    }
+
+    if (ret === constants.ERROR.OK) {
+      return null
+    }
+
+    if (ret === constants.ERROR.PAUSED || ret === constants.ERROR.PAUSED_UPGRADE) {
+      this.paused = true
+      return null
+    }
+
+    return this.createError(ret, EMPTY_BUF)
+  }
+
+  createError (ret, data) {
+    const { llhttp, contentLength, bytesRead } = this
+
+    if (contentLength && bytesRead !== parseInt(contentLength, 10)) {
+      return new ResponseContentLengthMismatchError()
+    }
+
+    const ptr = llhttp.llhttp_get_error_reason(this.ptr)
+    let message = ''
+    if (ptr) {
+      const len = new Uint8Array(llhttp.memory.buffer, ptr).indexOf(0)
+      message =
+        'Response does not match the HTTP/1.1 protocol (' +
+        Buffer.from(llhttp.memory.buffer, ptr, len).toString() +
+        ')'
+    }
+
+    return new HTTPParserError(message, constants.ERROR[ret], data)
   }
 
   destroy () {
@@ -6821,6 +6948,11 @@ class Parser {
 
     /* istanbul ignore next: difficult to make a test case for */
     if (socket.destroyed) {
+      return -1
+    }
+
+    if (client[kRunning] === 0) {
+      util.destroy(socket, new SocketError('bad response', util.getSocketInfo(socket)))
       return -1
     }
 
@@ -6876,7 +7008,7 @@ class Parser {
   }
 
   onUpgrade (head) {
-    const { upgrade, client, socket, headers, statusCode } = this
+    const { upgrade, client, socket, headers, statusCode, statusText } = this
 
     assert(upgrade)
     assert(client[kSocket] === socket)
@@ -6911,9 +7043,10 @@ class Parser {
     client.emit('disconnect', client[kUrl], [client], new InformationalError('upgrade'))
 
     try {
-      request.onUpgrade(statusCode, headers, socket)
-    } catch (err) {
-      util.destroy(socket, err)
+      request.onUpgrade(statusCode, headers, socket, statusText)
+    } catch (error) {
+      util.errorRequest(client, request, error)
+      util.destroy(socket, error)
     }
 
     client[kResume]()
@@ -6924,6 +7057,11 @@ class Parser {
 
     /* istanbul ignore next: difficult to make a test case for */
     if (socket.destroyed) {
+      return -1
+    }
+
+    if (client[kRunning] === 0) {
+      util.destroy(socket, new SocketError('bad response', util.getSocketInfo(socket)))
       return -1
     }
 
@@ -7100,6 +7238,7 @@ class Parser {
     request.onComplete(headers)
 
     client[kQueue][client[kRunningIdx]++] = null
+    socket[kSocketUsed] = true
 
     if (socket[kWriting]) {
       assert(client[kRunning] === 0)
@@ -7158,18 +7297,22 @@ async function connectH1 (client, socket) {
   socket[kWriting] = false
   socket[kReset] = false
   socket[kBlocking] = false
+  socket[kIdleSocketValidation] = 0
+  socket[kIdleSocketValidationTimeout] = null
+  socket[kSocketUsed] = false
   socket[kParser] = new Parser(client, socket, llhttpInstance)
 
   addListener(socket, 'error', function (err) {
-    assert(err.code !== 'ERR_TLS_CERT_ALTNAME_INVALID')
-
     const parser = this[kParser]
 
     // On Mac OS, we get an ECONNRESET even if there is a full body to be forwarded
     // to the user.
     if (err.code === 'ECONNRESET' && parser.statusCode && !parser.shouldKeepAlive) {
-      // We treat all incoming data so for as a valid response.
-      parser.onMessageComplete()
+      const parserErr = parser.finish()
+      if (parserErr) {
+        this[kError] = parserErr
+        this[kClient][kOnError](parserErr)
+      }
       return
     }
 
@@ -7188,8 +7331,10 @@ async function connectH1 (client, socket) {
     const parser = this[kParser]
 
     if (parser.statusCode && !parser.shouldKeepAlive) {
-      // We treat all incoming data so far as a valid response.
-      parser.onMessageComplete()
+      const parserErr = parser.finish()
+      if (parserErr) {
+        util.destroy(this, parserErr)
+      }
       return
     }
 
@@ -7199,10 +7344,11 @@ async function connectH1 (client, socket) {
     const client = this[kClient]
     const parser = this[kParser]
 
+    clearIdleSocketValidation(this)
+
     if (parser) {
       if (!this[kError] && parser.statusCode && !parser.shouldKeepAlive) {
-        // We treat all incoming data so far as a valid response.
-        parser.onMessageComplete()
+        this[kError] = parser.finish() || this[kError]
       }
 
       this[kParser].destroy()
@@ -7265,7 +7411,7 @@ async function connectH1 (client, socket) {
       return socket.destroyed
     },
     busy (request) {
-      if (socket[kWriting] || socket[kReset] || socket[kBlocking]) {
+      if (socket[kWriting] || socket[kReset] || socket[kBlocking] || socket[kIdleSocketValidation] === 1) {
         return true
       }
 
@@ -7303,6 +7449,39 @@ async function connectH1 (client, socket) {
   }
 }
 
+function clearIdleSocketValidation (socket) {
+  if (socket[kIdleSocketValidationTimeout]) {
+    clearImmediate(socket[kIdleSocketValidationTimeout])
+    socket[kIdleSocketValidationTimeout] = null
+  }
+
+  socket[kIdleSocketValidation] = 0
+}
+
+function scheduleIdleSocketValidation (client, socket) {
+  socket[kIdleSocketValidation] = 1
+  // Yield to the check phase (after poll) so unsolicited bytes / FIN / RST
+  // already pending on this idle keep-alive socket are processed before the
+  // next request is written (GHSA-35p6-xmwp-9g52).
+  //
+  // setTimeout(0) pays Node's ~1ms timer floor on every sequential reuse
+  // (#5493). setImmediate avoids that, but an *unref'd* Immediate lets poll
+  // block for ~500ms when the event loop is otherwise idle (#5600 / #5606).
+  // A ref'd Immediate both keeps the pending request alive and makes poll
+  // return immediately — the hybrid those issues asked for.
+  socket[kIdleSocketValidationTimeout] = setImmediate(() => {
+    socket[kIdleSocketValidationTimeout] = null
+    socket[kIdleSocketValidation] = 2
+
+    if (client[kSocket] === socket && !socket.destroyed) {
+      client[kResume]()
+    }
+  })
+}
+
+/**
+ * @param {import('./client.js')} client
+ */
 function resumeH1 (client) {
   const socket = client[kSocket]
 
@@ -7315,6 +7494,32 @@ function resumeH1 (client) {
     } else if (socket[kNoRef] && socket.ref) {
       socket.ref()
       socket[kNoRef] = false
+    }
+
+    if (client[kRunning] === 0 && client[kPending] > 0 && socket[kSocketUsed]) {
+      if (socket[kIdleSocketValidation] === 0) {
+        scheduleIdleSocketValidation(client, socket)
+        socket[kParser].readMore()
+        if (socket.destroyed) {
+          return
+        }
+        return
+      }
+
+      if (socket[kIdleSocketValidation] === 1) {
+        socket[kParser].readMore()
+        if (socket.destroyed) {
+          return
+        }
+        return
+      }
+    }
+
+    if (client[kRunning] === 0) {
+      socket[kParser].readMore()
+      if (socket.destroyed) {
+        return
+      }
     }
 
     if (client[kSize] === 0) {
@@ -7363,7 +7568,7 @@ function writeH1 (client, request) {
 
   if (util.isFormDataLike(body)) {
     if (!extractBody) {
-      extractBody = (__nccwpck_require__(4492).extractBody)
+      extractBody = (__nccwpck_require__(8844).extractBody)
     }
 
     const [bodyStream, contentType] = extractBody(body)
@@ -7372,8 +7577,16 @@ function writeH1 (client, request) {
     }
     body = bodyStream.stream
     contentLength = bodyStream.length
-  } else if (util.isBlobLike(body) && request.contentType == null && body.type) {
-    headers.push('content-type', body.type)
+  } else if (util.isBlobLike(body) && request.contentType == null) {
+    const contentType = body.type
+    if (contentType) {
+      const contentTypeValue = `${contentType}`
+      if (!util.isValidHeaderValue(contentTypeValue)) {
+        util.errorRequest(client, request, new InvalidArgumentError('invalid content-type header'))
+        return false
+      }
+      headers.push('content-type', contentTypeValue)
+    }
   }
 
   if (body && typeof body.read === 'function') {
@@ -7410,13 +7623,24 @@ function writeH1 (client, request) {
   }
 
   const socket = client[kSocket]
+  clearIdleSocketValidation(socket)
 
-  const abort = (err) => {
-    if (request.aborted || request.completed) {
+  /**
+   * @param {Error} [error]
+   */
+  const abort = (error) => {
+    if (request.aborted) {
       return
     }
 
-    util.errorRequest(client, request, err || new RequestAbortedError())
+    if (request.completed) {
+      if (request.upgrade || request.method === 'CONNECT') {
+        util.destroy(socket, new InformationalError('aborted'))
+      }
+      return
+    }
+
+    util.errorRequest(client, request, error || new RequestAbortedError())
 
     util.destroy(body)
     util.destroy(socket, new InformationalError('aborted'))
@@ -7867,21 +8091,22 @@ module.exports = connectH1
 
 /***/ }),
 
-/***/ 8788:
+/***/ 692:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const assert = __nccwpck_require__(4589)
+const { errorMonitor } = __nccwpck_require__(8474)
 const { pipeline } = __nccwpck_require__(7075)
-const util = __nccwpck_require__(3440)
+const util = __nccwpck_require__(1344)
 const {
   RequestContentLengthMismatchError,
   RequestAbortedError,
   SocketError,
   InformationalError
-} = __nccwpck_require__(8707)
+} = __nccwpck_require__(7251)
 const {
   kUrl,
   kReset,
@@ -7900,7 +8125,7 @@ const {
   kResume,
   kSize,
   kHTTPContext
-} = __nccwpck_require__(6443)
+} = __nccwpck_require__(1099)
 
 const kOpenStreams = Symbol('open streams')
 
@@ -7948,6 +8173,15 @@ function parseH2Headers (headers) {
   }
 
   return result
+}
+
+/**
+ * @param {import('node:http2').IncomingHttpHeaders} headers
+ * @returns {Buffer[]}
+ */
+function parseH2ResponseHeaders (headers) {
+  const { [HTTP2_HEADER_STATUS]: _statusCode, ...realHeaders } = headers
+  return parseH2Headers(realHeaders)
 }
 
 async function connectH2 (client, socket) {
@@ -7999,8 +8233,6 @@ async function connectH2 (client, socket) {
   socket[kHTTP2Session] = session
 
   util.addListener(socket, 'error', function (err) {
-    assert(err.code !== 'ERR_TLS_CERT_ALTNAME_INVALID')
-
     this[kError] = err
 
     this[kClient][kOnError](err)
@@ -8074,8 +8306,6 @@ function resumeH2 (client) {
 }
 
 function onHttp2SessionError (err) {
-  assert(err.code !== 'ERR_TLS_CERT_ALTNAME_INVALID')
-
   this[kSocket][kError] = err
   this[kClient][kOnError](err)
 }
@@ -8170,22 +8400,32 @@ function writeH2 (client, request) {
   headers[HTTP2_HEADER_AUTHORITY] = host || `${hostname}${port ? `:${port}` : ''}`
   headers[HTTP2_HEADER_METHOD] = method
 
-  const abort = (err) => {
-    if (request.aborted || request.completed) {
+  /**
+   * @param {Error} [error]
+   */
+  const abort = (error) => {
+    if (request.aborted) {
       return
     }
 
-    err = err || new RequestAbortedError()
+    if (request.completed) {
+      if (method === 'CONNECT' && stream != null) {
+        util.destroy(stream, error || new RequestAbortedError())
+      }
+      return
+    }
 
-    util.errorRequest(client, request, err)
+    error = error || new RequestAbortedError()
+
+    util.errorRequest(client, request, error)
 
     if (stream != null) {
-      util.destroy(stream, err)
+      util.destroy(stream, error)
     }
 
     // We do not destroy the socket as we can continue using the session
     // the stream get's destroyed and the session remains to create new streams
-    util.destroy(body, err)
+    util.destroy(body, error)
     client[kQueue][client[kRunningIdx]++] = null
     client[kResume]()
   }
@@ -8204,25 +8444,57 @@ function writeH2 (client, request) {
 
   if (method === 'CONNECT') {
     session.ref()
-    // We are already connected, streams are pending, first request
-    // will create a new stream. We trigger a request to create the stream and wait until
-    // `ready` event is triggered
     // We disabled endStream to allow the user to write to the stream
     stream = session.request(headers, { endStream: false, signal })
+    let upgradeResponseFinished = false
 
-    if (stream.id && !stream.pending) {
-      request.onUpgrade(null, null, stream)
-      ++session[kOpenStreams]
-      client[kQueue][client[kRunningIdx]++] = null
-    } else {
-      stream.once('ready', () => {
-        request.onUpgrade(null, null, stream)
-        ++session[kOpenStreams]
-        client[kQueue][client[kRunningIdx]++] = null
-      })
+    /**
+     * @param {import('node:http2').IncomingHttpHeaders} headers
+     */
+    const onResponse = (headers) => {
+      upgradeResponseFinished = true
+      stream.off(errorMonitor, onUpgradeError)
+      request.onUpgradeResponse(Number(headers[HTTP2_HEADER_STATUS]), headers, parseH2ResponseHeaders)
     }
 
+    /**
+     * @param {Error} error
+     */
+    const onUpgradeError = (error) => {
+      upgradeResponseFinished = true
+      stream.off('response', onResponse)
+      request.onUpgradeError(error)
+    }
+
+    const onReady = () => {
+      try {
+        request.onUpgrade(null, null, stream)
+      } catch (error) {
+        stream.off('response', onResponse)
+        abort(error)
+        return
+      }
+
+      if (request.aborted) {
+        return
+      }
+
+      stream.off('error', abort)
+      stream.once(errorMonitor, onUpgradeError)
+      client[kQueue][client[kRunningIdx]++] = null
+    }
+
+    stream.once('response', onResponse)
+    stream.once('error', abort)
+    ++session[kOpenStreams]
+    onReady()
+
     stream.once('close', () => {
+      if (!upgradeResponseFinished && request.completed) {
+        stream.off('response', onResponse)
+        stream.off(errorMonitor, onUpgradeError)
+        request.onUpgradeError(new InformationalError(`HTTP/2: "stream error" received - code ${stream.rstCode}`))
+      }
       session[kOpenStreams] -= 1
       if (session[kOpenStreams] === 0) session.unref()
     })
@@ -8259,7 +8531,7 @@ function writeH2 (client, request) {
   let contentLength = util.bodyLength(body)
 
   if (util.isFormDataLike(body)) {
-    extractBody ??= (__nccwpck_require__(4492).extractBody)
+    extractBody ??= (__nccwpck_require__(8844).extractBody)
 
     const [bodyStream, contentType] = extractBody(body)
     headers['content-type'] = contentType
@@ -8619,7 +8891,7 @@ module.exports = connectH2
 
 /***/ }),
 
-/***/ 3701:
+/***/ 3573:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -8630,16 +8902,16 @@ module.exports = connectH2
 const assert = __nccwpck_require__(4589)
 const net = __nccwpck_require__(7030)
 const http = __nccwpck_require__(7067)
-const util = __nccwpck_require__(3440)
-const { channels } = __nccwpck_require__(2414)
-const Request = __nccwpck_require__(4655)
-const DispatcherBase = __nccwpck_require__(1841)
+const util = __nccwpck_require__(1344)
+const { channels } = __nccwpck_require__(7902)
+const Request = __nccwpck_require__(6287)
+const DispatcherBase = __nccwpck_require__(721)
 const {
   InvalidArgumentError,
   InformationalError,
   ClientDestroyedError
-} = __nccwpck_require__(8707)
-const buildConnector = __nccwpck_require__(9136)
+} = __nccwpck_require__(7251)
+const buildConnector = __nccwpck_require__(5696)
 const {
   kUrl,
   kServerName,
@@ -8681,9 +8953,9 @@ const {
   kHTTPContext,
   kMaxConcurrentStreams,
   kResume
-} = __nccwpck_require__(6443)
-const connectH1 = __nccwpck_require__(637)
-const connectH2 = __nccwpck_require__(8788)
+} = __nccwpck_require__(1099)
+const connectH1 = __nccwpck_require__(8893)
+const connectH2 = __nccwpck_require__(692)
 let deprecatedInterceptorWarned = false
 
 const kClosedResolve = Symbol('kClosedResolve')
@@ -8731,9 +9003,11 @@ class Client extends DispatcherBase {
     autoSelectFamilyAttemptTimeout,
     // h2
     maxConcurrentStreams,
-    allowH2
+    allowH2,
+    webSocket,
+    eventSource
   } = {}) {
-    super()
+    super({ webSocket, eventSource })
 
     if (keepAlive !== undefined) {
       throw new InvalidArgumentError('unsupported keepAlive, use pipelining=0 instead')
@@ -8989,7 +9263,7 @@ class Client extends DispatcherBase {
   }
 }
 
-const createRedirectInterceptor = __nccwpck_require__(5092)
+const createRedirectInterceptor = __nccwpck_require__(68)
 
 function onError (client, err) {
   if (
@@ -9249,32 +9523,50 @@ module.exports = Client
 
 /***/ }),
 
-/***/ 1841:
+/***/ 721:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const Dispatcher = __nccwpck_require__(883)
+const buffer = __nccwpck_require__(4573)
+const Dispatcher = __nccwpck_require__(8131)
 const {
   ClientDestroyedError,
   ClientClosedError,
   InvalidArgumentError
-} = __nccwpck_require__(8707)
-const { kDestroy, kClose, kClosed, kDestroyed, kDispatch, kInterceptors } = __nccwpck_require__(6443)
+} = __nccwpck_require__(7251)
+const { kDestroy, kClose, kClosed, kDestroyed, kDispatch, kInterceptors } = __nccwpck_require__(1099)
 
 const kOnDestroyed = Symbol('onDestroyed')
 const kOnClosed = Symbol('onClosed')
 const kInterceptedDispatch = Symbol('Intercepted Dispatch')
+const kWebSocketOptions = Symbol('webSocketOptions')
+const kEventSourceOptions = Symbol('eventSourceOptions')
 
 class DispatcherBase extends Dispatcher {
-  constructor () {
+  constructor (opts) {
     super()
 
     this[kDestroyed] = false
     this[kOnDestroyed] = null
     this[kClosed] = false
     this[kOnClosed] = []
+    this[kWebSocketOptions] = opts?.webSocket ?? {}
+    this[kEventSourceOptions] = opts?.eventSource ?? {}
+  }
+
+  get webSocketOptions () {
+    return {
+      maxFragments: this[kWebSocketOptions].maxFragments ?? 131072,
+      maxPayloadSize: this[kWebSocketOptions].maxPayloadSize ?? 128 * 1024 * 1024
+    }
+  }
+
+  get eventSourceOptions () {
+    return {
+      maxEventSize: this[kEventSourceOptions].maxEventSize ?? buffer.kStringMaxLength
+    }
   }
 
   get destroyed () {
@@ -9447,7 +9739,7 @@ module.exports = DispatcherBase
 
 /***/ }),
 
-/***/ 883:
+/***/ 8131:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -9520,16 +9812,16 @@ module.exports = Dispatcher
 
 /***/ }),
 
-/***/ 3137:
+/***/ 2433:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const DispatcherBase = __nccwpck_require__(1841)
-const { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = __nccwpck_require__(6443)
-const ProxyAgent = __nccwpck_require__(6672)
-const Agent = __nccwpck_require__(7405)
+const DispatcherBase = __nccwpck_require__(721)
+const { kClose, kDestroy, kClosed, kDestroyed, kDispatch, kNoProxyAgent, kHttpProxyAgent, kHttpsProxyAgent } = __nccwpck_require__(1099)
+const ProxyAgent = __nccwpck_require__(5120)
+const Agent = __nccwpck_require__(9213)
 
 const DEFAULT_PORTS = {
   'http:': 80,
@@ -9688,7 +9980,7 @@ module.exports = EnvHttpProxyAgent
 
 /***/ }),
 
-/***/ 4660:
+/***/ 6932:
 /***/ ((module) => {
 
 "use strict";
@@ -9813,16 +10105,16 @@ module.exports = class FixedQueue {
 
 /***/ }),
 
-/***/ 2128:
+/***/ 9152:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const DispatcherBase = __nccwpck_require__(1841)
-const FixedQueue = __nccwpck_require__(4660)
-const { kConnected, kSize, kRunning, kPending, kQueued, kBusy, kFree, kUrl, kClose, kDestroy, kDispatch } = __nccwpck_require__(6443)
-const PoolStats = __nccwpck_require__(3246)
+const DispatcherBase = __nccwpck_require__(721)
+const FixedQueue = __nccwpck_require__(6932)
+const { kConnected, kSize, kRunning, kPending, kQueued, kBusy, kFree, kUrl, kClose, kDestroy, kDispatch } = __nccwpck_require__(1099)
+const PoolStats = __nccwpck_require__(6286)
 
 const kClients = Symbol('clients')
 const kNeedDrain = Symbol('needDrain')
@@ -9838,8 +10130,8 @@ const kRemoveClient = Symbol('remove client')
 const kStats = Symbol('stats')
 
 class PoolBase extends DispatcherBase {
-  constructor () {
-    super()
+  constructor (opts) {
+    super(opts)
 
     this[kQueue] = new FixedQueue()
     this[kClients] = []
@@ -10015,10 +10307,10 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3246:
+/***/ 6286:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { kFree, kConnected, kPending, kQueued, kRunning, kSize } = __nccwpck_require__(6443)
+const { kFree, kConnected, kPending, kQueued, kRunning, kSize } = __nccwpck_require__(1099)
 const kPool = Symbol('pool')
 
 class PoolStats {
@@ -10056,7 +10348,7 @@ module.exports = PoolStats
 
 /***/ }),
 
-/***/ 628:
+/***/ 4020:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -10068,14 +10360,14 @@ const {
   kNeedDrain,
   kAddClient,
   kGetDispatcher
-} = __nccwpck_require__(2128)
-const Client = __nccwpck_require__(3701)
+} = __nccwpck_require__(9152)
+const Client = __nccwpck_require__(3573)
 const {
   InvalidArgumentError
-} = __nccwpck_require__(8707)
-const util = __nccwpck_require__(3440)
-const { kUrl, kInterceptors } = __nccwpck_require__(6443)
-const buildConnector = __nccwpck_require__(9136)
+} = __nccwpck_require__(7251)
+const util = __nccwpck_require__(1344)
+const { kUrl, kInterceptors } = __nccwpck_require__(1099)
+const buildConnector = __nccwpck_require__(5696)
 
 const kOptions = Symbol('options')
 const kConnections = Symbol('connections')
@@ -10099,8 +10391,6 @@ class Pool extends PoolBase {
     allowH2,
     ...options
   } = {}) {
-    super()
-
     if (connections != null && (!Number.isFinite(connections) || connections < 0)) {
       throw new InvalidArgumentError('invalid connections')
     }
@@ -10124,6 +10414,8 @@ class Pool extends PoolBase {
         ...connect
       })
     }
+
+    super(options)
 
     this[kInterceptors] = options.interceptors?.Pool && Array.isArray(options.interceptors.Pool)
       ? options.interceptors.Pool
@@ -10171,20 +10463,20 @@ module.exports = Pool
 
 /***/ }),
 
-/***/ 6672:
+/***/ 5120:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kProxy, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(6443)
+const { kProxy, kClose, kDestroy, kDispatch, kInterceptors } = __nccwpck_require__(1099)
 const { URL } = __nccwpck_require__(3136)
-const Agent = __nccwpck_require__(7405)
-const Pool = __nccwpck_require__(628)
-const DispatcherBase = __nccwpck_require__(1841)
-const { InvalidArgumentError, RequestAbortedError, SecureProxyConnectionError } = __nccwpck_require__(8707)
-const buildConnector = __nccwpck_require__(9136)
-const Client = __nccwpck_require__(3701)
+const Agent = __nccwpck_require__(9213)
+const Pool = __nccwpck_require__(4020)
+const DispatcherBase = __nccwpck_require__(721)
+const { InvalidArgumentError, RequestAbortedError, SecureProxyConnectionError } = __nccwpck_require__(7251)
+const buildConnector = __nccwpck_require__(5696)
+const Client = __nccwpck_require__(3573)
 
 const kAgent = Symbol('proxy agent')
 const kClient = Symbol('proxy client')
@@ -10453,14 +10745,14 @@ module.exports = ProxyAgent
 
 /***/ }),
 
-/***/ 50:
+/***/ 6322:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const Dispatcher = __nccwpck_require__(883)
-const RetryHandler = __nccwpck_require__(7816)
+const Dispatcher = __nccwpck_require__(8131)
+const RetryHandler = __nccwpck_require__(9400)
 
 class RetryAgent extends Dispatcher {
   #agent = null
@@ -10496,7 +10788,7 @@ module.exports = RetryAgent
 
 /***/ }),
 
-/***/ 2581:
+/***/ 85:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -10505,8 +10797,8 @@ module.exports = RetryAgent
 // We include a version number for the Dispatcher API. In case of breaking changes,
 // this version number must be increased to avoid conflicts.
 const globalDispatcher = Symbol.for('undici.globalDispatcher.1')
-const { InvalidArgumentError } = __nccwpck_require__(8707)
-const Agent = __nccwpck_require__(7405)
+const { InvalidArgumentError } = __nccwpck_require__(7251)
+const Agent = __nccwpck_require__(9213)
 
 if (getGlobalDispatcher() === undefined) {
   setGlobalDispatcher(new Agent())
@@ -10536,7 +10828,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8155:
+/***/ 5899:
 /***/ ((module) => {
 
 "use strict";
@@ -10588,16 +10880,16 @@ module.exports = class DecoratorHandler {
 
 /***/ }),
 
-/***/ 8754:
+/***/ 7794:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const util = __nccwpck_require__(3440)
-const { kBodyUsed } = __nccwpck_require__(6443)
+const util = __nccwpck_require__(1344)
+const { kBodyUsed } = __nccwpck_require__(1099)
 const assert = __nccwpck_require__(4589)
-const { InvalidArgumentError } = __nccwpck_require__(8707)
+const { InvalidArgumentError } = __nccwpck_require__(7251)
 const EE = __nccwpck_require__(8474)
 
 const redirectableStatusCodes = [300, 301, 302, 303, 307, 308]
@@ -10828,25 +11120,47 @@ module.exports = RedirectHandler
 
 /***/ }),
 
-/***/ 7816:
+/***/ 9400:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 const assert = __nccwpck_require__(4589)
 
-const { kRetryHandlerDefaultRetry } = __nccwpck_require__(6443)
-const { RequestRetryError } = __nccwpck_require__(8707)
+const { kRetryHandlerDefaultRetry } = __nccwpck_require__(1099)
+const { RequestRetryError } = __nccwpck_require__(7251)
 const {
   isDisturbed,
   parseHeaders,
   parseRangeHeader,
   wrapRequestBody
-} = __nccwpck_require__(3440)
+} = __nccwpck_require__(1344)
 
 function calculateRetryAfterHeader (retryAfter) {
   const current = Date.now()
   return new Date(retryAfter).getTime() - current
+}
+
+function validatePartialResponseContentLength (headers, range, statusCode, retryCount) {
+  const contentLength = headers['content-length']
+  if (contentLength == null) {
+    return null
+  }
+
+  if (!Number.isFinite(range.start) || !Number.isFinite(range.end)) {
+    return null
+  }
+
+  const length = Number(contentLength)
+  const expectedLength = range.end - range.start + 1
+  if (!Number.isFinite(length) || length !== expectedLength) {
+    return new RequestRetryError('Content-Length mismatch', statusCode, {
+      headers,
+      data: { count: retryCount }
+    })
+  }
+
+  return null
 }
 
 class RetryHandler {
@@ -10902,6 +11216,7 @@ class RetryHandler {
     this.end = null
     this.etag = null
     this.resume = null
+    this.headersSent = false
 
     // Handle possible onConnect duplication
     this.handler.onConnect(reason => {
@@ -10912,6 +11227,20 @@ class RetryHandler {
         this.reason = reason
       }
     })
+  }
+
+  checkpointResponseEnd (headers, resume) {
+    if (this.end == null && this.opts.method !== 'HEAD') {
+      const contentLength = headers['content-length']
+      this.end = contentLength != null ? Number(contentLength) - 1 : null
+
+      assert(
+        this.end == null || Number.isFinite(this.end),
+        'invalid content-length'
+      )
+    }
+
+    this.resume = this.end != null ? resume : null
   }
 
   onRequestSent () {
@@ -11002,7 +11331,12 @@ class RetryHandler {
     this.retryCount += 1
 
     if (statusCode >= 300) {
-      if (this.retryOpts.statusCodes.includes(statusCode) === false) {
+      // Only expose a response if no earlier attempt has reached the caller.
+      // Otherwise abort this attempt so the error settles the existing body
+      // instead of replacing it with a new response.
+      if (!this.headersSent && this.retryOpts.statusCodes.includes(statusCode) === false) {
+        this.headersSent = true
+        this.checkpointResponseEnd(headers, resume)
         return this.handler.onHeaders(
           statusCode,
           rawHeaders,
@@ -11063,10 +11397,23 @@ class RetryHandler {
         return false
       }
 
+      const contentLengthError = validatePartialResponseContentLength(headers, contentRange, statusCode, this.retryCount)
+      if (contentLengthError != null) {
+        this.abort(contentLengthError)
+        return false
+      }
+
       const { start, size, end = size - 1 } = contentRange
 
-      assert(this.start === start, 'content-range mismatch')
-      assert(this.end == null || this.end === end, 'content-range mismatch')
+      if (this.start !== start || (this.end != null && this.end !== end)) {
+        this.abort(
+          new RequestRetryError('Content-Range mismatch', statusCode, {
+            headers,
+            data: { count: this.retryCount }
+          })
+        )
+        return false
+      }
 
       this.resume = resume
       return true
@@ -11078,12 +11425,19 @@ class RetryHandler {
         const range = parseRangeHeader(headers['content-range'])
 
         if (range == null) {
+          this.headersSent = true
           return this.handler.onHeaders(
             statusCode,
             rawHeaders,
             resume,
             statusMessage
           )
+        }
+
+        const contentLengthError = validatePartialResponseContentLength(headers, range, statusCode, this.retryCount)
+        if (contentLengthError != null) {
+          this.abort(contentLengthError)
+          return false
         }
 
         const { start, size, end = size - 1 } = range
@@ -11110,6 +11464,7 @@ class RetryHandler {
       )
 
       this.resume = resume
+      this.headersSent = true
       this.etag = headers.etag != null ? headers.etag : null
 
       // Weak etags are not useful for comparison nor cache
@@ -11149,7 +11504,7 @@ class RetryHandler {
   }
 
   onError (err) {
-    if (this.aborted || isDisturbed(this.opts.body)) {
+    if (this.aborted || isDisturbed(this.opts.body) || (this.headersSent && this.resume == null)) {
       return this.handler.onError(err)
     }
 
@@ -11210,15 +11565,15 @@ module.exports = RetryHandler
 
 /***/ }),
 
-/***/ 379:
+/***/ 5643:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 const { isIP } = __nccwpck_require__(7030)
 const { lookup } = __nccwpck_require__(610)
-const DecoratorHandler = __nccwpck_require__(8155)
-const { InvalidArgumentError, InformationalError } = __nccwpck_require__(8707)
+const DecoratorHandler = __nccwpck_require__(5899)
+const { InvalidArgumentError, InformationalError } = __nccwpck_require__(7251)
 const maxInt = Math.pow(2, 31) - 1
 
 class DNSInstance {
@@ -11593,15 +11948,15 @@ module.exports = interceptorOpts => {
 
 /***/ }),
 
-/***/ 8060:
+/***/ 7772:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const util = __nccwpck_require__(3440)
-const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(8707)
-const DecoratorHandler = __nccwpck_require__(8155)
+const util = __nccwpck_require__(1344)
+const { InvalidArgumentError, RequestAbortedError } = __nccwpck_require__(7251)
+const DecoratorHandler = __nccwpck_require__(5899)
 
 class DumpHandler extends DecoratorHandler {
   #maxSize = 1024 * 1024
@@ -11724,13 +12079,13 @@ module.exports = createDumpInterceptor
 
 /***/ }),
 
-/***/ 5092:
+/***/ 68:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const RedirectHandler = __nccwpck_require__(8754)
+const RedirectHandler = __nccwpck_require__(7794)
 
 function createRedirectInterceptor ({ maxRedirections: defaultMaxRedirections }) {
   return (dispatch) => {
@@ -11753,12 +12108,12 @@ module.exports = createRedirectInterceptor
 
 /***/ }),
 
-/***/ 1514:
+/***/ 9402:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
-const RedirectHandler = __nccwpck_require__(8754)
+const RedirectHandler = __nccwpck_require__(7794)
 
 module.exports = opts => {
   const globalMaxRedirections = opts?.maxRedirections
@@ -11785,12 +12140,12 @@ module.exports = opts => {
 
 /***/ }),
 
-/***/ 2026:
+/***/ 5626:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
-const RetryHandler = __nccwpck_require__(7816)
+const RetryHandler = __nccwpck_require__(9400)
 
 module.exports = globalOpts => {
   return dispatch => {
@@ -11812,14 +12167,14 @@ module.exports = globalOpts => {
 
 /***/ }),
 
-/***/ 2824:
+/***/ 5688:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SPECIAL_HEADERS = exports.HEADER_STATE = exports.MINOR = exports.MAJOR = exports.CONNECTION_TOKEN_CHARS = exports.HEADER_CHARS = exports.TOKEN = exports.STRICT_TOKEN = exports.HEX = exports.URL_CHAR = exports.STRICT_URL_CHAR = exports.USERINFO_CHARS = exports.MARK = exports.ALPHANUM = exports.NUM = exports.HEX_MAP = exports.NUM_MAP = exports.ALPHA = exports.FINISH = exports.H_METHOD_MAP = exports.METHOD_MAP = exports.METHODS_RTSP = exports.METHODS_ICE = exports.METHODS_HTTP = exports.METHODS = exports.LENIENT_FLAGS = exports.FLAGS = exports.TYPE = exports.ERROR = void 0;
-const utils_1 = __nccwpck_require__(172);
+const utils_1 = __nccwpck_require__(7068);
 // C headers
 var ERROR;
 (function (ERROR) {
@@ -12097,7 +12452,7 @@ exports.SPECIAL_HEADERS = {
 
 /***/ }),
 
-/***/ 3870:
+/***/ 4670:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -12110,7 +12465,7 @@ module.exports = Buffer.from('AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAX8AYAJ/fwBgBH9/f3
 
 /***/ }),
 
-/***/ 3434:
+/***/ 6778:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -12123,7 +12478,7 @@ module.exports = Buffer.from('AGFzbQEAAAABJwdgAX8Bf2ADf39/AX9gAX8AYAJ/fwBgBH9/f3
 
 /***/ }),
 
-/***/ 172:
+/***/ 7068:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -12145,14 +12500,14 @@ exports.enumToMap = enumToMap;
 
 /***/ }),
 
-/***/ 7501:
+/***/ 6781:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kClients } = __nccwpck_require__(6443)
-const Agent = __nccwpck_require__(7405)
+const { kClients } = __nccwpck_require__(1099)
+const Agent = __nccwpck_require__(9213)
 const {
   kAgent,
   kMockAgentSet,
@@ -12163,14 +12518,14 @@ const {
   kGetNetConnect,
   kOptions,
   kFactory
-} = __nccwpck_require__(1117)
-const MockClient = __nccwpck_require__(7365)
-const MockPool = __nccwpck_require__(4004)
-const { matchValue, buildMockOptions } = __nccwpck_require__(3397)
-const { InvalidArgumentError, UndiciError } = __nccwpck_require__(8707)
-const Dispatcher = __nccwpck_require__(883)
-const Pluralizer = __nccwpck_require__(1529)
-const PendingInterceptorsFormatter = __nccwpck_require__(6142)
+} = __nccwpck_require__(13)
+const MockClient = __nccwpck_require__(8373)
+const MockPool = __nccwpck_require__(8388)
+const { matchValue, buildMockOptions } = __nccwpck_require__(5205)
+const { InvalidArgumentError, UndiciError } = __nccwpck_require__(7251)
+const Dispatcher = __nccwpck_require__(8131)
+const Pluralizer = __nccwpck_require__(2233)
+const PendingInterceptorsFormatter = __nccwpck_require__(9950)
 
 class MockAgent extends Dispatcher {
   constructor (opts) {
@@ -12313,15 +12668,15 @@ module.exports = MockAgent
 
 /***/ }),
 
-/***/ 7365:
+/***/ 8373:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { promisify } = __nccwpck_require__(7975)
-const Client = __nccwpck_require__(3701)
-const { buildMockDispatch } = __nccwpck_require__(3397)
+const Client = __nccwpck_require__(3573)
+const { buildMockDispatch } = __nccwpck_require__(5205)
 const {
   kDispatches,
   kMockAgent,
@@ -12330,10 +12685,10 @@ const {
   kOrigin,
   kOriginalDispatch,
   kConnected
-} = __nccwpck_require__(1117)
-const { MockInterceptor } = __nccwpck_require__(1511)
-const Symbols = __nccwpck_require__(6443)
-const { InvalidArgumentError } = __nccwpck_require__(8707)
+} = __nccwpck_require__(13)
+const { MockInterceptor } = __nccwpck_require__(9207)
+const Symbols = __nccwpck_require__(1099)
+const { InvalidArgumentError } = __nccwpck_require__(7251)
 
 /**
  * MockClient provides an API that extends the Client to influence the mockDispatches.
@@ -12380,13 +12735,13 @@ module.exports = MockClient
 
 /***/ }),
 
-/***/ 2429:
+/***/ 1213:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { UndiciError } = __nccwpck_require__(8707)
+const { UndiciError } = __nccwpck_require__(7251)
 
 const kMockNotMatchedError = Symbol.for('undici.error.UND_MOCK_ERR_MOCK_NOT_MATCHED')
 
@@ -12416,13 +12771,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1511:
+/***/ 9207:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { getResponseData, buildKey, addMockDispatch } = __nccwpck_require__(3397)
+const { getResponseData, buildKey, addMockDispatch } = __nccwpck_require__(5205)
 const {
   kDispatches,
   kDispatchKey,
@@ -12430,9 +12785,9 @@ const {
   kDefaultTrailers,
   kContentLength,
   kMockDispatch
-} = __nccwpck_require__(1117)
-const { InvalidArgumentError } = __nccwpck_require__(8707)
-const { buildURL } = __nccwpck_require__(3440)
+} = __nccwpck_require__(13)
+const { InvalidArgumentError } = __nccwpck_require__(7251)
+const { buildURL } = __nccwpck_require__(1344)
 
 /**
  * Defines the scope API for an interceptor reply
@@ -12631,15 +12986,15 @@ module.exports.MockScope = MockScope
 
 /***/ }),
 
-/***/ 4004:
+/***/ 8388:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { promisify } = __nccwpck_require__(7975)
-const Pool = __nccwpck_require__(628)
-const { buildMockDispatch } = __nccwpck_require__(3397)
+const Pool = __nccwpck_require__(4020)
+const { buildMockDispatch } = __nccwpck_require__(5205)
 const {
   kDispatches,
   kMockAgent,
@@ -12648,10 +13003,10 @@ const {
   kOrigin,
   kOriginalDispatch,
   kConnected
-} = __nccwpck_require__(1117)
-const { MockInterceptor } = __nccwpck_require__(1511)
-const Symbols = __nccwpck_require__(6443)
-const { InvalidArgumentError } = __nccwpck_require__(8707)
+} = __nccwpck_require__(13)
+const { MockInterceptor } = __nccwpck_require__(9207)
+const Symbols = __nccwpck_require__(1099)
+const { InvalidArgumentError } = __nccwpck_require__(7251)
 
 /**
  * MockPool provides an API that extends the Pool to influence the mockDispatches.
@@ -12698,7 +13053,7 @@ module.exports = MockPool
 
 /***/ }),
 
-/***/ 1117:
+/***/ 13:
 /***/ ((module) => {
 
 "use strict";
@@ -12729,21 +13084,21 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3397:
+/***/ 5205:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { MockNotMatchedError } = __nccwpck_require__(2429)
+const { MockNotMatchedError } = __nccwpck_require__(1213)
 const {
   kDispatches,
   kMockAgent,
   kOriginalDispatch,
   kOrigin,
   kGetNetConnect
-} = __nccwpck_require__(1117)
-const { buildURL } = __nccwpck_require__(3440)
+} = __nccwpck_require__(13)
+const { buildURL } = __nccwpck_require__(1344)
 const { STATUS_CODES } = __nccwpck_require__(7067)
 const {
   types: {
@@ -13104,7 +13459,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6142:
+/***/ 9950:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -13155,7 +13510,7 @@ module.exports = class PendingInterceptorsFormatter {
 
 /***/ }),
 
-/***/ 1529:
+/***/ 2233:
 /***/ ((module) => {
 
 "use strict";
@@ -13192,7 +13547,7 @@ module.exports = class Pluralizer {
 
 /***/ }),
 
-/***/ 6603:
+/***/ 3979:
 /***/ ((module) => {
 
 "use strict";
@@ -13623,21 +13978,21 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9634:
+/***/ 7186:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kConstruct } = __nccwpck_require__(109)
-const { urlEquals, getFieldValues } = __nccwpck_require__(6798)
-const { kEnumerableProperty, isDisturbed } = __nccwpck_require__(3440)
-const { webidl } = __nccwpck_require__(5893)
-const { Response, cloneResponse, fromInnerResponse } = __nccwpck_require__(9051)
-const { Request, fromInnerRequest } = __nccwpck_require__(9967)
-const { kState } = __nccwpck_require__(3627)
-const { fetching } = __nccwpck_require__(4398)
-const { urlIsHttpHttpsScheme, createDeferredPromise, readAllBytes } = __nccwpck_require__(3168)
+const { kConstruct } = __nccwpck_require__(1677)
+const { urlEquals, getFieldValues } = __nccwpck_require__(6398)
+const { kEnumerableProperty, isDisturbed } = __nccwpck_require__(1344)
+const { webidl } = __nccwpck_require__(4037)
+const { Response, cloneResponse, fromInnerResponse } = __nccwpck_require__(4667)
+const { Request, fromInnerRequest } = __nccwpck_require__(6399)
+const { kState } = __nccwpck_require__(9419)
+const { fetching } = __nccwpck_require__(9726)
+const { urlIsHttpHttpsScheme, createDeferredPromise, readAllBytes } = __nccwpck_require__(6512)
 const assert = __nccwpck_require__(4589)
 
 /**
@@ -14490,16 +14845,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3245:
+/***/ 1757:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kConstruct } = __nccwpck_require__(109)
-const { Cache } = __nccwpck_require__(9634)
-const { webidl } = __nccwpck_require__(5893)
-const { kEnumerableProperty } = __nccwpck_require__(3440)
+const { kConstruct } = __nccwpck_require__(1677)
+const { Cache } = __nccwpck_require__(7186)
+const { webidl } = __nccwpck_require__(4037)
+const { kEnumerableProperty } = __nccwpck_require__(1344)
 
 class CacheStorage {
   /**
@@ -14650,28 +15005,28 @@ module.exports = {
 
 /***/ }),
 
-/***/ 109:
+/***/ 1677:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 module.exports = {
-  kConstruct: (__nccwpck_require__(6443).kConstruct)
+  kConstruct: (__nccwpck_require__(1099).kConstruct)
 }
 
 
 /***/ }),
 
-/***/ 6798:
+/***/ 6398:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const assert = __nccwpck_require__(4589)
-const { URLSerializer } = __nccwpck_require__(1900)
-const { isValidHeaderName } = __nccwpck_require__(3168)
+const { URLSerializer } = __nccwpck_require__(3468)
+const { isValidHeaderName } = __nccwpck_require__(6512)
 
 /**
  * @see https://url.spec.whatwg.org/#concept-url-equals
@@ -14716,7 +15071,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1276:
+/***/ 7932:
 /***/ ((module) => {
 
 "use strict";
@@ -14736,16 +15091,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9061:
+/***/ 7586:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { parseSetCookie } = __nccwpck_require__(1978)
-const { stringify } = __nccwpck_require__(7797)
-const { webidl } = __nccwpck_require__(5893)
-const { Headers } = __nccwpck_require__(660)
+const { parseSetCookie } = __nccwpck_require__(6330)
+const { stringify } = __nccwpck_require__(3237)
+const { webidl } = __nccwpck_require__(4037)
+const { Headers } = __nccwpck_require__(9060)
 
 /**
  * @typedef {Object} Cookie
@@ -14928,15 +15283,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1978:
+/***/ 6330:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { maxNameValuePairSize, maxAttributeValueSize } = __nccwpck_require__(1276)
-const { isCTLExcludingHtab } = __nccwpck_require__(7797)
-const { collectASequenceOfCodePointsFast } = __nccwpck_require__(1900)
+const { maxNameValuePairSize, maxAttributeValueSize } = __nccwpck_require__(7932)
+const { isCTLExcludingHtab } = __nccwpck_require__(3237)
+const { collectASequenceOfCodePointsFast } = __nccwpck_require__(3468)
 const assert = __nccwpck_require__(4589)
 
 /**
@@ -15209,32 +15564,25 @@ function parseUnparsedAttributes (unparsedAttributes, cookieAttributeList = {}) 
     // If the attribute-name case-insensitively matches the string
     // "SameSite", the user agent MUST process the cookie-av as follows:
 
-    // 1. Let enforcement be "Default".
-    let enforcement = 'Default'
-
     const attributeValueLowercase = attributeValue.toLowerCase()
-    // 2. If cookie-av's attribute-value is a case-insensitive match for
-    //    "None", set enforcement to "None".
-    if (attributeValueLowercase.includes('none')) {
-      enforcement = 'None'
-    }
 
-    // 3. If cookie-av's attribute-value is a case-insensitive match for
-    //    "Strict", set enforcement to "Strict".
-    if (attributeValueLowercase.includes('strict')) {
-      enforcement = 'Strict'
+    // 1. If cookie-av's attribute-value is a case-insensitive match for
+    //    "None", append an attribute to the cookie-attribute-list with an
+    //    attribute-name of "SameSite" and an attribute-value of "None".
+    if (attributeValueLowercase === 'none') {
+      cookieAttributeList.sameSite = 'None'
+    } else if (attributeValueLowercase === 'strict') {
+      // 2. If cookie-av's attribute-value is a case-insensitive match for
+      //    "Strict", append an attribute to the cookie-attribute-list with
+      //    an attribute-name of "SameSite" and an attribute-value of
+      //    "Strict".
+      cookieAttributeList.sameSite = 'Strict'
+    } else if (attributeValueLowercase === 'lax') {
+      // 3. If cookie-av's attribute-value is a case-insensitive match for
+      //    "Lax", append an attribute to the cookie-attribute-list with an
+      //    attribute-name of "SameSite" and an attribute-value of "Lax".
+      cookieAttributeList.sameSite = 'Lax'
     }
-
-    // 4. If cookie-av's attribute-value is a case-insensitive match for
-    //    "Lax", set enforcement to "Lax".
-    if (attributeValueLowercase.includes('lax')) {
-      enforcement = 'Lax'
-    }
-
-    // 5. Append an attribute to the cookie-attribute-list with an
-    //    attribute-name of "SameSite" and an attribute-value of
-    //    enforcement.
-    cookieAttributeList.sameSite = enforcement
   } else {
     cookieAttributeList.unparsed ??= []
 
@@ -15253,7 +15601,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 7797:
+/***/ 3237:
 /***/ ((module) => {
 
 "use strict";
@@ -15364,7 +15712,7 @@ function validateCookiePath (path) {
 
     if (
       code < 0x20 || // exclude CTLs (0-31)
-      code === 0x7F || // DEL
+      code > 0x7E || // exclude DEL and non-ascii
       code === 0x3B // ;
     ) {
       throw new Error('Invalid cookie path')
@@ -15373,16 +15721,80 @@ function validateCookiePath (path) {
 }
 
 /**
- * I have no idea why these values aren't allowed to be honest,
- * but Deno tests these. - Khafra
+ * <let-dig> ::= <letter> | <digit>
+ *
+ * <letter> ::= any one of the 52 alphabetic characters A through Z in
+ * upper case and a through z in lower case
+ *
+ * <digit> ::= any one of the ten digits 0 through 9r
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc1034#section-3.5
+ * @param {number} code
+ */
+function isLetterOrDigit (code) {
+  return (
+    (code >= 0x30 && code <= 0x39) || // 0-9
+    (code >= 0x41 && code <= 0x5A) || // A-Z
+    (code >= 0x61 && code <= 0x7A) // a-z
+  )
+}
+
+/**
+ * Validates a cookie domain against the "preferred name syntax".
+ *
+ * <domain>      ::= <subdomain> | " "
+ * <subdomain>   ::= <label> | <subdomain> "." <label>
+ * <label>       ::= <let-dig> [ [ <ldh-str> ] <let-dig> ]
+ * <ldh-str>     ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
+ * <let-dig-hyp> ::= <let-dig> | "-"
+ *
+ * @see https://www.rfc-editor.org/rfc/rfc1034#section-3.5
+ * @see https://www.rfc-editor.org/rfc/rfc1123#section-2.1
+ * @see https://www.rfc-editor.org/rfc/rfc1035#section-2.3.4
  * @param {string} domain
  */
 function validateCookieDomain (domain) {
-  if (
-    domain.startsWith('-') ||
-    domain.endsWith('.') ||
-    domain.endsWith('-')
-  ) {
+  // <domain> ::= <subdomain> | " "
+  if (domain === ' ') {
+    return
+  }
+
+  if (domain.length > 255) {
+    throw new Error('Invalid cookie domain')
+  }
+
+  let labelLength = 0
+
+  for (let i = 0; i < domain.length; ++i) {
+    const code = domain.charCodeAt(i)
+
+    if (code === 0x2E) {
+      if (labelLength === 0) {
+        throw new Error('Invalid cookie domain')
+      }
+
+      if (domain.charCodeAt(i - 1) === 0x2D) { // "-"
+        throw new Error('Invalid cookie domain')
+      }
+
+      labelLength = 0
+      continue
+    }
+
+    if (labelLength === 0 && !isLetterOrDigit(code)) {
+      throw new Error('Invalid cookie domain')
+    }
+
+    if (!isLetterOrDigit(code) && code !== 0x2D) { // "-"
+      throw new Error('Invalid cookie domain')
+    }
+
+    if (++labelLength > 63) {
+      throw new Error('Invalid cookie domain')
+    }
+  }
+
+  if (labelLength === 0 || domain.charCodeAt(domain.length - 1) === 0x2D) { // "-"
     throw new Error('Invalid cookie domain')
   }
 }
@@ -15525,7 +15937,13 @@ function stringify (cookie) {
 
     const [key, ...value] = part.split('=')
 
-    out.push(`${key.trim()}=${value.join('=')}`)
+    const trimmedKey = key.trim()
+    const joinedValue = value.join('=')
+
+    validateCookieName(trimmedKey)
+    validateCookieValue(joinedValue)
+
+    out.push(`${trimmedKey}=${joinedValue}`)
   }
 
   return out.join('; ')
@@ -15543,13 +15961,14 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4031:
+/***/ 6767:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
+const buffer = __nccwpck_require__(4573)
 const { Transform } = __nccwpck_require__(7075)
-const { isASCIINumber, isValidLastEventId } = __nccwpck_require__(4811)
+const { isASCIINumber, isValidLastEventId } = __nccwpck_require__(6875)
 
 /**
  * @type {number[]} BOM
@@ -15571,6 +15990,63 @@ const COLON = 0x3A
  * @type {32} SPACE
  */
 const SPACE = 0x20
+
+const defaultMaxEventSize = buffer.kStringMaxLength
+
+const DATA = Buffer.from('data')
+const EVENT = Buffer.from('event')
+const ID = Buffer.from('id')
+const RETRY = Buffer.from('retry')
+
+// Each data field creates a string node, and each unconsumed input chunk keeps
+// a Buffer wrapper. The absolute ceiling protects the large default byte limit.
+const minParserItems = 1024
+const maxParserItems = 131072
+const bytesPerParserItem = 128
+
+function isASCIINumberBytes (buffer, start) {
+  if (start >= buffer.length) {
+    return false
+  }
+
+  for (let i = start; i < buffer.length; i++) {
+    if (buffer[i] < 0x30 || buffer[i] > 0x39) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function isValidLastEventIdBytes (buffer, start) {
+  for (let i = start; i < buffer.length; i++) {
+    if (buffer[i] === 0x00) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function isFieldName (line, length, field) {
+  if (length !== field.length) {
+    return false
+  }
+
+  for (let i = 0; i < length; i++) {
+    if (line[i] !== field[i]) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function createMaxEventSizeExceededError () {
+  const error = new Error('EventSource message size exceeded')
+  error.aborted = false
+  return error
+}
 
 /**
  * @typedef {object} EventSourceStreamEvent
@@ -15612,11 +16088,21 @@ class EventSourceStream extends Transform {
   eventEndCheck = false
 
   /**
-   * @type {Buffer}
+   * @type {Buffer[]}
    */
-  buffer = null
+  chunks = []
 
+  chunkIndex = 0
   pos = 0
+  lineChunkIndex = 0
+  linePos = 0
+  lineLength = 0
+  eventSize = 0
+  eventFieldSizes = { data: 0, event: 0, id: 0, retry: 0 }
+  dataLineCount = 0
+  maxEventSize
+  maxDataLines
+  maxBufferedChunks
 
   event = {
     data: undefined,
@@ -15627,6 +16113,7 @@ class EventSourceStream extends Transform {
 
   /**
    * @param {object} options
+   * @param {number} [options.maxEventSize]
    * @param {eventSourceSettings} options.eventSourceSettings
    * @param {Function} [options.push]
    */
@@ -15638,6 +16125,12 @@ class EventSourceStream extends Transform {
     super(options)
 
     this.state = options.eventSourceSettings || {}
+    this.maxEventSize = options.maxEventSize ?? defaultMaxEventSize
+    const parserItemLimit = this.maxEventSize > 0
+      ? Math.min(maxParserItems, Math.max(minParserItems, Math.floor(this.maxEventSize / bytesPerParserItem)))
+      : 0
+    this.maxDataLines = parserItemLimit
+    this.maxBufferedChunks = parserItemLimit
     if (options.push) {
       this.push = options.push
     }
@@ -15655,92 +16148,28 @@ class EventSourceStream extends Transform {
       return
     }
 
-    // Cache the chunk in the buffer, as the data might not be complete while
-    // processing it
-    // TODO: Investigate if there is a more performant way to handle
-    // incoming chunks
-    // see: https://github.com/nodejs/undici/issues/2630
-    if (this.buffer) {
-      this.buffer = Buffer.concat([this.buffer, chunk])
-    } else {
-      this.buffer = chunk
+    // A leading line ending can immediately release the currently buffered
+    // line, even when it uses the final allowed chunk slot.
+    if (this.maxEventSize > 0 &&
+        this.chunks.length >= this.maxBufferedChunks &&
+        chunk[0] !== LF && chunk[0] !== CR) {
+      callback(createMaxEventSizeExceededError())
+      return
     }
+    this.chunks.push(chunk)
 
     // Strip leading byte-order-mark if we opened the stream and started
     // the processing of the incoming data
     if (this.checkBOM) {
-      switch (this.buffer.length) {
-        case 1:
-          // Check if the first byte is the same as the first byte of the BOM
-          if (this.buffer[0] === BOM[0]) {
-            // If it is, we need to wait for more data
-            callback()
-            return
-          }
-          // Set the checkBOM flag to false as we don't need to check for the
-          // BOM anymore
-          this.checkBOM = false
-
-          // The buffer only contains one byte so we need to wait for more data
-          callback()
-          return
-        case 2:
-          // Check if the first two bytes are the same as the first two bytes
-          // of the BOM
-          if (
-            this.buffer[0] === BOM[0] &&
-            this.buffer[1] === BOM[1]
-          ) {
-            // If it is, we need to wait for more data, because the third byte
-            // is needed to determine if it is the BOM or not
-            callback()
-            return
-          }
-
-          // Set the checkBOM flag to false as we don't need to check for the
-          // BOM anymore
-          this.checkBOM = false
-          break
-        case 3:
-          // Check if the first three bytes are the same as the first three
-          // bytes of the BOM
-          if (
-            this.buffer[0] === BOM[0] &&
-            this.buffer[1] === BOM[1] &&
-            this.buffer[2] === BOM[2]
-          ) {
-            // If it is, we can drop the buffered data, as it is only the BOM
-            this.buffer = Buffer.alloc(0)
-            // Set the checkBOM flag to false as we don't need to check for the
-            // BOM anymore
-            this.checkBOM = false
-
-            // Await more data
-            callback()
-            return
-          }
-          // If it is not the BOM, we can start processing the data
-          this.checkBOM = false
-          break
-        default:
-          // The buffer is longer than 3 bytes, so we can drop the BOM if it is
-          // present
-          if (
-            this.buffer[0] === BOM[0] &&
-            this.buffer[1] === BOM[1] &&
-            this.buffer[2] === BOM[2]
-          ) {
-            // Remove the BOM from the buffer
-            this.buffer = this.buffer.subarray(3)
-          }
-
-          // Set the checkBOM flag to false as we don't need to check for the
-          this.checkBOM = false
-          break
+      if (this.handleBOM()) {
+        callback()
+        return
       }
     }
 
-    while (this.pos < this.buffer.length) {
+    while (this.hasCurrentByte()) {
+      const byte = this.currentByte()
+
       // If the previous line ended with an end-of-line, we need to check
       // if the next character is also an end-of-line.
       if (this.eventEndCheck) {
@@ -15753,10 +16182,9 @@ class EventSourceStream extends Transform {
         if (this.crlfCheck) {
           // If the current character is a line feed, we can remove it
           // from the buffer and reset the crlfCheck flag
-          if (this.buffer[this.pos] === LF) {
-            this.buffer = this.buffer.subarray(this.pos + 1)
-            this.pos = 0
+          if (byte === LF) {
             this.crlfCheck = false
+            this.consumeCurrentByte()
 
             // It is possible that the line feed is not the end of the
             // event. We need to check if the next character is an
@@ -15772,19 +16200,17 @@ class EventSourceStream extends Transform {
           this.crlfCheck = false
         }
 
-        if (this.buffer[this.pos] === LF || this.buffer[this.pos] === CR) {
+        if (byte === LF || byte === CR) {
           // If the current character is a carriage return, we need to
           // set the crlfCheck flag to true, as we need to check if the
           // next character is a line feed so we can remove it from the
           // buffer
-          if (this.buffer[this.pos] === CR) {
+          if (byte === CR) {
             this.crlfCheck = true
           }
 
-          this.buffer = this.buffer.subarray(this.pos + 1)
-          this.pos = 0
-          if (
-            this.event.data !== undefined || this.event.event || this.event.id || this.event.retry) {
+          this.consumeCurrentByte()
+          if (this.hasPendingEvent()) {
             this.processEvent(this.event)
           }
           this.clearEvent()
@@ -15798,22 +16224,23 @@ class EventSourceStream extends Transform {
 
       // If the current character is an end-of-line, we can process the
       // line
-      if (this.buffer[this.pos] === LF || this.buffer[this.pos] === CR) {
+      if (byte === LF || byte === CR) {
         // If the current character is a carriage return, we need to
         // set the crlfCheck flag to true, as we need to check if the
         // next character is a line feed
-        if (this.buffer[this.pos] === CR) {
+        if (byte === CR) {
           this.crlfCheck = true
         }
 
         // In any case, we can process the line as we reached an
         // end-of-line character
-        this.parseLine(this.buffer.subarray(0, this.pos), this.event)
-
-        // Remove the processed line from the buffer
-        this.buffer = this.buffer.subarray(this.pos + 1)
-        // Reset the position as we removed the processed line from the buffer
-        this.pos = 0
+        try {
+          this.parseLine(this.readLine(), this.event)
+        } catch (error) {
+          callback(error)
+          return
+        }
+        this.consumeCurrentByte()
         // A line was processed and this could be the end of the event. We need
         // to check if the next line is empty to determine if the event is
         // finished.
@@ -15821,15 +16248,28 @@ class EventSourceStream extends Transform {
         continue
       }
 
-      this.pos++
+      // readLine() is only called after CR or LF. Reject an unfinished line
+      // before it can retain an unbounded number of decoded chunks. The seven
+      // extra bytes allow the longest field prefix ("event: " or "retry: ").
+      if (this.maxEventSize > 0 && ++this.lineLength > this.maxEventSize + 7) {
+        callback(createMaxEventSizeExceededError())
+        return
+      }
+      this.advanceCursor()
     }
 
     callback()
   }
 
+  _destroy (error, callback) {
+    this.chunks.length = 0
+    this.clearEvent()
+    super._destroy(error, callback)
+  }
+
   /**
    * @param {Buffer} line
-   * @param {EventStreamEvent} event
+   * @param {EventSourceStreamEvent} event
    */
   parseLine (line, event) {
     // If the line is empty (a blank line)
@@ -15846,65 +16286,72 @@ class EventSourceStream extends Transform {
       return
     }
 
-    let field = ''
-    let value = ''
+    let fieldLength = line.length
+    let valueStart = line.length
 
     // If the line contains a U+003A COLON character (:)
     if (colonPosition !== -1) {
-      // Collect the characters on the line before the first U+003A COLON
-      // character (:), and let field be that string.
-      // TODO: Investigate if there is a more performant way to extract the
-      // field
-      // see: https://github.com/nodejs/undici/issues/2630
-      field = line.subarray(0, colonPosition).toString('utf8')
+      fieldLength = colonPosition
 
       // Collect the characters on the line after the first U+003A COLON
       // character (:), and let value be that string.
       // If value starts with a U+0020 SPACE character, remove it from value.
-      let valueStart = colonPosition + 1
+      valueStart = colonPosition + 1
       if (line[valueStart] === SPACE) {
         ++valueStart
       }
-      // TODO: Investigate if there is a more performant way to extract the
-      // value
-      // see: https://github.com/nodejs/undici/issues/2630
-      value = line.subarray(valueStart).toString('utf8')
-
-      // Otherwise, the string is not empty but does not contain a U+003A COLON
-      // character (:)
-    } else {
-      // Process the field using the steps described below, using the whole
-      // line as the field name, and the empty string as the field value.
-      field = line.toString('utf8')
-      value = ''
     }
 
-    // Modify the event with the field name and value. The value is also
-    // decoded as UTF-8
-    switch (field) {
-      case 'data':
-        if (event[field] === undefined) {
-          event[field] = value
-        } else {
-          event[field] += `\n${value}`
-        }
-        break
-      case 'retry':
-        if (isASCIINumber(value)) {
-          event[field] = value
-        }
-        break
-      case 'id':
-        if (isValidLastEventId(value)) {
-          event[field] = value
-        }
-        break
-      case 'event':
-        if (value.length > 0) {
-          event[field] = value
-        }
-        break
+    if (isFieldName(line, fieldLength, DATA)) {
+      if (this.maxEventSize > 0 && this.dataLineCount >= this.maxDataLines) {
+        throw createMaxEventSizeExceededError()
+      }
+      const valueBytes = line.length - valueStart
+      const dataSize = this.eventFieldSizes.data + (event.data === undefined ? 0 : 1) + valueBytes
+      this.setEventFieldSize('data', dataSize)
+
+      const value = line.toString('utf8', valueStart)
+
+      if (event.data === undefined) {
+        event.data = value
+      } else {
+        event.data += `\n${value}`
+      }
+      this.dataLineCount++
+      return
     }
+
+    if (isFieldName(line, fieldLength, RETRY)) {
+      if (isASCIINumberBytes(line, valueStart)) {
+        this.setEventFieldSize('retry', line.length - valueStart)
+        event.retry = line.toString('utf8', valueStart)
+      }
+      return
+    }
+
+    if (isFieldName(line, fieldLength, ID)) {
+      if (isValidLastEventIdBytes(line, valueStart)) {
+        this.setEventFieldSize('id', line.length - valueStart)
+        event.id = line.toString('utf8', valueStart)
+      }
+      return
+    }
+
+    if (isFieldName(line, fieldLength, EVENT)) {
+      if (valueStart < line.length) {
+        this.setEventFieldSize('event', line.length - valueStart)
+        event.event = line.toString('utf8', valueStart)
+      }
+    }
+  }
+
+  setEventFieldSize (field, size) {
+    const eventSize = this.eventSize - this.eventFieldSizes[field] + size
+    if (this.maxEventSize > 0 && eventSize > this.maxEventSize) {
+      throw createMaxEventSizeExceededError()
+    }
+    this.eventSize = eventSize
+    this.eventFieldSizes[field] = size
   }
 
   /**
@@ -15933,12 +16380,159 @@ class EventSourceStream extends Transform {
   }
 
   clearEvent () {
-    this.event = {
-      data: undefined,
-      event: undefined,
-      id: undefined,
-      retry: undefined
+    this.event.data = undefined
+    this.event.event = undefined
+    this.event.id = undefined
+    this.event.retry = undefined
+    this.eventSize = 0
+    this.dataLineCount = 0
+    this.eventFieldSizes.data = 0
+    this.eventFieldSizes.event = 0
+    this.eventFieldSizes.id = 0
+    this.eventFieldSizes.retry = 0
+  }
+
+  hasPendingEvent () {
+    return this.event.data !== undefined ||
+      this.event.event !== undefined ||
+      this.event.id !== undefined ||
+      this.event.retry !== undefined
+  }
+
+  hasCurrentByte () {
+    return this.chunkIndex < this.chunks.length &&
+      this.pos < this.chunks[this.chunkIndex].length
+  }
+
+  currentByte () {
+    return this.chunks[this.chunkIndex][this.pos]
+  }
+
+  consumeCurrentByte () {
+    this.advanceCursor()
+    this.syncLineStartToCursor()
+  }
+
+  advanceCursor () {
+    this.pos++
+
+    while (this.chunkIndex < this.chunks.length && this.pos >= this.chunks[this.chunkIndex].length) {
+      this.chunkIndex++
+      this.pos = 0
     }
+  }
+
+  syncLineStartToCursor () {
+    this.lineChunkIndex = this.chunkIndex
+    this.linePos = this.pos
+    this.lineLength = 0
+    this.dropConsumedChunks()
+  }
+
+  dropConsumedChunks () {
+    if (this.lineChunkIndex > 0) {
+      const consumed = this.lineChunkIndex
+      this.chunks.splice(0, consumed)
+      this.lineChunkIndex = 0
+      this.chunkIndex -= consumed
+    }
+
+    if (this.chunkIndex === this.chunks.length) {
+      this.chunks.length = 0
+      this.chunkIndex = 0
+      this.pos = 0
+      this.lineChunkIndex = 0
+      this.linePos = 0
+    }
+  }
+
+  readLine () {
+    if (this.lineChunkIndex === this.chunkIndex) {
+      return this.chunks[this.chunkIndex].subarray(this.linePos, this.pos)
+    }
+
+    const chunks = []
+    let length = 0
+
+    for (let i = this.lineChunkIndex; i <= this.chunkIndex; i++) {
+      const chunk = this.chunks[i]
+      const start = i === this.lineChunkIndex ? this.linePos : 0
+      const end = i === this.chunkIndex ? this.pos : chunk.length
+      const slice = chunk.subarray(start, end)
+      length += slice.length
+      chunks.push(slice)
+    }
+
+    return Buffer.concat(chunks, length)
+  }
+
+  peekBufferedByte (offset) {
+    let chunkIndex = this.lineChunkIndex
+    let pos = this.linePos
+
+    while (chunkIndex < this.chunks.length) {
+      const chunk = this.chunks[chunkIndex]
+      const remaining = chunk.length - pos
+
+      if (offset < remaining) {
+        return chunk[pos + offset]
+      }
+
+      offset -= remaining
+      chunkIndex++
+      pos = 0
+    }
+  }
+
+  discardLeadingBytes (count) {
+    while (count > 0 && this.lineChunkIndex < this.chunks.length) {
+      const chunk = this.chunks[this.lineChunkIndex]
+      const remaining = chunk.length - this.linePos
+
+      if (count < remaining) {
+        this.linePos += count
+        count = 0
+      } else {
+        count -= remaining
+        this.lineChunkIndex++
+        this.linePos = 0
+      }
+    }
+
+    this.chunkIndex = this.lineChunkIndex
+    this.pos = this.linePos
+    this.dropConsumedChunks()
+  }
+
+  handleBOM () {
+    const first = this.peekBufferedByte(0)
+    const second = this.peekBufferedByte(1)
+    const third = this.peekBufferedByte(2)
+
+    if (second === undefined) {
+      if (first === BOM[0]) {
+        return true
+      }
+
+      this.checkBOM = false
+      return true
+    }
+
+    if (third === undefined) {
+      if (first === BOM[0] && second === BOM[1]) {
+        return true
+      }
+
+      this.checkBOM = false
+      return false
+    }
+
+    if (first === BOM[0] && second === BOM[1] && third === BOM[2]) {
+      this.discardLeadingBytes(3)
+    }
+
+    this.checkBOM = false
+    return !this.hasCurrentByte()
   }
 }
 
@@ -15949,23 +16543,24 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1238:
+/***/ 4022:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { pipeline } = __nccwpck_require__(7075)
-const { fetching } = __nccwpck_require__(4398)
-const { makeRequest } = __nccwpck_require__(9967)
-const { webidl } = __nccwpck_require__(5893)
-const { EventSourceStream } = __nccwpck_require__(4031)
-const { parseMIMEType } = __nccwpck_require__(1900)
-const { createFastMessageEvent } = __nccwpck_require__(5188)
-const { isNetworkError } = __nccwpck_require__(9051)
-const { delay } = __nccwpck_require__(4811)
-const { kEnumerableProperty } = __nccwpck_require__(3440)
-const { environmentSettingsObject } = __nccwpck_require__(3168)
+const { fetching } = __nccwpck_require__(9726)
+const { makeRequest } = __nccwpck_require__(6399)
+const { webidl } = __nccwpck_require__(4037)
+const { EventSourceStream } = __nccwpck_require__(6767)
+const { parseMIMEType } = __nccwpck_require__(3468)
+const { createFastMessageEvent } = __nccwpck_require__(3796)
+const { isNetworkError } = __nccwpck_require__(4667)
+const { delay } = __nccwpck_require__(6875)
+const { kEnumerableProperty } = __nccwpck_require__(1344)
+const { environmentSettingsObject } = __nccwpck_require__(6512)
+const { getGlobalDispatcher } = __nccwpck_require__(85)
 
 let experimentalWarned = false
 
@@ -16247,6 +16842,7 @@ class EventSource extends EventTarget {
 
       const eventSourceStream = new EventSourceStream({
         eventSourceSettings: this.#state,
+        maxEventSize: this.#dispatcher.eventSourceOptions?.maxEventSize,
         push: (event) => {
           this.dispatchEvent(createFastMessageEvent(
             event.type,
@@ -16425,7 +17021,8 @@ webidl.converters.EventSourceInitDict = webidl.dictionaryConverter([
   },
   {
     key: 'dispatcher', // undici only
-    converter: webidl.converters.any
+    converter: webidl.converters.any,
+    defaultValue: () => getGlobalDispatcher()
   }
 ])
 
@@ -16437,7 +17034,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4811:
+/***/ 6875:
 /***/ ((module) => {
 
 "use strict";
@@ -16482,13 +17079,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4492:
+/***/ 8844:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const util = __nccwpck_require__(3440)
+const util = __nccwpck_require__(1344)
 const {
   ReadableStreamFrom,
   isBlobLike,
@@ -16498,16 +17095,16 @@ const {
   fullyReadBody,
   extractMimeType,
   utf8DecodeBytes
-} = __nccwpck_require__(3168)
-const { FormData } = __nccwpck_require__(5910)
-const { kState } = __nccwpck_require__(3627)
-const { webidl } = __nccwpck_require__(5893)
+} = __nccwpck_require__(6512)
+const { FormData } = __nccwpck_require__(5174)
+const { kState } = __nccwpck_require__(9419)
+const { webidl } = __nccwpck_require__(4037)
 const { Blob } = __nccwpck_require__(4573)
 const assert = __nccwpck_require__(4589)
 const { isErrored, isDisturbed } = __nccwpck_require__(7075)
 const { isArrayBuffer } = __nccwpck_require__(3429)
-const { serializeAMimeType } = __nccwpck_require__(1900)
-const { multipartFormDataParser } = __nccwpck_require__(116)
+const { serializeAMimeType } = __nccwpck_require__(3468)
+const { multipartFormDataParser } = __nccwpck_require__(4916)
 let random
 
 try {
@@ -17019,7 +17616,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4495:
+/***/ 2799:
 /***/ ((module) => {
 
 "use strict";
@@ -17151,7 +17748,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 1900:
+/***/ 3468:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -17903,13 +18500,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6653:
+/***/ 3917:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kConnected, kSize } = __nccwpck_require__(6443)
+const { kConnected, kSize } = __nccwpck_require__(1099)
 
 class CompatWeakRef {
   constructor (value) {
@@ -17957,15 +18554,15 @@ module.exports = function () {
 
 /***/ }),
 
-/***/ 7114:
+/***/ 4106:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { Blob, File } = __nccwpck_require__(4573)
-const { kState } = __nccwpck_require__(3627)
-const { webidl } = __nccwpck_require__(5893)
+const { kState } = __nccwpck_require__(9419)
+const { webidl } = __nccwpck_require__(4037)
 
 // TODO(@KhafraDev): remove
 class FileLike {
@@ -18091,17 +18688,17 @@ module.exports = { FileLike, isFileLike }
 
 /***/ }),
 
-/***/ 116:
+/***/ 4916:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { isUSVString, bufferToLowerCasedHeaderName } = __nccwpck_require__(3440)
-const { utf8DecodeBytes } = __nccwpck_require__(3168)
-const { HTTP_TOKEN_CODEPOINTS, isomorphicDecode } = __nccwpck_require__(1900)
-const { isFileLike } = __nccwpck_require__(7114)
-const { makeEntry } = __nccwpck_require__(5910)
+const { isUSVString, bufferToLowerCasedHeaderName } = __nccwpck_require__(1344)
+const { utf8DecodeBytes } = __nccwpck_require__(6512)
+const { HTTP_TOKEN_CODEPOINTS, isomorphicDecode } = __nccwpck_require__(3468)
+const { isFileLike } = __nccwpck_require__(4106)
+const { makeEntry } = __nccwpck_require__(5174)
 const assert = __nccwpck_require__(4589)
 const { File: NodeFile } = __nccwpck_require__(4573)
 
@@ -18573,17 +19170,17 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5910:
+/***/ 5174:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { isBlobLike, iteratorMixin } = __nccwpck_require__(3168)
-const { kState } = __nccwpck_require__(3627)
-const { kEnumerableProperty } = __nccwpck_require__(3440)
-const { FileLike, isFileLike } = __nccwpck_require__(7114)
-const { webidl } = __nccwpck_require__(5893)
+const { isBlobLike, iteratorMixin } = __nccwpck_require__(6512)
+const { kState } = __nccwpck_require__(9419)
+const { kEnumerableProperty } = __nccwpck_require__(1344)
+const { FileLike, isFileLike } = __nccwpck_require__(4106)
+const { webidl } = __nccwpck_require__(4037)
 const { File: NativeFile } = __nccwpck_require__(4573)
 const nodeUtil = __nccwpck_require__(7975)
 
@@ -18833,7 +19430,7 @@ module.exports = { FormData, makeEntry }
 
 /***/ }),
 
-/***/ 1059:
+/***/ 7955:
 /***/ ((module) => {
 
 "use strict";
@@ -18881,7 +19478,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 660:
+/***/ 9060:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -18889,14 +19486,14 @@ module.exports = {
 
 
 
-const { kConstruct } = __nccwpck_require__(6443)
-const { kEnumerableProperty } = __nccwpck_require__(3440)
+const { kConstruct } = __nccwpck_require__(1099)
+const { kEnumerableProperty } = __nccwpck_require__(1344)
 const {
   iteratorMixin,
   isValidHeaderName,
   isValidHeaderValue
-} = __nccwpck_require__(3168)
-const { webidl } = __nccwpck_require__(5893)
+} = __nccwpck_require__(6512)
+const { webidl } = __nccwpck_require__(4037)
 const assert = __nccwpck_require__(4589)
 const util = __nccwpck_require__(7975)
 
@@ -19576,7 +20173,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 4398:
+/***/ 9726:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -19590,9 +20187,9 @@ const {
   filterResponse,
   makeResponse,
   fromInnerResponse
-} = __nccwpck_require__(9051)
-const { HeadersList } = __nccwpck_require__(660)
-const { Request, cloneRequest } = __nccwpck_require__(9967)
+} = __nccwpck_require__(4667)
+const { HeadersList } = __nccwpck_require__(9060)
+const { Request, cloneRequest } = __nccwpck_require__(6399)
 const zlib = __nccwpck_require__(8522)
 const {
   bytesMatch,
@@ -19628,23 +20225,23 @@ const {
   buildContentRange,
   createInflate,
   extractMimeType
-} = __nccwpck_require__(3168)
-const { kState, kDispatcher } = __nccwpck_require__(3627)
+} = __nccwpck_require__(6512)
+const { kState, kDispatcher } = __nccwpck_require__(9419)
 const assert = __nccwpck_require__(4589)
-const { safelyExtractBody, extractBody } = __nccwpck_require__(4492)
+const { safelyExtractBody, extractBody } = __nccwpck_require__(8844)
 const {
   redirectStatusSet,
   nullBodyStatus,
   safeMethodsSet,
   requestBodyHeader,
   subresourceSet
-} = __nccwpck_require__(4495)
+} = __nccwpck_require__(2799)
 const EE = __nccwpck_require__(8474)
 const { Readable, pipeline, finished } = __nccwpck_require__(7075)
-const { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = __nccwpck_require__(3440)
-const { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = __nccwpck_require__(1900)
-const { getGlobalDispatcher } = __nccwpck_require__(2581)
-const { webidl } = __nccwpck_require__(5893)
+const { addAbortListener, isErrored, isReadable, bufferToLowerCasedHeaderName } = __nccwpck_require__(1344)
+const { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = __nccwpck_require__(3468)
+const { getGlobalDispatcher } = __nccwpck_require__(85)
+const { webidl } = __nccwpck_require__(4037)
 const { STATUS_CODES } = __nccwpck_require__(7067)
 const GET_OR_HEAD = ['GET', 'HEAD']
 
@@ -21532,8 +22129,10 @@ async function httpNetworkFetch (
   // 19. Run these steps in parallel:
 
   //    1. Run these steps, but abort when fetchParams is canceled:
-  fetchParams.controller.onAborted = onAborted
-  fetchParams.controller.on('terminated', onAborted)
+  if (!fetchParams.controller.resume) {
+    fetchParams.controller.on('terminated', onAborted)
+  }
+
   fetchParams.controller.resume = async () => {
     // 1. While true
     while (true) {
@@ -21702,8 +22301,6 @@ async function httpNetworkFetch (
           }
           location = headersList.get('location', true)
 
-          this.body = new Readable({ read: resume })
-
           const decoders = []
 
           const willFollow = location && request.redirect === 'follow' &&
@@ -21721,7 +22318,7 @@ async function httpNetworkFetch (
             // CVE fix similar to urllib3 (GHSA-gm62-xv2j-4w53) and curl (CVE-2022-32206).
             const maxContentEncodings = 5
             if (codings.length > maxContentEncodings) {
-              reject(new Error(`too many content-encodings in response: ${codings.length}, maximum allowed is ${maxContentEncodings}`))
+              this.abort(new Error(`too many content-encodings in response: ${codings.length}, maximum allowed is ${maxContentEncodings}`))
               return true
             }
 
@@ -21753,6 +22350,8 @@ async function httpNetworkFetch (
               }
             }
           }
+
+          this.body = new Readable({ read: resume })
 
           const onError = this.onError.bind(this)
 
@@ -21798,10 +22397,6 @@ async function httpNetworkFetch (
         onComplete () {
           if (this.abort) {
             fetchParams.controller.off('terminated', this.abort)
-          }
-
-          if (fetchParams.controller.onAborted) {
-            fetchParams.controller.off('terminated', fetchParams.controller.onAborted)
           }
 
           fetchParams.controller.ended = true
@@ -21856,7 +22451,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9967:
+/***/ 6399:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -21864,16 +22459,16 @@ module.exports = {
 
 
 
-const { extractBody, mixinBody, cloneBody, bodyUnusable } = __nccwpck_require__(4492)
-const { Headers, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = __nccwpck_require__(660)
-const { FinalizationRegistry } = __nccwpck_require__(6653)()
-const util = __nccwpck_require__(3440)
+const { extractBody, mixinBody, cloneBody, bodyUnusable } = __nccwpck_require__(8844)
+const { Headers, fill: fillHeaders, HeadersList, setHeadersGuard, getHeadersGuard, setHeadersList, getHeadersList } = __nccwpck_require__(9060)
+const { FinalizationRegistry } = __nccwpck_require__(3917)()
+const util = __nccwpck_require__(1344)
 const nodeUtil = __nccwpck_require__(7975)
 const {
   isValidHTTPToken,
   sameOrigin,
   environmentSettingsObject
-} = __nccwpck_require__(3168)
+} = __nccwpck_require__(6512)
 const {
   forbiddenMethodsSet,
   corsSafeListedMethodsSet,
@@ -21883,12 +22478,12 @@ const {
   requestCredentials,
   requestCache,
   requestDuplex
-} = __nccwpck_require__(4495)
+} = __nccwpck_require__(2799)
 const { kEnumerableProperty, normalizedMethodRecordsBase, normalizedMethodRecords } = util
-const { kHeaders, kSignal, kState, kDispatcher } = __nccwpck_require__(3627)
-const { webidl } = __nccwpck_require__(5893)
-const { URLSerializer } = __nccwpck_require__(1900)
-const { kConstruct } = __nccwpck_require__(6443)
+const { kHeaders, kSignal, kState, kDispatcher } = __nccwpck_require__(9419)
+const { webidl } = __nccwpck_require__(4037)
+const { URLSerializer } = __nccwpck_require__(3468)
+const { kConstruct } = __nccwpck_require__(1099)
 const assert = __nccwpck_require__(4589)
 const { getMaxListeners, setMaxListeners, getEventListeners, defaultMaxListeners } = __nccwpck_require__(8474)
 
@@ -22901,15 +23496,15 @@ module.exports = { Request, makeRequest, fromInnerRequest, cloneRequest }
 
 /***/ }),
 
-/***/ 9051:
+/***/ 4667:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { Headers, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = __nccwpck_require__(660)
-const { extractBody, cloneBody, mixinBody, hasFinalizationRegistry, streamRegistry, bodyUnusable } = __nccwpck_require__(4492)
-const util = __nccwpck_require__(3440)
+const { Headers, HeadersList, fill, getHeadersGuard, setHeadersGuard, setHeadersList } = __nccwpck_require__(9060)
+const { extractBody, cloneBody, mixinBody, hasFinalizationRegistry, streamRegistry, bodyUnusable } = __nccwpck_require__(8844)
+const util = __nccwpck_require__(1344)
 const nodeUtil = __nccwpck_require__(7975)
 const { kEnumerableProperty } = util
 const {
@@ -22921,16 +23516,16 @@ const {
   isErrorLike,
   isomorphicEncode,
   environmentSettingsObject: relevantRealm
-} = __nccwpck_require__(3168)
+} = __nccwpck_require__(6512)
 const {
   redirectStatusSet,
   nullBodyStatus
-} = __nccwpck_require__(4495)
-const { kState, kHeaders } = __nccwpck_require__(3627)
-const { webidl } = __nccwpck_require__(5893)
-const { FormData } = __nccwpck_require__(5910)
-const { URLSerializer } = __nccwpck_require__(1900)
-const { kConstruct } = __nccwpck_require__(6443)
+} = __nccwpck_require__(2799)
+const { kState, kHeaders } = __nccwpck_require__(9419)
+const { webidl } = __nccwpck_require__(4037)
+const { FormData } = __nccwpck_require__(5174)
+const { URLSerializer } = __nccwpck_require__(3468)
+const { kConstruct } = __nccwpck_require__(1099)
 const assert = __nccwpck_require__(4589)
 const { types } = __nccwpck_require__(7975)
 
@@ -23519,7 +24114,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3627:
+/***/ 9419:
 /***/ ((module) => {
 
 "use strict";
@@ -23536,7 +24131,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3168:
+/***/ 6512:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -23544,14 +24139,14 @@ module.exports = {
 
 const { Transform } = __nccwpck_require__(7075)
 const zlib = __nccwpck_require__(8522)
-const { redirectStatusSet, referrerPolicySet: referrerPolicyTokens, badPortsSet } = __nccwpck_require__(4495)
-const { getGlobalOrigin } = __nccwpck_require__(1059)
-const { collectASequenceOfCodePoints, collectAnHTTPQuotedString, removeChars, parseMIMEType } = __nccwpck_require__(1900)
+const { redirectStatusSet, referrerPolicySet: referrerPolicyTokens, badPortsSet } = __nccwpck_require__(2799)
+const { getGlobalOrigin } = __nccwpck_require__(7955)
+const { collectASequenceOfCodePoints, collectAnHTTPQuotedString, removeChars, parseMIMEType } = __nccwpck_require__(3468)
 const { performance } = __nccwpck_require__(643)
-const { isBlobLike, ReadableStreamFrom, isValidHTTPToken, normalizedMethodRecordsBase } = __nccwpck_require__(3440)
+const { isBlobLike, ReadableStreamFrom, isValidHTTPToken, normalizedMethodRecordsBase } = __nccwpck_require__(1344)
 const assert = __nccwpck_require__(4589)
 const { isUint8Array } = __nccwpck_require__(3429)
-const { webidl } = __nccwpck_require__(5893)
+const { webidl } = __nccwpck_require__(4037)
 
 let supportedHashes = []
 
@@ -25176,7 +25771,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5893:
+/***/ 4037:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -25184,7 +25779,7 @@ module.exports = {
 
 const { types, inspect } = __nccwpck_require__(7975)
 const { markAsUncloneable } = __nccwpck_require__(5919)
-const { toUSVString } = __nccwpck_require__(3440)
+const { toUSVString } = __nccwpck_require__(1344)
 
 /** @type {import('../../../types/webidl').Webidl} */
 const webidl = {}
@@ -25879,7 +26474,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 2607:
+/***/ 9599:
 /***/ ((module) => {
 
 "use strict";
@@ -26177,7 +26772,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8355:
+/***/ 115:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -26187,16 +26782,16 @@ const {
   staticPropertyDescriptors,
   readOperation,
   fireAProgressEvent
-} = __nccwpck_require__(3610)
+} = __nccwpck_require__(2410)
 const {
   kState,
   kError,
   kResult,
   kEvents,
   kAborted
-} = __nccwpck_require__(961)
-const { webidl } = __nccwpck_require__(5893)
-const { kEnumerableProperty } = __nccwpck_require__(3440)
+} = __nccwpck_require__(7265)
+const { webidl } = __nccwpck_require__(4037)
+const { kEnumerableProperty } = __nccwpck_require__(1344)
 
 class FileReader extends EventTarget {
   constructor () {
@@ -26529,13 +27124,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8573:
+/***/ 7629:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { webidl } = __nccwpck_require__(5893)
+const { webidl } = __nccwpck_require__(4037)
 
 const kState = Symbol('ProgressEvent state')
 
@@ -26615,7 +27210,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 961:
+/***/ 7265:
 /***/ ((module) => {
 
 "use strict";
@@ -26633,7 +27228,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3610:
+/***/ 2410:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -26645,10 +27240,10 @@ const {
   kResult,
   kAborted,
   kLastProgressEventFired
-} = __nccwpck_require__(961)
-const { ProgressEvent } = __nccwpck_require__(8573)
-const { getEncoding } = __nccwpck_require__(2607)
-const { serializeAMimeType, parseMIMEType } = __nccwpck_require__(1900)
+} = __nccwpck_require__(7265)
+const { ProgressEvent } = __nccwpck_require__(7629)
+const { getEncoding } = __nccwpck_require__(9599)
+const { serializeAMimeType, parseMIMEType } = __nccwpck_require__(3468)
 const { types } = __nccwpck_require__(7975)
 const { StringDecoder } = __nccwpck_require__(3193)
 const { btoa } = __nccwpck_require__(4573)
@@ -27032,28 +27627,28 @@ module.exports = {
 
 /***/ }),
 
-/***/ 6897:
+/***/ 2049:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { uid, states, sentCloseFrameState, emptyBuffer, opcodes } = __nccwpck_require__(736)
+const { uid, states, sentCloseFrameState, emptyBuffer, opcodes } = __nccwpck_require__(8928)
 const {
   kReadyState,
   kSentClose,
   kByteParser,
   kReceivedClose,
   kResponse
-} = __nccwpck_require__(1216)
-const { fireEvent, failWebsocketConnection, isClosing, isClosed, isEstablished, parseExtensions } = __nccwpck_require__(8625)
-const { channels } = __nccwpck_require__(2414)
-const { CloseEvent } = __nccwpck_require__(5188)
-const { makeRequest } = __nccwpck_require__(9967)
-const { fetching } = __nccwpck_require__(4398)
-const { Headers, getHeadersList } = __nccwpck_require__(660)
-const { getDecodeSplit } = __nccwpck_require__(3168)
-const { WebsocketFrameSend } = __nccwpck_require__(3264)
+} = __nccwpck_require__(784)
+const { fireEvent, failWebsocketConnection, isClosing, isClosed, isEstablished, parseExtensions } = __nccwpck_require__(6145)
+const { channels } = __nccwpck_require__(7902)
+const { CloseEvent } = __nccwpck_require__(3796)
+const { makeRequest } = __nccwpck_require__(6399)
+const { fetching } = __nccwpck_require__(9726)
+const { Headers, getHeadersList } = __nccwpck_require__(9060)
+const { getDecodeSplit } = __nccwpck_require__(6512)
+const { WebsocketFrameSend } = __nccwpck_require__(6848)
 
 /** @type {import('crypto')} */
 let crypto
@@ -27230,7 +27825,7 @@ function establishWebSocketConnection (url, protocols, client, ws, onEstablish, 
         // is specified, the server needs to include the same field and one of
         // the selected subprotocol values in its response for the connection to
         // be established.
-        if (!requestProtocols.includes(secProtocol)) {
+        if (requestProtocols === null || !requestProtocols.includes(secProtocol)) {
           failWebsocketConnection(ws, 'Protocol was not set in the opening handshake.')
           return
         }
@@ -27411,7 +28006,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 736:
+/***/ 8928:
 /***/ ((module) => {
 
 "use strict";
@@ -27485,15 +28080,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 5188:
+/***/ 3796:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { webidl } = __nccwpck_require__(5893)
-const { kEnumerableProperty } = __nccwpck_require__(3440)
-const { kConstruct } = __nccwpck_require__(6443)
+const { webidl } = __nccwpck_require__(4037)
+const { kEnumerableProperty } = __nccwpck_require__(1344)
+const { kConstruct } = __nccwpck_require__(1099)
 const { MessagePort } = __nccwpck_require__(5919)
 
 /**
@@ -27822,13 +28417,13 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3264:
+/***/ 6848:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { maxUnsigned16Bit } = __nccwpck_require__(736)
+const { maxUnsigned16Bit } = __nccwpck_require__(8928)
 
 const BUFFER_SIZE = 16386
 
@@ -27926,22 +28521,19 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9469:
+/***/ 5821:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
 const { createInflateRaw, Z_DEFAULT_WINDOWBITS } = __nccwpck_require__(8522)
-const { isValidClientWindowBits } = __nccwpck_require__(8625)
-const { MessageSizeExceededError } = __nccwpck_require__(8707)
+const { isValidClientWindowBits } = __nccwpck_require__(6145)
+const { MessageSizeExceededError } = __nccwpck_require__(7251)
 
 const tail = Buffer.from([0x00, 0x00, 0xff, 0xff])
 const kBuffer = Symbol('kBuffer')
 const kLength = Symbol('kLength')
-
-// Default maximum decompressed message size: 4 MB
-const kDefaultMaxDecompressedSize = 4 * 1024 * 1024
 
 class PerMessageDeflate {
   /** @type {import('node:zlib').InflateRaw} */
@@ -27949,31 +28541,29 @@ class PerMessageDeflate {
 
   #options = {}
 
-  /** @type {boolean} */
-  #aborted = false
-
-  /** @type {Function|null} */
-  #currentCallback = null
+  #maxPayloadSize = 0
 
   /**
    * @param {Map<string, string>} extensions
    */
-  constructor (extensions) {
+  constructor (extensions, options) {
     this.#options.serverNoContextTakeover = extensions.has('server_no_context_takeover')
     this.#options.serverMaxWindowBits = extensions.get('server_max_window_bits')
+
+    this.#maxPayloadSize = options.maxPayloadSize
   }
 
+  /**
+   * Decompress a compressed payload.
+   * @param {Buffer} chunk Compressed data
+   * @param {boolean} fin Final fragment flag
+   * @param {Function} callback Callback function
+   */
   decompress (chunk, fin, callback) {
     // An endpoint uses the following algorithm to decompress a message.
     // 1.  Append 4 octets of 0x00 0x00 0xff 0xff to the tail end of the
     //     payload of the message.
     // 2.  Decompress the resulting data using DEFLATE.
-
-    if (this.#aborted) {
-      callback(new MessageSizeExceededError())
-      return
-    }
-
     if (!this.#inflate) {
       let windowBits = Z_DEFAULT_WINDOWBITS
 
@@ -27996,23 +28586,17 @@ class PerMessageDeflate {
       this.#inflate[kLength] = 0
 
       this.#inflate.on('data', (data) => {
-        if (this.#aborted) {
-          return
-        }
-
         this.#inflate[kLength] += data.length
 
-        if (this.#inflate[kLength] > kDefaultMaxDecompressedSize) {
-          this.#aborted = true
+        if (this.#maxPayloadSize > 0 && this.#inflate[kLength] > this.#maxPayloadSize) {
+          callback(new MessageSizeExceededError())
+          // The inflater may still hold buffered input that can emit a late
+          // zlib error. Remove the data listener, then deterministically stop
+          // the stream so a subsequent 'error' cannot fire without a listener
+          // (which would terminate the process as an unhandled error event).
           this.#inflate.removeAllListeners()
           this.#inflate.destroy()
           this.#inflate = null
-
-          if (this.#currentCallback) {
-            const cb = this.#currentCallback
-            this.#currentCallback = null
-            cb(new MessageSizeExceededError())
-          }
           return
         }
 
@@ -28025,14 +28609,13 @@ class PerMessageDeflate {
       })
     }
 
-    this.#currentCallback = callback
     this.#inflate.write(chunk)
     if (fin) {
       this.#inflate.write(tail)
     }
 
     this.#inflate.flush(() => {
-      if (this.#aborted || !this.#inflate) {
+      if (!this.#inflate) {
         return
       }
 
@@ -28040,7 +28623,6 @@ class PerMessageDeflate {
 
       this.#inflate[kBuffer].length = 0
       this.#inflate[kLength] = 0
-      this.#currentCallback = null
 
       callback(null, full)
     })
@@ -28052,7 +28634,7 @@ module.exports = { PerMessageDeflate }
 
 /***/ }),
 
-/***/ 1652:
+/***/ 7988:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -28060,9 +28642,9 @@ module.exports = { PerMessageDeflate }
 
 const { Writable } = __nccwpck_require__(7075)
 const assert = __nccwpck_require__(4589)
-const { parserStates, opcodes, states, emptyBuffer, sentCloseFrameState } = __nccwpck_require__(736)
-const { kReadyState, kSentClose, kResponse, kReceivedClose } = __nccwpck_require__(1216)
-const { channels } = __nccwpck_require__(2414)
+const { parserStates, opcodes, states, emptyBuffer, sentCloseFrameState } = __nccwpck_require__(8928)
+const { kReadyState, kSentClose, kResponse, kReceivedClose } = __nccwpck_require__(784)
+const { channels } = __nccwpck_require__(7902)
 const {
   isValidStatusCode,
   isValidOpcode,
@@ -28072,10 +28654,16 @@ const {
   isControlFrame,
   isTextBinaryFrame,
   isContinuationFrame
-} = __nccwpck_require__(8625)
-const { WebsocketFrameSend } = __nccwpck_require__(3264)
-const { closeWebSocketConnection } = __nccwpck_require__(6897)
-const { PerMessageDeflate } = __nccwpck_require__(9469)
+} = __nccwpck_require__(6145)
+const { WebsocketFrameSend } = __nccwpck_require__(6848)
+const { closeWebSocketConnection } = __nccwpck_require__(2049)
+const { PerMessageDeflate } = __nccwpck_require__(5821)
+const { MessageSizeExceededError } = __nccwpck_require__(7251)
+
+function failWebsocketConnectionWithCode (ws, code, reason) {
+  closeWebSocketConnection(ws, code, reason, Buffer.byteLength(reason))
+  failWebsocketConnection(ws, reason)
+}
 
 // This code was influenced by ws released under the MIT license.
 // Copyright (c) 2011 Einar Otto Stangvik <einaros@gmail.com>
@@ -28084,6 +28672,7 @@ const { PerMessageDeflate } = __nccwpck_require__(9469)
 
 class ByteParser extends Writable {
   #buffers = []
+  #fragmentsBytes = 0
   #byteOffset = 0
   #loop = false
 
@@ -28095,18 +28684,27 @@ class ByteParser extends Writable {
   /** @type {Map<string, PerMessageDeflate>} */
   #extensions
 
+  /** @type {number} */
+  #maxFragments
+
+  /** @type {number} */
+  #maxPayloadSize
+
   /**
    * @param {import('./websocket').WebSocket} ws
    * @param {Map<string, string>|null} extensions
+   * @param {{ maxFragments?: number, maxPayloadSize?: number }} [options]
    */
-  constructor (ws, extensions) {
+  constructor (ws, extensions, options = {}) {
     super()
 
     this.ws = ws
     this.#extensions = extensions == null ? new Map() : extensions
+    this.#maxFragments = options.maxFragments ?? 0
+    this.#maxPayloadSize = options.maxPayloadSize ?? 0
 
     if (this.#extensions.has('permessage-deflate')) {
-      this.#extensions.set('permessage-deflate', new PerMessageDeflate(extensions))
+      this.#extensions.set('permessage-deflate', new PerMessageDeflate(extensions, options))
     }
   }
 
@@ -28120,6 +28718,19 @@ class ByteParser extends Writable {
     this.#loop = true
 
     this.run(callback)
+  }
+
+  #validatePayloadLength () {
+    if (
+      this.#maxPayloadSize > 0 &&
+      !isControlFrame(this.#info.opcode) &&
+      this.#info.payloadLength + this.#fragmentsBytes > this.#maxPayloadSize
+    ) {
+      failWebsocketConnectionWithCode(this.ws, 1009, 'Payload size exceeds maximum allowed size')
+      return false
+    }
+
+    return true
   }
 
   /**
@@ -28210,6 +28821,10 @@ class ByteParser extends Writable {
         if (payloadLength <= 125) {
           this.#info.payloadLength = payloadLength
           this.#state = parserStates.READ_DATA
+
+          if (!this.#validatePayloadLength()) {
+            return
+          }
         } else if (payloadLength === 126) {
           this.#state = parserStates.PAYLOADLENGTH_16
         } else if (payloadLength === 127) {
@@ -28234,6 +28849,10 @@ class ByteParser extends Writable {
 
         this.#info.payloadLength = buffer.readUInt16BE(0)
         this.#state = parserStates.READ_DATA
+
+        if (!this.#validatePayloadLength()) {
+          return
+        }
       } else if (this.#state === parserStates.PAYLOADLENGTH_64) {
         if (this.#byteOffset < 8) {
           return callback()
@@ -28256,6 +28875,10 @@ class ByteParser extends Writable {
 
         this.#info.payloadLength = lower
         this.#state = parserStates.READ_DATA
+
+        if (!this.#validatePayloadLength()) {
+          return
+        }
       } else if (this.#state === parserStates.READ_DATA) {
         if (this.#byteOffset < this.#info.payloadLength) {
           return callback()
@@ -28266,44 +28889,74 @@ class ByteParser extends Writable {
         if (isControlFrame(this.#info.opcode)) {
           this.#loop = this.parseControlFrame(body)
           this.#state = parserStates.INFO
+
+          // If the automatic PONG/CLOSE reply filled the socket's write buffer,
+          // stop parsing and resume on drain so a PING flood cannot grow the
+          // outbound queue without bound.
+          const socket = this.ws[kResponse].socket
+          if (this.#loop && socket.writableNeedDrain) {
+            this.#loop = false
+            socket.once('drain', () => {
+              if (this.destroyed) return
+              this.#loop = true
+              this.run(callback)
+            })
+            return
+          }
         } else {
           if (!this.#info.compressed) {
-            this.#fragments.push(body)
+            if (!this.writeFragments(body)) {
+              return
+            }
+
+            if (this.#maxPayloadSize > 0 && this.#fragmentsBytes > this.#maxPayloadSize) {
+              failWebsocketConnectionWithCode(this.ws, 1009, new MessageSizeExceededError().message)
+              return
+            }
 
             // If the frame is not fragmented, a message has been received.
             // If the frame is fragmented, it will terminate with a fin bit set
             // and an opcode of 0 (continuation), therefore we handle that when
             // parsing continuation frames, not here.
             if (!this.#info.fragmented && this.#info.fin) {
-              const fullMessage = Buffer.concat(this.#fragments)
-              websocketMessageReceived(this.ws, this.#info.binaryType, fullMessage)
-              this.#fragments.length = 0
+              websocketMessageReceived(this.ws, this.#info.binaryType, this.consumeFragments())
             }
 
             this.#state = parserStates.INFO
           } else {
-            this.#extensions.get('permessage-deflate').decompress(body, this.#info.fin, (error, data) => {
-              if (error) {
-                failWebsocketConnection(this.ws, error.message)
-                return
-              }
+            this.#extensions.get('permessage-deflate').decompress(
+              body,
+              this.#info.fin,
+              (error, data) => {
+                if (error) {
+                  const code = error instanceof MessageSizeExceededError ? 1009 : 1007
+                  failWebsocketConnectionWithCode(this.ws, code, error.message)
+                  return
+                }
 
-              this.#fragments.push(data)
+                if (!this.writeFragments(data)) {
+                  return
+                }
 
-              if (!this.#info.fin) {
-                this.#state = parserStates.INFO
+                if (this.#maxPayloadSize > 0 && this.#fragmentsBytes > this.#maxPayloadSize) {
+                  failWebsocketConnectionWithCode(this.ws, 1009, new MessageSizeExceededError().message)
+                  return
+                }
+
+                if (!this.#info.fin) {
+                  this.#state = parserStates.INFO
+                  this.#loop = true
+                  this.run(callback)
+                  return
+                }
+
+                websocketMessageReceived(this.ws, this.#info.binaryType, this.consumeFragments())
+
                 this.#loop = true
+                this.#state = parserStates.INFO
                 this.run(callback)
-                return
               }
-
-              websocketMessageReceived(this.ws, this.#info.binaryType, Buffer.concat(this.#fragments))
-
-              this.#loop = true
-              this.#state = parserStates.INFO
-              this.#fragments.length = 0
-              this.run(callback)
-            })
+            )
 
             this.#loop = false
             break
@@ -28353,6 +29006,35 @@ class ByteParser extends Writable {
     this.#byteOffset -= n
 
     return buffer
+  }
+
+  writeFragments (fragment) {
+    if (
+      this.#maxFragments > 0 &&
+      this.#fragments.length === this.#maxFragments
+    ) {
+      failWebsocketConnectionWithCode(this.ws, 1008, 'Too many message fragments')
+      return false
+    }
+
+    this.#fragmentsBytes += fragment.length
+    this.#fragments.push(fragment)
+    return true
+  }
+
+  consumeFragments () {
+    const fragments = this.#fragments
+
+    if (fragments.length === 1) {
+      this.#fragmentsBytes = 0
+      return fragments.shift()
+    }
+
+    const output = Buffer.concat(fragments, this.#fragmentsBytes)
+    this.#fragments = []
+    this.#fragmentsBytes = 0
+
+    return output
   }
 
   parseCloseBody (data) {
@@ -28487,15 +29169,15 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3900:
+/***/ 3260:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { WebsocketFrameSend } = __nccwpck_require__(3264)
-const { opcodes, sendHints } = __nccwpck_require__(736)
-const FixedQueue = __nccwpck_require__(4660)
+const { WebsocketFrameSend } = __nccwpck_require__(6848)
+const { opcodes, sendHints } = __nccwpck_require__(8928)
+const FixedQueue = __nccwpck_require__(6932)
 
 /** @type {typeof Uint8Array} */
 const FastBuffer = Buffer[Symbol.species]
@@ -28599,7 +29281,7 @@ module.exports = { SendQueue }
 
 /***/ }),
 
-/***/ 1216:
+/***/ 784:
 /***/ ((module) => {
 
 "use strict";
@@ -28619,17 +29301,17 @@ module.exports = {
 
 /***/ }),
 
-/***/ 8625:
+/***/ 6145:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { kReadyState, kController, kResponse, kBinaryType, kWebSocketURL } = __nccwpck_require__(1216)
-const { states, opcodes } = __nccwpck_require__(736)
-const { ErrorEvent, createFastMessageEvent } = __nccwpck_require__(5188)
+const { kReadyState, kController, kResponse, kBinaryType, kWebSocketURL } = __nccwpck_require__(784)
+const { states, opcodes } = __nccwpck_require__(8928)
+const { ErrorEvent, createFastMessageEvent } = __nccwpck_require__(3796)
 const { isUtf8 } = __nccwpck_require__(4573)
-const { collectASequenceOfCodePointsFast, removeHTTPWhitespace } = __nccwpck_require__(1900)
+const { collectASequenceOfCodePointsFast, removeHTTPWhitespace } = __nccwpck_require__(3468)
 
 /* globals Blob */
 
@@ -28949,16 +29631,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 3726:
+/***/ 7310:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-const { webidl } = __nccwpck_require__(5893)
-const { URLSerializer } = __nccwpck_require__(1900)
-const { environmentSettingsObject } = __nccwpck_require__(3168)
-const { staticPropertyDescriptors, states, sentCloseFrameState, sendHints } = __nccwpck_require__(736)
+const { webidl } = __nccwpck_require__(4037)
+const { URLSerializer } = __nccwpck_require__(3468)
+const { environmentSettingsObject } = __nccwpck_require__(6512)
+const { staticPropertyDescriptors, states, sentCloseFrameState, sendHints } = __nccwpck_require__(8928)
 const {
   kWebSocketURL,
   kReadyState,
@@ -28967,21 +29649,21 @@ const {
   kResponse,
   kSentClose,
   kByteParser
-} = __nccwpck_require__(1216)
+} = __nccwpck_require__(784)
 const {
   isConnecting,
   isEstablished,
   isClosing,
   isValidSubprotocol,
   fireEvent
-} = __nccwpck_require__(8625)
-const { establishWebSocketConnection, closeWebSocketConnection } = __nccwpck_require__(6897)
-const { ByteParser } = __nccwpck_require__(1652)
-const { kEnumerableProperty, isBlobLike } = __nccwpck_require__(3440)
-const { getGlobalDispatcher } = __nccwpck_require__(2581)
+} = __nccwpck_require__(6145)
+const { establishWebSocketConnection, closeWebSocketConnection } = __nccwpck_require__(2049)
+const { ByteParser } = __nccwpck_require__(7988)
+const { kEnumerableProperty, isBlobLike } = __nccwpck_require__(1344)
+const { getGlobalDispatcher } = __nccwpck_require__(85)
 const { types } = __nccwpck_require__(7975)
-const { ErrorEvent, CloseEvent } = __nccwpck_require__(5188)
-const { SendQueue } = __nccwpck_require__(3900)
+const { ErrorEvent, CloseEvent } = __nccwpck_require__(3796)
+const { SendQueue } = __nccwpck_require__(3260)
 
 // https://websockets.spec.whatwg.org/#interface-definition
 class WebSocket extends EventTarget {
@@ -29390,7 +30072,14 @@ class WebSocket extends EventTarget {
     // once this happens, the connection is open
     this[kResponse] = response
 
-    const parser = new ByteParser(this, parsedExtensions)
+    const webSocketOptions = this[kController]?.dispatcher?.webSocketOptions
+    const maxFragments = webSocketOptions?.maxFragments
+    const maxPayloadSize = webSocketOptions?.maxPayloadSize
+
+    const parser = new ByteParser(this, parsedExtensions, {
+      maxFragments,
+      maxPayloadSize
+    })
     parser.on('drain', onParserDrain)
     parser.on('error', onParserError.bind(this))
 
@@ -29545,7 +30234,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 9665:
+/***/ 2952:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.android-arm-eabi.node");
@@ -29553,7 +30242,7 @@ module.exports = eval("require")("./swc.android-arm-eabi.node");
 
 /***/ }),
 
-/***/ 8685:
+/***/ 6366:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.android-arm64.node");
@@ -29561,7 +30250,7 @@ module.exports = eval("require")("./swc.android-arm64.node");
 
 /***/ }),
 
-/***/ 475:
+/***/ 5322:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.darwin-arm64.node");
@@ -29569,7 +30258,7 @@ module.exports = eval("require")("./swc.darwin-arm64.node");
 
 /***/ }),
 
-/***/ 8818:
+/***/ 6655:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.darwin-universal.node");
@@ -29577,7 +30266,7 @@ module.exports = eval("require")("./swc.darwin-universal.node");
 
 /***/ }),
 
-/***/ 8009:
+/***/ 6768:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.darwin-x64.node");
@@ -29585,7 +30274,7 @@ module.exports = eval("require")("./swc.darwin-x64.node");
 
 /***/ }),
 
-/***/ 3873:
+/***/ 9486:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.freebsd-arm64.node");
@@ -29593,7 +30282,7 @@ module.exports = eval("require")("./swc.freebsd-arm64.node");
 
 /***/ }),
 
-/***/ 3291:
+/***/ 1932:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.freebsd-x64.node");
@@ -29601,7 +30290,7 @@ module.exports = eval("require")("./swc.freebsd-x64.node");
 
 /***/ }),
 
-/***/ 7222:
+/***/ 7565:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-arm-gnueabihf.node");
@@ -29609,7 +30298,7 @@ module.exports = eval("require")("./swc.linux-arm-gnueabihf.node");
 
 /***/ }),
 
-/***/ 8337:
+/***/ 6926:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-arm64-gnu.node");
@@ -29617,7 +30306,7 @@ module.exports = eval("require")("./swc.linux-arm64-gnu.node");
 
 /***/ }),
 
-/***/ 7602:
+/***/ 2687:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-arm64-musl.node");
@@ -29625,7 +30314,7 @@ module.exports = eval("require")("./swc.linux-arm64-musl.node");
 
 /***/ }),
 
-/***/ 1446:
+/***/ 9397:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-ppc64-gnu.node");
@@ -29633,7 +30322,7 @@ module.exports = eval("require")("./swc.linux-ppc64-gnu.node");
 
 /***/ }),
 
-/***/ 9312:
+/***/ 3931:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-riscv64-gnu.node");
@@ -29641,7 +30330,7 @@ module.exports = eval("require")("./swc.linux-riscv64-gnu.node");
 
 /***/ }),
 
-/***/ 8593:
+/***/ 5500:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-riscv64-musl.node");
@@ -29649,7 +30338,7 @@ module.exports = eval("require")("./swc.linux-riscv64-musl.node");
 
 /***/ }),
 
-/***/ 2644:
+/***/ 943:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-s390x-gnu.node");
@@ -29657,7 +30346,7 @@ module.exports = eval("require")("./swc.linux-s390x-gnu.node");
 
 /***/ }),
 
-/***/ 4675:
+/***/ 8524:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-x64-gnu.node");
@@ -29665,7 +30354,7 @@ module.exports = eval("require")("./swc.linux-x64-gnu.node");
 
 /***/ }),
 
-/***/ 2356:
+/***/ 6645:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.linux-x64-musl.node");
@@ -29673,7 +30362,7 @@ module.exports = eval("require")("./swc.linux-x64-musl.node");
 
 /***/ }),
 
-/***/ 6681:
+/***/ 554:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.wasi.cjs");
@@ -29681,7 +30370,7 @@ module.exports = eval("require")("./swc.wasi.cjs");
 
 /***/ }),
 
-/***/ 3535:
+/***/ 5074:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.win32-arm64-msvc.node");
@@ -29689,7 +30378,7 @@ module.exports = eval("require")("./swc.win32-arm64-msvc.node");
 
 /***/ }),
 
-/***/ 8152:
+/***/ 7735:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.win32-ia32-msvc.node");
@@ -29697,7 +30386,7 @@ module.exports = eval("require")("./swc.win32-ia32-msvc.node");
 
 /***/ }),
 
-/***/ 2665:
+/***/ 6624:
 /***/ ((module) => {
 
 module.exports = eval("require")("./swc.win32-x64-msvc.node");
@@ -29705,7 +30394,7 @@ module.exports = eval("require")("./swc.win32-x64-msvc.node");
 
 /***/ }),
 
-/***/ 727:
+/***/ 9660:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-android-arm-eabi");
@@ -29713,7 +30402,7 @@ module.exports = eval("require")("@swc/core-android-arm-eabi");
 
 /***/ }),
 
-/***/ 607:
+/***/ 7798:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-android-arm64");
@@ -29721,7 +30410,7 @@ module.exports = eval("require")("@swc/core-android-arm64");
 
 /***/ }),
 
-/***/ 5049:
+/***/ 9254:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-darwin-arm64");
@@ -29729,7 +30418,7 @@ module.exports = eval("require")("@swc/core-darwin-arm64");
 
 /***/ }),
 
-/***/ 3890:
+/***/ 2553:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-darwin-universal");
@@ -29737,7 +30426,7 @@ module.exports = eval("require")("@swc/core-darwin-universal");
 
 /***/ }),
 
-/***/ 8139:
+/***/ 8648:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-darwin-x64");
@@ -29745,7 +30434,7 @@ module.exports = eval("require")("@swc/core-darwin-x64");
 
 /***/ }),
 
-/***/ 5367:
+/***/ 4170:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-freebsd-arm64");
@@ -29753,7 +30442,7 @@ module.exports = eval("require")("@swc/core-freebsd-arm64");
 
 /***/ }),
 
-/***/ 6229:
+/***/ 3412:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-freebsd-x64");
@@ -29761,7 +30450,7 @@ module.exports = eval("require")("@swc/core-freebsd-x64");
 
 /***/ }),
 
-/***/ 1638:
+/***/ 639:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
@@ -29769,7 +30458,7 @@ module.exports = eval("require")("@swc/core-linux-arm-gnueabihf");
 
 /***/ }),
 
-/***/ 6571:
+/***/ 5662:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-arm64-gnu");
@@ -29777,7 +30466,7 @@ module.exports = eval("require")("@swc/core-linux-arm64-gnu");
 
 /***/ }),
 
-/***/ 5254:
+/***/ 9245:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-arm64-musl");
@@ -29785,7 +30474,7 @@ module.exports = eval("require")("@swc/core-linux-arm64-musl");
 
 /***/ }),
 
-/***/ 3586:
+/***/ 9699:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-ppc64-gnu");
@@ -29793,7 +30482,7 @@ module.exports = eval("require")("@swc/core-linux-ppc64-gnu");
 
 /***/ }),
 
-/***/ 9008:
+/***/ 8645:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-riscv64-gnu");
@@ -29801,7 +30490,7 @@ module.exports = eval("require")("@swc/core-linux-riscv64-gnu");
 
 /***/ }),
 
-/***/ 8879:
+/***/ 7904:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-riscv64-musl");
@@ -29809,7 +30498,7 @@ module.exports = eval("require")("@swc/core-linux-riscv64-musl");
 
 /***/ }),
 
-/***/ 8600:
+/***/ 9365:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-s390x-gnu");
@@ -29817,7 +30506,7 @@ module.exports = eval("require")("@swc/core-linux-s390x-gnu");
 
 /***/ }),
 
-/***/ 7793:
+/***/ 3320:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-x64-gnu");
@@ -29825,7 +30514,7 @@ module.exports = eval("require")("@swc/core-linux-x64-gnu");
 
 /***/ }),
 
-/***/ 6900:
+/***/ 6375:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-linux-x64-musl");
@@ -29833,7 +30522,7 @@ module.exports = eval("require")("@swc/core-linux-x64-musl");
 
 /***/ }),
 
-/***/ 9301:
+/***/ 8856:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-wasm32-wasi");
@@ -29841,7 +30530,7 @@ module.exports = eval("require")("@swc/core-wasm32-wasi");
 
 /***/ }),
 
-/***/ 293:
+/***/ 1974:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-arm64-msvc");
@@ -29849,7 +30538,7 @@ module.exports = eval("require")("@swc/core-win32-arm64-msvc");
 
 /***/ }),
 
-/***/ 1612:
+/***/ 8189:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/core-win32-ia32-msvc");
@@ -29857,7 +30546,7 @@ module.exports = eval("require")("@swc/core-win32-ia32-msvc");
 
 /***/ }),
 
-/***/ 5855:
+/***/ 4574:
 /***/ ((module) => {
 
 module.exports = eval("require")("@swc/wasm");
@@ -30113,7 +30802,7 @@ module.exports = require("util");
 
 /***/ }),
 
-/***/ 1120:
+/***/ 8808:
 /***/ ((module) => {
 
 "use strict";
@@ -30291,7 +30980,7 @@ __webpack_unused_export__ = defaultContentType
 
 /***/ }),
 
-/***/ 155:
+/***/ 4222:
 /***/ ((module) => {
 
 "use strict";
@@ -30373,7 +31062,7 @@ var __webpack_exports__ = {};
 
 ;// CONCATENATED MODULE: external "os"
 const external_os_namespaceObject = require("os");
-;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/utils.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/lib/utils.js
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
@@ -30409,7 +31098,7 @@ function utils_toCommandProperties(annotationProperties) {
     };
 }
 //# sourceMappingURL=utils.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/command.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/lib/command.js
 
 
 /**
@@ -30505,7 +31194,7 @@ function escapeProperty(s) {
 const external_crypto_namespaceObject = require("crypto");
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(9896);
-;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/file-command.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/lib/file-command.js
 // For internal use, subject to change.
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -30546,7 +31235,7 @@ var external_path_ = __nccwpck_require__(6928);
 var external_http_ = __nccwpck_require__(8611);
 // EXTERNAL MODULE: external "https"
 var external_https_ = __nccwpck_require__(5692);
-;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/http-client/lib/proxy.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/node_modules/@actions/http-client/lib/proxy.js
 function getProxyUrl(reqUrl) {
     const usingSsl = reqUrl.protocol === 'https:';
     if (checkBypass(reqUrl)) {
@@ -30637,11 +31326,11 @@ class DecodedURL extends URL {
     }
 }
 //# sourceMappingURL=proxy.js.map
-// EXTERNAL MODULE: ./node_modules/tunnel/index.js
-var node_modules_tunnel = __nccwpck_require__(770);
-// EXTERNAL MODULE: ./node_modules/undici/index.js
-var undici = __nccwpck_require__(6752);
-;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/http-client/lib/index.js
+// EXTERNAL MODULE: ../../../../Komatik/Trailhead/node_modules/tunnel/index.js
+var node_modules_tunnel = __nccwpck_require__(9090);
+// EXTERNAL MODULE: ../../../../Komatik/Trailhead/node_modules/undici/index.js
+var undici = __nccwpck_require__(5056);
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/node_modules/@actions/http-client/lib/index.js
 /* eslint-disable @typescript-eslint/no-explicit-any */
 var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -31338,7 +32027,7 @@ class lib_HttpClient {
 }
 const lowercaseKeys = (obj) => Object.keys(obj).reduce((c, k) => ((c[k.toLowerCase()] = obj[k]), c), {});
 //# sourceMappingURL=index.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/core/node_modules/@actions/http-client/lib/auth.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/node_modules/@actions/http-client/lib/auth.js
 var auth_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31414,7 +32103,7 @@ class PersonalAccessTokenCredentialHandler {
     }
 }
 //# sourceMappingURL=auth.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/oidc-utils.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/lib/oidc-utils.js
 var oidc_utils_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31488,7 +32177,7 @@ class oidc_utils_OidcClient {
     }
 }
 //# sourceMappingURL=oidc-utils.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/summary.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/lib/summary.js
 var summary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31769,7 +32458,7 @@ const _summary = new Summary();
 const markdownSummary = (/* unused pure expression or super */ null && (_summary));
 const summary = _summary;
 //# sourceMappingURL=summary.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/path-utils.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/lib/path-utils.js
 
 /**
  * toPosixPath converts the given path to the posix form. On Windows, \\ will be
@@ -31811,7 +32500,7 @@ var external_events_ = __nccwpck_require__(4434);
 var external_child_process_ = __nccwpck_require__(5317);
 // EXTERNAL MODULE: external "assert"
 var external_assert_ = __nccwpck_require__(2613);
-;// CONCATENATED MODULE: ./node_modules/@actions/io/lib/io-util.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/io/lib/io-util.js
 var io_util_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -31991,7 +32680,7 @@ function getCmdPath() {
     return (_a = process.env['COMSPEC']) !== null && _a !== void 0 ? _a : `cmd.exe`;
 }
 //# sourceMappingURL=io-util.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/io/lib/io.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/io/lib/io.js
 var io_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32265,7 +32954,7 @@ function io_copyFile(srcFile, destFile, force) {
 //# sourceMappingURL=io.js.map
 ;// CONCATENATED MODULE: external "timers"
 const external_timers_namespaceObject = require("timers");
-;// CONCATENATED MODULE: ./node_modules/@actions/exec/lib/toolrunner.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/exec/lib/toolrunner.js
 var toolrunner_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32853,7 +33542,7 @@ class ExecState extends external_events_.EventEmitter {
     }
 }
 //# sourceMappingURL=toolrunner.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/exec/lib/exec.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/exec/lib/exec.js
 var exec_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32933,7 +33622,7 @@ function getExecOutput(commandLine, args, options) {
     });
 }
 //# sourceMappingURL=exec.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/platform.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/lib/platform.js
 var platform_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -32998,7 +33687,7 @@ function getDetails() {
     });
 }
 //# sourceMappingURL=platform.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/core.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/core/lib/core.js
 var core_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -33316,7 +34005,7 @@ function getIDToken(aud) {
  */
 
 //# sourceMappingURL=core.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/context.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/github/lib/context.js
 
 
 class Context {
@@ -33369,9 +34058,9 @@ class Context {
     }
 }
 //# sourceMappingURL=context.js.map
-// EXTERNAL MODULE: ./node_modules/@actions/http-client/lib/index.js
-var lib = __nccwpck_require__(4844);
-;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/internal/utils.js
+// EXTERNAL MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/http-client/lib/index.js
+var lib = __nccwpck_require__(9772);
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/github/lib/internal/utils.js
 var utils_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -33424,7 +34113,7 @@ function getUserAgentWithOrchestrationId(baseUserAgent) {
     return baseUserAgent;
 }
 //# sourceMappingURL=utils.js.map
-;// CONCATENATED MODULE: ./node_modules/universal-user-agent/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/universal-user-agent/index.js
 function getUserAgent() {
   if (typeof navigator === "object" && "userAgent" in navigator) {
     return navigator.userAgent;
@@ -33439,7 +34128,7 @@ function getUserAgent() {
   return "<environment undetectable>";
 }
 
-;// CONCATENATED MODULE: ./node_modules/before-after-hook/lib/register.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/before-after-hook/lib/register.js
 // @ts-check
 
 function register(state, name, method, options) {
@@ -33468,7 +34157,7 @@ function register(state, name, method, options) {
   });
 }
 
-;// CONCATENATED MODULE: ./node_modules/before-after-hook/lib/add.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/before-after-hook/lib/add.js
 // @ts-check
 
 function addHook(state, kind, name, hook) {
@@ -33516,7 +34205,7 @@ function addHook(state, kind, name, hook) {
   });
 }
 
-;// CONCATENATED MODULE: ./node_modules/before-after-hook/lib/remove.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/before-after-hook/lib/remove.js
 // @ts-check
 
 function removeHook(state, name, method) {
@@ -33537,7 +34226,7 @@ function removeHook(state, name, method) {
   state.registry[name].splice(index, 1);
 }
 
-;// CONCATENATED MODULE: ./node_modules/before-after-hook/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/before-after-hook/index.js
 // @ts-check
 
 
@@ -33584,7 +34273,7 @@ function Collection() {
 
 /* harmony default export */ const before_after_hook = ({ Singular, Collection });
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/endpoint/dist-bundle/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/endpoint/dist-bundle/index.js
 // pkg/dist-src/defaults.js
 
 
@@ -33930,9 +34619,9 @@ function withDefaults(oldDefaults, newDefaults) {
 var endpoint = withDefaults(null, DEFAULTS);
 
 
-// EXTERNAL MODULE: ./node_modules/fast-content-type-parse/index.js
-var fast_content_type_parse = __nccwpck_require__(1120);
-;// CONCATENATED MODULE: ./node_modules/json-with-bigint/json-with-bigint.js
+// EXTERNAL MODULE: ../../../../Komatik/Trailhead/node_modules/fast-content-type-parse/index.js
+var fast_content_type_parse = __nccwpck_require__(8808);
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/json-with-bigint/json-with-bigint.js
 const intRegex = /^-?\d+$/;
 const noiseValue = /^-?\d+n+$/; // Noise - strings that match the custom format before being converted to it
 const originalStringify = JSON.stringify;
@@ -34149,7 +34838,7 @@ const JSONParse = (text, reviver) => {
 
 
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/request-error/dist-src/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/request-error/dist-src/index.js
 class RequestError extends Error {
   name;
   /**
@@ -34190,7 +34879,7 @@ class RequestError extends Error {
 }
 
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/request/dist-bundle/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/request/dist-bundle/index.js
 // pkg/dist-src/index.js
 
 
@@ -34393,7 +35082,7 @@ var request = dist_bundle_withDefaults(endpoint, defaults_default);
 /* v8 ignore next -- @preserve */
 /* v8 ignore else -- @preserve */
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/graphql/dist-bundle/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/graphql/dist-bundle/index.js
 // pkg/dist-src/index.js
 
 
@@ -34520,7 +35209,7 @@ function withCustomRequest(customRequest) {
 }
 
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/auth-token/dist-bundle/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/auth-token/dist-bundle/index.js
 // pkg/dist-src/is-jwt.js
 var b64url = "(?:[a-zA-Z0-9_-]+)";
 var sep = "\\.";
@@ -34575,11 +35264,11 @@ var createTokenAuth = function createTokenAuth2(token) {
 };
 
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/core/dist-src/version.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/core/dist-src/version.js
 const version_VERSION = "7.0.6";
 
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/core/dist-src/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/core/dist-src/index.js
 
 
 
@@ -34720,12 +35409,12 @@ class Octokit {
 }
 
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/version.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/version.js
 const dist_src_version_VERSION = "17.0.0";
 
 //# sourceMappingURL=version.js.map
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/generated/endpoints.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/generated/endpoints.js
 const Endpoints = {
   actions: {
     addCustomLabelsToSelfHostedRunnerForOrg: [
@@ -37019,7 +37708,7 @@ var endpoints_default = Endpoints;
 
 //# sourceMappingURL=endpoints.js.map
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/endpoints-to-methods.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/endpoints-to-methods.js
 
 const endpointMethodsMap = /* @__PURE__ */ new Map();
 for (const [scope, endpoints] of Object.entries(endpoints_default)) {
@@ -37145,7 +37834,7 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
 
 //# sourceMappingURL=endpoints-to-methods.js.map
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/plugin-rest-endpoint-methods/dist-src/index.js
 
 
 function restEndpointMethods(octokit) {
@@ -37166,7 +37855,7 @@ legacyRestEndpointMethods.VERSION = dist_src_version_VERSION;
 
 //# sourceMappingURL=index.js.map
 
-;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-paginate-rest/dist-bundle/index.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@octokit/plugin-paginate-rest/dist-bundle/index.js
 // pkg/dist-src/version.js
 var plugin_paginate_rest_dist_bundle_VERSION = "0.0.0-development";
 
@@ -37578,7 +38267,7 @@ function paginateRest(octokit) {
 paginateRest.VERSION = plugin_paginate_rest_dist_bundle_VERSION;
 
 
-;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/utils.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/github/lib/utils.js
 
 
 // octokit + plugins
@@ -37617,7 +38306,7 @@ function getOctokitOptions(token, options) {
     return opts;
 }
 //# sourceMappingURL=utils.js.map
-;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/github.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/@actions/github/lib/github.js
 
 
 const github_context = new Context();
@@ -37632,7 +38321,7 @@ function getOctokit(token, options, ...additionalPlugins) {
     return new GitHubWithPlugins(getOctokitOptions(token, options));
 }
 //# sourceMappingURL=github.js.map
-;// CONCATENATED MODULE: ./node_modules/zod/v3/helpers/util.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/zod/v3/helpers/util.js
 var util;
 (function (util) {
     util.assertEqual = (_) => { };
@@ -37767,7 +38456,7 @@ const getParsedType = (data) => {
     }
 };
 
-;// CONCATENATED MODULE: ./node_modules/zod/v3/ZodError.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/zod/v3/ZodError.js
 
 const ZodIssueCode = util.arrayToEnum([
     "invalid_type",
@@ -37902,7 +38591,7 @@ ZodError.create = (issues) => {
     return error;
 };
 
-;// CONCATENATED MODULE: ./node_modules/zod/v3/locales/en.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/zod/v3/locales/en.js
 
 
 const errorMap = (issue, _ctx) => {
@@ -38013,7 +38702,7 @@ const errorMap = (issue, _ctx) => {
 };
 /* harmony default export */ const en = (errorMap);
 
-;// CONCATENATED MODULE: ./node_modules/zod/v3/errors.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/zod/v3/errors.js
 
 let overrideErrorMap = en;
 
@@ -38024,7 +38713,7 @@ function getErrorMap() {
     return overrideErrorMap;
 }
 
-;// CONCATENATED MODULE: ./node_modules/zod/v3/helpers/errorUtil.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
 (function (errorUtil) {
     errorUtil.errToObj = (message) => typeof message === "string" ? { message } : message || {};
@@ -38032,7 +38721,7 @@ var errorUtil;
     errorUtil.toString = (message) => typeof message === "string" ? message : message?.message;
 })(errorUtil || (errorUtil = {}));
 
-;// CONCATENATED MODULE: ./node_modules/zod/v3/helpers/parseUtil.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/zod/v3/helpers/parseUtil.js
 
 
 const makeIssue = (params) => {
@@ -38143,7 +38832,7 @@ const isDirty = (x) => x.status === "dirty";
 const isValid = (x) => x.status === "valid";
 const isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
 
-;// CONCATENATED MODULE: ./node_modules/zod/v3/types.js
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/zod/v3/types.js
 
 
 
@@ -41893,12 +42582,30 @@ const CiCheckStatusEnum = enumType([
     "stale",
     "missing",
 ]);
+// ADR-011 §2 — input relevance. ADR-009's status says what a check DID; the
+// disposition says what it MEANS for this release decision. `missing_blocking`
+// is derived (ADR-009 `missing` on a blocking input), never configured.
+const InputDispositionKind = enumType([
+    "blocking",
+    "advisory",
+    "irrelevant",
+    "missing_blocking",
+]);
+const InputDisposition = objectType({
+    kind: InputDispositionKind,
+    reason: stringType().optional(),
+    /** `policy` = an input_relevance entry matched; `default` = required/optional fallback. */
+    source: enumType(["policy", "default"]),
+});
 const CiCheck = objectType({
     name: stringType(),
     status: CiCheckStatusEnum,
     conclusion: stringType().optional(),
     detailsUrl: stringType().url().optional(),
     required: booleanType(),
+    // Optional: summaries produced before dispositions are applied (and every
+    // pre-ADR-011 stored evaluation) carry none, and fall back to `required`.
+    disposition: InputDisposition.optional(),
 });
 const CiSummary = objectType({
     checks: arrayType(CiCheck),
@@ -42008,6 +42715,9 @@ const PolicyOverrideChanges = objectType({
     warnThreshold: numberType().min(0).max(100).optional(),
     releaseReady: literalType(true).optional(),
 });
+const OverrideScope = enumType(["full", "risk_only"]);
+// ADR-011 §3 renders the override record as {by, at, scope, rationale};
+// this schema carries by=owner, at=appliedAt, rationale=reason, plus scope.
 const PolicyOverrideAudit = objectType({
     source: enumType(["workflow", "label"]).default("workflow"),
     owner: stringType(),
@@ -42015,10 +42725,81 @@ const PolicyOverrideAudit = objectType({
     linkedTicket: stringType(),
     expiresAt: stringType(),
     appliedAt: stringType(),
+    // Optional, not defaulted: audits stored before ADR-011 carry no scope and
+    // must keep parsing as the pre-ADR-011 (full) override they actually were.
+    scope: OverrideScope.optional(),
     changes: PolicyOverrideChanges.default({}),
     preOverrideDecision: GateDecision.optional(),
     preOverrideReleaseReady: booleanType().optional(),
     preOverrideReasons: arrayType(stringType()).optional(),
+    /** Blocking reasons the override cleared (risk/policy driven). */
+    overriddenReasons: arrayType(stringType()).optional(),
+    /** Blocking reasons that survived the override (mechanical CI, ADR-011 §3). */
+    retainedReasons: arrayType(stringType()).optional(),
+});
+// ---------------------------------------------------------------------------
+// ADR-011 §1 — the Release Brief
+// ---------------------------------------------------------------------------
+const BriefVerdict = enumType(["allow", "warn", "block", "cannot_evaluate"]);
+const BriefFinding = objectType({
+    id: stringType(),
+    title: stringType(),
+    evidence: stringType().optional(),
+    severity: RemediationSeverity,
+});
+const BriefInput = objectType({
+    checkName: stringType(),
+    /** ADR-009 status, carried as a string so the renderer stays policy-agnostic. */
+    status: stringType(),
+    /** ADR-011 §2 disposition kind. */
+    disposition: stringType(),
+    reason: stringType().optional(),
+});
+const BriefAction = objectType({
+    kind: enumType(["fix", "override", "wait"]),
+    detail: stringType(),
+    link: stringType().optional(),
+});
+const BriefOverride = objectType({
+    by: stringType(),
+    at: stringType(),
+    scope: stringType(),
+    rationale: stringType(),
+});
+const BriefOverrideStatus = objectType({
+    status: enumType(["applied", "partial", "rejected", "revoked", "unavailable"]),
+    message: stringType(),
+    source: enumType(["live", "payload_fallback"]).optional(),
+});
+const BriefRequiredCheck = objectType({
+    published: booleanType(),
+    /** Whether the published check body contains this D3 publication record. */
+    reportRefreshed: booleanType(),
+    name: stringType(),
+    headSha: stringType(),
+    eventName: stringType(),
+    message: stringType(),
+    /**
+     * True when `published` is false because a newer run already published
+     * for this head SHA (the concurrency completion-order guard), not because
+     * publication failed. Distinguishes a healthy last-write-wins outcome from
+     * a genuine gap that needs the recovery guidance in `message`.
+     */
+    superseded: booleanType().optional(),
+});
+const ReleaseBrief = objectType({
+    verdict: BriefVerdict,
+    riskScore: numberType().optional(),
+    riskThreshold: numberType().optional(),
+    topMovers: arrayType(objectType({ factor: stringType(), score: numberType() })).optional(),
+    findings: arrayType(BriefFinding),
+    inputs: arrayType(BriefInput),
+    delta: stringType().optional(),
+    actions: arrayType(BriefAction),
+    override: BriefOverride.nullish(),
+    overrideStatus: BriefOverrideStatus.optional(),
+    requiredCheck: BriefRequiredCheck.optional(),
+    cannotEvaluateReason: stringType().optional(),
 });
 const CreditMeterResult = objectType({
     metered: booleanType(),
@@ -42049,6 +42830,10 @@ const GateEvaluation = objectType({
     environment: stringType().optional(),
     service: stringType().optional(),
     policyFindings: arrayType(stringType()).optional(),
+    // ADR-011 §1: "findings are enumerated, never counted". policyFindings keeps
+    // its count-strings for existing consumers; this is the enumeration.
+    enumeratedFindings: arrayType(BriefFinding).optional(),
+    releaseBrief: ReleaseBrief.optional(),
     pr: objectType({
         provenance: PrProvenance.optional(),
         headRef: stringType().optional(),
@@ -42076,8 +42861,9 @@ const GateEvaluation = objectType({
         .optional(),
     policyOverride: PolicyOverrideAudit.optional(),
     labelOverrideFeedback: objectType({
-        status: enumType(["applied", "rejected"]),
+        status: enumType(["applied", "partial", "rejected", "revoked", "unavailable"]),
         message: stringType(),
+        source: enumType(["live", "payload_fallback"]).optional(),
     })
         .optional(),
     releaseReady: booleanType().optional(),
@@ -42085,6 +42871,8 @@ const GateEvaluation = objectType({
     ci: CiSummary.optional(),
     context: MatchedContext.optional(),
     gateMode: GateMode.optional(),
+    /** Effective Checks API context after action-input and repo-config resolution. */
+    resolvedCheckName: stringType().optional(),
     storePersisted: booleanType().optional(),
     credit_meter: CreditMeterResult.optional(),
     remediation: Remediation.optional(),
@@ -42173,6 +42961,18 @@ const ContextCiConfig = objectType({
     optional_checks: arrayType(stringType()).default([]),
     missing_required: enumType(["fail", "skip"]).default("fail"),
 });
+// ADR-011 §2 — one row of the branch-pair relevance table. `reason` is mandatory
+// for `irrelevant`, but that is enforced as a config *warning* (see
+// collectConfigWarnings in config-core.ts), not a parse failure: a hard refine
+// here would drop the whole repo config to defaults over one typo, which is how
+// parseRepoConfigContent degrades today.
+const InputRelevanceEntry = objectType({
+    pattern: stringType(),
+    disposition: enumType(["blocking", "advisory", "irrelevant"]),
+    reason: stringType().optional(),
+});
+/** ADR-011 §4 — per-branch-pair stance when the evaluation cannot run. */
+const AvailabilityStance = enumType(["fail_open", "fail_closed"]);
 const TrailheadContext = objectType({
     name: stringType(),
     match: ContextMatch,
@@ -42183,10 +42983,15 @@ const TrailheadContext = objectType({
     })
         .default({}),
     ci: ContextCiConfig.default({}),
+    input_relevance: arrayType(InputRelevanceEntry).default([]),
+    availability: AvailabilityStance.optional(),
 });
 const GateConfig = objectType({
     mode: GateMode.default("risk-only"),
-    check_name: stringType().default("Trailhead — Release Ready"),
+    // Omitted means the mode-specific default from resolveCheckName. Keeping
+    // this optional preserves the distinction between "not configured" and an
+    // explicit custom protected-check contract in risk-only mode.
+    check_name: stringType().optional(),
     agent_brief: AgentBriefMode.optional(),
 });
 const RemediationConfig = objectType({
@@ -42207,6 +43012,8 @@ const RiskPathProfileConfig = objectType({
 const OverrideConfig = objectType({
     enabled: booleanType().default(true),
     max_per_week: numberType().int().min(1).default(5),
+    // Defaults to "full" so repos that never set it keep pre-ADR-011 behavior.
+    scope: OverrideScope.default("full"),
 });
 const TuningConfig = objectType({
     auto_downgrade: booleanType().default(true),
@@ -42229,6 +43036,10 @@ const SubmissionConfig = objectType({
     mode: enumType(["warn", "block"]).default("block"),
     stale_terms: arrayType(stringType()).optional(),
     auth_route_allowlist: arrayType(stringType()).optional(),
+    /** Additional function identifiers that prove an API route authenticated. */
+    auth_route_helpers: arrayType(stringType().min(1)).optional(),
+    /** Side-effect-free tombstone routes; each body must still return HTTP 410. */
+    retired_route_allowlist: arrayType(stringType()).optional(),
     max_file_lines: numberType().int().positive().optional(),
     /** Path substrings to skip for context_freshness (e.g. archived suggestion dirs). */
     path_ignore: arrayType(stringType()).optional(),
@@ -42311,6 +43122,10 @@ const RepoConfig = objectType({
             enabled: booleanType().default(false),
             mode: enumType(["warn", "block"]).default("block"),
             risk_threshold: numberType().min(0).max(100).optional(),
+            // Exact context names where the context/environment threshold remains
+            // authoritative instead of being tightened by the global agent bar.
+            // Approval and sensitive-path requirements still apply.
+            risk_threshold_exempt_contexts: arrayType(stringType().min(1)).default([]),
             required_approvals: numberType().int().min(0).default(1),
             require_code_owner_approval: booleanType().default(false),
             code_owner_reviewers: arrayType(stringType()).default([]),
@@ -42523,6 +43338,48 @@ function parseYaml(input) {
         stack.push({ indent, value: child });
     }
     return root;
+}
+/**
+ * Non-fatal config warnings, emitted by the loader after a successful parse.
+ *
+ * ADR-011 §2 makes `reason` mandatory for `disposition: irrelevant`, but this is
+ * deliberately NOT a Zod refine: `parseRepoConfigContent` returns null for ANY
+ * schema violation, which drops the entire repo config back to hardcoded
+ * defaults. Degrading a whole config over one missing reason string is worse
+ * than narrating it, so the entry still parses and the Release Brief prints a
+ * placeholder reason (see MISSING_IRRELEVANT_REASON in input-relevance.ts).
+ */
+function collectConfigWarnings(config) {
+    const warnings = [];
+    const contextNameCounts = new Map();
+    for (const context of config.contexts) {
+        contextNameCounts.set(context.name, (contextNameCounts.get(context.name) ?? 0) + 1);
+    }
+    for (const [name, count] of contextNameCounts) {
+        if (count <= 1)
+            continue;
+        warnings.push(`contexts: name "${name}" is configured ${count} times. Context names must be unique for deterministic policy exemptions.`);
+    }
+    for (const name of config.policies.agent_prs.risk_threshold_exempt_contexts) {
+        const count = contextNameCounts.get(name) ?? 0;
+        if (count === 1)
+            continue;
+        warnings.push(count === 0
+            ? `policies.agent_prs.risk_threshold_exempt_contexts: unknown context name "${name}"; the exemption will not apply.`
+            : `policies.agent_prs.risk_threshold_exempt_contexts: context name "${name}" is ambiguous because it is configured ${count} times; make context names unique.`);
+    }
+    for (const context of config.contexts) {
+        for (const entry of context.input_relevance) {
+            if (entry.disposition !== "irrelevant")
+                continue;
+            if (entry.reason !== undefined && entry.reason.trim() !== "")
+                continue;
+            warnings.push(`contexts."${context.name}".input_relevance: pattern "${entry.pattern}" is ` +
+                `"disposition: irrelevant" with no reason. ADR-011 requires a reason for ` +
+                `irrelevant inputs; the Release Brief will show a placeholder until one is set.`);
+        }
+    }
+    return warnings;
 }
 function parseRepoConfigContent(content) {
     const raw = parseYaml(content);
@@ -43102,6 +43959,9 @@ function validateSchemaVersion(parsedConfig, configPath) {
         core_warning(`${configPath}: schema_version=${parsedConfig.schema_version} is newer than ` +
             `supported ${CURRENT_CONFIG_SCHEMA_VERSION}. Some features may be ignored.`);
     }
+    for (const warning of collectConfigWarnings(parsedConfig)) {
+        core_warning(`${configPath}: ${warning}`);
+    }
     return parsedConfig;
 }
 async function loadRepoConfig(token) {
@@ -43509,7 +44369,9 @@ function statusFromManifestJob(job) {
     }
 }
 function applyManifestToCheck(check, manifest, configuredName) {
-    if (!manifest)
+    // A manifest fills gaps in the Checks API; it is not authority to replace a
+    // live failure or finish a still-running check, even with a claimed skip.
+    if (!manifest || check.status !== "missing")
         return check;
     const manifestJob = findManifestJob(manifest, configuredName);
     if (!manifestJob)
@@ -43522,7 +44384,7 @@ function applyManifestToCheck(check, manifest, configuredName) {
             conclusion: manifestJob.reason ?? check.conclusion,
         };
     }
-    if (manifestStatus && (check.status === "missing" || check.status === "pending")) {
+    if (manifestStatus) {
         return {
             ...check,
             status: manifestStatus,
@@ -43659,7 +44521,174 @@ function formatCiStatusIcon(status) {
     }
 }
 
+;// CONCATENATED MODULE: ./src/input-relevance.ts
+// ADR-011 §2 — input relevance policy (disposition engine).
+//
+// ADR-009's status enum (`pass|fail|skip|pending|stale|missing`) says what a check DID.
+// A disposition says what that MEANS for this release decision. This module is pure:
+// no octokit, no config loading, no I/O — callers resolve the policy entries for the
+// matched branch pair and hand them in.
+
+
+/**
+ * Reason substituted when config declares `irrelevant` without a reason. ADR-011 §2 makes the
+ * reason mandatory ("reason mandatory and shown in the brief"); the config schema layer rejects
+ * it too, so this is defense in depth for configs that reached us unvalidated.
+ */
+const MISSING_IRRELEVANT_REASON = "(no reason configured — reason is mandatory for irrelevant; fix .trailhead.yml)";
+/**
+ * Reasons the DEFAULT source supplies, so no brief row ever renders a bare
+ * `advisory / —`. ADR-011 §1 requires every input to carry a disposition *with a
+ * reason*, but only policy-authored `irrelevant` entries had one — the first
+ * live-brief audit found every Inputs row on a dev PR reading `advisory / —`.
+ * A default disposition can always describe itself: it came from the check's
+ * required/optional flag, and saying so is the whole reason.
+ */
+const DEFAULT_BLOCKING_REASON = "required check";
+const DEFAULT_ADVISORY_REASON = "not required";
+/**
+ * ADR-009 `skip` on a check no policy entry claims. The workflow's own path
+ * filter or `if:` condition already decided this check has nothing to say about
+ * these files, so it is irrelevant to THIS decision — and now says so instead of
+ * being narrated as a blocking input that happens not to have run.
+ *
+ * Outcome-neutral by construction: `skip` never counted against release
+ * readiness anyway (`computeReleaseReady` counts fail/missing/stale, and the
+ * blocking-set rollup in `applyInputRelevance` treats skip as passing), so
+ * moving these rows out of the blocking set changes narration only.
+ */
+const DEFAULT_SKIPPED_UPSTREAM_REASON = "skipped upstream (path filter or workflow condition)";
+/**
+ * Pattern matching precedence, per entry:
+ *   1. exact name match                      (checkNameMatches)
+ *   2. case-insensitive name match           (checkNameMatches)
+ *   3. configured-value-as-prefix match      (checkNameMatches)
+ *   4. glob match, case-insensitive          (matchesGlobs — lets "Deploy *" work)
+ * These are a union, not a ranking: an entry matches if ANY of them matches. Ranking between
+ * entries is positional only — entries are evaluated in declaration order and the FIRST
+ * matching entry wins, exactly like `contexts[]` resolution in context-matcher.ts.
+ */
+function entryMatches(entry, checkName) {
+    // A blank pattern would prefix-match every check name; treat it as matching nothing so a
+    // config typo cannot silently reclassify the whole input set.
+    if (entry.pattern.trim() === "")
+        return false;
+    if (checkNameMatches(entry.pattern, checkName))
+        return true;
+    return matchesGlobs(checkName, [entry.pattern]);
+}
+function hasText(value) {
+    return value !== undefined && value.trim() !== "";
+}
+/**
+ * Resolve one check to a disposition.
+ *
+ * - First matching entry wins. A policy-sourced disposition is never rewritten — the
+ *   table is the author's stated intent for this branch pair — with one exception:
+ *   ADR-009 status `skip` always resolves to `irrelevant(skipped upstream …)`,
+ *   whatever the source. A blocking-configured check the workflow itself classified
+ *   out (path filter, job condition) is not blocking THIS decision, and `skip`
+ *   contributes zero to every blocking rollup, so this is narration-only
+ *   (promotion-zero correction, trailhead#350). A policy `irrelevant` entry's own
+ *   reason survives the rewrite.
+ * - No match falls back to `required ? blocking : advisory` with source `default`, each
+ *   carrying a self-describing reason.
+ * - `missing_blocking` is DERIVED: ADR-009 status `missing` on a check that would otherwise
+ *   resolve to `blocking`. It is never configurable.
+ */
+function resolveDisposition(check, entries) {
+    const matched = entries.find((entry) => entryMatches(entry, check.name));
+    let kind;
+    let reason;
+    let source;
+    if (matched) {
+        kind = matched.disposition;
+        reason = hasText(matched.reason) ? matched.reason : undefined;
+        source = "policy";
+        if (kind === "irrelevant" && reason === undefined) {
+            reason = MISSING_IRRELEVANT_REASON;
+        }
+        if (check.status === "skip") {
+            // Rendering "skip | blocking | —" contradicts itself; keep the policy's own
+            // reason only when the policy already classified the check out.
+            if (kind !== "irrelevant")
+                reason = DEFAULT_SKIPPED_UPSTREAM_REASON;
+            kind = "irrelevant";
+        }
+    }
+    else {
+        source = "default";
+        if (check.status === "skip") {
+            kind = "irrelevant";
+            reason = DEFAULT_SKIPPED_UPSTREAM_REASON;
+        }
+        else if (check.required) {
+            kind = "blocking";
+            reason = DEFAULT_BLOCKING_REASON;
+        }
+        else {
+            kind = "advisory";
+            reason = DEFAULT_ADVISORY_REASON;
+        }
+    }
+    if (check.status === "missing" && kind === "blocking") {
+        kind = "missing_blocking";
+    }
+    return reason === undefined ? { kind, source } : { kind, reason, source };
+}
+/**
+ * Resolve a whole CI input set, keyed by check name. On duplicate check names the first
+ * occurrence wins, so the map is stable regardless of how many times a name appears.
+ */
+function resolveDispositions(checks, entries) {
+    const resolved = new Map();
+    for (const check of checks) {
+        if (resolved.has(check.name))
+            continue;
+        resolved.set(check.name, resolveDisposition(check, entries));
+    }
+    return resolved;
+}
+/** Only `blocking` and `missing_blocking` count against release readiness (ADR-011 §2 table). */
+function dispositionCountsTowardBlocking(d) {
+    return d.kind === "blocking" || d.kind === "missing_blocking";
+}
+/**
+ * Annotate every CI input with its ADR-011 §2 disposition and re-roll the
+ * summary counts against the *blocking* set rather than the `required` flag.
+ *
+ * With no `input_relevance` entries the default mapping is required -> blocking
+ * and non-required -> advisory, so the blocking set is exactly the required set
+ * and every count below reproduces `evaluateRequiredChecks` verbatim. Semantics
+ * only move when a policy entry matches.
+ *
+ * A repo can declare blocking checks purely through `input_relevance`, with no
+ * `ci.required_checks` at all — every check defaults to `required: false` in
+ * that shape, so the *blocking* set this function computes is the only
+ * authoritative source of "does this check gate the release", never
+ * `required_checks.length`. Pure (no I/O) so callers that need to know
+ * pending/blocking status ahead of a poll decision — see `waitForChecks` in
+ * ci-orchestrator.ts — can call it mid-loop, not just once at the end.
+ */
+function applyInputRelevance(summary, entries) {
+    const resolved = resolveDispositions(summary.checks, entries);
+    const checks = summary.checks.map((check) => {
+        const disposition = resolved.get(check.name);
+        return disposition ? { ...check, disposition } : check;
+    });
+    const blocking = checks.filter((check) => check.disposition !== undefined &&
+        dispositionCountsTowardBlocking(check.disposition));
+    return {
+        checks,
+        allRequiredPassed: blocking.every((check) => check.status === "pass" || check.status === "skip"),
+        pendingCount: blocking.filter((check) => check.status === "pending").length,
+        failedCount: blocking.filter((check) => check.status === "fail" || check.status === "missing" || check.status === "stale").length,
+        missingCount: blocking.filter((check) => check.status === "missing").length,
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/ci-orchestrator.ts
+
 
 
 
@@ -43691,7 +44720,7 @@ async function fetchCheckRuns(octokit, options) {
     return normalizeCheckRuns(runs, excludeCheckNames);
 }
 async function waitForChecks(options) {
-    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, manifest, } = options;
+    const { octokit, owner, repo, headSha, ciConfig, excludeCheckNames, timeoutMinutes = 30, pollIntervalSeconds = 15, manifest, inputRelevance = [], } = options;
     const deadline = Date.now() + timeoutMinutes * 60 * 1000;
     while (true) {
         const allChecks = await fetchCheckRuns(octokit, {
@@ -43700,9 +44729,16 @@ async function waitForChecks(options) {
             headSha,
             excludeCheckNames,
         });
-        const summary = evaluateRequiredChecks(allChecks, ciConfig, manifest);
-        if (summary.pendingCount === 0 || Date.now() >= deadline) {
-            if (summary.pendingCount > 0) {
+        const summary = applyInputRelevance(evaluateRequiredChecks(allChecks, ciConfig, manifest), inputRelevance);
+        // Pending blocking checks (ADR-011 §2 disposition — required_checks when
+        // no input_relevance policy matches, but never required_checks alone)
+        // wait out the timeout; a genuine failure (or missing-required-with-
+        // fail-policy, which evaluateRequiredChecks already folds into
+        // failedCount) resolves the outcome immediately — more polling cannot
+        // turn an already-failed blocking check back into a pass, so waiting out
+        // the remaining timeout would only delay reporting it.
+        if (summary.pendingCount === 0 || summary.failedCount > 0 || Date.now() >= deadline) {
+            if (summary.pendingCount > 0 && summary.failedCount === 0) {
                 core_warning(`CI wait timed out after ${timeoutMinutes}m with ${summary.pendingCount} check(s) still pending`);
             }
             return summary;
@@ -43713,6 +44749,19 @@ async function waitForChecks(options) {
 }
 
 ;// CONCATENATED MODULE: ./src/release-ready.ts
+/**
+ * ADR-011 §2: the disposition, once resolved, is the axis that decides whether a
+ * red input blocks the release. Checks with no disposition — no `input_relevance`
+ * config, an externally-built CiSummary, or a stored pre-ADR-011 evaluation —
+ * fall back to `required`, which is byte-for-byte the pre-ADR-011 behavior
+ * (the default mapping is required -> blocking, non-required -> advisory).
+ */
+function checkCountsTowardBlocking(check) {
+    const kind = check.disposition?.kind;
+    if (kind === undefined)
+        return check.required;
+    return kind === "blocking" || kind === "missing_blocking";
+}
 /**
  * Composite release readiness decision (ADR-006).
  */
@@ -43732,7 +44781,7 @@ function computeReleaseReady(input) {
     }
     if (input.ciSummary) {
         if (!input.ciSummary.allRequiredPassed) {
-            const failed = input.ciSummary.checks.filter((c) => c.required &&
+            const failed = input.ciSummary.checks.filter((c) => checkCountsTowardBlocking(c) &&
                 (c.status === "fail" || c.status === "missing" || c.status === "stale"));
             for (const check of failed) {
                 reasons.push(`Required CI check "${check.name}" is ${check.status.toUpperCase()}`);
@@ -43779,6 +44828,15 @@ function applyReleaseReadyToEvaluation(evaluation, result, gateMode) {
     };
 }
 function checkConclusionForEvaluation(evaluation) {
+    // Availability is a separate contract from advisory/risk/release modes. A run
+    // that evaluated NOTHING must never publish `success` — that is an auto-green
+    // path: it would claim a passing verdict the run never reached, and any repo
+    // that leaves `environment` unset defaults to fail-open. Fail-open publishes
+    // `neutral`, which GitHub treats as satisfying a required check without
+    // asserting the gate passed; fail-closed publishes `failure`.
+    if (evaluation.releaseBrief?.verdict === "cannot_evaluate") {
+        return evaluation.gateDecision === "allow" ? "neutral" : "failure";
+    }
     const mode = evaluation.gateMode ?? "risk-only";
     if (mode === "advisory") {
         return "neutral";
@@ -43808,9 +44866,235 @@ function shouldBlockMerge(evaluation) {
     return evaluation.gateDecision === "block";
 }
 function resolveCheckName(gateMode, configuredName) {
+    if (configuredName)
+        return configuredName;
     if (gateMode === "risk-only")
         return "Trailhead";
-    return configuredName ?? "Trailhead — Release Ready";
+    return "Trailhead — Release Ready";
+}
+
+;// CONCATENATED MODULE: ./src/release-brief.ts
+/**
+ * ADR-011 §1 — the Release Brief: the structured statement a human reads at the
+ * moment of a release decision, and its markdown renderer.
+ *
+ * This module is pure by design: no octokit, no GateEvaluation import, no
+ * dependency on the input-relevance policy. The integrator maps whatever it has
+ * onto `ReleaseBrief` and posts `renderReleaseBrief()`'s output.
+ */
+function countDiff(previous, current) {
+    const before = new Set(previous);
+    const after = new Set(current);
+    let resolved = 0;
+    for (const id of before)
+        if (!after.has(id))
+            resolved += 1;
+    let added = 0;
+    for (const id of after)
+        if (!before.has(id))
+            added += 1;
+    return { resolved, added };
+}
+function plural(count, noun) {
+    return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+/**
+ * Render the one-line "vs previous" delta, e.g.
+ * `vs previous: block -> allow, risk 90 -> 42, 3 findings resolved, 1 new`.
+ *
+ * Returns undefined when the two snapshots share no comparable field — a missing
+ * or unreachable previous evaluation must omit the delta, never error (ADR-011 §1).
+ */
+function formatEvaluationDelta(previous, current) {
+    const parts = [];
+    let comparable = false;
+    if (previous.verdict !== undefined && current.verdict !== undefined) {
+        comparable = true;
+        if (previous.verdict !== current.verdict) {
+            parts.push(`${previous.verdict} -> ${current.verdict}`);
+        }
+    }
+    if (previous.riskScore !== undefined && current.riskScore !== undefined) {
+        comparable = true;
+        if (previous.riskScore !== current.riskScore) {
+            parts.push(`risk ${previous.riskScore} -> ${current.riskScore}`);
+        }
+    }
+    if (previous.findingIds !== undefined && current.findingIds !== undefined) {
+        comparable = true;
+        const { resolved, added } = countDiff(previous.findingIds, current.findingIds);
+        if (resolved > 0)
+            parts.push(`${plural(resolved, "finding")} resolved`);
+        if (added > 0)
+            parts.push(`${added} new`);
+    }
+    if (!comparable)
+        return undefined;
+    return `vs previous: ${parts.length > 0 ? parts.join(", ") : "no change"}`;
+}
+const DEFAULT_MAX_CHARS = 60000;
+const EVIDENCE_CAP_CHARS = 300;
+const EMPTY_CELL = "—";
+function escapePipes(value) {
+    // Backslashes first, or a pre-existing "\" would neutralize the pipe escape
+    // and break the cell structure (CodeQL js/incomplete-sanitization).
+    return value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+}
+/** Table cells must be single-line and must not break the column structure. */
+function cell(value) {
+    const flattened = value.replace(/\r?\n/g, " ").trim();
+    if (flattened.length === 0)
+        return EMPTY_CELL;
+    return escapePipes(flattened);
+}
+function inlineMessage(value) {
+    return escapePipes(value.replace(/\r?\n/g, " ").trim());
+}
+function verdictLabel(verdict) {
+    return verdict.replace(/_/g, " ").toUpperCase();
+}
+function verdictLine(brief) {
+    const segments = [];
+    if (brief.riskScore !== undefined) {
+        segments.push(brief.riskThreshold !== undefined
+            ? `risk ${brief.riskScore} (threshold ${brief.riskThreshold})`
+            : `risk ${brief.riskScore}`);
+    }
+    else if (brief.riskThreshold !== undefined) {
+        segments.push(`threshold ${brief.riskThreshold}`);
+    }
+    if (brief.topMovers && brief.topMovers.length > 0) {
+        const movers = brief.topMovers
+            .map((mover) => `${mover.factor} ${mover.score}`)
+            .join(", ");
+        segments.push(`top movers: ${movers}`);
+    }
+    const badge = `**${verdictLabel(brief.verdict)}**`;
+    return segments.length > 0 ? `${badge} — ${segments.join(" · ")}` : badge;
+}
+function capEvidence(evidence, cap) {
+    if (cap === undefined || evidence.length <= cap)
+        return evidence;
+    // Ellipsis included, so the capped evidence is exactly `cap` characters.
+    return `${evidence.slice(0, cap - 1)}…`;
+}
+function findingLines(finding, index, evidenceCap) {
+    const lines = [
+        `${index + 1}. **${escapePipes(finding.title)}** \`${finding.id}\` _(${finding.severity})_`,
+    ];
+    const evidence = finding.evidence?.trim();
+    if (evidence) {
+        for (const line of capEvidence(evidence, evidenceCap).split(/\r?\n/)) {
+            lines.push(`   > ${escapePipes(line)}`);
+        }
+    }
+    return lines;
+}
+function buildBrief(brief, keepFindings, evidenceCap, storedEvaluationUrl) {
+    const lines = ["## Release Brief", "", verdictLine(brief), ""];
+    // ADR-011 §1: "silence is a bug" — a cannot-evaluate brief must say why, up top.
+    if (brief.verdict === "cannot_evaluate" || brief.cannotEvaluateReason) {
+        const reason = brief.cannotEvaluateReason?.trim();
+        lines.push(`> ⚠️ **Cannot evaluate:** ${reason && reason.length > 0 ? reason : "no reason recorded"}`, "");
+    }
+    if (brief.requiredCheck) {
+        const reportStale = brief.requiredCheck.published && !brief.requiredCheck.reportRefreshed;
+        const superseded = !brief.requiredCheck.published && brief.requiredCheck.superseded === true;
+        const icon = superseded || (brief.requiredCheck.published && !reportStale) ? "✅" : "⚠️";
+        const state = superseded
+            ? "superseded by a newer run"
+            : reportStale
+                ? "published, report stale"
+                : brief.requiredCheck.published
+                    ? "published"
+                    : "not published";
+        lines.push(`> ${icon} **Required check ${state}:** ${inlineMessage(brief.requiredCheck.message)}`, "");
+    }
+    if (brief.overrideStatus) {
+        const source = brief.overrideStatus.source
+            ? ` _(state source: ${brief.overrideStatus.source})_`
+            : "";
+        lines.push(`> ⚠️ **Override ${brief.overrideStatus.status}:** ${inlineMessage(brief.overrideStatus.message)}${source}`, "");
+    }
+    lines.push("### Findings", "");
+    if (brief.findings.length === 0) {
+        lines.push("No findings.", "");
+    }
+    else {
+        // ADR-011 §1: findings are enumerated, never counted.
+        const shown = brief.findings.slice(0, Math.max(0, keepFindings));
+        shown.forEach((finding, index) => {
+            lines.push(...findingLines(finding, index, evidenceCap));
+        });
+        const hidden = brief.findings.length - shown.length;
+        if (hidden > 0) {
+            const target = storedEvaluationUrl
+                ? `[stored evaluation](${storedEvaluationUrl})`
+                : "stored evaluation";
+            lines.push(`_…${hidden} more findings not shown inline — see the ${target}_`);
+        }
+        lines.push("");
+    }
+    lines.push("### Inputs", "");
+    if (brief.inputs.length === 0) {
+        lines.push("No inputs evaluated.", "");
+    }
+    else {
+        lines.push(`| Check | Status | Disposition | Reason |`, `|-------|--------|-------------|--------|`);
+        for (const input of brief.inputs) {
+            lines.push(`| ${cell(input.checkName)} | ${cell(input.status)} | ${cell(input.disposition)} | ${cell(input.reason ?? "")} |`);
+        }
+        lines.push("");
+    }
+    const delta = brief.delta?.trim();
+    if (delta) {
+        lines.push(`**Delta:** ${delta}`, "");
+    }
+    lines.push("### Actions", "");
+    if (brief.actions.length === 0) {
+        lines.push("No actions.", "");
+    }
+    else {
+        for (const action of brief.actions) {
+            const link = action.link ? ` ([link](${action.link}))` : "";
+            lines.push(`- **${action.kind}:** ${action.detail}${link}`);
+        }
+        lines.push("");
+    }
+    if (brief.override) {
+        const owner = brief.override.by.replace(/^@+/, "");
+        lines.push("### Override", "", `> Overridden by @${owner} at ${brief.override.at}, scope ${brief.override.scope} — ${brief.override.rationale}`, "");
+    }
+    return lines.join("\n").trimEnd();
+}
+/**
+ * Render a Release Brief as markdown suitable for a PR comment section.
+ *
+ * Truncation order (ADR-011 §1): drop findings from the end first (always
+ * keeping at least one plus a pointer to the stored evaluation), then cap
+ * evidence, and only then hard-clip. The result never exceeds `maxChars`.
+ */
+function renderReleaseBrief(brief, opts) {
+    const requested = opts?.maxChars ?? DEFAULT_MAX_CHARS;
+    const maxChars = Number.isFinite(requested) ? Math.floor(requested) : DEFAULT_MAX_CHARS;
+    if (maxChars <= 0)
+        return "";
+    const storedEvaluationUrl = opts?.storedEvaluationUrl;
+    const total = brief.findings.length;
+    let rendered = buildBrief(brief, total, undefined, storedEvaluationUrl);
+    if (rendered.length <= maxChars)
+        return rendered;
+    for (let keep = total - 1; keep >= 1; keep--) {
+        rendered = buildBrief(brief, keep, undefined, storedEvaluationUrl);
+        if (rendered.length <= maxChars)
+            return rendered;
+    }
+    const minKeep = total > 0 ? 1 : 0;
+    rendered = buildBrief(brief, minKeep, EVIDENCE_CAP_CHARS, storedEvaluationUrl);
+    if (rendered.length <= maxChars)
+        return rendered;
+    // Last resort: the length contract outranks markdown well-formedness.
+    return rendered.slice(0, maxChars);
 }
 
 ;// CONCATENATED MODULE: ./src/security.ts
@@ -44024,6 +45308,33 @@ function parseAgentIdFromHeadRef(headRef) {
     const match = headRef.match(/^agent\/([a-z0-9-]+)\//);
     return match?.[1] ?? null;
 }
+function pick(record, ...keys) {
+    for (const key of keys) {
+        const value = record[key];
+        if (value !== undefined && value !== null)
+            return value;
+    }
+    return undefined;
+}
+function readFindingIds(record) {
+    const direct = pick(record, "enumerated_findings", "enumeratedFindings");
+    const brief = pick(record, "release_brief", "releaseBrief");
+    const raw = direct ??
+        (brief && typeof brief === "object"
+            ? brief.findings
+            : undefined);
+    if (!Array.isArray(raw))
+        return undefined;
+    const ids = [];
+    for (const entry of raw) {
+        if (!entry || typeof entry !== "object")
+            continue;
+        const id = entry.id;
+        if (typeof id === "string")
+            ids.push(id);
+    }
+    return ids;
+}
 function parsePreviousEvaluationRow(row) {
     if (!row || typeof row !== "object")
         return null;
@@ -44035,7 +45346,24 @@ function parsePreviousEvaluationRow(row) {
     if (record.remediation && typeof record.remediation === "object") {
         remediation = record.remediation;
     }
-    return { id, remediation };
+    const snapshot = { id, remediation };
+    const riskScore = pick(record, "risk_score", "riskScore");
+    if (typeof riskScore === "number" && Number.isFinite(riskScore)) {
+        snapshot.riskScore = riskScore;
+    }
+    const gateDecision = pick(record, "gate_decision", "gateDecision");
+    if (gateDecision === "allow" || gateDecision === "warn" || gateDecision === "block") {
+        snapshot.gateDecision = gateDecision;
+    }
+    const releaseReady = pick(record, "release_ready", "releaseReady");
+    if (typeof releaseReady === "boolean") {
+        snapshot.releaseReady = releaseReady;
+    }
+    const findingIds = readFindingIds(record);
+    if (findingIds !== undefined) {
+        snapshot.findingIds = findingIds;
+    }
+    return snapshot;
 }
 function pickLatestPreviousEvaluation(rows, excludeEvaluationId) {
     for (const row of rows) {
@@ -44115,7 +45443,9 @@ function prPathSet(files) {
     return new Set(files.map((f) => normalizePath(f.filename)));
 }
 function isTestPath(filename) {
-    return /\/__tests__\/|\/test\/|\/fixtures\/|\.test\.|\.spec\./.test(filename);
+    const path = `/${normalizePath(filename).toLowerCase()}`;
+    return (/\/(?:__tests__|__fixtures__|tests?|test-fixtures|fixtures)\//.test(path) ||
+        /\.(?:test|spec)\.[^./]+$/.test(path));
 }
 /** Default archived/stale path segments skipped by context_freshness. */
 const DEFAULT_STALE_PATH_IGNORE = ["/_stale/", "/_archive/", "/.archive/"];
@@ -44599,2514 +45929,2100 @@ function runPhase0Detectors(ctx) {
         .filter((check) => check !== null);
 }
 
-;// CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
-
-/*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
-function isNothing(subject) {
-  return (typeof subject === 'undefined') || (subject === null);
+;// CONCATENATED MODULE: ../../../../Komatik/Trailhead/node_modules/js-yaml/dist/js-yaml.mjs
+function getDefaultExportFromCjs(x) {
+  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
 }
-
-
-function isObject(subject) {
-  return (typeof subject === 'object') && (subject !== null);
-}
-
-
-function toArray(sequence) {
-  if (Array.isArray(sequence)) return sequence;
-  else if (isNothing(sequence)) return [];
-
-  return [ sequence ];
-}
-
-
-function extend(target, source) {
-  var index, length, key, sourceKeys;
-
-  if (source) {
-    sourceKeys = Object.keys(source);
-
-    for (index = 0, length = sourceKeys.length; index < length; index += 1) {
-      key = sourceKeys[index];
-      target[key] = source[key];
-    }
+var jsYaml = {};
+var loader = {};
+var common = {};
+var hasRequiredCommon;
+function requireCommon() {
+  if (hasRequiredCommon) return common;
+  hasRequiredCommon = 1;
+  function isNothing(subject) {
+    return typeof subject === "undefined" || subject === null;
   }
-
-  return target;
-}
-
-
-function repeat(string, count) {
-  var result = '', cycle;
-
-  for (cycle = 0; cycle < count; cycle += 1) {
-    result += string;
+  function isObject(subject) {
+    return typeof subject === "object" && subject !== null;
   }
-
-  return result;
-}
-
-
-function isNegativeZero(number) {
-  return (number === 0) && (Number.NEGATIVE_INFINITY === 1 / number);
-}
-
-
-var isNothing_1      = isNothing;
-var isObject_1       = isObject;
-var toArray_1        = toArray;
-var repeat_1         = repeat;
-var isNegativeZero_1 = isNegativeZero;
-var extend_1         = extend;
-
-var common = {
-	isNothing: isNothing_1,
-	isObject: isObject_1,
-	toArray: toArray_1,
-	repeat: repeat_1,
-	isNegativeZero: isNegativeZero_1,
-	extend: extend_1
-};
-
-// YAML error class. http://stackoverflow.com/questions/8458984
-
-
-function formatError(exception, compact) {
-  var where = '', message = exception.reason || '(unknown reason)';
-
-  if (!exception.mark) return message;
-
-  if (exception.mark.name) {
-    where += 'in "' + exception.mark.name + '" ';
+  function toArray(sequence) {
+    if (Array.isArray(sequence)) return sequence;
+    else if (isNothing(sequence)) return [];
+    return [sequence];
   }
-
-  where += '(' + (exception.mark.line + 1) + ':' + (exception.mark.column + 1) + ')';
-
-  if (!compact && exception.mark.snippet) {
-    where += '\n\n' + exception.mark.snippet;
-  }
-
-  return message + ' ' + where;
-}
-
-
-function YAMLException$1(reason, mark) {
-  // Super constructor
-  Error.call(this);
-
-  this.name = 'YAMLException';
-  this.reason = reason;
-  this.mark = mark;
-  this.message = formatError(this, false);
-
-  // Include stack trace in error object
-  if (Error.captureStackTrace) {
-    // Chrome and NodeJS
-    Error.captureStackTrace(this, this.constructor);
-  } else {
-    // FF, IE 10+ and Safari 6+. Fallback for others
-    this.stack = (new Error()).stack || '';
-  }
-}
-
-
-// Inherit from Error
-YAMLException$1.prototype = Object.create(Error.prototype);
-YAMLException$1.prototype.constructor = YAMLException$1;
-
-
-YAMLException$1.prototype.toString = function toString(compact) {
-  return this.name + ': ' + formatError(this, compact);
-};
-
-
-var exception = YAMLException$1;
-
-// get snippet for a single line, respecting maxLength
-function getLine(buffer, lineStart, lineEnd, position, maxLineLength) {
-  var head = '';
-  var tail = '';
-  var maxHalfLength = Math.floor(maxLineLength / 2) - 1;
-
-  if (position - lineStart > maxHalfLength) {
-    head = ' ... ';
-    lineStart = position - maxHalfLength + head.length;
-  }
-
-  if (lineEnd - position > maxHalfLength) {
-    tail = ' ...';
-    lineEnd = position + maxHalfLength - tail.length;
-  }
-
-  return {
-    str: head + buffer.slice(lineStart, lineEnd).replace(/\t/g, '→') + tail,
-    pos: position - lineStart + head.length // relative position
-  };
-}
-
-
-function padStart(string, max) {
-  return common.repeat(' ', max - string.length) + string;
-}
-
-
-function makeSnippet(mark, options) {
-  options = Object.create(options || null);
-
-  if (!mark.buffer) return null;
-
-  if (!options.maxLength) options.maxLength = 79;
-  if (typeof options.indent      !== 'number') options.indent      = 1;
-  if (typeof options.linesBefore !== 'number') options.linesBefore = 3;
-  if (typeof options.linesAfter  !== 'number') options.linesAfter  = 2;
-
-  var re = /\r?\n|\r|\0/g;
-  var lineStarts = [ 0 ];
-  var lineEnds = [];
-  var match;
-  var foundLineNo = -1;
-
-  while ((match = re.exec(mark.buffer))) {
-    lineEnds.push(match.index);
-    lineStarts.push(match.index + match[0].length);
-
-    if (mark.position <= match.index && foundLineNo < 0) {
-      foundLineNo = lineStarts.length - 2;
-    }
-  }
-
-  if (foundLineNo < 0) foundLineNo = lineStarts.length - 1;
-
-  var result = '', i, line;
-  var lineNoLength = Math.min(mark.line + options.linesAfter, lineEnds.length).toString().length;
-  var maxLineLength = options.maxLength - (options.indent + lineNoLength + 3);
-
-  for (i = 1; i <= options.linesBefore; i++) {
-    if (foundLineNo - i < 0) break;
-    line = getLine(
-      mark.buffer,
-      lineStarts[foundLineNo - i],
-      lineEnds[foundLineNo - i],
-      mark.position - (lineStarts[foundLineNo] - lineStarts[foundLineNo - i]),
-      maxLineLength
-    );
-    result = common.repeat(' ', options.indent) + padStart((mark.line - i + 1).toString(), lineNoLength) +
-      ' | ' + line.str + '\n' + result;
-  }
-
-  line = getLine(mark.buffer, lineStarts[foundLineNo], lineEnds[foundLineNo], mark.position, maxLineLength);
-  result += common.repeat(' ', options.indent) + padStart((mark.line + 1).toString(), lineNoLength) +
-    ' | ' + line.str + '\n';
-  result += common.repeat('-', options.indent + lineNoLength + 3 + line.pos) + '^' + '\n';
-
-  for (i = 1; i <= options.linesAfter; i++) {
-    if (foundLineNo + i >= lineEnds.length) break;
-    line = getLine(
-      mark.buffer,
-      lineStarts[foundLineNo + i],
-      lineEnds[foundLineNo + i],
-      mark.position - (lineStarts[foundLineNo] - lineStarts[foundLineNo + i]),
-      maxLineLength
-    );
-    result += common.repeat(' ', options.indent) + padStart((mark.line + i + 1).toString(), lineNoLength) +
-      ' | ' + line.str + '\n';
-  }
-
-  return result.replace(/\n$/, '');
-}
-
-
-var snippet = makeSnippet;
-
-var TYPE_CONSTRUCTOR_OPTIONS = [
-  'kind',
-  'multi',
-  'resolve',
-  'construct',
-  'instanceOf',
-  'predicate',
-  'represent',
-  'representName',
-  'defaultStyle',
-  'styleAliases'
-];
-
-var YAML_NODE_KINDS = [
-  'scalar',
-  'sequence',
-  'mapping'
-];
-
-function compileStyleAliases(map) {
-  var result = {};
-
-  if (map !== null) {
-    Object.keys(map).forEach(function (style) {
-      map[style].forEach(function (alias) {
-        result[String(alias)] = style;
-      });
-    });
-  }
-
-  return result;
-}
-
-function Type$1(tag, options) {
-  options = options || {};
-
-  Object.keys(options).forEach(function (name) {
-    if (TYPE_CONSTRUCTOR_OPTIONS.indexOf(name) === -1) {
-      throw new exception('Unknown option "' + name + '" is met in definition of "' + tag + '" YAML type.');
-    }
-  });
-
-  // TODO: Add tag format check.
-  this.options       = options; // keep original options in case user wants to extend this type later
-  this.tag           = tag;
-  this.kind          = options['kind']          || null;
-  this.resolve       = options['resolve']       || function () { return true; };
-  this.construct     = options['construct']     || function (data) { return data; };
-  this.instanceOf    = options['instanceOf']    || null;
-  this.predicate     = options['predicate']     || null;
-  this.represent     = options['represent']     || null;
-  this.representName = options['representName'] || null;
-  this.defaultStyle  = options['defaultStyle']  || null;
-  this.multi         = options['multi']         || false;
-  this.styleAliases  = compileStyleAliases(options['styleAliases'] || null);
-
-  if (YAML_NODE_KINDS.indexOf(this.kind) === -1) {
-    throw new exception('Unknown kind "' + this.kind + '" is specified for "' + tag + '" YAML type.');
-  }
-}
-
-var type = Type$1;
-
-/*eslint-disable max-len*/
-
-
-
-
-
-function compileList(schema, name) {
-  var result = [];
-
-  schema[name].forEach(function (currentType) {
-    var newIndex = result.length;
-
-    result.forEach(function (previousType, previousIndex) {
-      if (previousType.tag === currentType.tag &&
-          previousType.kind === currentType.kind &&
-          previousType.multi === currentType.multi) {
-
-        newIndex = previousIndex;
+  function extend(target, source) {
+    if (source) {
+      const sourceKeys = Object.keys(source);
+      for (let index = 0, length = sourceKeys.length; index < length; index += 1) {
+        const key = sourceKeys[index];
+        target[key] = source[key];
       }
-    });
-
-    result[newIndex] = currentType;
-  });
-
-  return result;
+    }
+    return target;
+  }
+  function repeat(string, count) {
+    let result = "";
+    for (let cycle = 0; cycle < count; cycle += 1) {
+      result += string;
+    }
+    return result;
+  }
+  function isNegativeZero(number) {
+    return number === 0 && Number.NEGATIVE_INFINITY === 1 / number;
+  }
+  common.isNothing = isNothing;
+  common.isObject = isObject;
+  common.toArray = toArray;
+  common.repeat = repeat;
+  common.isNegativeZero = isNegativeZero;
+  common.extend = extend;
+  return common;
 }
-
-
-function compileMap(/* lists... */) {
-  var result = {
-        scalar: {},
-        sequence: {},
-        mapping: {},
-        fallback: {},
-        multi: {
-          scalar: [],
-          sequence: [],
-          mapping: [],
-          fallback: []
-        }
-      }, index, length;
-
-  function collectType(type) {
-    if (type.multi) {
-      result.multi[type.kind].push(type);
-      result.multi['fallback'].push(type);
+var exception;
+var hasRequiredException;
+function requireException() {
+  if (hasRequiredException) return exception;
+  hasRequiredException = 1;
+  function formatError(exception2, compact) {
+    let where = "";
+    const message = exception2.reason || "(unknown reason)";
+    if (!exception2.mark) return message;
+    if (exception2.mark.name) {
+      where += 'in "' + exception2.mark.name + '" ';
+    }
+    where += "(" + (exception2.mark.line + 1) + ":" + (exception2.mark.column + 1) + ")";
+    if (!compact && exception2.mark.snippet) {
+      where += "\n\n" + exception2.mark.snippet;
+    }
+    return message + " " + where;
+  }
+  function YAMLException2(reason, mark) {
+    Error.call(this);
+    this.name = "YAMLException";
+    this.reason = reason;
+    this.mark = mark;
+    this.message = formatError(this, false);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
     } else {
-      result[type.kind][type.tag] = result['fallback'][type.tag] = type;
+      this.stack = new Error().stack || "";
     }
   }
-
-  for (index = 0, length = arguments.length; index < length; index += 1) {
-    arguments[index].forEach(collectType);
-  }
-  return result;
+  YAMLException2.prototype = Object.create(Error.prototype);
+  YAMLException2.prototype.constructor = YAMLException2;
+  YAMLException2.prototype.toString = function toString(compact) {
+    return this.name + ": " + formatError(this, compact);
+  };
+  exception = YAMLException2;
+  return exception;
 }
-
-
-function Schema$1(definition) {
-  return this.extend(definition);
-}
-
-
-Schema$1.prototype.extend = function extend(definition) {
-  var implicit = [];
-  var explicit = [];
-
-  if (definition instanceof type) {
-    // Schema.extend(type)
-    explicit.push(definition);
-
-  } else if (Array.isArray(definition)) {
-    // Schema.extend([ type1, type2, ... ])
-    explicit = explicit.concat(definition);
-
-  } else if (definition && (Array.isArray(definition.implicit) || Array.isArray(definition.explicit))) {
-    // Schema.extend({ explicit: [ type1, type2, ... ], implicit: [ type1, type2, ... ] })
-    if (definition.implicit) implicit = implicit.concat(definition.implicit);
-    if (definition.explicit) explicit = explicit.concat(definition.explicit);
-
-  } else {
-    throw new exception('Schema.extend argument should be a Type, [ Type ], ' +
-      'or a schema definition ({ implicit: [...], explicit: [...] })');
+var snippet;
+var hasRequiredSnippet;
+function requireSnippet() {
+  if (hasRequiredSnippet) return snippet;
+  hasRequiredSnippet = 1;
+  const common2 = requireCommon();
+  function getLine(buffer, lineStart, lineEnd, position, maxLineLength) {
+    let head = "";
+    let tail = "";
+    const maxHalfLength = Math.floor(maxLineLength / 2) - 1;
+    if (position - lineStart > maxHalfLength) {
+      head = " ... ";
+      lineStart = position - maxHalfLength + head.length;
+    }
+    if (lineEnd - position > maxHalfLength) {
+      tail = " ...";
+      lineEnd = position + maxHalfLength - tail.length;
+    }
+    return {
+      str: head + buffer.slice(lineStart, lineEnd).replace(/\t/g, "→") + tail,
+      pos: position - lineStart + head.length
+      // relative position
+    };
   }
-
-  implicit.forEach(function (type$1) {
-    if (!(type$1 instanceof type)) {
-      throw new exception('Specified list of YAML types (or a single Type object) contains a non-Type object.');
+  function padStart(string, max) {
+    return common2.repeat(" ", max - string.length) + string;
+  }
+  function makeSnippet(mark, options) {
+    options = Object.create(options || null);
+    if (!mark.buffer) return null;
+    if (!options.maxLength) options.maxLength = 79;
+    if (typeof options.indent !== "number") options.indent = 1;
+    if (typeof options.linesBefore !== "number") options.linesBefore = 3;
+    if (typeof options.linesAfter !== "number") options.linesAfter = 2;
+    const re = /\r?\n|\r|\0/g;
+    const lineStarts = [0];
+    const lineEnds = [];
+    let match;
+    let foundLineNo = -1;
+    while (match = re.exec(mark.buffer)) {
+      lineEnds.push(match.index);
+      lineStarts.push(match.index + match[0].length);
+      if (mark.position <= match.index && foundLineNo < 0) {
+        foundLineNo = lineStarts.length - 2;
+      }
     }
-
-    if (type$1.loadKind && type$1.loadKind !== 'scalar') {
-      throw new exception('There is a non-scalar type in the implicit list of a schema. Implicit resolving of such types is not supported.');
+    if (foundLineNo < 0) foundLineNo = lineStarts.length - 1;
+    let result = "";
+    const lineNoLength = Math.min(mark.line + options.linesAfter, lineEnds.length).toString().length;
+    const maxLineLength = options.maxLength - (options.indent + lineNoLength + 3);
+    for (let i = 1; i <= options.linesBefore; i++) {
+      if (foundLineNo - i < 0) break;
+      const line2 = getLine(
+        mark.buffer,
+        lineStarts[foundLineNo - i],
+        lineEnds[foundLineNo - i],
+        mark.position - (lineStarts[foundLineNo] - lineStarts[foundLineNo - i]),
+        maxLineLength
+      );
+      result = common2.repeat(" ", options.indent) + padStart((mark.line - i + 1).toString(), lineNoLength) + " | " + line2.str + "\n" + result;
     }
-
-    if (type$1.multi) {
-      throw new exception('There is a multi type in the implicit list of a schema. Multi tags can only be listed as explicit.');
+    const line = getLine(mark.buffer, lineStarts[foundLineNo], lineEnds[foundLineNo], mark.position, maxLineLength);
+    result += common2.repeat(" ", options.indent) + padStart((mark.line + 1).toString(), lineNoLength) + " | " + line.str + "\n";
+    result += common2.repeat("-", options.indent + lineNoLength + 3 + line.pos) + "^\n";
+    for (let i = 1; i <= options.linesAfter; i++) {
+      if (foundLineNo + i >= lineEnds.length) break;
+      const line2 = getLine(
+        mark.buffer,
+        lineStarts[foundLineNo + i],
+        lineEnds[foundLineNo + i],
+        mark.position - (lineStarts[foundLineNo] - lineStarts[foundLineNo + i]),
+        maxLineLength
+      );
+      result += common2.repeat(" ", options.indent) + padStart((mark.line + i + 1).toString(), lineNoLength) + " | " + line2.str + "\n";
+    }
+    return result.replace(/\n$/, "");
+  }
+  snippet = makeSnippet;
+  return snippet;
+}
+var type;
+var hasRequiredType;
+function requireType() {
+  if (hasRequiredType) return type;
+  hasRequiredType = 1;
+  const YAMLException2 = requireException();
+  const TYPE_CONSTRUCTOR_OPTIONS = [
+    "kind",
+    "multi",
+    "resolve",
+    "construct",
+    "instanceOf",
+    "predicate",
+    "represent",
+    "representName",
+    "defaultStyle",
+    "styleAliases"
+  ];
+  const YAML_NODE_KINDS = [
+    "scalar",
+    "sequence",
+    "mapping"
+  ];
+  function compileStyleAliases(map2) {
+    const result = {};
+    if (map2 !== null) {
+      Object.keys(map2).forEach(function(style) {
+        map2[style].forEach(function(alias) {
+          result[String(alias)] = style;
+        });
+      });
+    }
+    return result;
+  }
+  function Type2(tag, options) {
+    options = options || {};
+    Object.keys(options).forEach(function(name) {
+      if (TYPE_CONSTRUCTOR_OPTIONS.indexOf(name) === -1) {
+        throw new YAMLException2('Unknown option "' + name + '" is met in definition of "' + tag + '" YAML type.');
+      }
+    });
+    this.options = options;
+    this.tag = tag;
+    this.kind = options["kind"] || null;
+    this.resolve = options["resolve"] || function() {
+      return true;
+    };
+    this.construct = options["construct"] || function(data) {
+      return data;
+    };
+    this.instanceOf = options["instanceOf"] || null;
+    this.predicate = options["predicate"] || null;
+    this.represent = options["represent"] || null;
+    this.representName = options["representName"] || null;
+    this.defaultStyle = options["defaultStyle"] || null;
+    this.multi = options["multi"] || false;
+    this.styleAliases = compileStyleAliases(options["styleAliases"] || null);
+    if (YAML_NODE_KINDS.indexOf(this.kind) === -1) {
+      throw new YAMLException2('Unknown kind "' + this.kind + '" is specified for "' + tag + '" YAML type.');
+    }
+  }
+  type = Type2;
+  return type;
+}
+var schema;
+var hasRequiredSchema;
+function requireSchema() {
+  if (hasRequiredSchema) return schema;
+  hasRequiredSchema = 1;
+  const YAMLException2 = requireException();
+  const Type2 = requireType();
+  function compileList(schema2, name) {
+    const result = [];
+    schema2[name].forEach(function(currentType) {
+      let newIndex = result.length;
+      result.forEach(function(previousType, previousIndex) {
+        if (previousType.tag === currentType.tag && previousType.kind === currentType.kind && previousType.multi === currentType.multi) {
+          newIndex = previousIndex;
+        }
+      });
+      result[newIndex] = currentType;
+    });
+    return result;
+  }
+  function compileMap() {
+    const result = {
+      scalar: {},
+      sequence: {},
+      mapping: {},
+      fallback: {},
+      multi: {
+        scalar: [],
+        sequence: [],
+        mapping: [],
+        fallback: []
+      }
+    };
+    function collectType(type2) {
+      if (type2.multi) {
+        result.multi[type2.kind].push(type2);
+        result.multi["fallback"].push(type2);
+      } else {
+        result[type2.kind][type2.tag] = result["fallback"][type2.tag] = type2;
+      }
+    }
+    for (let index = 0, length = arguments.length; index < length; index += 1) {
+      arguments[index].forEach(collectType);
+    }
+    return result;
+  }
+  function Schema2(definition) {
+    return this.extend(definition);
+  }
+  Schema2.prototype.extend = function extend(definition) {
+    let implicit = [];
+    let explicit = [];
+    if (definition instanceof Type2) {
+      explicit.push(definition);
+    } else if (Array.isArray(definition)) {
+      explicit = explicit.concat(definition);
+    } else if (definition && (Array.isArray(definition.implicit) || Array.isArray(definition.explicit))) {
+      if (definition.implicit) implicit = implicit.concat(definition.implicit);
+      if (definition.explicit) explicit = explicit.concat(definition.explicit);
+    } else {
+      throw new YAMLException2("Schema.extend argument should be a Type, [ Type ], or a schema definition ({ implicit: [...], explicit: [...] })");
+    }
+    implicit.forEach(function(type2) {
+      if (!(type2 instanceof Type2)) {
+        throw new YAMLException2("Specified list of YAML types (or a single Type object) contains a non-Type object.");
+      }
+      if (type2.loadKind && type2.loadKind !== "scalar") {
+        throw new YAMLException2("There is a non-scalar type in the implicit list of a schema. Implicit resolving of such types is not supported.");
+      }
+      if (type2.multi) {
+        throw new YAMLException2("There is a multi type in the implicit list of a schema. Multi tags can only be listed as explicit.");
+      }
+    });
+    explicit.forEach(function(type2) {
+      if (!(type2 instanceof Type2)) {
+        throw new YAMLException2("Specified list of YAML types (or a single Type object) contains a non-Type object.");
+      }
+    });
+    const result = Object.create(Schema2.prototype);
+    result.implicit = (this.implicit || []).concat(implicit);
+    result.explicit = (this.explicit || []).concat(explicit);
+    result.compiledImplicit = compileList(result, "implicit");
+    result.compiledExplicit = compileList(result, "explicit");
+    result.compiledTypeMap = compileMap(result.compiledImplicit, result.compiledExplicit);
+    return result;
+  };
+  schema = Schema2;
+  return schema;
+}
+var str;
+var hasRequiredStr;
+function requireStr() {
+  if (hasRequiredStr) return str;
+  hasRequiredStr = 1;
+  const Type2 = requireType();
+  str = new Type2("tag:yaml.org,2002:str", {
+    kind: "scalar",
+    construct: function(data) {
+      return data !== null ? data : "";
     }
   });
-
-  explicit.forEach(function (type$1) {
-    if (!(type$1 instanceof type)) {
-      throw new exception('Specified list of YAML types (or a single Type object) contains a non-Type object.');
+  return str;
+}
+var seq;
+var hasRequiredSeq;
+function requireSeq() {
+  if (hasRequiredSeq) return seq;
+  hasRequiredSeq = 1;
+  const Type2 = requireType();
+  seq = new Type2("tag:yaml.org,2002:seq", {
+    kind: "sequence",
+    construct: function(data) {
+      return data !== null ? data : [];
     }
   });
-
-  var result = Object.create(Schema$1.prototype);
-
-  result.implicit = (this.implicit || []).concat(implicit);
-  result.explicit = (this.explicit || []).concat(explicit);
-
-  result.compiledImplicit = compileList(result, 'implicit');
-  result.compiledExplicit = compileList(result, 'explicit');
-  result.compiledTypeMap  = compileMap(result.compiledImplicit, result.compiledExplicit);
-
-  return result;
-};
-
-
-var schema = Schema$1;
-
-var str = new type('tag:yaml.org,2002:str', {
-  kind: 'scalar',
-  construct: function (data) { return data !== null ? data : ''; }
-});
-
-var seq = new type('tag:yaml.org,2002:seq', {
-  kind: 'sequence',
-  construct: function (data) { return data !== null ? data : []; }
-});
-
-var map = new type('tag:yaml.org,2002:map', {
-  kind: 'mapping',
-  construct: function (data) { return data !== null ? data : {}; }
-});
-
-var failsafe = new schema({
-  explicit: [
-    str,
-    seq,
-    map
-  ]
-});
-
-function resolveYamlNull(data) {
-  if (data === null) return true;
-
-  var max = data.length;
-
-  return (max === 1 && data === '~') ||
-         (max === 4 && (data === 'null' || data === 'Null' || data === 'NULL'));
+  return seq;
 }
-
-function constructYamlNull() {
-  return null;
+var map;
+var hasRequiredMap;
+function requireMap() {
+  if (hasRequiredMap) return map;
+  hasRequiredMap = 1;
+  const Type2 = requireType();
+  map = new Type2("tag:yaml.org,2002:map", {
+    kind: "mapping",
+    construct: function(data) {
+      return data !== null ? data : {};
+    }
+  });
+  return map;
 }
-
-function isNull(object) {
-  return object === null;
+var failsafe;
+var hasRequiredFailsafe;
+function requireFailsafe() {
+  if (hasRequiredFailsafe) return failsafe;
+  hasRequiredFailsafe = 1;
+  const Schema2 = requireSchema();
+  failsafe = new Schema2({
+    explicit: [
+      requireStr(),
+      requireSeq(),
+      requireMap()
+    ]
+  });
+  return failsafe;
 }
-
-var _null = new type('tag:yaml.org,2002:null', {
-  kind: 'scalar',
-  resolve: resolveYamlNull,
-  construct: constructYamlNull,
-  predicate: isNull,
-  represent: {
-    canonical: function () { return '~';    },
-    lowercase: function () { return 'null'; },
-    uppercase: function () { return 'NULL'; },
-    camelcase: function () { return 'Null'; },
-    empty:     function () { return '';     }
-  },
-  defaultStyle: 'lowercase'
-});
-
-function resolveYamlBoolean(data) {
-  if (data === null) return false;
-
-  var max = data.length;
-
-  return (max === 4 && (data === 'true' || data === 'True' || data === 'TRUE')) ||
-         (max === 5 && (data === 'false' || data === 'False' || data === 'FALSE'));
-}
-
-function constructYamlBoolean(data) {
-  return data === 'true' ||
-         data === 'True' ||
-         data === 'TRUE';
-}
-
-function isBoolean(object) {
-  return Object.prototype.toString.call(object) === '[object Boolean]';
-}
-
-var bool = new type('tag:yaml.org,2002:bool', {
-  kind: 'scalar',
-  resolve: resolveYamlBoolean,
-  construct: constructYamlBoolean,
-  predicate: isBoolean,
-  represent: {
-    lowercase: function (object) { return object ? 'true' : 'false'; },
-    uppercase: function (object) { return object ? 'TRUE' : 'FALSE'; },
-    camelcase: function (object) { return object ? 'True' : 'False'; }
-  },
-  defaultStyle: 'lowercase'
-});
-
-function isHexCode(c) {
-  return ((0x30/* 0 */ <= c) && (c <= 0x39/* 9 */)) ||
-         ((0x41/* A */ <= c) && (c <= 0x46/* F */)) ||
-         ((0x61/* a */ <= c) && (c <= 0x66/* f */));
-}
-
-function isOctCode(c) {
-  return ((0x30/* 0 */ <= c) && (c <= 0x37/* 7 */));
-}
-
-function isDecCode(c) {
-  return ((0x30/* 0 */ <= c) && (c <= 0x39/* 9 */));
-}
-
-function resolveYamlInteger(data) {
-  if (data === null) return false;
-
-  var max = data.length,
-      index = 0,
-      hasDigits = false,
-      ch;
-
-  if (!max) return false;
-
-  ch = data[index];
-
-  // sign
-  if (ch === '-' || ch === '+') {
-    ch = data[++index];
+var _null;
+var hasRequired_null;
+function require_null() {
+  if (hasRequired_null) return _null;
+  hasRequired_null = 1;
+  const Type2 = requireType();
+  function resolveYamlNull(data) {
+    if (data === null) return true;
+    const max = data.length;
+    return max === 1 && data === "~" || max === 4 && (data === "null" || data === "Null" || data === "NULL");
   }
-
-  if (ch === '0') {
-    // 0
-    if (index + 1 === max) return true;
-    ch = data[++index];
-
-    // base 2, base 8, base 16
-
-    if (ch === 'b') {
-      // base 2
-      index++;
-
-      for (; index < max; index++) {
-        ch = data[index];
-        if (ch === '_') continue;
-        if (ch !== '0' && ch !== '1') return false;
-        hasDigits = true;
-      }
-      return hasDigits && ch !== '_';
-    }
-
-
-    if (ch === 'x') {
-      // base 16
-      index++;
-
-      for (; index < max; index++) {
-        ch = data[index];
-        if (ch === '_') continue;
-        if (!isHexCode(data.charCodeAt(index))) return false;
-        hasDigits = true;
-      }
-      return hasDigits && ch !== '_';
-    }
-
-
-    if (ch === 'o') {
-      // base 8
-      index++;
-
-      for (; index < max; index++) {
-        ch = data[index];
-        if (ch === '_') continue;
-        if (!isOctCode(data.charCodeAt(index))) return false;
-        hasDigits = true;
-      }
-      return hasDigits && ch !== '_';
-    }
+  function constructYamlNull() {
+    return null;
   }
-
-  // base 10 (except 0)
-
-  // value should not start with `_`;
-  if (ch === '_') return false;
-
-  for (; index < max; index++) {
-    ch = data[index];
-    if (ch === '_') continue;
-    if (!isDecCode(data.charCodeAt(index))) {
+  function isNull(object) {
+    return object === null;
+  }
+  _null = new Type2("tag:yaml.org,2002:null", {
+    kind: "scalar",
+    resolve: resolveYamlNull,
+    construct: constructYamlNull,
+    predicate: isNull,
+    represent: {
+      canonical: function() {
+        return "~";
+      },
+      lowercase: function() {
+        return "null";
+      },
+      uppercase: function() {
+        return "NULL";
+      },
+      camelcase: function() {
+        return "Null";
+      },
+      empty: function() {
+        return "";
+      }
+    },
+    defaultStyle: "lowercase"
+  });
+  return _null;
+}
+var bool;
+var hasRequiredBool;
+function requireBool() {
+  if (hasRequiredBool) return bool;
+  hasRequiredBool = 1;
+  const Type2 = requireType();
+  function resolveYamlBoolean(data) {
+    if (data === null) return false;
+    const max = data.length;
+    return max === 4 && (data === "true" || data === "True" || data === "TRUE") || max === 5 && (data === "false" || data === "False" || data === "FALSE");
+  }
+  function constructYamlBoolean(data) {
+    return data === "true" || data === "True" || data === "TRUE";
+  }
+  function isBoolean(object) {
+    return Object.prototype.toString.call(object) === "[object Boolean]";
+  }
+  bool = new Type2("tag:yaml.org,2002:bool", {
+    kind: "scalar",
+    resolve: resolveYamlBoolean,
+    construct: constructYamlBoolean,
+    predicate: isBoolean,
+    represent: {
+      lowercase: function(object) {
+        return object ? "true" : "false";
+      },
+      uppercase: function(object) {
+        return object ? "TRUE" : "FALSE";
+      },
+      camelcase: function(object) {
+        return object ? "True" : "False";
+      }
+    },
+    defaultStyle: "lowercase"
+  });
+  return bool;
+}
+var js_yaml_int;
+var hasRequiredInt;
+function requireInt() {
+  if (hasRequiredInt) return js_yaml_int;
+  hasRequiredInt = 1;
+  const common2 = requireCommon();
+  const Type2 = requireType();
+  function isHexCode(c) {
+    return c >= 48 && c <= 57 || c >= 65 && c <= 70 || c >= 97 && c <= 102;
+  }
+  function isOctCode(c) {
+    return c >= 48 && c <= 55;
+  }
+  function isDecCode(c) {
+    return c >= 48 && c <= 57;
+  }
+  function resolveYamlInteger(data) {
+    if (data === null) return false;
+    const max = data.length;
+    let index = 0;
+    let hasDigits = false;
+    if (!max) return false;
+    let ch = data[index];
+    if (ch === "-" || ch === "+") {
+      ch = data[++index];
+    }
+    if (ch === "0") {
+      if (index + 1 === max) return true;
+      ch = data[++index];
+      if (ch === "b") {
+        index++;
+        for (; index < max; index++) {
+          ch = data[index];
+          if (ch !== "0" && ch !== "1") return false;
+          hasDigits = true;
+        }
+        return hasDigits && isFinite(parseYamlInteger(data));
+      }
+      if (ch === "x") {
+        index++;
+        for (; index < max; index++) {
+          if (!isHexCode(data.charCodeAt(index))) return false;
+          hasDigits = true;
+        }
+        return hasDigits && isFinite(parseYamlInteger(data));
+      }
+      if (ch === "o") {
+        index++;
+        for (; index < max; index++) {
+          if (!isOctCode(data.charCodeAt(index))) return false;
+          hasDigits = true;
+        }
+        return hasDigits && isFinite(parseYamlInteger(data));
+      }
+    }
+    for (; index < max; index++) {
+      if (!isDecCode(data.charCodeAt(index))) {
+        return false;
+      }
+      hasDigits = true;
+    }
+    if (!hasDigits) return false;
+    return isFinite(parseYamlInteger(data));
+  }
+  function parseYamlInteger(data) {
+    let value = data;
+    let sign = 1;
+    let ch = value[0];
+    if (ch === "-" || ch === "+") {
+      if (ch === "-") sign = -1;
+      value = value.slice(1);
+      ch = value[0];
+    }
+    if (value === "0") return 0;
+    if (ch === "0") {
+      if (value[1] === "b") return sign * parseInt(value.slice(2), 2);
+      if (value[1] === "x") return sign * parseInt(value.slice(2), 16);
+      if (value[1] === "o") return sign * parseInt(value.slice(2), 8);
+    }
+    return sign * parseInt(value, 10);
+  }
+  function constructYamlInteger(data) {
+    return parseYamlInteger(data);
+  }
+  function isInteger(object) {
+    return Object.prototype.toString.call(object) === "[object Number]" && (object % 1 === 0 && !common2.isNegativeZero(object));
+  }
+  js_yaml_int = new Type2("tag:yaml.org,2002:int", {
+    kind: "scalar",
+    resolve: resolveYamlInteger,
+    construct: constructYamlInteger,
+    predicate: isInteger,
+    represent: {
+      binary: function(obj) {
+        return obj >= 0 ? "0b" + obj.toString(2) : "-0b" + obj.toString(2).slice(1);
+      },
+      octal: function(obj) {
+        return obj >= 0 ? "0o" + obj.toString(8) : "-0o" + obj.toString(8).slice(1);
+      },
+      decimal: function(obj) {
+        return obj.toString(10);
+      },
+      hexadecimal: function(obj) {
+        return obj >= 0 ? "0x" + obj.toString(16).toUpperCase() : "-0x" + obj.toString(16).toUpperCase().slice(1);
+      }
+    },
+    defaultStyle: "decimal",
+    styleAliases: {
+      binary: [2, "bin"],
+      octal: [8, "oct"],
+      decimal: [10, "dec"],
+      hexadecimal: [16, "hex"]
+    }
+  });
+  return js_yaml_int;
+}
+var js_yaml_float;
+var hasRequiredFloat;
+function requireFloat() {
+  if (hasRequiredFloat) return js_yaml_float;
+  hasRequiredFloat = 1;
+  const common2 = requireCommon();
+  const Type2 = requireType();
+  const YAML_FLOAT_PATTERN = new RegExp(
+    // 2.5e4, 2.5 and integers
+    "^(?:[-+]?(?:[0-9]+)(?:\\.[0-9]*)?(?:[eE][-+]?[0-9]+)?|\\.[0-9]+(?:[eE][-+]?[0-9]+)?|[-+]?\\.(?:inf|Inf|INF)|\\.(?:nan|NaN|NAN))$"
+  );
+  const YAML_FLOAT_SPECIAL_PATTERN = new RegExp(
+    "^(?:[-+]?\\.(?:inf|Inf|INF)|\\.(?:nan|NaN|NAN))$"
+  );
+  function resolveYamlFloat(data) {
+    if (data === null) return false;
+    if (!YAML_FLOAT_PATTERN.test(data)) {
       return false;
     }
-    hasDigits = true;
+    if (isFinite(parseFloat(data, 10))) {
+      return true;
+    }
+    return YAML_FLOAT_SPECIAL_PATTERN.test(data);
   }
-
-  // Should have digits and should not end with `_`
-  if (!hasDigits || ch === '_') return false;
-
-  return true;
+  function constructYamlFloat(data) {
+    let value = data.toLowerCase();
+    const sign = value[0] === "-" ? -1 : 1;
+    if ("+-".indexOf(value[0]) >= 0) {
+      value = value.slice(1);
+    }
+    if (value === ".inf") {
+      return sign === 1 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+    } else if (value === ".nan") {
+      return NaN;
+    }
+    return sign * parseFloat(value, 10);
+  }
+  const SCIENTIFIC_WITHOUT_DOT = /^[-+]?[0-9]+e/;
+  function representYamlFloat(object, style) {
+    if (isNaN(object)) {
+      switch (style) {
+        case "lowercase":
+          return ".nan";
+        case "uppercase":
+          return ".NAN";
+        case "camelcase":
+          return ".NaN";
+      }
+    } else if (Number.POSITIVE_INFINITY === object) {
+      switch (style) {
+        case "lowercase":
+          return ".inf";
+        case "uppercase":
+          return ".INF";
+        case "camelcase":
+          return ".Inf";
+      }
+    } else if (Number.NEGATIVE_INFINITY === object) {
+      switch (style) {
+        case "lowercase":
+          return "-.inf";
+        case "uppercase":
+          return "-.INF";
+        case "camelcase":
+          return "-.Inf";
+      }
+    } else if (common2.isNegativeZero(object)) {
+      return "-0.0";
+    }
+    const res = object.toString(10);
+    return SCIENTIFIC_WITHOUT_DOT.test(res) ? res.replace("e", ".e") : res;
+  }
+  function isFloat(object) {
+    return Object.prototype.toString.call(object) === "[object Number]" && (object % 1 !== 0 || common2.isNegativeZero(object));
+  }
+  js_yaml_float = new Type2("tag:yaml.org,2002:float", {
+    kind: "scalar",
+    resolve: resolveYamlFloat,
+    construct: constructYamlFloat,
+    predicate: isFloat,
+    represent: representYamlFloat,
+    defaultStyle: "lowercase"
+  });
+  return js_yaml_float;
 }
-
-function constructYamlInteger(data) {
-  var value = data, sign = 1, ch;
-
-  if (value.indexOf('_') !== -1) {
-    value = value.replace(/_/g, '');
-  }
-
-  ch = value[0];
-
-  if (ch === '-' || ch === '+') {
-    if (ch === '-') sign = -1;
-    value = value.slice(1);
-    ch = value[0];
-  }
-
-  if (value === '0') return 0;
-
-  if (ch === '0') {
-    if (value[1] === 'b') return sign * parseInt(value.slice(2), 2);
-    if (value[1] === 'x') return sign * parseInt(value.slice(2), 16);
-    if (value[1] === 'o') return sign * parseInt(value.slice(2), 8);
-  }
-
-  return sign * parseInt(value, 10);
+var json;
+var hasRequiredJson;
+function requireJson() {
+  if (hasRequiredJson) return json;
+  hasRequiredJson = 1;
+  json = requireFailsafe().extend({
+    implicit: [
+      require_null(),
+      requireBool(),
+      requireInt(),
+      requireFloat()
+    ]
+  });
+  return json;
 }
-
-function isInteger(object) {
-  return (Object.prototype.toString.call(object)) === '[object Number]' &&
-         (object % 1 === 0 && !common.isNegativeZero(object));
+var core;
+var hasRequiredCore;
+function requireCore() {
+  if (hasRequiredCore) return core;
+  hasRequiredCore = 1;
+  core = requireJson();
+  return core;
 }
-
-var js_yaml_int = new type('tag:yaml.org,2002:int', {
-  kind: 'scalar',
-  resolve: resolveYamlInteger,
-  construct: constructYamlInteger,
-  predicate: isInteger,
-  represent: {
-    binary:      function (obj) { return obj >= 0 ? '0b' + obj.toString(2) : '-0b' + obj.toString(2).slice(1); },
-    octal:       function (obj) { return obj >= 0 ? '0o'  + obj.toString(8) : '-0o'  + obj.toString(8).slice(1); },
-    decimal:     function (obj) { return obj.toString(10); },
-    /* eslint-disable max-len */
-    hexadecimal: function (obj) { return obj >= 0 ? '0x' + obj.toString(16).toUpperCase() :  '-0x' + obj.toString(16).toUpperCase().slice(1); }
-  },
-  defaultStyle: 'decimal',
-  styleAliases: {
-    binary:      [ 2,  'bin' ],
-    octal:       [ 8,  'oct' ],
-    decimal:     [ 10, 'dec' ],
-    hexadecimal: [ 16, 'hex' ]
-  }
-});
-
-var YAML_FLOAT_PATTERN = new RegExp(
-  // 2.5e4, 2.5 and integers
-  '^(?:[-+]?(?:[0-9][0-9_]*)(?:\\.[0-9_]*)?(?:[eE][-+]?[0-9]+)?' +
-  // .2e4, .2
-  // special case, seems not from spec
-  '|\\.[0-9_]+(?:[eE][-+]?[0-9]+)?' +
-  // .inf
-  '|[-+]?\\.(?:inf|Inf|INF)' +
-  // .nan
-  '|\\.(?:nan|NaN|NAN))$');
-
-function resolveYamlFloat(data) {
-  if (data === null) return false;
-
-  if (!YAML_FLOAT_PATTERN.test(data) ||
-      // Quick hack to not allow integers end with `_`
-      // Probably should update regexp & check speed
-      data[data.length - 1] === '_') {
+var timestamp;
+var hasRequiredTimestamp;
+function requireTimestamp() {
+  if (hasRequiredTimestamp) return timestamp;
+  hasRequiredTimestamp = 1;
+  const Type2 = requireType();
+  const YAML_DATE_REGEXP = new RegExp(
+    "^([0-9][0-9][0-9][0-9])-([0-9][0-9])-([0-9][0-9])$"
+  );
+  const YAML_TIMESTAMP_REGEXP = new RegExp(
+    "^([0-9][0-9][0-9][0-9])-([0-9][0-9]?)-([0-9][0-9]?)(?:[Tt]|[ \\t]+)([0-9][0-9]?):([0-9][0-9]):([0-9][0-9])(?:\\.([0-9]*))?(?:[ \\t]*(Z|([-+])([0-9][0-9]?)(?::([0-9][0-9]))?))?$"
+  );
+  function resolveYamlTimestamp(data) {
+    if (data === null) return false;
+    if (YAML_DATE_REGEXP.exec(data) !== null) return true;
+    if (YAML_TIMESTAMP_REGEXP.exec(data) !== null) return true;
     return false;
   }
-
-  return true;
-}
-
-function constructYamlFloat(data) {
-  var value, sign;
-
-  value  = data.replace(/_/g, '').toLowerCase();
-  sign   = value[0] === '-' ? -1 : 1;
-
-  if ('+-'.indexOf(value[0]) >= 0) {
-    value = value.slice(1);
-  }
-
-  if (value === '.inf') {
-    return (sign === 1) ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-
-  } else if (value === '.nan') {
-    return NaN;
-  }
-  return sign * parseFloat(value, 10);
-}
-
-
-var SCIENTIFIC_WITHOUT_DOT = /^[-+]?[0-9]+e/;
-
-function representYamlFloat(object, style) {
-  var res;
-
-  if (isNaN(object)) {
-    switch (style) {
-      case 'lowercase': return '.nan';
-      case 'uppercase': return '.NAN';
-      case 'camelcase': return '.NaN';
+  function constructYamlTimestamp(data) {
+    let fraction = 0;
+    let delta = null;
+    let match = YAML_DATE_REGEXP.exec(data);
+    if (match === null) match = YAML_TIMESTAMP_REGEXP.exec(data);
+    if (match === null) throw new Error("Date resolve error");
+    const year = +match[1];
+    const month = +match[2] - 1;
+    const day = +match[3];
+    if (!match[4]) {
+      return new Date(Date.UTC(year, month, day));
     }
-  } else if (Number.POSITIVE_INFINITY === object) {
-    switch (style) {
-      case 'lowercase': return '.inf';
-      case 'uppercase': return '.INF';
-      case 'camelcase': return '.Inf';
-    }
-  } else if (Number.NEGATIVE_INFINITY === object) {
-    switch (style) {
-      case 'lowercase': return '-.inf';
-      case 'uppercase': return '-.INF';
-      case 'camelcase': return '-.Inf';
-    }
-  } else if (common.isNegativeZero(object)) {
-    return '-0.0';
-  }
-
-  res = object.toString(10);
-
-  // JS stringifier can build scientific format without dots: 5e-100,
-  // while YAML requres dot: 5.e-100. Fix it with simple hack
-
-  return SCIENTIFIC_WITHOUT_DOT.test(res) ? res.replace('e', '.e') : res;
-}
-
-function isFloat(object) {
-  return (Object.prototype.toString.call(object) === '[object Number]') &&
-         (object % 1 !== 0 || common.isNegativeZero(object));
-}
-
-var js_yaml_float = new type('tag:yaml.org,2002:float', {
-  kind: 'scalar',
-  resolve: resolveYamlFloat,
-  construct: constructYamlFloat,
-  predicate: isFloat,
-  represent: representYamlFloat,
-  defaultStyle: 'lowercase'
-});
-
-var json = failsafe.extend({
-  implicit: [
-    _null,
-    bool,
-    js_yaml_int,
-    js_yaml_float
-  ]
-});
-
-var core = json;
-
-var YAML_DATE_REGEXP = new RegExp(
-  '^([0-9][0-9][0-9][0-9])'          + // [1] year
-  '-([0-9][0-9])'                    + // [2] month
-  '-([0-9][0-9])$');                   // [3] day
-
-var YAML_TIMESTAMP_REGEXP = new RegExp(
-  '^([0-9][0-9][0-9][0-9])'          + // [1] year
-  '-([0-9][0-9]?)'                   + // [2] month
-  '-([0-9][0-9]?)'                   + // [3] day
-  '(?:[Tt]|[ \\t]+)'                 + // ...
-  '([0-9][0-9]?)'                    + // [4] hour
-  ':([0-9][0-9])'                    + // [5] minute
-  ':([0-9][0-9])'                    + // [6] second
-  '(?:\\.([0-9]*))?'                 + // [7] fraction
-  '(?:[ \\t]*(Z|([-+])([0-9][0-9]?)' + // [8] tz [9] tz_sign [10] tz_hour
-  '(?::([0-9][0-9]))?))?$');           // [11] tz_minute
-
-function resolveYamlTimestamp(data) {
-  if (data === null) return false;
-  if (YAML_DATE_REGEXP.exec(data) !== null) return true;
-  if (YAML_TIMESTAMP_REGEXP.exec(data) !== null) return true;
-  return false;
-}
-
-function constructYamlTimestamp(data) {
-  var match, year, month, day, hour, minute, second, fraction = 0,
-      delta = null, tz_hour, tz_minute, date;
-
-  match = YAML_DATE_REGEXP.exec(data);
-  if (match === null) match = YAML_TIMESTAMP_REGEXP.exec(data);
-
-  if (match === null) throw new Error('Date resolve error');
-
-  // match: [1] year [2] month [3] day
-
-  year = +(match[1]);
-  month = +(match[2]) - 1; // JS month starts with 0
-  day = +(match[3]);
-
-  if (!match[4]) { // no hour
-    return new Date(Date.UTC(year, month, day));
-  }
-
-  // match: [4] hour [5] minute [6] second [7] fraction
-
-  hour = +(match[4]);
-  minute = +(match[5]);
-  second = +(match[6]);
-
-  if (match[7]) {
-    fraction = match[7].slice(0, 3);
-    while (fraction.length < 3) { // milli-seconds
-      fraction += '0';
-    }
-    fraction = +fraction;
-  }
-
-  // match: [8] tz [9] tz_sign [10] tz_hour [11] tz_minute
-
-  if (match[9]) {
-    tz_hour = +(match[10]);
-    tz_minute = +(match[11] || 0);
-    delta = (tz_hour * 60 + tz_minute) * 60000; // delta in mili-seconds
-    if (match[9] === '-') delta = -delta;
-  }
-
-  date = new Date(Date.UTC(year, month, day, hour, minute, second, fraction));
-
-  if (delta) date.setTime(date.getTime() - delta);
-
-  return date;
-}
-
-function representYamlTimestamp(object /*, style*/) {
-  return object.toISOString();
-}
-
-var timestamp = new type('tag:yaml.org,2002:timestamp', {
-  kind: 'scalar',
-  resolve: resolveYamlTimestamp,
-  construct: constructYamlTimestamp,
-  instanceOf: Date,
-  represent: representYamlTimestamp
-});
-
-function resolveYamlMerge(data) {
-  return data === '<<' || data === null;
-}
-
-var js_yaml_merge = new type('tag:yaml.org,2002:merge', {
-  kind: 'scalar',
-  resolve: resolveYamlMerge
-});
-
-/*eslint-disable no-bitwise*/
-
-
-
-
-
-// [ 64, 65, 66 ] -> [ padding, CR, LF ]
-var BASE64_MAP = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r';
-
-
-function resolveYamlBinary(data) {
-  if (data === null) return false;
-
-  var code, idx, bitlen = 0, max = data.length, map = BASE64_MAP;
-
-  // Convert one by one.
-  for (idx = 0; idx < max; idx++) {
-    code = map.indexOf(data.charAt(idx));
-
-    // Skip CR/LF
-    if (code > 64) continue;
-
-    // Fail on illegal characters
-    if (code < 0) return false;
-
-    bitlen += 6;
-  }
-
-  // If there are any bits left, source was corrupted
-  return (bitlen % 8) === 0;
-}
-
-function constructYamlBinary(data) {
-  var idx, tailbits,
-      input = data.replace(/[\r\n=]/g, ''), // remove CR/LF & padding to simplify scan
-      max = input.length,
-      map = BASE64_MAP,
-      bits = 0,
-      result = [];
-
-  // Collect by 6*4 bits (3 bytes)
-
-  for (idx = 0; idx < max; idx++) {
-    if ((idx % 4 === 0) && idx) {
-      result.push((bits >> 16) & 0xFF);
-      result.push((bits >> 8) & 0xFF);
-      result.push(bits & 0xFF);
-    }
-
-    bits = (bits << 6) | map.indexOf(input.charAt(idx));
-  }
-
-  // Dump tail
-
-  tailbits = (max % 4) * 6;
-
-  if (tailbits === 0) {
-    result.push((bits >> 16) & 0xFF);
-    result.push((bits >> 8) & 0xFF);
-    result.push(bits & 0xFF);
-  } else if (tailbits === 18) {
-    result.push((bits >> 10) & 0xFF);
-    result.push((bits >> 2) & 0xFF);
-  } else if (tailbits === 12) {
-    result.push((bits >> 4) & 0xFF);
-  }
-
-  return new Uint8Array(result);
-}
-
-function representYamlBinary(object /*, style*/) {
-  var result = '', bits = 0, idx, tail,
-      max = object.length,
-      map = BASE64_MAP;
-
-  // Convert every three bytes to 4 ASCII characters.
-
-  for (idx = 0; idx < max; idx++) {
-    if ((idx % 3 === 0) && idx) {
-      result += map[(bits >> 18) & 0x3F];
-      result += map[(bits >> 12) & 0x3F];
-      result += map[(bits >> 6) & 0x3F];
-      result += map[bits & 0x3F];
-    }
-
-    bits = (bits << 8) + object[idx];
-  }
-
-  // Dump tail
-
-  tail = max % 3;
-
-  if (tail === 0) {
-    result += map[(bits >> 18) & 0x3F];
-    result += map[(bits >> 12) & 0x3F];
-    result += map[(bits >> 6) & 0x3F];
-    result += map[bits & 0x3F];
-  } else if (tail === 2) {
-    result += map[(bits >> 10) & 0x3F];
-    result += map[(bits >> 4) & 0x3F];
-    result += map[(bits << 2) & 0x3F];
-    result += map[64];
-  } else if (tail === 1) {
-    result += map[(bits >> 2) & 0x3F];
-    result += map[(bits << 4) & 0x3F];
-    result += map[64];
-    result += map[64];
-  }
-
-  return result;
-}
-
-function isBinary(obj) {
-  return Object.prototype.toString.call(obj) ===  '[object Uint8Array]';
-}
-
-var binary = new type('tag:yaml.org,2002:binary', {
-  kind: 'scalar',
-  resolve: resolveYamlBinary,
-  construct: constructYamlBinary,
-  predicate: isBinary,
-  represent: representYamlBinary
-});
-
-var _hasOwnProperty$3 = Object.prototype.hasOwnProperty;
-var _toString$2       = Object.prototype.toString;
-
-function resolveYamlOmap(data) {
-  if (data === null) return true;
-
-  var objectKeys = [], index, length, pair, pairKey, pairHasKey,
-      object = data;
-
-  for (index = 0, length = object.length; index < length; index += 1) {
-    pair = object[index];
-    pairHasKey = false;
-
-    if (_toString$2.call(pair) !== '[object Object]') return false;
-
-    for (pairKey in pair) {
-      if (_hasOwnProperty$3.call(pair, pairKey)) {
-        if (!pairHasKey) pairHasKey = true;
-        else return false;
+    const hour = +match[4];
+    const minute = +match[5];
+    const second = +match[6];
+    if (match[7]) {
+      fraction = match[7].slice(0, 3);
+      while (fraction.length < 3) {
+        fraction += "0";
       }
+      fraction = +fraction;
     }
-
-    if (!pairHasKey) return false;
-
-    if (objectKeys.indexOf(pairKey) === -1) objectKeys.push(pairKey);
-    else return false;
+    if (match[9]) {
+      const tzHour = +match[10];
+      const tzMinute = +(match[11] || 0);
+      delta = (tzHour * 60 + tzMinute) * 6e4;
+      if (match[9] === "-") delta = -delta;
+    }
+    const date = new Date(Date.UTC(year, month, day, hour, minute, second, fraction));
+    if (delta) date.setTime(date.getTime() - delta);
+    return date;
   }
-
-  return true;
-}
-
-function constructYamlOmap(data) {
-  return data !== null ? data : [];
-}
-
-var omap = new type('tag:yaml.org,2002:omap', {
-  kind: 'sequence',
-  resolve: resolveYamlOmap,
-  construct: constructYamlOmap
-});
-
-var _toString$1 = Object.prototype.toString;
-
-function resolveYamlPairs(data) {
-  if (data === null) return true;
-
-  var index, length, pair, keys, result,
-      object = data;
-
-  result = new Array(object.length);
-
-  for (index = 0, length = object.length; index < length; index += 1) {
-    pair = object[index];
-
-    if (_toString$1.call(pair) !== '[object Object]') return false;
-
-    keys = Object.keys(pair);
-
-    if (keys.length !== 1) return false;
-
-    result[index] = [ keys[0], pair[keys[0]] ];
+  function representYamlTimestamp(object) {
+    return object.toISOString();
   }
-
-  return true;
+  timestamp = new Type2("tag:yaml.org,2002:timestamp", {
+    kind: "scalar",
+    resolve: resolveYamlTimestamp,
+    construct: constructYamlTimestamp,
+    instanceOf: Date,
+    represent: representYamlTimestamp
+  });
+  return timestamp;
 }
-
-function constructYamlPairs(data) {
-  if (data === null) return [];
-
-  var index, length, pair, keys, result,
-      object = data;
-
-  result = new Array(object.length);
-
-  for (index = 0, length = object.length; index < length; index += 1) {
-    pair = object[index];
-
-    keys = Object.keys(pair);
-
-    result[index] = [ keys[0], pair[keys[0]] ];
+var js_yaml_merge;
+var hasRequiredMerge;
+function requireMerge() {
+  if (hasRequiredMerge) return js_yaml_merge;
+  hasRequiredMerge = 1;
+  const Type2 = requireType();
+  function resolveYamlMerge(data) {
+    return data === "<<" || data === null;
   }
-
-  return result;
+  js_yaml_merge = new Type2("tag:yaml.org,2002:merge", {
+    kind: "scalar",
+    resolve: resolveYamlMerge
+  });
+  return js_yaml_merge;
 }
-
-var pairs = new type('tag:yaml.org,2002:pairs', {
-  kind: 'sequence',
-  resolve: resolveYamlPairs,
-  construct: constructYamlPairs
-});
-
-var _hasOwnProperty$2 = Object.prototype.hasOwnProperty;
-
-function resolveYamlSet(data) {
-  if (data === null) return true;
-
-  var key, object = data;
-
-  for (key in object) {
-    if (_hasOwnProperty$2.call(object, key)) {
-      if (object[key] !== null) return false;
+var binary;
+var hasRequiredBinary;
+function requireBinary() {
+  if (hasRequiredBinary) return binary;
+  hasRequiredBinary = 1;
+  const Type2 = requireType();
+  const BASE64_MAP = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r";
+  function resolveYamlBinary(data) {
+    if (data === null) return false;
+    let bitlen = 0;
+    const max = data.length;
+    const map2 = BASE64_MAP;
+    for (let idx = 0; idx < max; idx++) {
+      const code = map2.indexOf(data.charAt(idx));
+      if (code > 64) continue;
+      if (code < 0) return false;
+      bitlen += 6;
     }
+    return bitlen % 8 === 0;
   }
-
-  return true;
-}
-
-function constructYamlSet(data) {
-  return data !== null ? data : {};
-}
-
-var set = new type('tag:yaml.org,2002:set', {
-  kind: 'mapping',
-  resolve: resolveYamlSet,
-  construct: constructYamlSet
-});
-
-var _default = core.extend({
-  implicit: [
-    timestamp,
-    js_yaml_merge
-  ],
-  explicit: [
-    binary,
-    omap,
-    pairs,
-    set
-  ]
-});
-
-/*eslint-disable max-len,no-use-before-define*/
-
-
-
-
-
-
-
-var _hasOwnProperty$1 = Object.prototype.hasOwnProperty;
-
-
-var CONTEXT_FLOW_IN   = 1;
-var CONTEXT_FLOW_OUT  = 2;
-var CONTEXT_BLOCK_IN  = 3;
-var CONTEXT_BLOCK_OUT = 4;
-
-
-var CHOMPING_CLIP  = 1;
-var CHOMPING_STRIP = 2;
-var CHOMPING_KEEP  = 3;
-
-
-var PATTERN_NON_PRINTABLE         = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/;
-var PATTERN_NON_ASCII_LINE_BREAKS = /[\x85\u2028\u2029]/;
-var PATTERN_FLOW_INDICATORS       = /[,\[\]\{\}]/;
-var PATTERN_TAG_HANDLE            = /^(?:!|!!|![a-z\-]+!)$/i;
-var PATTERN_TAG_URI               = /^(?:!|[^,\[\]\{\}])(?:%[0-9a-f]{2}|[0-9a-z\-#;\/\?:@&=\+\$,_\.!~\*'\(\)\[\]])*$/i;
-
-
-function _class(obj) { return Object.prototype.toString.call(obj); }
-
-function is_EOL(c) {
-  return (c === 0x0A/* LF */) || (c === 0x0D/* CR */);
-}
-
-function is_WHITE_SPACE(c) {
-  return (c === 0x09/* Tab */) || (c === 0x20/* Space */);
-}
-
-function is_WS_OR_EOL(c) {
-  return (c === 0x09/* Tab */) ||
-         (c === 0x20/* Space */) ||
-         (c === 0x0A/* LF */) ||
-         (c === 0x0D/* CR */);
-}
-
-function is_FLOW_INDICATOR(c) {
-  return c === 0x2C/* , */ ||
-         c === 0x5B/* [ */ ||
-         c === 0x5D/* ] */ ||
-         c === 0x7B/* { */ ||
-         c === 0x7D/* } */;
-}
-
-function fromHexCode(c) {
-  var lc;
-
-  if ((0x30/* 0 */ <= c) && (c <= 0x39/* 9 */)) {
-    return c - 0x30;
+  function constructYamlBinary(data) {
+    const input = data.replace(/[\r\n=]/g, "");
+    const max = input.length;
+    const map2 = BASE64_MAP;
+    let bits = 0;
+    const result = [];
+    for (let idx = 0; idx < max; idx++) {
+      if (idx % 4 === 0 && idx) {
+        result.push(bits >> 16 & 255);
+        result.push(bits >> 8 & 255);
+        result.push(bits & 255);
+      }
+      bits = bits << 6 | map2.indexOf(input.charAt(idx));
+    }
+    const tailbits = max % 4 * 6;
+    if (tailbits === 0) {
+      result.push(bits >> 16 & 255);
+      result.push(bits >> 8 & 255);
+      result.push(bits & 255);
+    } else if (tailbits === 18) {
+      result.push(bits >> 10 & 255);
+      result.push(bits >> 2 & 255);
+    } else if (tailbits === 12) {
+      result.push(bits >> 4 & 255);
+    }
+    return new Uint8Array(result);
   }
-
-  /*eslint-disable no-bitwise*/
-  lc = c | 0x20;
-
-  if ((0x61/* a */ <= lc) && (lc <= 0x66/* f */)) {
-    return lc - 0x61 + 10;
+  function representYamlBinary(object) {
+    let result = "";
+    let bits = 0;
+    const max = object.length;
+    const map2 = BASE64_MAP;
+    for (let idx = 0; idx < max; idx++) {
+      if (idx % 3 === 0 && idx) {
+        result += map2[bits >> 18 & 63];
+        result += map2[bits >> 12 & 63];
+        result += map2[bits >> 6 & 63];
+        result += map2[bits & 63];
+      }
+      bits = (bits << 8) + object[idx];
+    }
+    const tail = max % 3;
+    if (tail === 0) {
+      result += map2[bits >> 18 & 63];
+      result += map2[bits >> 12 & 63];
+      result += map2[bits >> 6 & 63];
+      result += map2[bits & 63];
+    } else if (tail === 2) {
+      result += map2[bits >> 10 & 63];
+      result += map2[bits >> 4 & 63];
+      result += map2[bits << 2 & 63];
+      result += map2[64];
+    } else if (tail === 1) {
+      result += map2[bits >> 2 & 63];
+      result += map2[bits << 4 & 63];
+      result += map2[64];
+      result += map2[64];
+    }
+    return result;
   }
-
-  return -1;
-}
-
-function escapedHexLen(c) {
-  if (c === 0x78/* x */) { return 2; }
-  if (c === 0x75/* u */) { return 4; }
-  if (c === 0x55/* U */) { return 8; }
-  return 0;
-}
-
-function fromDecimalCode(c) {
-  if ((0x30/* 0 */ <= c) && (c <= 0x39/* 9 */)) {
-    return c - 0x30;
+  function isBinary(obj) {
+    return Object.prototype.toString.call(obj) === "[object Uint8Array]";
   }
-
-  return -1;
+  binary = new Type2("tag:yaml.org,2002:binary", {
+    kind: "scalar",
+    resolve: resolveYamlBinary,
+    construct: constructYamlBinary,
+    predicate: isBinary,
+    represent: representYamlBinary
+  });
+  return binary;
 }
-
-function simpleEscapeSequence(c) {
-  /* eslint-disable indent */
-  return (c === 0x30/* 0 */) ? '\x00' :
-        (c === 0x61/* a */) ? '\x07' :
-        (c === 0x62/* b */) ? '\x08' :
-        (c === 0x74/* t */) ? '\x09' :
-        (c === 0x09/* Tab */) ? '\x09' :
-        (c === 0x6E/* n */) ? '\x0A' :
-        (c === 0x76/* v */) ? '\x0B' :
-        (c === 0x66/* f */) ? '\x0C' :
-        (c === 0x72/* r */) ? '\x0D' :
-        (c === 0x65/* e */) ? '\x1B' :
-        (c === 0x20/* Space */) ? ' ' :
-        (c === 0x22/* " */) ? '\x22' :
-        (c === 0x2F/* / */) ? '/' :
-        (c === 0x5C/* \ */) ? '\x5C' :
-        (c === 0x4E/* N */) ? '\x85' :
-        (c === 0x5F/* _ */) ? '\xA0' :
-        (c === 0x4C/* L */) ? '\u2028' :
-        (c === 0x50/* P */) ? '\u2029' : '';
-}
-
-function charFromCodepoint(c) {
-  if (c <= 0xFFFF) {
-    return String.fromCharCode(c);
-  }
-  // Encode UTF-16 surrogate pair
-  // https://en.wikipedia.org/wiki/UTF-16#Code_points_U.2B010000_to_U.2B10FFFF
-  return String.fromCharCode(
-    ((c - 0x010000) >> 10) + 0xD800,
-    ((c - 0x010000) & 0x03FF) + 0xDC00
-  );
-}
-
-// set a property of a literal object, while protecting against prototype pollution,
-// see https://github.com/nodeca/js-yaml/issues/164 for more details
-function setProperty(object, key, value) {
-  // used for this specific key only because Object.defineProperty is slow
-  if (key === '__proto__') {
-    Object.defineProperty(object, key, {
-      configurable: true,
-      enumerable: true,
-      writable: true,
-      value: value
-    });
-  } else {
-    object[key] = value;
-  }
-}
-
-var simpleEscapeCheck = new Array(256); // integer, for fast access
-var simpleEscapeMap = new Array(256);
-for (var i = 0; i < 256; i++) {
-  simpleEscapeCheck[i] = simpleEscapeSequence(i) ? 1 : 0;
-  simpleEscapeMap[i] = simpleEscapeSequence(i);
-}
-
-
-function State$1(input, options) {
-  this.input = input;
-
-  this.filename  = options['filename']  || null;
-  this.schema    = options['schema']    || _default;
-  this.onWarning = options['onWarning'] || null;
-  // (Hidden) Remove? makes the loader to expect YAML 1.1 documents
-  // if such documents have no explicit %YAML directive
-  this.legacy    = options['legacy']    || false;
-
-  this.json      = options['json']      || false;
-  this.listener  = options['listener']  || null;
-
-  this.implicitTypes = this.schema.compiledImplicit;
-  this.typeMap       = this.schema.compiledTypeMap;
-
-  this.length     = input.length;
-  this.position   = 0;
-  this.line       = 0;
-  this.lineStart  = 0;
-  this.lineIndent = 0;
-
-  // position of first leading tab in the current line,
-  // used to make sure there are no tabs in the indentation
-  this.firstTabInLine = -1;
-
-  this.documents = [];
-
-  /*
-  this.version;
-  this.checkLineBreaks;
-  this.tagMap;
-  this.anchorMap;
-  this.tag;
-  this.anchor;
-  this.kind;
-  this.result;*/
-
-}
-
-
-function generateError(state, message) {
-  var mark = {
-    name:     state.filename,
-    buffer:   state.input.slice(0, -1), // omit trailing \0
-    position: state.position,
-    line:     state.line,
-    column:   state.position - state.lineStart
-  };
-
-  mark.snippet = snippet(mark);
-
-  return new exception(message, mark);
-}
-
-function throwError(state, message) {
-  throw generateError(state, message);
-}
-
-function throwWarning(state, message) {
-  if (state.onWarning) {
-    state.onWarning.call(null, generateError(state, message));
-  }
-}
-
-
-var directiveHandlers = {
-
-  YAML: function handleYamlDirective(state, name, args) {
-
-    var match, major, minor;
-
-    if (state.version !== null) {
-      throwError(state, 'duplication of %YAML directive');
-    }
-
-    if (args.length !== 1) {
-      throwError(state, 'YAML directive accepts exactly one argument');
-    }
-
-    match = /^([0-9]+)\.([0-9]+)$/.exec(args[0]);
-
-    if (match === null) {
-      throwError(state, 'ill-formed argument of the YAML directive');
-    }
-
-    major = parseInt(match[1], 10);
-    minor = parseInt(match[2], 10);
-
-    if (major !== 1) {
-      throwError(state, 'unacceptable YAML version of the document');
-    }
-
-    state.version = args[0];
-    state.checkLineBreaks = (minor < 2);
-
-    if (minor !== 1 && minor !== 2) {
-      throwWarning(state, 'unsupported YAML version of the document');
-    }
-  },
-
-  TAG: function handleTagDirective(state, name, args) {
-
-    var handle, prefix;
-
-    if (args.length !== 2) {
-      throwError(state, 'TAG directive accepts exactly two arguments');
-    }
-
-    handle = args[0];
-    prefix = args[1];
-
-    if (!PATTERN_TAG_HANDLE.test(handle)) {
-      throwError(state, 'ill-formed tag handle (first argument) of the TAG directive');
-    }
-
-    if (_hasOwnProperty$1.call(state.tagMap, handle)) {
-      throwError(state, 'there is a previously declared suffix for "' + handle + '" tag handle');
-    }
-
-    if (!PATTERN_TAG_URI.test(prefix)) {
-      throwError(state, 'ill-formed tag prefix (second argument) of the TAG directive');
-    }
-
-    try {
-      prefix = decodeURIComponent(prefix);
-    } catch (err) {
-      throwError(state, 'tag prefix is malformed: ' + prefix);
-    }
-
-    state.tagMap[handle] = prefix;
-  }
-};
-
-
-function captureSegment(state, start, end, checkJson) {
-  var _position, _length, _character, _result;
-
-  if (start < end) {
-    _result = state.input.slice(start, end);
-
-    if (checkJson) {
-      for (_position = 0, _length = _result.length; _position < _length; _position += 1) {
-        _character = _result.charCodeAt(_position);
-        if (!(_character === 0x09 ||
-              (0x20 <= _character && _character <= 0x10FFFF))) {
-          throwError(state, 'expected valid JSON character');
+var omap;
+var hasRequiredOmap;
+function requireOmap() {
+  if (hasRequiredOmap) return omap;
+  hasRequiredOmap = 1;
+  const Type2 = requireType();
+  const _hasOwnProperty = Object.prototype.hasOwnProperty;
+  const _toString = Object.prototype.toString;
+  function resolveYamlOmap(data) {
+    if (data === null) return true;
+    const objectKeys = {};
+    const object = data;
+    for (let index = 0, length = object.length; index < length; index += 1) {
+      const pair = object[index];
+      let pairHasKey = false;
+      if (_toString.call(pair) !== "[object Object]") return false;
+      let pairKey;
+      for (pairKey in pair) {
+        if (_hasOwnProperty.call(pair, pairKey)) {
+          if (!pairHasKey) pairHasKey = true;
+          else return false;
         }
       }
-    } else if (PATTERN_NON_PRINTABLE.test(_result)) {
-      throwError(state, 'the stream contains non-printable characters');
+      if (!pairHasKey) return false;
+      if (_hasOwnProperty.call(objectKeys, pairKey)) return false;
+      Object.defineProperty(objectKeys, pairKey, { value: true });
     }
-
-    state.result += _result;
+    return true;
   }
+  function constructYamlOmap(data) {
+    return data !== null ? data : [];
+  }
+  omap = new Type2("tag:yaml.org,2002:omap", {
+    kind: "sequence",
+    resolve: resolveYamlOmap,
+    construct: constructYamlOmap
+  });
+  return omap;
 }
-
-function mergeMappings(state, destination, source, overridableKeys) {
-  var sourceKeys, key, index, quantity;
-
-  if (!common.isObject(source)) {
-    throwError(state, 'cannot merge mappings; the provided source object is unacceptable');
-  }
-
-  sourceKeys = Object.keys(source);
-
-  for (index = 0, quantity = sourceKeys.length; index < quantity; index += 1) {
-    key = sourceKeys[index];
-
-    if (!_hasOwnProperty$1.call(destination, key)) {
-      setProperty(destination, key, source[key]);
-      overridableKeys[key] = true;
+var pairs;
+var hasRequiredPairs;
+function requirePairs() {
+  if (hasRequiredPairs) return pairs;
+  hasRequiredPairs = 1;
+  const Type2 = requireType();
+  const _toString = Object.prototype.toString;
+  function resolveYamlPairs(data) {
+    if (data === null) return true;
+    const object = data;
+    const result = new Array(object.length);
+    for (let index = 0, length = object.length; index < length; index += 1) {
+      const pair = object[index];
+      if (_toString.call(pair) !== "[object Object]") return false;
+      const keys = Object.keys(pair);
+      if (keys.length !== 1) return false;
+      result[index] = [keys[0], pair[keys[0]]];
     }
+    return true;
   }
+  function constructYamlPairs(data) {
+    if (data === null) return [];
+    const object = data;
+    const result = new Array(object.length);
+    for (let index = 0, length = object.length; index < length; index += 1) {
+      const pair = object[index];
+      const keys = Object.keys(pair);
+      result[index] = [keys[0], pair[keys[0]]];
+    }
+    return result;
+  }
+  pairs = new Type2("tag:yaml.org,2002:pairs", {
+    kind: "sequence",
+    resolve: resolveYamlPairs,
+    construct: constructYamlPairs
+  });
+  return pairs;
 }
-
-function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode,
-  startLine, startLineStart, startPos) {
-
-  var index, quantity;
-
-  // The output is a plain object here, so keys can only be strings.
-  // We need to convert keyNode to a string, but doing so can hang the process
-  // (deeply nested arrays that explode exponentially using aliases).
-  if (Array.isArray(keyNode)) {
-    keyNode = Array.prototype.slice.call(keyNode);
-
-    for (index = 0, quantity = keyNode.length; index < quantity; index += 1) {
-      if (Array.isArray(keyNode[index])) {
-        throwError(state, 'nested arrays are not supported inside keys');
+var set;
+var hasRequiredSet;
+function requireSet() {
+  if (hasRequiredSet) return set;
+  hasRequiredSet = 1;
+  const Type2 = requireType();
+  const _hasOwnProperty = Object.prototype.hasOwnProperty;
+  function resolveYamlSet(data) {
+    if (data === null) return true;
+    const object = data;
+    for (const key in object) {
+      if (_hasOwnProperty.call(object, key)) {
+        if (object[key] !== null) return false;
       }
-
-      if (typeof keyNode === 'object' && _class(keyNode[index]) === '[object Object]') {
-        keyNode[index] = '[object Object]';
+    }
+    return true;
+  }
+  function constructYamlSet(data) {
+    return data !== null ? data : {};
+  }
+  set = new Type2("tag:yaml.org,2002:set", {
+    kind: "mapping",
+    resolve: resolveYamlSet,
+    construct: constructYamlSet
+  });
+  return set;
+}
+var _default;
+var hasRequired_default;
+function require_default() {
+  if (hasRequired_default) return _default;
+  hasRequired_default = 1;
+  _default = requireCore().extend({
+    implicit: [
+      requireTimestamp(),
+      requireMerge()
+    ],
+    explicit: [
+      requireBinary(),
+      requireOmap(),
+      requirePairs(),
+      requireSet()
+    ]
+  });
+  return _default;
+}
+var hasRequiredLoader;
+function requireLoader() {
+  if (hasRequiredLoader) return loader;
+  hasRequiredLoader = 1;
+  const common2 = requireCommon();
+  const YAMLException2 = requireException();
+  const makeSnippet = requireSnippet();
+  const DEFAULT_SCHEMA2 = require_default();
+  const _hasOwnProperty = Object.prototype.hasOwnProperty;
+  const CONTEXT_FLOW_IN = 1;
+  const CONTEXT_FLOW_OUT = 2;
+  const CONTEXT_BLOCK_IN = 3;
+  const CONTEXT_BLOCK_OUT = 4;
+  const CHOMPING_CLIP = 1;
+  const CHOMPING_STRIP = 2;
+  const CHOMPING_KEEP = 3;
+  const PATTERN_NON_PRINTABLE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/;
+  const PATTERN_NON_ASCII_LINE_BREAKS = /[\x85\u2028\u2029]/;
+  const PATTERN_FLOW_INDICATORS = /[,\[\]{}]/;
+  const PATTERN_TAG_HANDLE = /^(?:!|!!|![0-9A-Za-z-]+!)$/;
+  const PATTERN_TAG_URI = /^(?:!|[^,\[\]{}])(?:%[0-9a-f]{2}|[0-9a-z\-#;/?:@&=+$,_.!~*'()\[\]])*$/i;
+  function _class(obj) {
+    return Object.prototype.toString.call(obj);
+  }
+  function isEol(c) {
+    return c === 10 || c === 13;
+  }
+  function isWhiteSpace(c) {
+    return c === 9 || c === 32;
+  }
+  function isWsOrEol(c) {
+    return c === 9 || c === 32 || c === 10 || c === 13;
+  }
+  function isFlowIndicator(c) {
+    return c === 44 || c === 91 || c === 93 || c === 123 || c === 125;
+  }
+  function fromHexCode(c) {
+    if (c >= 48 && c <= 57) {
+      return c - 48;
+    }
+    const lc = c | 32;
+    if (lc >= 97 && lc <= 102) {
+      return lc - 97 + 10;
+    }
+    return -1;
+  }
+  function escapedHexLen(c) {
+    if (c === 120) {
+      return 2;
+    }
+    if (c === 117) {
+      return 4;
+    }
+    if (c === 85) {
+      return 8;
+    }
+    return 0;
+  }
+  function fromDecimalCode(c) {
+    if (c >= 48 && c <= 57) {
+      return c - 48;
+    }
+    return -1;
+  }
+  function simpleEscapeSequence(c) {
+    switch (c) {
+      case 48:
+        return "\0";
+      case 97:
+        return "\x07";
+      case 98:
+        return "\b";
+      case 116:
+        return "	";
+      case 9:
+        return "	";
+      case 110:
+        return "\n";
+      case 118:
+        return "\v";
+      case 102:
+        return "\f";
+      case 114:
+        return "\r";
+      case 101:
+        return "\x1B";
+      case 32:
+        return " ";
+      case 34:
+        return '"';
+      case 47:
+        return "/";
+      case 92:
+        return "\\";
+      case 78:
+        return "";
+      case 95:
+        return " ";
+      case 76:
+        return "\u2028";
+      case 80:
+        return "\u2029";
+      default:
+        return "";
+    }
+  }
+  function charFromCodepoint(c) {
+    if (c <= 65535) {
+      return String.fromCharCode(c);
+    }
+    return String.fromCharCode(
+      (c - 65536 >> 10) + 55296,
+      (c - 65536 & 1023) + 56320
+    );
+  }
+  function setProperty(object, key, value) {
+    if (key === "__proto__") {
+      Object.defineProperty(object, key, {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value
+      });
+    } else {
+      object[key] = value;
+    }
+  }
+  const simpleEscapeCheck = new Array(256);
+  const simpleEscapeMap = new Array(256);
+  for (let i = 0; i < 256; i++) {
+    simpleEscapeCheck[i] = simpleEscapeSequence(i) ? 1 : 0;
+    simpleEscapeMap[i] = simpleEscapeSequence(i);
+  }
+  function State(input, options) {
+    this.input = input;
+    this.filename = options["filename"] || null;
+    this.schema = options["schema"] || DEFAULT_SCHEMA2;
+    this.onWarning = options["onWarning"] || null;
+    this.legacy = options["legacy"] || false;
+    this.json = options["json"] || false;
+    this.listener = options["listener"] || null;
+    this.maxDepth = typeof options["maxDepth"] === "number" ? options["maxDepth"] : 100;
+    this.maxTotalMergeKeys = typeof options["maxTotalMergeKeys"] === "number" ? options["maxTotalMergeKeys"] : 1e4;
+    this.implicitTypes = this.schema.compiledImplicit;
+    this.typeMap = this.schema.compiledTypeMap;
+    this.length = input.length;
+    this.position = 0;
+    this.line = 0;
+    this.lineStart = 0;
+    this.lineIndent = 0;
+    this.depth = 0;
+    this.totalMergeKeys = 0;
+    this.firstTabInLine = -1;
+    this.documents = [];
+    this.anchorMapTransactions = [];
+  }
+  function generateError(state, message) {
+    const mark = {
+      name: state.filename,
+      buffer: state.input.slice(0, -1),
+      // omit trailing \0
+      position: state.position,
+      line: state.line,
+      column: state.position - state.lineStart
+    };
+    mark.snippet = makeSnippet(mark);
+    return new YAMLException2(message, mark);
+  }
+  function throwError(state, message) {
+    throw generateError(state, message);
+  }
+  function throwWarning(state, message) {
+    if (state.onWarning) {
+      state.onWarning.call(null, generateError(state, message));
+    }
+  }
+  function storeAnchor(state, name, value) {
+    const transactions = state.anchorMapTransactions;
+    if (transactions.length !== 0) {
+      const transaction = transactions[transactions.length - 1];
+      if (!_hasOwnProperty.call(transaction, name)) {
+        transaction[name] = {
+          existed: _hasOwnProperty.call(state.anchorMap, name),
+          value: state.anchorMap[name]
+        };
+      }
+    }
+    state.anchorMap[name] = value;
+  }
+  function beginAnchorTransaction(state) {
+    state.anchorMapTransactions.push(/* @__PURE__ */ Object.create(null));
+  }
+  function commitAnchorTransaction(state) {
+    const transaction = state.anchorMapTransactions.pop();
+    const transactions = state.anchorMapTransactions;
+    if (transactions.length === 0) return;
+    const parent = transactions[transactions.length - 1];
+    const names = Object.keys(transaction);
+    for (let index = 0, length = names.length; index < length; index += 1) {
+      const name = names[index];
+      if (!_hasOwnProperty.call(parent, name)) {
+        parent[name] = transaction[name];
       }
     }
   }
-
-  // Avoid code execution in load() via toString property
-  // (still use its own toString for arrays, timestamps,
-  // and whatever user schema extensions happen to have @@toStringTag)
-  if (typeof keyNode === 'object' && _class(keyNode) === '[object Object]') {
-    keyNode = '[object Object]';
+  function rollbackAnchorTransaction(state) {
+    const transaction = state.anchorMapTransactions.pop();
+    const names = Object.keys(transaction);
+    for (let index = names.length - 1; index >= 0; index -= 1) {
+      const entry = transaction[names[index]];
+      if (entry.existed) {
+        state.anchorMap[names[index]] = entry.value;
+      } else {
+        delete state.anchorMap[names[index]];
+      }
+    }
   }
-
-
-  keyNode = String(keyNode);
-
-  if (_result === null) {
-    _result = {};
+  function snapshotState(state) {
+    return {
+      position: state.position,
+      line: state.line,
+      lineStart: state.lineStart,
+      lineIndent: state.lineIndent,
+      firstTabInLine: state.firstTabInLine,
+      tag: state.tag,
+      anchor: state.anchor,
+      kind: state.kind,
+      result: state.result
+    };
   }
-
-  if (keyTag === 'tag:yaml.org,2002:merge') {
-    if (Array.isArray(valueNode)) {
-      for (index = 0, quantity = valueNode.length; index < quantity; index += 1) {
-        mergeMappings(state, _result, valueNode[index], overridableKeys);
+  function restoreState(state, snapshot) {
+    state.position = snapshot.position;
+    state.line = snapshot.line;
+    state.lineStart = snapshot.lineStart;
+    state.lineIndent = snapshot.lineIndent;
+    state.firstTabInLine = snapshot.firstTabInLine;
+    state.tag = snapshot.tag;
+    state.anchor = snapshot.anchor;
+    state.kind = snapshot.kind;
+    state.result = snapshot.result;
+  }
+  const directiveHandlers = {
+    YAML: function handleYamlDirective(state, name, args) {
+      if (state.version !== null) {
+        throwError(state, "duplication of %YAML directive");
+      }
+      if (args.length !== 1) {
+        throwError(state, "YAML directive accepts exactly one argument");
+      }
+      const match = /^([0-9]+)\.([0-9]+)$/.exec(args[0]);
+      if (match === null) {
+        throwError(state, "ill-formed argument of the YAML directive");
+      }
+      const major = parseInt(match[1], 10);
+      const minor = parseInt(match[2], 10);
+      if (major !== 1) {
+        throwError(state, "unacceptable YAML version of the document");
+      }
+      state.version = args[0];
+      state.checkLineBreaks = minor < 2;
+      if (minor !== 1 && minor !== 2) {
+        throwWarning(state, "unsupported YAML version of the document");
+      }
+    },
+    TAG: function handleTagDirective(state, name, args) {
+      let prefix;
+      if (args.length !== 2) {
+        throwError(state, "TAG directive accepts exactly two arguments");
+      }
+      const handle = args[0];
+      prefix = args[1];
+      if (!PATTERN_TAG_HANDLE.test(handle)) {
+        throwError(state, "ill-formed tag handle (first argument) of the TAG directive");
+      }
+      if (_hasOwnProperty.call(state.tagMap, handle)) {
+        throwError(state, 'there is a previously declared suffix for "' + handle + '" tag handle');
+      }
+      if (!PATTERN_TAG_URI.test(prefix)) {
+        throwError(state, "ill-formed tag prefix (second argument) of the TAG directive");
+      }
+      try {
+        prefix = decodeURIComponent(prefix);
+      } catch (err) {
+        throwError(state, "tag prefix is malformed: " + prefix);
+      }
+      state.tagMap[handle] = prefix;
+    }
+  };
+  function captureSegment(state, start, end, checkJson) {
+    if (start < end) {
+      const _result = state.input.slice(start, end);
+      if (checkJson) {
+        for (let _position = 0, _length = _result.length; _position < _length; _position += 1) {
+          const _character = _result.charCodeAt(_position);
+          if (!(_character === 9 || _character >= 32 && _character <= 1114111)) {
+            throwError(state, "expected valid JSON character");
+          }
+        }
+      } else if (PATTERN_NON_PRINTABLE.test(_result)) {
+        throwError(state, "the stream contains non-printable characters");
+      }
+      state.result += _result;
+    }
+  }
+  function chargeMergeWork(state) {
+    state.totalMergeKeys++;
+    if (state.maxTotalMergeKeys !== -1 && state.totalMergeKeys > state.maxTotalMergeKeys) {
+      throwError(state, "merge keys exceeded maxTotalMergeKeys (" + state.maxTotalMergeKeys + ")");
+    }
+  }
+  function mergeMappings(state, destination, source, overridableKeys) {
+    if (!common2.isObject(source)) {
+      throwError(state, "cannot merge mappings; the provided source object is unacceptable");
+    }
+    chargeMergeWork(state);
+    const sourceKeys = Object.keys(source);
+    for (let index = 0, quantity = sourceKeys.length; index < quantity; index += 1) {
+      const key = sourceKeys[index];
+      chargeMergeWork(state);
+      if (!_hasOwnProperty.call(destination, key)) {
+        setProperty(destination, key, source[key]);
+        overridableKeys[key] = true;
+      }
+    }
+  }
+  function storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, startLine, startLineStart, startPos) {
+    if (Array.isArray(keyNode)) {
+      keyNode = Array.prototype.slice.call(keyNode);
+      for (let index = 0, quantity = keyNode.length; index < quantity; index += 1) {
+        if (Array.isArray(keyNode[index])) {
+          throwError(state, "nested arrays are not supported inside keys");
+        }
+        if (typeof keyNode === "object" && _class(keyNode[index]) === "[object Object]") {
+          keyNode[index] = "[object Object]";
+        }
+      }
+    }
+    if (typeof keyNode === "object" && _class(keyNode) === "[object Object]") {
+      keyNode = "[object Object]";
+    }
+    keyNode = String(keyNode);
+    if (_result === null) {
+      _result = {};
+    }
+    if (keyTag === "tag:yaml.org,2002:merge") {
+      if (Array.isArray(valueNode)) {
+        if (valueNode.length > 100) {
+          throwError(state, "abnormal merge sequence size");
+        }
+        for (let index = 0, quantity = valueNode.length; index < quantity; index += 1) {
+          mergeMappings(state, _result, valueNode[index], overridableKeys);
+        }
+      } else {
+        mergeMappings(state, _result, valueNode, overridableKeys);
       }
     } else {
-      mergeMappings(state, _result, valueNode, overridableKeys);
+      if (!state.json && !_hasOwnProperty.call(overridableKeys, keyNode) && _hasOwnProperty.call(_result, keyNode)) {
+        state.line = startLine || state.line;
+        state.lineStart = startLineStart || state.lineStart;
+        state.position = startPos || state.position;
+        throwError(state, "duplicated mapping key");
+      }
+      setProperty(_result, keyNode, valueNode);
+      delete overridableKeys[keyNode];
     }
-  } else {
-    if (!state.json &&
-        !_hasOwnProperty$1.call(overridableKeys, keyNode) &&
-        _hasOwnProperty$1.call(_result, keyNode)) {
-      state.line = startLine || state.line;
-      state.lineStart = startLineStart || state.lineStart;
-      state.position = startPos || state.position;
-      throwError(state, 'duplicated mapping key');
-    }
-
-    setProperty(_result, keyNode, valueNode);
-    delete overridableKeys[keyNode];
+    return _result;
   }
-
-  return _result;
-}
-
-function readLineBreak(state) {
-  var ch;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (ch === 0x0A/* LF */) {
-    state.position++;
-  } else if (ch === 0x0D/* CR */) {
-    state.position++;
-    if (state.input.charCodeAt(state.position) === 0x0A/* LF */) {
+  function readLineBreak(state) {
+    const ch = state.input.charCodeAt(state.position);
+    if (ch === 10) {
       state.position++;
+    } else if (ch === 13) {
+      state.position++;
+      if (state.input.charCodeAt(state.position) === 10) {
+        state.position++;
+      }
+    } else {
+      throwError(state, "a line break is expected");
     }
-  } else {
-    throwError(state, 'a line break is expected');
+    state.line += 1;
+    state.lineStart = state.position;
+    state.firstTabInLine = -1;
   }
-
-  state.line += 1;
-  state.lineStart = state.position;
-  state.firstTabInLine = -1;
-}
-
-function skipSeparationSpace(state, allowComments, checkIndent) {
-  var lineBreaks = 0,
-      ch = state.input.charCodeAt(state.position);
-
-  while (ch !== 0) {
-    while (is_WHITE_SPACE(ch)) {
-      if (ch === 0x09/* Tab */ && state.firstTabInLine === -1) {
-        state.firstTabInLine = state.position;
+  function skipSeparationSpace(state, allowComments, checkIndent) {
+    let lineBreaks = 0;
+    let ch = state.input.charCodeAt(state.position);
+    while (ch !== 0) {
+      while (isWhiteSpace(ch)) {
+        if (ch === 9 && state.firstTabInLine === -1) {
+          state.firstTabInLine = state.position;
+        }
+        ch = state.input.charCodeAt(++state.position);
+      }
+      if (allowComments && ch === 35) {
+        do {
+          ch = state.input.charCodeAt(++state.position);
+        } while (ch !== 10 && ch !== 13 && ch !== 0);
+      }
+      if (isEol(ch)) {
+        readLineBreak(state);
+        ch = state.input.charCodeAt(state.position);
+        lineBreaks++;
+        state.lineIndent = 0;
+        while (ch === 32) {
+          state.lineIndent++;
+          ch = state.input.charCodeAt(++state.position);
+        }
+      } else {
+        break;
+      }
+    }
+    if (checkIndent !== -1 && lineBreaks !== 0 && state.lineIndent < checkIndent) {
+      throwWarning(state, "deficient indentation");
+    }
+    return lineBreaks;
+  }
+  function testDocumentSeparator(state) {
+    let _position = state.position;
+    let ch = state.input.charCodeAt(_position);
+    if ((ch === 45 || ch === 46) && ch === state.input.charCodeAt(_position + 1) && ch === state.input.charCodeAt(_position + 2)) {
+      _position += 3;
+      ch = state.input.charCodeAt(_position);
+      if (ch === 0 || isWsOrEol(ch)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  function writeFoldedLines(state, count) {
+    if (count === 1) {
+      state.result += " ";
+    } else if (count > 1) {
+      state.result += common2.repeat("\n", count - 1);
+    }
+  }
+  function readPlainScalar(state, nodeIndent, withinFlowCollection) {
+    let captureStart;
+    let captureEnd;
+    let hasPendingContent;
+    let _line;
+    let _lineStart;
+    let _lineIndent;
+    const _kind = state.kind;
+    const _result = state.result;
+    let ch = state.input.charCodeAt(state.position);
+    if (isWsOrEol(ch) || isFlowIndicator(ch) || ch === 35 || ch === 38 || ch === 42 || ch === 33 || ch === 124 || ch === 62 || ch === 39 || ch === 34 || ch === 37 || ch === 64 || ch === 96) {
+      return false;
+    }
+    if (ch === 63 || ch === 45) {
+      const following = state.input.charCodeAt(state.position + 1);
+      if (isWsOrEol(following) || withinFlowCollection && isFlowIndicator(following)) {
+        return false;
+      }
+    }
+    state.kind = "scalar";
+    state.result = "";
+    captureStart = captureEnd = state.position;
+    hasPendingContent = false;
+    while (ch !== 0) {
+      if (ch === 58) {
+        const following = state.input.charCodeAt(state.position + 1);
+        if (isWsOrEol(following) || withinFlowCollection && isFlowIndicator(following)) {
+          break;
+        }
+      } else if (ch === 35) {
+        const preceding = state.input.charCodeAt(state.position - 1);
+        if (isWsOrEol(preceding)) {
+          break;
+        }
+      } else if (state.position === state.lineStart && testDocumentSeparator(state) || withinFlowCollection && isFlowIndicator(ch)) {
+        break;
+      } else if (isEol(ch)) {
+        _line = state.line;
+        _lineStart = state.lineStart;
+        _lineIndent = state.lineIndent;
+        skipSeparationSpace(state, false, -1);
+        if (state.lineIndent >= nodeIndent) {
+          hasPendingContent = true;
+          ch = state.input.charCodeAt(state.position);
+          continue;
+        } else {
+          state.position = captureEnd;
+          state.line = _line;
+          state.lineStart = _lineStart;
+          state.lineIndent = _lineIndent;
+          break;
+        }
+      }
+      if (hasPendingContent) {
+        captureSegment(state, captureStart, captureEnd, false);
+        writeFoldedLines(state, state.line - _line);
+        captureStart = captureEnd = state.position;
+        hasPendingContent = false;
+      }
+      if (!isWhiteSpace(ch)) {
+        captureEnd = state.position + 1;
       }
       ch = state.input.charCodeAt(++state.position);
     }
-
-    if (allowComments && ch === 0x23/* # */) {
+    captureSegment(state, captureStart, captureEnd, false);
+    if (state.result) {
+      return true;
+    }
+    state.kind = _kind;
+    state.result = _result;
+    return false;
+  }
+  function readSingleQuotedScalar(state, nodeIndent) {
+    let captureStart;
+    let captureEnd;
+    let ch = state.input.charCodeAt(state.position);
+    if (ch !== 39) {
+      return false;
+    }
+    state.kind = "scalar";
+    state.result = "";
+    state.position++;
+    captureStart = captureEnd = state.position;
+    while ((ch = state.input.charCodeAt(state.position)) !== 0) {
+      if (ch === 39) {
+        captureSegment(state, captureStart, state.position, true);
+        ch = state.input.charCodeAt(++state.position);
+        if (ch === 39) {
+          captureStart = state.position;
+          state.position++;
+          captureEnd = state.position;
+        } else {
+          return true;
+        }
+      } else if (isEol(ch)) {
+        captureSegment(state, captureStart, captureEnd, true);
+        writeFoldedLines(state, skipSeparationSpace(state, false, nodeIndent));
+        captureStart = captureEnd = state.position;
+      } else if (state.position === state.lineStart && testDocumentSeparator(state)) {
+        throwError(state, "unexpected end of the document within a single quoted scalar");
+      } else {
+        state.position++;
+        if (!isWhiteSpace(ch)) {
+          captureEnd = state.position;
+        }
+      }
+    }
+    throwError(state, "unexpected end of the stream within a single quoted scalar");
+  }
+  function readDoubleQuotedScalar(state, nodeIndent) {
+    let captureStart;
+    let captureEnd;
+    let tmp;
+    let ch = state.input.charCodeAt(state.position);
+    if (ch !== 34) {
+      return false;
+    }
+    state.kind = "scalar";
+    state.result = "";
+    state.position++;
+    captureStart = captureEnd = state.position;
+    while ((ch = state.input.charCodeAt(state.position)) !== 0) {
+      if (ch === 34) {
+        captureSegment(state, captureStart, state.position, true);
+        state.position++;
+        return true;
+      } else if (ch === 92) {
+        captureSegment(state, captureStart, state.position, true);
+        ch = state.input.charCodeAt(++state.position);
+        if (isEol(ch)) {
+          skipSeparationSpace(state, false, nodeIndent);
+        } else if (ch < 256 && simpleEscapeCheck[ch]) {
+          state.result += simpleEscapeMap[ch];
+          state.position++;
+        } else if ((tmp = escapedHexLen(ch)) > 0) {
+          let hexLength = tmp;
+          let hexResult = 0;
+          for (; hexLength > 0; hexLength--) {
+            ch = state.input.charCodeAt(++state.position);
+            if ((tmp = fromHexCode(ch)) >= 0) {
+              hexResult = (hexResult << 4) + tmp;
+            } else {
+              throwError(state, "expected hexadecimal character");
+            }
+          }
+          state.result += charFromCodepoint(hexResult);
+          state.position++;
+        } else {
+          throwError(state, "unknown escape sequence");
+        }
+        captureStart = captureEnd = state.position;
+      } else if (isEol(ch)) {
+        captureSegment(state, captureStart, captureEnd, true);
+        writeFoldedLines(state, skipSeparationSpace(state, false, nodeIndent));
+        captureStart = captureEnd = state.position;
+      } else if (state.position === state.lineStart && testDocumentSeparator(state)) {
+        throwError(state, "unexpected end of the document within a double quoted scalar");
+      } else {
+        state.position++;
+        if (!isWhiteSpace(ch)) {
+          captureEnd = state.position;
+        }
+      }
+    }
+    throwError(state, "unexpected end of the stream within a double quoted scalar");
+  }
+  function readFlowCollection(state, nodeIndent) {
+    let readNext = true;
+    let _line;
+    let _lineStart;
+    let _pos;
+    const _tag = state.tag;
+    let _result;
+    const _anchor = state.anchor;
+    let terminator;
+    let isPair;
+    let isExplicitPair;
+    let isMapping;
+    const overridableKeys = /* @__PURE__ */ Object.create(null);
+    let keyNode;
+    let keyTag;
+    let valueNode;
+    let ch = state.input.charCodeAt(state.position);
+    if (ch === 91) {
+      terminator = 93;
+      isMapping = false;
+      _result = [];
+    } else if (ch === 123) {
+      terminator = 125;
+      isMapping = true;
+      _result = {};
+    } else {
+      return false;
+    }
+    if (state.anchor !== null) {
+      storeAnchor(state, state.anchor, _result);
+    }
+    ch = state.input.charCodeAt(++state.position);
+    while (ch !== 0) {
+      skipSeparationSpace(state, true, nodeIndent);
+      ch = state.input.charCodeAt(state.position);
+      if (ch === terminator) {
+        state.position++;
+        state.tag = _tag;
+        state.anchor = _anchor;
+        state.kind = isMapping ? "mapping" : "sequence";
+        state.result = _result;
+        return true;
+      } else if (!readNext) {
+        throwError(state, "missed comma between flow collection entries");
+      } else if (ch === 44) {
+        throwError(state, "expected the node content, but found ','");
+      }
+      keyTag = keyNode = valueNode = null;
+      isPair = isExplicitPair = false;
+      if (ch === 63) {
+        const following = state.input.charCodeAt(state.position + 1);
+        if (isWsOrEol(following)) {
+          isPair = isExplicitPair = true;
+          state.position++;
+          skipSeparationSpace(state, true, nodeIndent);
+        }
+      }
+      _line = state.line;
+      _lineStart = state.lineStart;
+      _pos = state.position;
+      composeNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true);
+      keyTag = state.tag;
+      keyNode = state.result;
+      skipSeparationSpace(state, true, nodeIndent);
+      ch = state.input.charCodeAt(state.position);
+      if ((isExplicitPair || state.line === _line) && ch === 58) {
+        isPair = true;
+        ch = state.input.charCodeAt(++state.position);
+        skipSeparationSpace(state, true, nodeIndent);
+        composeNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true);
+        valueNode = state.result;
+      }
+      if (isMapping) {
+        storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, _line, _lineStart, _pos);
+      } else if (isPair) {
+        _result.push(storeMappingPair(state, null, overridableKeys, keyTag, keyNode, valueNode, _line, _lineStart, _pos));
+      } else {
+        _result.push(keyNode);
+      }
+      skipSeparationSpace(state, true, nodeIndent);
+      ch = state.input.charCodeAt(state.position);
+      if (ch === 44) {
+        readNext = true;
+        ch = state.input.charCodeAt(++state.position);
+      } else {
+        readNext = false;
+      }
+    }
+    throwError(state, "unexpected end of the stream within a flow collection");
+  }
+  function readBlockScalar(state, nodeIndent) {
+    let folding;
+    let chomping = CHOMPING_CLIP;
+    let didReadContent = false;
+    let detectedIndent = false;
+    let textIndent = nodeIndent;
+    let emptyLines = 0;
+    let atMoreIndented = false;
+    let tmp;
+    let ch = state.input.charCodeAt(state.position);
+    if (ch === 124) {
+      folding = false;
+    } else if (ch === 62) {
+      folding = true;
+    } else {
+      return false;
+    }
+    state.kind = "scalar";
+    state.result = "";
+    while (ch !== 0) {
+      ch = state.input.charCodeAt(++state.position);
+      if (ch === 43 || ch === 45) {
+        if (CHOMPING_CLIP === chomping) {
+          chomping = ch === 43 ? CHOMPING_KEEP : CHOMPING_STRIP;
+        } else {
+          throwError(state, "repeat of a chomping mode identifier");
+        }
+      } else if ((tmp = fromDecimalCode(ch)) >= 0) {
+        if (tmp === 0) {
+          throwError(state, "bad explicit indentation width of a block scalar; it cannot be less than one");
+        } else if (!detectedIndent) {
+          textIndent = nodeIndent + tmp - 1;
+          detectedIndent = true;
+        } else {
+          throwError(state, "repeat of an indentation width identifier");
+        }
+      } else {
+        break;
+      }
+    }
+    if (isWhiteSpace(ch)) {
       do {
         ch = state.input.charCodeAt(++state.position);
-      } while (ch !== 0x0A/* LF */ && ch !== 0x0D/* CR */ && ch !== 0);
+      } while (isWhiteSpace(ch));
+      if (ch === 35) {
+        do {
+          ch = state.input.charCodeAt(++state.position);
+        } while (!isEol(ch) && ch !== 0);
+      }
     }
-
-    if (is_EOL(ch)) {
+    while (ch !== 0) {
       readLineBreak(state);
-
-      ch = state.input.charCodeAt(state.position);
-      lineBreaks++;
       state.lineIndent = 0;
-
-      while (ch === 0x20/* Space */) {
+      ch = state.input.charCodeAt(state.position);
+      while ((!detectedIndent || state.lineIndent < textIndent) && ch === 32) {
         state.lineIndent++;
         ch = state.input.charCodeAt(++state.position);
       }
-    } else {
-      break;
-    }
-  }
-
-  if (checkIndent !== -1 && lineBreaks !== 0 && state.lineIndent < checkIndent) {
-    throwWarning(state, 'deficient indentation');
-  }
-
-  return lineBreaks;
-}
-
-function testDocumentSeparator(state) {
-  var _position = state.position,
-      ch;
-
-  ch = state.input.charCodeAt(_position);
-
-  // Condition state.position === state.lineStart is tested
-  // in parent on each call, for efficiency. No needs to test here again.
-  if ((ch === 0x2D/* - */ || ch === 0x2E/* . */) &&
-      ch === state.input.charCodeAt(_position + 1) &&
-      ch === state.input.charCodeAt(_position + 2)) {
-
-    _position += 3;
-
-    ch = state.input.charCodeAt(_position);
-
-    if (ch === 0 || is_WS_OR_EOL(ch)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function writeFoldedLines(state, count) {
-  if (count === 1) {
-    state.result += ' ';
-  } else if (count > 1) {
-    state.result += common.repeat('\n', count - 1);
-  }
-}
-
-
-function readPlainScalar(state, nodeIndent, withinFlowCollection) {
-  var preceding,
-      following,
-      captureStart,
-      captureEnd,
-      hasPendingContent,
-      _line,
-      _lineStart,
-      _lineIndent,
-      _kind = state.kind,
-      _result = state.result,
-      ch;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (is_WS_OR_EOL(ch)      ||
-      is_FLOW_INDICATOR(ch) ||
-      ch === 0x23/* # */    ||
-      ch === 0x26/* & */    ||
-      ch === 0x2A/* * */    ||
-      ch === 0x21/* ! */    ||
-      ch === 0x7C/* | */    ||
-      ch === 0x3E/* > */    ||
-      ch === 0x27/* ' */    ||
-      ch === 0x22/* " */    ||
-      ch === 0x25/* % */    ||
-      ch === 0x40/* @ */    ||
-      ch === 0x60/* ` */) {
-    return false;
-  }
-
-  if (ch === 0x3F/* ? */ || ch === 0x2D/* - */) {
-    following = state.input.charCodeAt(state.position + 1);
-
-    if (is_WS_OR_EOL(following) ||
-        withinFlowCollection && is_FLOW_INDICATOR(following)) {
-      return false;
-    }
-  }
-
-  state.kind = 'scalar';
-  state.result = '';
-  captureStart = captureEnd = state.position;
-  hasPendingContent = false;
-
-  while (ch !== 0) {
-    if (ch === 0x3A/* : */) {
-      following = state.input.charCodeAt(state.position + 1);
-
-      if (is_WS_OR_EOL(following) ||
-          withinFlowCollection && is_FLOW_INDICATOR(following)) {
-        break;
+      if (!detectedIndent && state.lineIndent > textIndent) {
+        textIndent = state.lineIndent;
       }
-
-    } else if (ch === 0x23/* # */) {
-      preceding = state.input.charCodeAt(state.position - 1);
-
-      if (is_WS_OR_EOL(preceding)) {
-        break;
-      }
-
-    } else if ((state.position === state.lineStart && testDocumentSeparator(state)) ||
-               withinFlowCollection && is_FLOW_INDICATOR(ch)) {
-      break;
-
-    } else if (is_EOL(ch)) {
-      _line = state.line;
-      _lineStart = state.lineStart;
-      _lineIndent = state.lineIndent;
-      skipSeparationSpace(state, false, -1);
-
-      if (state.lineIndent >= nodeIndent) {
-        hasPendingContent = true;
-        ch = state.input.charCodeAt(state.position);
+      if (isEol(ch)) {
+        emptyLines++;
         continue;
-      } else {
-        state.position = captureEnd;
-        state.line = _line;
-        state.lineStart = _lineStart;
-        state.lineIndent = _lineIndent;
-        break;
       }
-    }
-
-    if (hasPendingContent) {
-      captureSegment(state, captureStart, captureEnd, false);
-      writeFoldedLines(state, state.line - _line);
-      captureStart = captureEnd = state.position;
-      hasPendingContent = false;
-    }
-
-    if (!is_WHITE_SPACE(ch)) {
-      captureEnd = state.position + 1;
-    }
-
-    ch = state.input.charCodeAt(++state.position);
-  }
-
-  captureSegment(state, captureStart, captureEnd, false);
-
-  if (state.result) {
-    return true;
-  }
-
-  state.kind = _kind;
-  state.result = _result;
-  return false;
-}
-
-function readSingleQuotedScalar(state, nodeIndent) {
-  var ch,
-      captureStart, captureEnd;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (ch !== 0x27/* ' */) {
-    return false;
-  }
-
-  state.kind = 'scalar';
-  state.result = '';
-  state.position++;
-  captureStart = captureEnd = state.position;
-
-  while ((ch = state.input.charCodeAt(state.position)) !== 0) {
-    if (ch === 0x27/* ' */) {
-      captureSegment(state, captureStart, state.position, true);
-      ch = state.input.charCodeAt(++state.position);
-
-      if (ch === 0x27/* ' */) {
-        captureStart = state.position;
-        state.position++;
-        captureEnd = state.position;
-      } else {
-        return true;
+      if (!detectedIndent && textIndent === 0) {
+        throwError(state, "missing indentation for block scalar");
       }
-
-    } else if (is_EOL(ch)) {
-      captureSegment(state, captureStart, captureEnd, true);
-      writeFoldedLines(state, skipSeparationSpace(state, false, nodeIndent));
-      captureStart = captureEnd = state.position;
-
-    } else if (state.position === state.lineStart && testDocumentSeparator(state)) {
-      throwError(state, 'unexpected end of the document within a single quoted scalar');
-
-    } else {
-      state.position++;
-      captureEnd = state.position;
-    }
-  }
-
-  throwError(state, 'unexpected end of the stream within a single quoted scalar');
-}
-
-function readDoubleQuotedScalar(state, nodeIndent) {
-  var captureStart,
-      captureEnd,
-      hexLength,
-      hexResult,
-      tmp,
-      ch;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (ch !== 0x22/* " */) {
-    return false;
-  }
-
-  state.kind = 'scalar';
-  state.result = '';
-  state.position++;
-  captureStart = captureEnd = state.position;
-
-  while ((ch = state.input.charCodeAt(state.position)) !== 0) {
-    if (ch === 0x22/* " */) {
-      captureSegment(state, captureStart, state.position, true);
-      state.position++;
-      return true;
-
-    } else if (ch === 0x5C/* \ */) {
-      captureSegment(state, captureStart, state.position, true);
-      ch = state.input.charCodeAt(++state.position);
-
-      if (is_EOL(ch)) {
-        skipSeparationSpace(state, false, nodeIndent);
-
-        // TODO: rework to inline fn with no type cast?
-      } else if (ch < 256 && simpleEscapeCheck[ch]) {
-        state.result += simpleEscapeMap[ch];
-        state.position++;
-
-      } else if ((tmp = escapedHexLen(ch)) > 0) {
-        hexLength = tmp;
-        hexResult = 0;
-
-        for (; hexLength > 0; hexLength--) {
-          ch = state.input.charCodeAt(++state.position);
-
-          if ((tmp = fromHexCode(ch)) >= 0) {
-            hexResult = (hexResult << 4) + tmp;
-
-          } else {
-            throwError(state, 'expected hexadecimal character');
+      if (state.lineIndent < textIndent) {
+        if (chomping === CHOMPING_KEEP) {
+          state.result += common2.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
+        } else if (chomping === CHOMPING_CLIP) {
+          if (didReadContent) {
+            state.result += "\n";
           }
         }
-
-        state.result += charFromCodepoint(hexResult);
-
-        state.position++;
-
-      } else {
-        throwError(state, 'unknown escape sequence');
+        break;
       }
-
-      captureStart = captureEnd = state.position;
-
-    } else if (is_EOL(ch)) {
-      captureSegment(state, captureStart, captureEnd, true);
-      writeFoldedLines(state, skipSeparationSpace(state, false, nodeIndent));
-      captureStart = captureEnd = state.position;
-
-    } else if (state.position === state.lineStart && testDocumentSeparator(state)) {
-      throwError(state, 'unexpected end of the document within a double quoted scalar');
-
-    } else {
-      state.position++;
-      captureEnd = state.position;
+      if (folding) {
+        if (isWhiteSpace(ch)) {
+          atMoreIndented = true;
+          state.result += common2.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
+        } else if (atMoreIndented) {
+          atMoreIndented = false;
+          state.result += common2.repeat("\n", emptyLines + 1);
+        } else if (emptyLines === 0) {
+          if (didReadContent) {
+            state.result += " ";
+          }
+        } else {
+          state.result += common2.repeat("\n", emptyLines);
+        }
+      } else {
+        state.result += common2.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
+      }
+      didReadContent = true;
+      detectedIndent = true;
+      emptyLines = 0;
+      const captureStart = state.position;
+      while (!isEol(ch) && ch !== 0) {
+        ch = state.input.charCodeAt(++state.position);
+      }
+      captureSegment(state, captureStart, state.position, false);
     }
+    return true;
   }
-
-  throwError(state, 'unexpected end of the stream within a double quoted scalar');
-}
-
-function readFlowCollection(state, nodeIndent) {
-  var readNext = true,
-      _line,
-      _lineStart,
-      _pos,
-      _tag     = state.tag,
-      _result,
-      _anchor  = state.anchor,
-      following,
-      terminator,
-      isPair,
-      isExplicitPair,
-      isMapping,
-      overridableKeys = Object.create(null),
-      keyNode,
-      keyTag,
-      valueNode,
-      ch;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (ch === 0x5B/* [ */) {
-    terminator = 0x5D;/* ] */
-    isMapping = false;
-    _result = [];
-  } else if (ch === 0x7B/* { */) {
-    terminator = 0x7D;/* } */
-    isMapping = true;
-    _result = {};
-  } else {
-    return false;
-  }
-
-  if (state.anchor !== null) {
-    state.anchorMap[state.anchor] = _result;
-  }
-
-  ch = state.input.charCodeAt(++state.position);
-
-  while (ch !== 0) {
-    skipSeparationSpace(state, true, nodeIndent);
-
-    ch = state.input.charCodeAt(state.position);
-
-    if (ch === terminator) {
+  function readBlockSequence(state, nodeIndent) {
+    const _tag = state.tag;
+    const _anchor = state.anchor;
+    const _result = [];
+    let detected = false;
+    if (state.firstTabInLine !== -1) return false;
+    if (state.anchor !== null) {
+      storeAnchor(state, state.anchor, _result);
+    }
+    let ch = state.input.charCodeAt(state.position);
+    while (ch !== 0) {
+      if (state.firstTabInLine !== -1) {
+        state.position = state.firstTabInLine;
+        throwError(state, "tab characters must not be used in indentation");
+      }
+      if (ch !== 45) {
+        break;
+      }
+      const following = state.input.charCodeAt(state.position + 1);
+      if (!isWsOrEol(following)) {
+        break;
+      }
+      detected = true;
       state.position++;
+      if (skipSeparationSpace(state, true, -1)) {
+        if (state.lineIndent <= nodeIndent) {
+          _result.push(null);
+          ch = state.input.charCodeAt(state.position);
+          continue;
+        }
+      }
+      const _line = state.line;
+      composeNode(state, nodeIndent, CONTEXT_BLOCK_IN, false, true);
+      _result.push(state.result);
+      skipSeparationSpace(state, true, -1);
+      ch = state.input.charCodeAt(state.position);
+      if ((state.line === _line || state.lineIndent > nodeIndent) && ch !== 0) {
+        throwError(state, "bad indentation of a sequence entry");
+      } else if (state.lineIndent < nodeIndent) {
+        break;
+      }
+    }
+    if (detected) {
       state.tag = _tag;
       state.anchor = _anchor;
-      state.kind = isMapping ? 'mapping' : 'sequence';
+      state.kind = "sequence";
       state.result = _result;
       return true;
-    } else if (!readNext) {
-      throwError(state, 'missed comma between flow collection entries');
-    } else if (ch === 0x2C/* , */) {
-      // "flow collection entries can never be completely empty", as per YAML 1.2, section 7.4
-      throwError(state, "expected the node content, but found ','");
     }
-
-    keyTag = keyNode = valueNode = null;
-    isPair = isExplicitPair = false;
-
-    if (ch === 0x3F/* ? */) {
-      following = state.input.charCodeAt(state.position + 1);
-
-      if (is_WS_OR_EOL(following)) {
-        isPair = isExplicitPair = true;
-        state.position++;
-        skipSeparationSpace(state, true, nodeIndent);
-      }
-    }
-
-    _line = state.line; // Save the current line.
-    _lineStart = state.lineStart;
-    _pos = state.position;
-    composeNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true);
-    keyTag = state.tag;
-    keyNode = state.result;
-    skipSeparationSpace(state, true, nodeIndent);
-
-    ch = state.input.charCodeAt(state.position);
-
-    if ((isExplicitPair || state.line === _line) && ch === 0x3A/* : */) {
-      isPair = true;
-      ch = state.input.charCodeAt(++state.position);
-      skipSeparationSpace(state, true, nodeIndent);
-      composeNode(state, nodeIndent, CONTEXT_FLOW_IN, false, true);
-      valueNode = state.result;
-    }
-
-    if (isMapping) {
-      storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, _line, _lineStart, _pos);
-    } else if (isPair) {
-      _result.push(storeMappingPair(state, null, overridableKeys, keyTag, keyNode, valueNode, _line, _lineStart, _pos));
-    } else {
-      _result.push(keyNode);
-    }
-
-    skipSeparationSpace(state, true, nodeIndent);
-
-    ch = state.input.charCodeAt(state.position);
-
-    if (ch === 0x2C/* , */) {
-      readNext = true;
-      ch = state.input.charCodeAt(++state.position);
-    } else {
-      readNext = false;
-    }
-  }
-
-  throwError(state, 'unexpected end of the stream within a flow collection');
-}
-
-function readBlockScalar(state, nodeIndent) {
-  var captureStart,
-      folding,
-      chomping       = CHOMPING_CLIP,
-      didReadContent = false,
-      detectedIndent = false,
-      textIndent     = nodeIndent,
-      emptyLines     = 0,
-      atMoreIndented = false,
-      tmp,
-      ch;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (ch === 0x7C/* | */) {
-    folding = false;
-  } else if (ch === 0x3E/* > */) {
-    folding = true;
-  } else {
     return false;
   }
-
-  state.kind = 'scalar';
-  state.result = '';
-
-  while (ch !== 0) {
-    ch = state.input.charCodeAt(++state.position);
-
-    if (ch === 0x2B/* + */ || ch === 0x2D/* - */) {
-      if (CHOMPING_CLIP === chomping) {
-        chomping = (ch === 0x2B/* + */) ? CHOMPING_KEEP : CHOMPING_STRIP;
-      } else {
-        throwError(state, 'repeat of a chomping mode identifier');
+  function readBlockMapping(state, nodeIndent, flowIndent) {
+    let allowCompact;
+    let _keyLine;
+    let _keyLineStart;
+    let _keyPos;
+    const _tag = state.tag;
+    const _anchor = state.anchor;
+    const _result = {};
+    const overridableKeys = /* @__PURE__ */ Object.create(null);
+    let keyTag = null;
+    let keyNode = null;
+    let valueNode = null;
+    let atExplicitKey = false;
+    let detected = false;
+    if (state.firstTabInLine !== -1) return false;
+    if (state.anchor !== null) {
+      storeAnchor(state, state.anchor, _result);
+    }
+    let ch = state.input.charCodeAt(state.position);
+    while (ch !== 0) {
+      if (!atExplicitKey && state.firstTabInLine !== -1) {
+        state.position = state.firstTabInLine;
+        throwError(state, "tab characters must not be used in indentation");
       }
-
-    } else if ((tmp = fromDecimalCode(ch)) >= 0) {
-      if (tmp === 0) {
-        throwError(state, 'bad explicit indentation width of a block scalar; it cannot be less than one');
-      } else if (!detectedIndent) {
-        textIndent = nodeIndent + tmp - 1;
-        detectedIndent = true;
-      } else {
-        throwError(state, 'repeat of an indentation width identifier');
-      }
-
-    } else {
-      break;
-    }
-  }
-
-  if (is_WHITE_SPACE(ch)) {
-    do { ch = state.input.charCodeAt(++state.position); }
-    while (is_WHITE_SPACE(ch));
-
-    if (ch === 0x23/* # */) {
-      do { ch = state.input.charCodeAt(++state.position); }
-      while (!is_EOL(ch) && (ch !== 0));
-    }
-  }
-
-  while (ch !== 0) {
-    readLineBreak(state);
-    state.lineIndent = 0;
-
-    ch = state.input.charCodeAt(state.position);
-
-    while ((!detectedIndent || state.lineIndent < textIndent) &&
-           (ch === 0x20/* Space */)) {
-      state.lineIndent++;
-      ch = state.input.charCodeAt(++state.position);
-    }
-
-    if (!detectedIndent && state.lineIndent > textIndent) {
-      textIndent = state.lineIndent;
-    }
-
-    if (is_EOL(ch)) {
-      emptyLines++;
-      continue;
-    }
-
-    // End of the scalar.
-    if (state.lineIndent < textIndent) {
-
-      // Perform the chomping.
-      if (chomping === CHOMPING_KEEP) {
-        state.result += common.repeat('\n', didReadContent ? 1 + emptyLines : emptyLines);
-      } else if (chomping === CHOMPING_CLIP) {
-        if (didReadContent) { // i.e. only if the scalar is not empty.
-          state.result += '\n';
-        }
-      }
-
-      // Break this `while` cycle and go to the funciton's epilogue.
-      break;
-    }
-
-    // Folded style: use fancy rules to handle line breaks.
-    if (folding) {
-
-      // Lines starting with white space characters (more-indented lines) are not folded.
-      if (is_WHITE_SPACE(ch)) {
-        atMoreIndented = true;
-        // except for the first content line (cf. Example 8.1)
-        state.result += common.repeat('\n', didReadContent ? 1 + emptyLines : emptyLines);
-
-      // End of more-indented block.
-      } else if (atMoreIndented) {
-        atMoreIndented = false;
-        state.result += common.repeat('\n', emptyLines + 1);
-
-      // Just one line break - perceive as the same line.
-      } else if (emptyLines === 0) {
-        if (didReadContent) { // i.e. only if we have already read some scalar content.
-          state.result += ' ';
-        }
-
-      // Several line breaks - perceive as different lines.
-      } else {
-        state.result += common.repeat('\n', emptyLines);
-      }
-
-    // Literal style: just add exact number of line breaks between content lines.
-    } else {
-      // Keep all line breaks except the header line break.
-      state.result += common.repeat('\n', didReadContent ? 1 + emptyLines : emptyLines);
-    }
-
-    didReadContent = true;
-    detectedIndent = true;
-    emptyLines = 0;
-    captureStart = state.position;
-
-    while (!is_EOL(ch) && (ch !== 0)) {
-      ch = state.input.charCodeAt(++state.position);
-    }
-
-    captureSegment(state, captureStart, state.position, false);
-  }
-
-  return true;
-}
-
-function readBlockSequence(state, nodeIndent) {
-  var _line,
-      _tag      = state.tag,
-      _anchor   = state.anchor,
-      _result   = [],
-      following,
-      detected  = false,
-      ch;
-
-  // there is a leading tab before this token, so it can't be a block sequence/mapping;
-  // it can still be flow sequence/mapping or a scalar
-  if (state.firstTabInLine !== -1) return false;
-
-  if (state.anchor !== null) {
-    state.anchorMap[state.anchor] = _result;
-  }
-
-  ch = state.input.charCodeAt(state.position);
-
-  while (ch !== 0) {
-    if (state.firstTabInLine !== -1) {
-      state.position = state.firstTabInLine;
-      throwError(state, 'tab characters must not be used in indentation');
-    }
-
-    if (ch !== 0x2D/* - */) {
-      break;
-    }
-
-    following = state.input.charCodeAt(state.position + 1);
-
-    if (!is_WS_OR_EOL(following)) {
-      break;
-    }
-
-    detected = true;
-    state.position++;
-
-    if (skipSeparationSpace(state, true, -1)) {
-      if (state.lineIndent <= nodeIndent) {
-        _result.push(null);
-        ch = state.input.charCodeAt(state.position);
-        continue;
-      }
-    }
-
-    _line = state.line;
-    composeNode(state, nodeIndent, CONTEXT_BLOCK_IN, false, true);
-    _result.push(state.result);
-    skipSeparationSpace(state, true, -1);
-
-    ch = state.input.charCodeAt(state.position);
-
-    if ((state.line === _line || state.lineIndent > nodeIndent) && (ch !== 0)) {
-      throwError(state, 'bad indentation of a sequence entry');
-    } else if (state.lineIndent < nodeIndent) {
-      break;
-    }
-  }
-
-  if (detected) {
-    state.tag = _tag;
-    state.anchor = _anchor;
-    state.kind = 'sequence';
-    state.result = _result;
-    return true;
-  }
-  return false;
-}
-
-function readBlockMapping(state, nodeIndent, flowIndent) {
-  var following,
-      allowCompact,
-      _line,
-      _keyLine,
-      _keyLineStart,
-      _keyPos,
-      _tag          = state.tag,
-      _anchor       = state.anchor,
-      _result       = {},
-      overridableKeys = Object.create(null),
-      keyTag        = null,
-      keyNode       = null,
-      valueNode     = null,
-      atExplicitKey = false,
-      detected      = false,
-      ch;
-
-  // there is a leading tab before this token, so it can't be a block sequence/mapping;
-  // it can still be flow sequence/mapping or a scalar
-  if (state.firstTabInLine !== -1) return false;
-
-  if (state.anchor !== null) {
-    state.anchorMap[state.anchor] = _result;
-  }
-
-  ch = state.input.charCodeAt(state.position);
-
-  while (ch !== 0) {
-    if (!atExplicitKey && state.firstTabInLine !== -1) {
-      state.position = state.firstTabInLine;
-      throwError(state, 'tab characters must not be used in indentation');
-    }
-
-    following = state.input.charCodeAt(state.position + 1);
-    _line = state.line; // Save the current line.
-
-    //
-    // Explicit notation case. There are two separate blocks:
-    // first for the key (denoted by "?") and second for the value (denoted by ":")
-    //
-    if ((ch === 0x3F/* ? */ || ch === 0x3A/* : */) && is_WS_OR_EOL(following)) {
-
-      if (ch === 0x3F/* ? */) {
-        if (atExplicitKey) {
-          storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
-          keyTag = keyNode = valueNode = null;
-        }
-
-        detected = true;
-        atExplicitKey = true;
-        allowCompact = true;
-
-      } else if (atExplicitKey) {
-        // i.e. 0x3A/* : */ === character after the explicit key.
-        atExplicitKey = false;
-        allowCompact = true;
-
-      } else {
-        throwError(state, 'incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line');
-      }
-
-      state.position += 1;
-      ch = following;
-
-    //
-    // Implicit notation case. Flow-style node as the key first, then ":", and the value.
-    //
-    } else {
-      _keyLine = state.line;
-      _keyLineStart = state.lineStart;
-      _keyPos = state.position;
-
-      if (!composeNode(state, flowIndent, CONTEXT_FLOW_OUT, false, true)) {
-        // Neither implicit nor explicit notation.
-        // Reading is done. Go to the epilogue.
-        break;
-      }
-
-      if (state.line === _line) {
-        ch = state.input.charCodeAt(state.position);
-
-        while (is_WHITE_SPACE(ch)) {
-          ch = state.input.charCodeAt(++state.position);
-        }
-
-        if (ch === 0x3A/* : */) {
-          ch = state.input.charCodeAt(++state.position);
-
-          if (!is_WS_OR_EOL(ch)) {
-            throwError(state, 'a whitespace character is expected after the key-value separator within a block mapping');
-          }
-
+      const following = state.input.charCodeAt(state.position + 1);
+      const _line = state.line;
+      if ((ch === 63 || ch === 58) && isWsOrEol(following)) {
+        if (ch === 63) {
           if (atExplicitKey) {
             storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
             keyTag = keyNode = valueNode = null;
           }
-
           detected = true;
+          atExplicitKey = true;
+          allowCompact = true;
+        } else if (atExplicitKey) {
           atExplicitKey = false;
-          allowCompact = false;
-          keyTag = state.tag;
-          keyNode = state.result;
-
-        } else if (detected) {
-          throwError(state, 'can not read an implicit mapping pair; a colon is missed');
-
+          allowCompact = true;
         } else {
-          state.tag = _tag;
-          state.anchor = _anchor;
-          return true; // Keep the result of `composeNode`.
+          throwError(state, "incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line");
         }
-
-      } else if (detected) {
-        throwError(state, 'can not read a block mapping entry; a multiline key may not be an implicit key');
-
+        state.position += 1;
+        ch = following;
       } else {
-        state.tag = _tag;
-        state.anchor = _anchor;
-        return true; // Keep the result of `composeNode`.
-      }
-    }
-
-    //
-    // Common reading code for both explicit and implicit notations.
-    //
-    if (state.line === _line || state.lineIndent > nodeIndent) {
-      if (atExplicitKey) {
         _keyLine = state.line;
         _keyLineStart = state.lineStart;
         _keyPos = state.position;
-      }
-
-      if (composeNode(state, nodeIndent, CONTEXT_BLOCK_OUT, true, allowCompact)) {
-        if (atExplicitKey) {
-          keyNode = state.result;
+        if (!composeNode(state, flowIndent, CONTEXT_FLOW_OUT, false, true)) {
+          break;
+        }
+        if (state.line === _line) {
+          ch = state.input.charCodeAt(state.position);
+          while (isWhiteSpace(ch)) {
+            ch = state.input.charCodeAt(++state.position);
+          }
+          if (ch === 58) {
+            ch = state.input.charCodeAt(++state.position);
+            if (!isWsOrEol(ch)) {
+              throwError(state, "a whitespace character is expected after the key-value separator within a block mapping");
+            }
+            if (atExplicitKey) {
+              storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
+              keyTag = keyNode = valueNode = null;
+            }
+            detected = true;
+            atExplicitKey = false;
+            allowCompact = false;
+            keyTag = state.tag;
+            keyNode = state.result;
+          } else if (detected) {
+            throwError(state, "can not read an implicit mapping pair; a colon is missed");
+          } else {
+            state.tag = _tag;
+            state.anchor = _anchor;
+            return true;
+          }
+        } else if (detected) {
+          throwError(state, "can not read a block mapping entry; a multiline key may not be an implicit key");
         } else {
-          valueNode = state.result;
+          state.tag = _tag;
+          state.anchor = _anchor;
+          return true;
         }
       }
-
-      if (!atExplicitKey) {
-        storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, _keyLine, _keyLineStart, _keyPos);
-        keyTag = keyNode = valueNode = null;
+      if (state.line === _line || state.lineIndent > nodeIndent) {
+        if (atExplicitKey) {
+          _keyLine = state.line;
+          _keyLineStart = state.lineStart;
+          _keyPos = state.position;
+        }
+        if (composeNode(state, nodeIndent, CONTEXT_BLOCK_OUT, true, allowCompact)) {
+          if (atExplicitKey) {
+            keyNode = state.result;
+          } else {
+            valueNode = state.result;
+          }
+        }
+        if (!atExplicitKey) {
+          storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, valueNode, _keyLine, _keyLineStart, _keyPos);
+          keyTag = keyNode = valueNode = null;
+        }
+        skipSeparationSpace(state, true, -1);
+        ch = state.input.charCodeAt(state.position);
       }
-
-      skipSeparationSpace(state, true, -1);
-      ch = state.input.charCodeAt(state.position);
+      if ((state.line === _line || state.lineIndent > nodeIndent) && ch !== 0) {
+        throwError(state, "bad indentation of a mapping entry");
+      } else if (state.lineIndent < nodeIndent) {
+        break;
+      }
     }
-
-    if ((state.line === _line || state.lineIndent > nodeIndent) && (ch !== 0)) {
-      throwError(state, 'bad indentation of a mapping entry');
-    } else if (state.lineIndent < nodeIndent) {
-      break;
+    if (atExplicitKey) {
+      storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
     }
+    if (detected) {
+      state.tag = _tag;
+      state.anchor = _anchor;
+      state.kind = "mapping";
+      state.result = _result;
+    }
+    return detected;
   }
-
-  //
-  // Epilogue.
-  //
-
-  // Special case: last mapping's node contains only the key in explicit notation.
-  if (atExplicitKey) {
-    storeMappingPair(state, _result, overridableKeys, keyTag, keyNode, null, _keyLine, _keyLineStart, _keyPos);
-  }
-
-  // Expose the resulting mapping.
-  if (detected) {
-    state.tag = _tag;
-    state.anchor = _anchor;
-    state.kind = 'mapping';
-    state.result = _result;
-  }
-
-  return detected;
-}
-
-function readTagProperty(state) {
-  var _position,
-      isVerbatim = false,
-      isNamed    = false,
-      tagHandle,
-      tagName,
-      ch;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (ch !== 0x21/* ! */) return false;
-
-  if (state.tag !== null) {
-    throwError(state, 'duplication of a tag property');
-  }
-
-  ch = state.input.charCodeAt(++state.position);
-
-  if (ch === 0x3C/* < */) {
-    isVerbatim = true;
+  function readTagProperty(state) {
+    let isVerbatim = false;
+    let isNamed = false;
+    let tagHandle;
+    let tagName;
+    let ch = state.input.charCodeAt(state.position);
+    if (ch !== 33) return false;
+    if (state.tag !== null) {
+      throwError(state, "duplication of a tag property");
+    }
     ch = state.input.charCodeAt(++state.position);
-
-  } else if (ch === 0x21/* ! */) {
-    isNamed = true;
-    tagHandle = '!!';
-    ch = state.input.charCodeAt(++state.position);
-
-  } else {
-    tagHandle = '!';
-  }
-
-  _position = state.position;
-
-  if (isVerbatim) {
-    do { ch = state.input.charCodeAt(++state.position); }
-    while (ch !== 0 && ch !== 0x3E/* > */);
-
-    if (state.position < state.length) {
-      tagName = state.input.slice(_position, state.position);
+    if (ch === 60) {
+      isVerbatim = true;
+      ch = state.input.charCodeAt(++state.position);
+    } else if (ch === 33) {
+      isNamed = true;
+      tagHandle = "!!";
       ch = state.input.charCodeAt(++state.position);
     } else {
-      throwError(state, 'unexpected end of the stream within a verbatim tag');
+      tagHandle = "!";
     }
-  } else {
-    while (ch !== 0 && !is_WS_OR_EOL(ch)) {
-
-      if (ch === 0x21/* ! */) {
-        if (!isNamed) {
-          tagHandle = state.input.slice(_position - 1, state.position + 1);
-
-          if (!PATTERN_TAG_HANDLE.test(tagHandle)) {
-            throwError(state, 'named tag handle cannot contain such characters');
-          }
-
-          isNamed = true;
-          _position = state.position + 1;
-        } else {
-          throwError(state, 'tag suffix cannot contain exclamation marks');
-        }
+    let _position = state.position;
+    if (isVerbatim) {
+      do {
+        ch = state.input.charCodeAt(++state.position);
+      } while (ch !== 0 && ch !== 62);
+      if (state.position < state.length) {
+        tagName = state.input.slice(_position, state.position);
+        ch = state.input.charCodeAt(++state.position);
+      } else {
+        throwError(state, "unexpected end of the stream within a verbatim tag");
       }
-
+    } else {
+      while (ch !== 0 && !isWsOrEol(ch)) {
+        if (ch === 33) {
+          if (!isNamed) {
+            tagHandle = state.input.slice(_position - 1, state.position + 1);
+            if (!PATTERN_TAG_HANDLE.test(tagHandle)) {
+              throwError(state, "named tag handle cannot contain such characters");
+            }
+            isNamed = true;
+            _position = state.position + 1;
+          } else {
+            throwError(state, "tag suffix cannot contain exclamation marks");
+          }
+        }
+        ch = state.input.charCodeAt(++state.position);
+      }
+      tagName = state.input.slice(_position, state.position);
+      if (PATTERN_FLOW_INDICATORS.test(tagName)) {
+        throwError(state, "tag suffix cannot contain flow indicator characters");
+      }
+    }
+    if (tagName && !PATTERN_TAG_URI.test(tagName)) {
+      throwError(state, "tag name cannot contain such characters: " + tagName);
+    }
+    try {
+      tagName = decodeURIComponent(tagName);
+    } catch (err) {
+      throwError(state, "tag name is malformed: " + tagName);
+    }
+    if (isVerbatim) {
+      state.tag = tagName;
+    } else if (_hasOwnProperty.call(state.tagMap, tagHandle)) {
+      state.tag = state.tagMap[tagHandle] + tagName;
+    } else if (tagHandle === "!") {
+      state.tag = "!" + tagName;
+    } else if (tagHandle === "!!") {
+      state.tag = "tag:yaml.org,2002:" + tagName;
+    } else {
+      throwError(state, 'undeclared tag handle "' + tagHandle + '"');
+    }
+    return true;
+  }
+  function readAnchorProperty(state) {
+    let ch = state.input.charCodeAt(state.position);
+    if (ch !== 38) return false;
+    if (state.anchor !== null) {
+      throwError(state, "duplication of an anchor property");
+    }
+    ch = state.input.charCodeAt(++state.position);
+    const _position = state.position;
+    while (ch !== 0 && !isWsOrEol(ch) && !isFlowIndicator(ch)) {
       ch = state.input.charCodeAt(++state.position);
     }
-
-    tagName = state.input.slice(_position, state.position);
-
-    if (PATTERN_FLOW_INDICATORS.test(tagName)) {
-      throwError(state, 'tag suffix cannot contain flow indicator characters');
+    if (state.position === _position) {
+      throwError(state, "name of an anchor node must contain at least one character");
     }
+    state.anchor = state.input.slice(_position, state.position);
+    return true;
   }
-
-  if (tagName && !PATTERN_TAG_URI.test(tagName)) {
-    throwError(state, 'tag name cannot contain such characters: ' + tagName);
-  }
-
-  try {
-    tagName = decodeURIComponent(tagName);
-  } catch (err) {
-    throwError(state, 'tag name is malformed: ' + tagName);
-  }
-
-  if (isVerbatim) {
-    state.tag = tagName;
-
-  } else if (_hasOwnProperty$1.call(state.tagMap, tagHandle)) {
-    state.tag = state.tagMap[tagHandle] + tagName;
-
-  } else if (tagHandle === '!') {
-    state.tag = '!' + tagName;
-
-  } else if (tagHandle === '!!') {
-    state.tag = 'tag:yaml.org,2002:' + tagName;
-
-  } else {
-    throwError(state, 'undeclared tag handle "' + tagHandle + '"');
-  }
-
-  return true;
-}
-
-function readAnchorProperty(state) {
-  var _position,
-      ch;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (ch !== 0x26/* & */) return false;
-
-  if (state.anchor !== null) {
-    throwError(state, 'duplication of an anchor property');
-  }
-
-  ch = state.input.charCodeAt(++state.position);
-  _position = state.position;
-
-  while (ch !== 0 && !is_WS_OR_EOL(ch) && !is_FLOW_INDICATOR(ch)) {
+  function readAlias(state) {
+    let ch = state.input.charCodeAt(state.position);
+    if (ch !== 42) return false;
     ch = state.input.charCodeAt(++state.position);
-  }
-
-  if (state.position === _position) {
-    throwError(state, 'name of an anchor node must contain at least one character');
-  }
-
-  state.anchor = state.input.slice(_position, state.position);
-  return true;
-}
-
-function readAlias(state) {
-  var _position, alias,
-      ch;
-
-  ch = state.input.charCodeAt(state.position);
-
-  if (ch !== 0x2A/* * */) return false;
-
-  ch = state.input.charCodeAt(++state.position);
-  _position = state.position;
-
-  while (ch !== 0 && !is_WS_OR_EOL(ch) && !is_FLOW_INDICATOR(ch)) {
-    ch = state.input.charCodeAt(++state.position);
-  }
-
-  if (state.position === _position) {
-    throwError(state, 'name of an alias node must contain at least one character');
-  }
-
-  alias = state.input.slice(_position, state.position);
-
-  if (!_hasOwnProperty$1.call(state.anchorMap, alias)) {
-    throwError(state, 'unidentified alias "' + alias + '"');
-  }
-
-  state.result = state.anchorMap[alias];
-  skipSeparationSpace(state, true, -1);
-  return true;
-}
-
-function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact) {
-  var allowBlockStyles,
-      allowBlockScalars,
-      allowBlockCollections,
-      indentStatus = 1, // 1: this>parent, 0: this=parent, -1: this<parent
-      atNewLine  = false,
-      hasContent = false,
-      typeIndex,
-      typeQuantity,
-      typeList,
-      type,
-      flowIndent,
-      blockIndent;
-
-  if (state.listener !== null) {
-    state.listener('open', state);
-  }
-
-  state.tag    = null;
-  state.anchor = null;
-  state.kind   = null;
-  state.result = null;
-
-  allowBlockStyles = allowBlockScalars = allowBlockCollections =
-    CONTEXT_BLOCK_OUT === nodeContext ||
-    CONTEXT_BLOCK_IN  === nodeContext;
-
-  if (allowToSeek) {
-    if (skipSeparationSpace(state, true, -1)) {
-      atNewLine = true;
-
-      if (state.lineIndent > parentIndent) {
-        indentStatus = 1;
-      } else if (state.lineIndent === parentIndent) {
-        indentStatus = 0;
-      } else if (state.lineIndent < parentIndent) {
-        indentStatus = -1;
-      }
+    const _position = state.position;
+    while (ch !== 0 && !isWsOrEol(ch) && !isFlowIndicator(ch)) {
+      ch = state.input.charCodeAt(++state.position);
     }
+    if (state.position === _position) {
+      throwError(state, "name of an alias node must contain at least one character");
+    }
+    const alias = state.input.slice(_position, state.position);
+    if (!_hasOwnProperty.call(state.anchorMap, alias)) {
+      throwError(state, 'unidentified alias "' + alias + '"');
+    }
+    state.result = state.anchorMap[alias];
+    skipSeparationSpace(state, true, -1);
+    return true;
   }
-
-  if (indentStatus === 1) {
-    while (readTagProperty(state) || readAnchorProperty(state)) {
+  function tryReadBlockMappingFromProperty(state, propertyStart, nodeIndent, flowIndent) {
+    const fallbackState = snapshotState(state);
+    beginAnchorTransaction(state);
+    restoreState(state, propertyStart);
+    state.tag = null;
+    state.anchor = null;
+    state.kind = null;
+    state.result = null;
+    if (readBlockMapping(state, nodeIndent, flowIndent) && state.kind === "mapping") {
+      commitAnchorTransaction(state);
+      return true;
+    }
+    rollbackAnchorTransaction(state);
+    restoreState(state, fallbackState);
+    return false;
+  }
+  function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact) {
+    let allowBlockScalars;
+    let allowBlockCollections;
+    let indentStatus = 1;
+    let atNewLine = false;
+    let hasContent = false;
+    let propertyStart = null;
+    let type2;
+    let flowIndent;
+    let blockIndent;
+    if (state.depth >= state.maxDepth) {
+      throwError(state, "nesting exceeded maxDepth (" + state.maxDepth + ")");
+    }
+    state.depth += 1;
+    if (state.listener !== null) {
+      state.listener("open", state);
+    }
+    state.tag = null;
+    state.anchor = null;
+    state.kind = null;
+    state.result = null;
+    const allowBlockStyles = allowBlockScalars = allowBlockCollections = CONTEXT_BLOCK_OUT === nodeContext || CONTEXT_BLOCK_IN === nodeContext;
+    if (allowToSeek) {
       if (skipSeparationSpace(state, true, -1)) {
         atNewLine = true;
-        allowBlockCollections = allowBlockStyles;
-
         if (state.lineIndent > parentIndent) {
           indentStatus = 1;
         } else if (state.lineIndent === parentIndent) {
@@ -47114,1348 +48030,972 @@ function composeNode(state, parentIndent, nodeContext, allowToSeek, allowCompact
         } else if (state.lineIndent < parentIndent) {
           indentStatus = -1;
         }
-      } else {
-        allowBlockCollections = false;
       }
     }
-  }
-
-  if (allowBlockCollections) {
-    allowBlockCollections = atNewLine || allowCompact;
-  }
-
-  if (indentStatus === 1 || CONTEXT_BLOCK_OUT === nodeContext) {
-    if (CONTEXT_FLOW_IN === nodeContext || CONTEXT_FLOW_OUT === nodeContext) {
-      flowIndent = parentIndent;
-    } else {
-      flowIndent = parentIndent + 1;
-    }
-
-    blockIndent = state.position - state.lineStart;
-
     if (indentStatus === 1) {
-      if (allowBlockCollections &&
-          (readBlockSequence(state, blockIndent) ||
-           readBlockMapping(state, blockIndent, flowIndent)) ||
-          readFlowCollection(state, flowIndent)) {
-        hasContent = true;
+      while (true) {
+        const ch = state.input.charCodeAt(state.position);
+        const propertyState = snapshotState(state);
+        if (atNewLine && (ch === 33 && state.tag !== null || ch === 38 && state.anchor !== null)) {
+          break;
+        }
+        if (!readTagProperty(state) && !readAnchorProperty(state)) {
+          break;
+        }
+        if (propertyStart === null) {
+          propertyStart = propertyState;
+        }
+        if (skipSeparationSpace(state, true, -1)) {
+          atNewLine = true;
+          allowBlockCollections = allowBlockStyles;
+          if (state.lineIndent > parentIndent) {
+            indentStatus = 1;
+          } else if (state.lineIndent === parentIndent) {
+            indentStatus = 0;
+          } else if (state.lineIndent < parentIndent) {
+            indentStatus = -1;
+          }
+        } else {
+          allowBlockCollections = false;
+        }
+      }
+    }
+    if (allowBlockCollections) {
+      allowBlockCollections = atNewLine || allowCompact;
+    }
+    if (indentStatus === 1 || CONTEXT_BLOCK_OUT === nodeContext) {
+      if (CONTEXT_FLOW_IN === nodeContext || CONTEXT_FLOW_OUT === nodeContext) {
+        flowIndent = parentIndent;
       } else {
-        if ((allowBlockScalars && readBlockScalar(state, flowIndent)) ||
-            readSingleQuotedScalar(state, flowIndent) ||
-            readDoubleQuotedScalar(state, flowIndent)) {
-          hasContent = true;
-
-        } else if (readAlias(state)) {
-          hasContent = true;
-
-          if (state.tag !== null || state.anchor !== null) {
-            throwError(state, 'alias node should not have any properties');
-          }
-
-        } else if (readPlainScalar(state, flowIndent, CONTEXT_FLOW_IN === nodeContext)) {
-          hasContent = true;
-
-          if (state.tag === null) {
-            state.tag = '?';
-          }
-        }
-
-        if (state.anchor !== null) {
-          state.anchorMap[state.anchor] = state.result;
-        }
+        flowIndent = parentIndent + 1;
       }
-    } else if (indentStatus === 0) {
-      // Special case: block sequences are allowed to have same indentation level as the parent.
-      // http://www.yaml.org/spec/1.2/spec.html#id2799784
-      hasContent = allowBlockCollections && readBlockSequence(state, blockIndent);
-    }
-  }
-
-  if (state.tag === null) {
-    if (state.anchor !== null) {
-      state.anchorMap[state.anchor] = state.result;
-    }
-
-  } else if (state.tag === '?') {
-    // Implicit resolving is not allowed for non-scalar types, and '?'
-    // non-specific tag is only automatically assigned to plain scalars.
-    //
-    // We only need to check kind conformity in case user explicitly assigns '?'
-    // tag, for example like this: "!<?> [0]"
-    //
-    if (state.result !== null && state.kind !== 'scalar') {
-      throwError(state, 'unacceptable node kind for !<?> tag; it should be "scalar", not "' + state.kind + '"');
-    }
-
-    for (typeIndex = 0, typeQuantity = state.implicitTypes.length; typeIndex < typeQuantity; typeIndex += 1) {
-      type = state.implicitTypes[typeIndex];
-
-      if (type.resolve(state.result)) { // `state.result` updated in resolver if matched
-        state.result = type.construct(state.result);
-        state.tag = type.tag;
-        if (state.anchor !== null) {
-          state.anchorMap[state.anchor] = state.result;
+      blockIndent = state.position - state.lineStart;
+      if (indentStatus === 1) {
+        if (allowBlockCollections && (readBlockSequence(state, blockIndent) || readBlockMapping(state, blockIndent, flowIndent)) || readFlowCollection(state, flowIndent)) {
+          hasContent = true;
+        } else {
+          const ch = state.input.charCodeAt(state.position);
+          if (propertyStart !== null && allowBlockStyles && !allowBlockCollections && ch !== 124 && ch !== 62 && tryReadBlockMappingFromProperty(
+            state,
+            propertyStart,
+            propertyStart.position - propertyStart.lineStart,
+            flowIndent
+          )) {
+            hasContent = true;
+          } else if (allowBlockScalars && readBlockScalar(state, flowIndent) || readSingleQuotedScalar(state, flowIndent) || readDoubleQuotedScalar(state, flowIndent)) {
+            hasContent = true;
+          } else if (readAlias(state)) {
+            hasContent = true;
+            if (state.tag !== null || state.anchor !== null) {
+              throwError(state, "alias node should not have any properties");
+            }
+          } else if (readPlainScalar(state, flowIndent, CONTEXT_FLOW_IN === nodeContext)) {
+            hasContent = true;
+            if (state.tag === null) {
+              state.tag = "?";
+            }
+          }
+          if (state.anchor !== null) {
+            storeAnchor(state, state.anchor, state.result);
+          }
         }
-        break;
+      } else if (indentStatus === 0) {
+        hasContent = allowBlockCollections && readBlockSequence(state, blockIndent);
       }
     }
-  } else if (state.tag !== '!') {
-    if (_hasOwnProperty$1.call(state.typeMap[state.kind || 'fallback'], state.tag)) {
-      type = state.typeMap[state.kind || 'fallback'][state.tag];
-    } else {
-      // looking for multi type
-      type = null;
-      typeList = state.typeMap.multi[state.kind || 'fallback'];
-
-      for (typeIndex = 0, typeQuantity = typeList.length; typeIndex < typeQuantity; typeIndex += 1) {
-        if (state.tag.slice(0, typeList[typeIndex].tag.length) === typeList[typeIndex].tag) {
-          type = typeList[typeIndex];
+    if (state.tag === null) {
+      if (state.anchor !== null) {
+        storeAnchor(state, state.anchor, state.result);
+      }
+    } else if (state.tag === "?") {
+      if (state.result !== null && state.kind !== "scalar") {
+        throwError(state, 'unacceptable node kind for !<?> tag; it should be "scalar", not "' + state.kind + '"');
+      }
+      for (let typeIndex = 0, typeQuantity = state.implicitTypes.length; typeIndex < typeQuantity; typeIndex += 1) {
+        type2 = state.implicitTypes[typeIndex];
+        if (type2.resolve(state.result)) {
+          state.result = type2.construct(state.result);
+          state.tag = type2.tag;
+          if (state.anchor !== null) {
+            storeAnchor(state, state.anchor, state.result);
+          }
           break;
         }
       }
-    }
-
-    if (!type) {
-      throwError(state, 'unknown tag !<' + state.tag + '>');
-    }
-
-    if (state.result !== null && type.kind !== state.kind) {
-      throwError(state, 'unacceptable node kind for !<' + state.tag + '> tag; it should be "' + type.kind + '", not "' + state.kind + '"');
-    }
-
-    if (!type.resolve(state.result, state.tag)) { // `state.result` updated in resolver if matched
-      throwError(state, 'cannot resolve a node with !<' + state.tag + '> explicit tag');
-    } else {
-      state.result = type.construct(state.result, state.tag);
-      if (state.anchor !== null) {
-        state.anchorMap[state.anchor] = state.result;
+    } else if (state.tag !== "!") {
+      if (_hasOwnProperty.call(state.typeMap[state.kind || "fallback"], state.tag)) {
+        type2 = state.typeMap[state.kind || "fallback"][state.tag];
+      } else {
+        type2 = null;
+        const typeList = state.typeMap.multi[state.kind || "fallback"];
+        for (let typeIndex = 0, typeQuantity = typeList.length; typeIndex < typeQuantity; typeIndex += 1) {
+          if (state.tag.slice(0, typeList[typeIndex].tag.length) === typeList[typeIndex].tag) {
+            type2 = typeList[typeIndex];
+            break;
+          }
+        }
+      }
+      if (!type2) {
+        throwError(state, "unknown tag !<" + state.tag + ">");
+      }
+      if (state.result !== null && type2.kind !== state.kind) {
+        throwError(state, "unacceptable node kind for !<" + state.tag + '> tag; it should be "' + type2.kind + '", not "' + state.kind + '"');
+      }
+      if (!type2.resolve(state.result, state.tag)) {
+        throwError(state, "cannot resolve a node with !<" + state.tag + "> explicit tag");
+      } else {
+        state.result = type2.construct(state.result, state.tag);
+        if (state.anchor !== null) {
+          storeAnchor(state, state.anchor, state.result);
+        }
       }
     }
+    if (state.listener !== null) {
+      state.listener("close", state);
+    }
+    state.depth -= 1;
+    return state.tag !== null || state.anchor !== null || hasContent;
   }
-
-  if (state.listener !== null) {
-    state.listener('close', state);
-  }
-  return state.tag !== null ||  state.anchor !== null || hasContent;
-}
-
-function readDocument(state) {
-  var documentStart = state.position,
-      _position,
-      directiveName,
-      directiveArgs,
-      hasDirectives = false,
-      ch;
-
-  state.version = null;
-  state.checkLineBreaks = state.legacy;
-  state.tagMap = Object.create(null);
-  state.anchorMap = Object.create(null);
-
-  while ((ch = state.input.charCodeAt(state.position)) !== 0) {
-    skipSeparationSpace(state, true, -1);
-
-    ch = state.input.charCodeAt(state.position);
-
-    if (state.lineIndent > 0 || ch !== 0x25/* % */) {
-      break;
-    }
-
-    hasDirectives = true;
-    ch = state.input.charCodeAt(++state.position);
-    _position = state.position;
-
-    while (ch !== 0 && !is_WS_OR_EOL(ch)) {
-      ch = state.input.charCodeAt(++state.position);
-    }
-
-    directiveName = state.input.slice(_position, state.position);
-    directiveArgs = [];
-
-    if (directiveName.length < 1) {
-      throwError(state, 'directive name must not be less than one character in length');
-    }
-
-    while (ch !== 0) {
-      while (is_WHITE_SPACE(ch)) {
-        ch = state.input.charCodeAt(++state.position);
-      }
-
-      if (ch === 0x23/* # */) {
-        do { ch = state.input.charCodeAt(++state.position); }
-        while (ch !== 0 && !is_EOL(ch));
+  function readDocument(state) {
+    const documentStart = state.position;
+    let hasDirectives = false;
+    let ch;
+    state.version = null;
+    state.checkLineBreaks = state.legacy;
+    state.tagMap = /* @__PURE__ */ Object.create(null);
+    state.anchorMap = /* @__PURE__ */ Object.create(null);
+    while ((ch = state.input.charCodeAt(state.position)) !== 0) {
+      skipSeparationSpace(state, true, -1);
+      ch = state.input.charCodeAt(state.position);
+      if (state.lineIndent > 0 || ch !== 37) {
         break;
       }
-
-      if (is_EOL(ch)) break;
-
-      _position = state.position;
-
-      while (ch !== 0 && !is_WS_OR_EOL(ch)) {
+      hasDirectives = true;
+      ch = state.input.charCodeAt(++state.position);
+      let _position = state.position;
+      while (ch !== 0 && !isWsOrEol(ch)) {
         ch = state.input.charCodeAt(++state.position);
       }
-
-      directiveArgs.push(state.input.slice(_position, state.position));
+      const directiveName = state.input.slice(_position, state.position);
+      const directiveArgs = [];
+      if (directiveName.length < 1) {
+        throwError(state, "directive name must not be less than one character in length");
+      }
+      while (ch !== 0) {
+        while (isWhiteSpace(ch)) {
+          ch = state.input.charCodeAt(++state.position);
+        }
+        if (ch === 35) {
+          do {
+            ch = state.input.charCodeAt(++state.position);
+          } while (ch !== 0 && !isEol(ch));
+          break;
+        }
+        if (isEol(ch)) break;
+        _position = state.position;
+        while (ch !== 0 && !isWsOrEol(ch)) {
+          ch = state.input.charCodeAt(++state.position);
+        }
+        directiveArgs.push(state.input.slice(_position, state.position));
+      }
+      if (ch !== 0) readLineBreak(state);
+      if (_hasOwnProperty.call(directiveHandlers, directiveName)) {
+        directiveHandlers[directiveName](state, directiveName, directiveArgs);
+      } else {
+        throwWarning(state, 'unknown document directive "' + directiveName + '"');
+      }
     }
-
-    if (ch !== 0) readLineBreak(state);
-
-    if (_hasOwnProperty$1.call(directiveHandlers, directiveName)) {
-      directiveHandlers[directiveName](state, directiveName, directiveArgs);
-    } else {
-      throwWarning(state, 'unknown document directive "' + directiveName + '"');
-    }
-  }
-
-  skipSeparationSpace(state, true, -1);
-
-  if (state.lineIndent === 0 &&
-      state.input.charCodeAt(state.position)     === 0x2D/* - */ &&
-      state.input.charCodeAt(state.position + 1) === 0x2D/* - */ &&
-      state.input.charCodeAt(state.position + 2) === 0x2D/* - */) {
-    state.position += 3;
     skipSeparationSpace(state, true, -1);
-
-  } else if (hasDirectives) {
-    throwError(state, 'directives end mark is expected');
-  }
-
-  composeNode(state, state.lineIndent - 1, CONTEXT_BLOCK_OUT, false, true);
-  skipSeparationSpace(state, true, -1);
-
-  if (state.checkLineBreaks &&
-      PATTERN_NON_ASCII_LINE_BREAKS.test(state.input.slice(documentStart, state.position))) {
-    throwWarning(state, 'non-ASCII line breaks are interpreted as content');
-  }
-
-  state.documents.push(state.result);
-
-  if (state.position === state.lineStart && testDocumentSeparator(state)) {
-
-    if (state.input.charCodeAt(state.position) === 0x2E/* . */) {
+    if (state.lineIndent === 0 && state.input.charCodeAt(state.position) === 45 && state.input.charCodeAt(state.position + 1) === 45 && state.input.charCodeAt(state.position + 2) === 45) {
       state.position += 3;
       skipSeparationSpace(state, true, -1);
+    } else if (hasDirectives) {
+      throwError(state, "directives end mark is expected");
     }
-    return;
-  }
-
-  if (state.position < (state.length - 1)) {
-    throwError(state, 'end of the stream or a document separator is expected');
-  } else {
-    return;
-  }
-}
-
-
-function loadDocuments(input, options) {
-  input = String(input);
-  options = options || {};
-
-  if (input.length !== 0) {
-
-    // Add tailing `\n` if not exists
-    if (input.charCodeAt(input.length - 1) !== 0x0A/* LF */ &&
-        input.charCodeAt(input.length - 1) !== 0x0D/* CR */) {
-      input += '\n';
+    composeNode(state, state.lineIndent - 1, CONTEXT_BLOCK_OUT, false, true);
+    skipSeparationSpace(state, true, -1);
+    if (state.checkLineBreaks && PATTERN_NON_ASCII_LINE_BREAKS.test(state.input.slice(documentStart, state.position))) {
+      throwWarning(state, "non-ASCII line breaks are interpreted as content");
     }
-
-    // Strip BOM
-    if (input.charCodeAt(0) === 0xFEFF) {
-      input = input.slice(1);
+    state.documents.push(state.result);
+    if (state.position === state.lineStart && testDocumentSeparator(state)) {
+      if (state.input.charCodeAt(state.position) === 46) {
+        state.position += 3;
+        skipSeparationSpace(state, true, -1);
+      }
+      return;
+    }
+    if (state.position < state.length - 1) {
+      throwError(state, "end of the stream or a document separator is expected");
     }
   }
-
-  var state = new State$1(input, options);
-
-  var nullpos = input.indexOf('\0');
-
-  if (nullpos !== -1) {
-    state.position = nullpos;
-    throwError(state, 'null byte is not allowed in input');
-  }
-
-  // Use 0 as string terminator. That significantly simplifies bounds check.
-  state.input += '\0';
-
-  while (state.input.charCodeAt(state.position) === 0x20/* Space */) {
-    state.lineIndent += 1;
-    state.position += 1;
-  }
-
-  while (state.position < (state.length - 1)) {
-    readDocument(state);
-  }
-
-  return state.documents;
-}
-
-
-function loadAll$1(input, iterator, options) {
-  if (iterator !== null && typeof iterator === 'object' && typeof options === 'undefined') {
-    options = iterator;
-    iterator = null;
-  }
-
-  var documents = loadDocuments(input, options);
-
-  if (typeof iterator !== 'function') {
-    return documents;
-  }
-
-  for (var index = 0, length = documents.length; index < length; index += 1) {
-    iterator(documents[index]);
-  }
-}
-
-
-function load$1(input, options) {
-  var documents = loadDocuments(input, options);
-
-  if (documents.length === 0) {
-    /*eslint-disable no-undefined*/
-    return undefined;
-  } else if (documents.length === 1) {
-    return documents[0];
-  }
-  throw new exception('expected a single document in the stream, but found more');
-}
-
-
-var loadAll_1 = loadAll$1;
-var load_1    = load$1;
-
-var loader = {
-	loadAll: loadAll_1,
-	load: load_1
-};
-
-/*eslint-disable no-use-before-define*/
-
-
-
-
-
-var _toString       = Object.prototype.toString;
-var _hasOwnProperty = Object.prototype.hasOwnProperty;
-
-var CHAR_BOM                  = 0xFEFF;
-var CHAR_TAB                  = 0x09; /* Tab */
-var CHAR_LINE_FEED            = 0x0A; /* LF */
-var CHAR_CARRIAGE_RETURN      = 0x0D; /* CR */
-var CHAR_SPACE                = 0x20; /* Space */
-var CHAR_EXCLAMATION          = 0x21; /* ! */
-var CHAR_DOUBLE_QUOTE         = 0x22; /* " */
-var CHAR_SHARP                = 0x23; /* # */
-var CHAR_PERCENT              = 0x25; /* % */
-var CHAR_AMPERSAND            = 0x26; /* & */
-var CHAR_SINGLE_QUOTE         = 0x27; /* ' */
-var CHAR_ASTERISK             = 0x2A; /* * */
-var CHAR_COMMA                = 0x2C; /* , */
-var CHAR_MINUS                = 0x2D; /* - */
-var CHAR_COLON                = 0x3A; /* : */
-var CHAR_EQUALS               = 0x3D; /* = */
-var CHAR_GREATER_THAN         = 0x3E; /* > */
-var CHAR_QUESTION             = 0x3F; /* ? */
-var CHAR_COMMERCIAL_AT        = 0x40; /* @ */
-var CHAR_LEFT_SQUARE_BRACKET  = 0x5B; /* [ */
-var CHAR_RIGHT_SQUARE_BRACKET = 0x5D; /* ] */
-var CHAR_GRAVE_ACCENT         = 0x60; /* ` */
-var CHAR_LEFT_CURLY_BRACKET   = 0x7B; /* { */
-var CHAR_VERTICAL_LINE        = 0x7C; /* | */
-var CHAR_RIGHT_CURLY_BRACKET  = 0x7D; /* } */
-
-var ESCAPE_SEQUENCES = {};
-
-ESCAPE_SEQUENCES[0x00]   = '\\0';
-ESCAPE_SEQUENCES[0x07]   = '\\a';
-ESCAPE_SEQUENCES[0x08]   = '\\b';
-ESCAPE_SEQUENCES[0x09]   = '\\t';
-ESCAPE_SEQUENCES[0x0A]   = '\\n';
-ESCAPE_SEQUENCES[0x0B]   = '\\v';
-ESCAPE_SEQUENCES[0x0C]   = '\\f';
-ESCAPE_SEQUENCES[0x0D]   = '\\r';
-ESCAPE_SEQUENCES[0x1B]   = '\\e';
-ESCAPE_SEQUENCES[0x22]   = '\\"';
-ESCAPE_SEQUENCES[0x5C]   = '\\\\';
-ESCAPE_SEQUENCES[0x85]   = '\\N';
-ESCAPE_SEQUENCES[0xA0]   = '\\_';
-ESCAPE_SEQUENCES[0x2028] = '\\L';
-ESCAPE_SEQUENCES[0x2029] = '\\P';
-
-var DEPRECATED_BOOLEANS_SYNTAX = [
-  'y', 'Y', 'yes', 'Yes', 'YES', 'on', 'On', 'ON',
-  'n', 'N', 'no', 'No', 'NO', 'off', 'Off', 'OFF'
-];
-
-var DEPRECATED_BASE60_SYNTAX = /^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/;
-
-function compileStyleMap(schema, map) {
-  var result, keys, index, length, tag, style, type;
-
-  if (map === null) return {};
-
-  result = {};
-  keys = Object.keys(map);
-
-  for (index = 0, length = keys.length; index < length; index += 1) {
-    tag = keys[index];
-    style = String(map[tag]);
-
-    if (tag.slice(0, 2) === '!!') {
-      tag = 'tag:yaml.org,2002:' + tag.slice(2);
+  function loadDocuments(input, options) {
+    input = String(input);
+    options = options || {};
+    if (input.length !== 0) {
+      if (input.charCodeAt(input.length - 1) !== 10 && input.charCodeAt(input.length - 1) !== 13) {
+        input += "\n";
+      }
+      if (input.charCodeAt(0) === 65279) {
+        input = input.slice(1);
+      }
     }
-    type = schema.compiledTypeMap['fallback'][tag];
-
-    if (type && _hasOwnProperty.call(type.styleAliases, style)) {
-      style = type.styleAliases[style];
+    const state = new State(input, options);
+    const nullpos = input.indexOf("\0");
+    if (nullpos !== -1) {
+      state.position = nullpos;
+      throwError(state, "null byte is not allowed in input");
     }
-
-    result[tag] = style;
+    state.input += "\0";
+    while (state.input.charCodeAt(state.position) === 32) {
+      state.lineIndent += 1;
+      state.position += 1;
+    }
+    while (state.position < state.length - 1) {
+      readDocument(state);
+    }
+    return state.documents;
   }
-
-  return result;
-}
-
-function encodeHex(character) {
-  var string, handle, length;
-
-  string = character.toString(16).toUpperCase();
-
-  if (character <= 0xFF) {
-    handle = 'x';
-    length = 2;
-  } else if (character <= 0xFFFF) {
-    handle = 'u';
-    length = 4;
-  } else if (character <= 0xFFFFFFFF) {
-    handle = 'U';
-    length = 8;
-  } else {
-    throw new exception('code point within a string may not be greater than 0xFFFFFFFF');
+  function loadAll2(input, iterator, options) {
+    if (iterator !== null && typeof iterator === "object" && typeof options === "undefined") {
+      options = iterator;
+      iterator = null;
+    }
+    const documents = loadDocuments(input, options);
+    if (typeof iterator !== "function") {
+      return documents;
+    }
+    for (let index = 0, length = documents.length; index < length; index += 1) {
+      iterator(documents[index]);
+    }
   }
-
-  return '\\' + handle + common.repeat('0', length - string.length) + string;
+  function load2(input, options) {
+    const documents = loadDocuments(input, options);
+    if (documents.length === 0) {
+      return void 0;
+    } else if (documents.length === 1) {
+      return documents[0];
+    }
+    throw new YAMLException2("expected a single document in the stream, but found more");
+  }
+  loader.loadAll = loadAll2;
+  loader.load = load2;
+  return loader;
 }
-
-
-var QUOTING_TYPE_SINGLE = 1,
-    QUOTING_TYPE_DOUBLE = 2;
-
-function State(options) {
-  this.schema        = options['schema'] || _default;
-  this.indent        = Math.max(1, (options['indent'] || 2));
-  this.noArrayIndent = options['noArrayIndent'] || false;
-  this.skipInvalid   = options['skipInvalid'] || false;
-  this.flowLevel     = (common.isNothing(options['flowLevel']) ? -1 : options['flowLevel']);
-  this.styleMap      = compileStyleMap(this.schema, options['styles'] || null);
-  this.sortKeys      = options['sortKeys'] || false;
-  this.lineWidth     = options['lineWidth'] || 80;
-  this.noRefs        = options['noRefs'] || false;
-  this.noCompatMode  = options['noCompatMode'] || false;
-  this.condenseFlow  = options['condenseFlow'] || false;
-  this.quotingType   = options['quotingType'] === '"' ? QUOTING_TYPE_DOUBLE : QUOTING_TYPE_SINGLE;
-  this.forceQuotes   = options['forceQuotes'] || false;
-  this.replacer      = typeof options['replacer'] === 'function' ? options['replacer'] : null;
-
-  this.implicitTypes = this.schema.compiledImplicit;
-  this.explicitTypes = this.schema.compiledExplicit;
-
-  this.tag = null;
-  this.result = '';
-
-  this.duplicates = [];
-  this.usedDuplicates = null;
-}
-
-// Indents every line in a string. Empty lines (\n only) are not indented.
-function indentString(string, spaces) {
-  var ind = common.repeat(' ', spaces),
-      position = 0,
-      next = -1,
-      result = '',
-      line,
-      length = string.length;
-
-  while (position < length) {
-    next = string.indexOf('\n', position);
-    if (next === -1) {
-      line = string.slice(position);
-      position = length;
+var dumper = {};
+var hasRequiredDumper;
+function requireDumper() {
+  if (hasRequiredDumper) return dumper;
+  hasRequiredDumper = 1;
+  const common2 = requireCommon();
+  const YAMLException2 = requireException();
+  const DEFAULT_SCHEMA2 = require_default();
+  const _toString = Object.prototype.toString;
+  const _hasOwnProperty = Object.prototype.hasOwnProperty;
+  const CHAR_BOM = 65279;
+  const CHAR_TAB = 9;
+  const CHAR_LINE_FEED = 10;
+  const CHAR_CARRIAGE_RETURN = 13;
+  const CHAR_SPACE = 32;
+  const CHAR_EXCLAMATION = 33;
+  const CHAR_DOUBLE_QUOTE = 34;
+  const CHAR_SHARP = 35;
+  const CHAR_PERCENT = 37;
+  const CHAR_AMPERSAND = 38;
+  const CHAR_SINGLE_QUOTE = 39;
+  const CHAR_ASTERISK = 42;
+  const CHAR_COMMA = 44;
+  const CHAR_MINUS = 45;
+  const CHAR_COLON = 58;
+  const CHAR_EQUALS = 61;
+  const CHAR_GREATER_THAN = 62;
+  const CHAR_QUESTION = 63;
+  const CHAR_COMMERCIAL_AT = 64;
+  const CHAR_LEFT_SQUARE_BRACKET = 91;
+  const CHAR_RIGHT_SQUARE_BRACKET = 93;
+  const CHAR_GRAVE_ACCENT = 96;
+  const CHAR_LEFT_CURLY_BRACKET = 123;
+  const CHAR_VERTICAL_LINE = 124;
+  const CHAR_RIGHT_CURLY_BRACKET = 125;
+  const ESCAPE_SEQUENCES = {};
+  ESCAPE_SEQUENCES[0] = "\\0";
+  ESCAPE_SEQUENCES[7] = "\\a";
+  ESCAPE_SEQUENCES[8] = "\\b";
+  ESCAPE_SEQUENCES[9] = "\\t";
+  ESCAPE_SEQUENCES[10] = "\\n";
+  ESCAPE_SEQUENCES[11] = "\\v";
+  ESCAPE_SEQUENCES[12] = "\\f";
+  ESCAPE_SEQUENCES[13] = "\\r";
+  ESCAPE_SEQUENCES[27] = "\\e";
+  ESCAPE_SEQUENCES[34] = '\\"';
+  ESCAPE_SEQUENCES[92] = "\\\\";
+  ESCAPE_SEQUENCES[133] = "\\N";
+  ESCAPE_SEQUENCES[160] = "\\_";
+  ESCAPE_SEQUENCES[8232] = "\\L";
+  ESCAPE_SEQUENCES[8233] = "\\P";
+  const DEPRECATED_BOOLEANS_SYNTAX = [
+    "y",
+    "Y",
+    "yes",
+    "Yes",
+    "YES",
+    "on",
+    "On",
+    "ON",
+    "n",
+    "N",
+    "no",
+    "No",
+    "NO",
+    "off",
+    "Off",
+    "OFF"
+  ];
+  const DEPRECATED_BASE60_SYNTAX = /^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/;
+  function compileStyleMap(schema2, map2) {
+    if (map2 === null) return {};
+    const result = {};
+    const keys = Object.keys(map2);
+    for (let index = 0, length = keys.length; index < length; index += 1) {
+      let tag = keys[index];
+      let style = String(map2[tag]);
+      if (tag.slice(0, 2) === "!!") {
+        tag = "tag:yaml.org,2002:" + tag.slice(2);
+      }
+      const type2 = schema2.compiledTypeMap["fallback"][tag];
+      if (type2 && _hasOwnProperty.call(type2.styleAliases, style)) {
+        style = type2.styleAliases[style];
+      }
+      result[tag] = style;
+    }
+    return result;
+  }
+  function encodeHex(character) {
+    let handle;
+    let length;
+    const string = character.toString(16).toUpperCase();
+    if (character <= 255) {
+      handle = "x";
+      length = 2;
+    } else if (character <= 65535) {
+      handle = "u";
+      length = 4;
+    } else if (character <= 4294967295) {
+      handle = "U";
+      length = 8;
     } else {
-      line = string.slice(position, next + 1);
-      position = next + 1;
+      throw new YAMLException2("code point within a string may not be greater than 0xFFFFFFFF");
     }
-
-    if (line.length && line !== '\n') result += ind;
-
-    result += line;
+    return "\\" + handle + common2.repeat("0", length - string.length) + string;
   }
-
-  return result;
-}
-
-function generateNextLine(state, level) {
-  return '\n' + common.repeat(' ', state.indent * level);
-}
-
-function testImplicitResolving(state, str) {
-  var index, length, type;
-
-  for (index = 0, length = state.implicitTypes.length; index < length; index += 1) {
-    type = state.implicitTypes[index];
-
-    if (type.resolve(str)) {
-      return true;
+  const QUOTING_TYPE_SINGLE = 1;
+  const QUOTING_TYPE_DOUBLE = 2;
+  function State(options) {
+    this.schema = options["schema"] || DEFAULT_SCHEMA2;
+    this.indent = Math.max(1, options["indent"] || 2);
+    this.noArrayIndent = options["noArrayIndent"] || false;
+    this.skipInvalid = options["skipInvalid"] || false;
+    this.flowLevel = common2.isNothing(options["flowLevel"]) ? -1 : options["flowLevel"];
+    this.styleMap = compileStyleMap(this.schema, options["styles"] || null);
+    this.sortKeys = options["sortKeys"] || false;
+    this.lineWidth = options["lineWidth"] || 80;
+    this.noRefs = options["noRefs"] || false;
+    this.noCompatMode = options["noCompatMode"] || false;
+    this.condenseFlow = options["condenseFlow"] || false;
+    this.quotingType = options["quotingType"] === '"' ? QUOTING_TYPE_DOUBLE : QUOTING_TYPE_SINGLE;
+    this.forceQuotes = options["forceQuotes"] || false;
+    this.replacer = typeof options["replacer"] === "function" ? options["replacer"] : null;
+    this.implicitTypes = this.schema.compiledImplicit;
+    this.explicitTypes = this.schema.compiledExplicit;
+    this.tag = null;
+    this.result = "";
+    this.duplicates = [];
+    this.usedDuplicates = null;
+  }
+  function indentString(string, spaces) {
+    const ind = common2.repeat(" ", spaces);
+    let position = 0;
+    let result = "";
+    const length = string.length;
+    while (position < length) {
+      let line;
+      const next = string.indexOf("\n", position);
+      if (next === -1) {
+        line = string.slice(position);
+        position = length;
+      } else {
+        line = string.slice(position, next + 1);
+        position = next + 1;
+      }
+      if (line.length && line !== "\n") result += ind;
+      result += line;
     }
+    return result;
   }
-
-  return false;
-}
-
-// [33] s-white ::= s-space | s-tab
-function isWhitespace(c) {
-  return c === CHAR_SPACE || c === CHAR_TAB;
-}
-
-// Returns true if the character can be printed without escaping.
-// From YAML 1.2: "any allowed characters known to be non-printable
-// should also be escaped. [However,] This isn’t mandatory"
-// Derived from nb-char - \t - #x85 - #xA0 - #x2028 - #x2029.
-function isPrintable(c) {
-  return  (0x00020 <= c && c <= 0x00007E)
-      || ((0x000A1 <= c && c <= 0x00D7FF) && c !== 0x2028 && c !== 0x2029)
-      || ((0x0E000 <= c && c <= 0x00FFFD) && c !== CHAR_BOM)
-      ||  (0x10000 <= c && c <= 0x10FFFF);
-}
-
-// [34] ns-char ::= nb-char - s-white
-// [27] nb-char ::= c-printable - b-char - c-byte-order-mark
-// [26] b-char  ::= b-line-feed | b-carriage-return
-// Including s-white (for some reason, examples doesn't match specs in this aspect)
-// ns-char ::= c-printable - b-line-feed - b-carriage-return - c-byte-order-mark
-function isNsCharOrWhitespace(c) {
-  return isPrintable(c)
-    && c !== CHAR_BOM
-    // - b-char
-    && c !== CHAR_CARRIAGE_RETURN
-    && c !== CHAR_LINE_FEED;
-}
-
-// [127]  ns-plain-safe(c) ::= c = flow-out  ⇒ ns-plain-safe-out
-//                             c = flow-in   ⇒ ns-plain-safe-in
-//                             c = block-key ⇒ ns-plain-safe-out
-//                             c = flow-key  ⇒ ns-plain-safe-in
-// [128] ns-plain-safe-out ::= ns-char
-// [129]  ns-plain-safe-in ::= ns-char - c-flow-indicator
-// [130]  ns-plain-char(c) ::=  ( ns-plain-safe(c) - “:” - “#” )
-//                            | ( /* An ns-char preceding */ “#” )
-//                            | ( “:” /* Followed by an ns-plain-safe(c) */ )
-function isPlainSafe(c, prev, inblock) {
-  var cIsNsCharOrWhitespace = isNsCharOrWhitespace(c);
-  var cIsNsChar = cIsNsCharOrWhitespace && !isWhitespace(c);
-  return (
-    // ns-plain-safe
-    inblock ? // c = flow-in
-      cIsNsCharOrWhitespace
-      : cIsNsCharOrWhitespace
-        // - c-flow-indicator
-        && c !== CHAR_COMMA
-        && c !== CHAR_LEFT_SQUARE_BRACKET
-        && c !== CHAR_RIGHT_SQUARE_BRACKET
-        && c !== CHAR_LEFT_CURLY_BRACKET
-        && c !== CHAR_RIGHT_CURLY_BRACKET
-  )
-    // ns-plain-char
-    && c !== CHAR_SHARP // false on '#'
-    && !(prev === CHAR_COLON && !cIsNsChar) // false on ': '
-    || (isNsCharOrWhitespace(prev) && !isWhitespace(prev) && c === CHAR_SHARP) // change to true on '[^ ]#'
-    || (prev === CHAR_COLON && cIsNsChar); // change to true on ':[^ ]'
-}
-
-// Simplified test for values allowed as the first character in plain style.
-function isPlainSafeFirst(c) {
-  // Uses a subset of ns-char - c-indicator
-  // where ns-char = nb-char - s-white.
-  // No support of ( ( “?” | “:” | “-” ) /* Followed by an ns-plain-safe(c)) */ ) part
-  return isPrintable(c) && c !== CHAR_BOM
-    && !isWhitespace(c) // - s-white
+  function generateNextLine(state, level) {
+    return "\n" + common2.repeat(" ", state.indent * level);
+  }
+  function testImplicitResolving(state, str2) {
+    for (let index = 0, length = state.implicitTypes.length; index < length; index += 1) {
+      const type2 = state.implicitTypes[index];
+      if (type2.resolve(str2)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  function isWhitespace(c) {
+    return c === CHAR_SPACE || c === CHAR_TAB;
+  }
+  function isPrintable(c) {
+    return c >= 32 && c <= 126 || c >= 161 && c <= 55295 && c !== 8232 && c !== 8233 || c >= 57344 && c <= 65533 && c !== CHAR_BOM || c >= 65536 && c <= 1114111;
+  }
+  function isNsCharOrWhitespace(c) {
+    return isPrintable(c) && c !== CHAR_BOM && // - b-char
+    c !== CHAR_CARRIAGE_RETURN && c !== CHAR_LINE_FEED;
+  }
+  function isPlainSafe(c, prev, inblock) {
+    const cIsNsCharOrWhitespace = isNsCharOrWhitespace(c);
+    const cIsNsChar = cIsNsCharOrWhitespace && !isWhitespace(c);
+    return (
+      // ns-plain-safe
+      (inblock ? cIsNsCharOrWhitespace : cIsNsCharOrWhitespace && // - c-flow-indicator
+      c !== CHAR_COMMA && c !== CHAR_LEFT_SQUARE_BRACKET && c !== CHAR_RIGHT_SQUARE_BRACKET && c !== CHAR_LEFT_CURLY_BRACKET && c !== CHAR_RIGHT_CURLY_BRACKET) && // ns-plain-char
+      c !== CHAR_SHARP && // false on '#'
+      !(prev === CHAR_COLON && !cIsNsChar) || // false on ': '
+      isNsCharOrWhitespace(prev) && !isWhitespace(prev) && c === CHAR_SHARP || // change to true on '[^ ]#'
+      prev === CHAR_COLON && cIsNsChar
+    );
+  }
+  function isPlainSafeFirst(c) {
+    return isPrintable(c) && c !== CHAR_BOM && !isWhitespace(c) && // - s-white
     // - (c-indicator ::=
     // “-” | “?” | “:” | “,” | “[” | “]” | “{” | “}”
-    && c !== CHAR_MINUS
-    && c !== CHAR_QUESTION
-    && c !== CHAR_COLON
-    && c !== CHAR_COMMA
-    && c !== CHAR_LEFT_SQUARE_BRACKET
-    && c !== CHAR_RIGHT_SQUARE_BRACKET
-    && c !== CHAR_LEFT_CURLY_BRACKET
-    && c !== CHAR_RIGHT_CURLY_BRACKET
-    // | “#” | “&” | “*” | “!” | “|” | “=” | “>” | “'” | “"”
-    && c !== CHAR_SHARP
-    && c !== CHAR_AMPERSAND
-    && c !== CHAR_ASTERISK
-    && c !== CHAR_EXCLAMATION
-    && c !== CHAR_VERTICAL_LINE
-    && c !== CHAR_EQUALS
-    && c !== CHAR_GREATER_THAN
-    && c !== CHAR_SINGLE_QUOTE
-    && c !== CHAR_DOUBLE_QUOTE
-    // | “%” | “@” | “`”)
-    && c !== CHAR_PERCENT
-    && c !== CHAR_COMMERCIAL_AT
-    && c !== CHAR_GRAVE_ACCENT;
-}
-
-// Simplified test for values allowed as the last character in plain style.
-function isPlainSafeLast(c) {
-  // just not whitespace or colon, it will be checked to be plain character later
-  return !isWhitespace(c) && c !== CHAR_COLON;
-}
-
-// Same as 'string'.codePointAt(pos), but works in older browsers.
-function codePointAt(string, pos) {
-  var first = string.charCodeAt(pos), second;
-  if (first >= 0xD800 && first <= 0xDBFF && pos + 1 < string.length) {
-    second = string.charCodeAt(pos + 1);
-    if (second >= 0xDC00 && second <= 0xDFFF) {
-      // https://mathiasbynens.be/notes/javascript-encoding#surrogate-formulae
-      return (first - 0xD800) * 0x400 + second - 0xDC00 + 0x10000;
-    }
+    c !== CHAR_MINUS && c !== CHAR_QUESTION && c !== CHAR_COLON && c !== CHAR_COMMA && c !== CHAR_LEFT_SQUARE_BRACKET && c !== CHAR_RIGHT_SQUARE_BRACKET && c !== CHAR_LEFT_CURLY_BRACKET && c !== CHAR_RIGHT_CURLY_BRACKET && // | “#” | “&” | “*” | “!” | “|” | “=” | “>” | “'” | “"”
+    c !== CHAR_SHARP && c !== CHAR_AMPERSAND && c !== CHAR_ASTERISK && c !== CHAR_EXCLAMATION && c !== CHAR_VERTICAL_LINE && c !== CHAR_EQUALS && c !== CHAR_GREATER_THAN && c !== CHAR_SINGLE_QUOTE && c !== CHAR_DOUBLE_QUOTE && // | “%” | “@” | “`”)
+    c !== CHAR_PERCENT && c !== CHAR_COMMERCIAL_AT && c !== CHAR_GRAVE_ACCENT;
   }
-  return first;
-}
-
-// Determines whether block indentation indicator is required.
-function needIndentIndicator(string) {
-  var leadingSpaceRe = /^\n* /;
-  return leadingSpaceRe.test(string);
-}
-
-var STYLE_PLAIN   = 1,
-    STYLE_SINGLE  = 2,
-    STYLE_LITERAL = 3,
-    STYLE_FOLDED  = 4,
-    STYLE_DOUBLE  = 5;
-
-// Determines which scalar styles are possible and returns the preferred style.
-// lineWidth = -1 => no limit.
-// Pre-conditions: str.length > 0.
-// Post-conditions:
-//    STYLE_PLAIN or STYLE_SINGLE => no \n are in the string.
-//    STYLE_LITERAL => no lines are suitable for folding (or lineWidth is -1).
-//    STYLE_FOLDED => a line > lineWidth and can be folded (and lineWidth != -1).
-function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth,
-  testAmbiguousType, quotingType, forceQuotes, inblock) {
-
-  var i;
-  var char = 0;
-  var prevChar = null;
-  var hasLineBreak = false;
-  var hasFoldableLine = false; // only checked if shouldTrackWidth
-  var shouldTrackWidth = lineWidth !== -1;
-  var previousLineBreak = -1; // count the first line correctly
-  var plain = isPlainSafeFirst(codePointAt(string, 0))
-          && isPlainSafeLast(codePointAt(string, string.length - 1));
-
-  if (singleLineOnly || forceQuotes) {
-    // Case: no block styles.
-    // Check for disallowed characters to rule out plain and single.
-    for (i = 0; i < string.length; char >= 0x10000 ? i += 2 : i++) {
-      char = codePointAt(string, i);
-      if (!isPrintable(char)) {
-        return STYLE_DOUBLE;
+  function isPlainSafeLast(c) {
+    return !isWhitespace(c) && c !== CHAR_COLON;
+  }
+  function codePointAt(string, pos) {
+    const first = string.charCodeAt(pos);
+    let second;
+    if (first >= 55296 && first <= 56319 && pos + 1 < string.length) {
+      second = string.charCodeAt(pos + 1);
+      if (second >= 56320 && second <= 57343) {
+        return (first - 55296) * 1024 + second - 56320 + 65536;
       }
-      plain = plain && isPlainSafe(char, prevChar, inblock);
-      prevChar = char;
     }
-  } else {
-    // Case: block styles permitted.
-    for (i = 0; i < string.length; char >= 0x10000 ? i += 2 : i++) {
-      char = codePointAt(string, i);
-      if (char === CHAR_LINE_FEED) {
-        hasLineBreak = true;
-        // Check if any line can be folded.
-        if (shouldTrackWidth) {
-          hasFoldableLine = hasFoldableLine ||
-            // Foldable line = too long, and not more-indented.
-            (i - previousLineBreak - 1 > lineWidth &&
-             string[previousLineBreak + 1] !== ' ');
-          previousLineBreak = i;
+    return first;
+  }
+  function needIndentIndicator(string) {
+    const leadingSpaceRe = /^\n* /;
+    return leadingSpaceRe.test(string);
+  }
+  const STYLE_PLAIN = 1;
+  const STYLE_SINGLE = 2;
+  const STYLE_LITERAL = 3;
+  const STYLE_FOLDED = 4;
+  const STYLE_DOUBLE = 5;
+  function chooseScalarStyle(string, singleLineOnly, indentPerLevel, lineWidth, testAmbiguousType, quotingType, forceQuotes, inblock) {
+    let i;
+    let char = 0;
+    let prevChar = null;
+    let hasLineBreak = false;
+    let hasFoldableLine = false;
+    const shouldTrackWidth = lineWidth !== -1;
+    let previousLineBreak = -1;
+    let plain = isPlainSafeFirst(codePointAt(string, 0)) && isPlainSafeLast(codePointAt(string, string.length - 1));
+    if (singleLineOnly || forceQuotes) {
+      for (i = 0; i < string.length; char >= 65536 ? i += 2 : i++) {
+        char = codePointAt(string, i);
+        if (!isPrintable(char)) {
+          return STYLE_DOUBLE;
         }
-      } else if (!isPrintable(char)) {
-        return STYLE_DOUBLE;
+        plain = plain && isPlainSafe(char, prevChar, inblock);
+        prevChar = char;
       }
-      plain = plain && isPlainSafe(char, prevChar, inblock);
-      prevChar = char;
+    } else {
+      for (i = 0; i < string.length; char >= 65536 ? i += 2 : i++) {
+        char = codePointAt(string, i);
+        if (char === CHAR_LINE_FEED) {
+          hasLineBreak = true;
+          if (shouldTrackWidth) {
+            hasFoldableLine = hasFoldableLine || // Foldable line = too long, and not more-indented.
+            i - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ";
+            previousLineBreak = i;
+          }
+        } else if (!isPrintable(char)) {
+          return STYLE_DOUBLE;
+        }
+        plain = plain && isPlainSafe(char, prevChar, inblock);
+        prevChar = char;
+      }
+      hasFoldableLine = hasFoldableLine || shouldTrackWidth && (i - previousLineBreak - 1 > lineWidth && string[previousLineBreak + 1] !== " ");
     }
-    // in case the end is missing a \n
-    hasFoldableLine = hasFoldableLine || (shouldTrackWidth &&
-      (i - previousLineBreak - 1 > lineWidth &&
-       string[previousLineBreak + 1] !== ' '));
-  }
-  // Although every style can represent \n without escaping, prefer block styles
-  // for multiline, since they're more readable and they don't add empty lines.
-  // Also prefer folding a super-long line.
-  if (!hasLineBreak && !hasFoldableLine) {
-    // Strings interpretable as another type have to be quoted;
-    // e.g. the string 'true' vs. the boolean true.
-    if (plain && !forceQuotes && !testAmbiguousType(string)) {
-      return STYLE_PLAIN;
+    if (!hasLineBreak && !hasFoldableLine) {
+      if (plain && !forceQuotes && !testAmbiguousType(string)) {
+        return STYLE_PLAIN;
+      }
+      return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
+    }
+    if (indentPerLevel > 9 && needIndentIndicator(string)) {
+      return STYLE_DOUBLE;
+    }
+    if (!forceQuotes) {
+      return hasFoldableLine ? STYLE_FOLDED : STYLE_LITERAL;
     }
     return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
   }
-  // Edge case: block indentation indicator can only have one digit.
-  if (indentPerLevel > 9 && needIndentIndicator(string)) {
-    return STYLE_DOUBLE;
-  }
-  // At this point we know block styles are valid.
-  // Prefer literal style unless we want to fold.
-  if (!forceQuotes) {
-    return hasFoldableLine ? STYLE_FOLDED : STYLE_LITERAL;
-  }
-  return quotingType === QUOTING_TYPE_DOUBLE ? STYLE_DOUBLE : STYLE_SINGLE;
-}
-
-// Note: line breaking/folding is implemented for only the folded style.
-// NB. We drop the last trailing newline (if any) of a returned block scalar
-//  since the dumper adds its own newline. This always works:
-//    • No ending newline => unaffected; already using strip "-" chomping.
-//    • Ending newline    => removed then restored.
-//  Importantly, this keeps the "+" chomp indicator from gaining an extra line.
-function writeScalar(state, string, level, iskey, inblock) {
-  state.dump = (function () {
-    if (string.length === 0) {
-      return state.quotingType === QUOTING_TYPE_DOUBLE ? '""' : "''";
-    }
-    if (!state.noCompatMode) {
-      if (DEPRECATED_BOOLEANS_SYNTAX.indexOf(string) !== -1 || DEPRECATED_BASE60_SYNTAX.test(string)) {
-        return state.quotingType === QUOTING_TYPE_DOUBLE ? ('"' + string + '"') : ("'" + string + "'");
+  function writeScalar(state, string, level, iskey, inblock) {
+    state.dump = (function() {
+      if (string.length === 0) {
+        return state.quotingType === QUOTING_TYPE_DOUBLE ? '""' : "''";
       }
-    }
-
-    var indent = state.indent * Math.max(1, level); // no 0-indent scalars
-    // As indentation gets deeper, let the width decrease monotonically
-    // to the lower bound min(state.lineWidth, 40).
-    // Note that this implies
-    //  state.lineWidth ≤ 40 + state.indent: width is fixed at the lower bound.
-    //  state.lineWidth > 40 + state.indent: width decreases until the lower bound.
-    // This behaves better than a constant minimum width which disallows narrower options,
-    // or an indent threshold which causes the width to suddenly increase.
-    var lineWidth = state.lineWidth === -1
-      ? -1 : Math.max(Math.min(state.lineWidth, 40), state.lineWidth - indent);
-
-    // Without knowing if keys are implicit/explicit, assume implicit for safety.
-    var singleLineOnly = iskey
-      // No block styles in flow mode.
-      || (state.flowLevel > -1 && level >= state.flowLevel);
-    function testAmbiguity(string) {
-      return testImplicitResolving(state, string);
-    }
-
-    switch (chooseScalarStyle(string, singleLineOnly, state.indent, lineWidth,
-      testAmbiguity, state.quotingType, state.forceQuotes && !iskey, inblock)) {
-
-      case STYLE_PLAIN:
-        return string;
-      case STYLE_SINGLE:
-        return "'" + string.replace(/'/g, "''") + "'";
-      case STYLE_LITERAL:
-        return '|' + blockHeader(string, state.indent)
-          + dropEndingNewline(indentString(string, indent));
-      case STYLE_FOLDED:
-        return '>' + blockHeader(string, state.indent)
-          + dropEndingNewline(indentString(foldString(string, lineWidth), indent));
-      case STYLE_DOUBLE:
-        return '"' + escapeString(string) + '"';
-      default:
-        throw new exception('impossible error: invalid scalar style');
-    }
-  }());
-}
-
-// Pre-conditions: string is valid for a block scalar, 1 <= indentPerLevel <= 9.
-function blockHeader(string, indentPerLevel) {
-  var indentIndicator = needIndentIndicator(string) ? String(indentPerLevel) : '';
-
-  // note the special case: the string '\n' counts as a "trailing" empty line.
-  var clip =          string[string.length - 1] === '\n';
-  var keep = clip && (string[string.length - 2] === '\n' || string === '\n');
-  var chomp = keep ? '+' : (clip ? '' : '-');
-
-  return indentIndicator + chomp + '\n';
-}
-
-// (See the note for writeScalar.)
-function dropEndingNewline(string) {
-  return string[string.length - 1] === '\n' ? string.slice(0, -1) : string;
-}
-
-// Note: a long line without a suitable break point will exceed the width limit.
-// Pre-conditions: every char in str isPrintable, str.length > 0, width > 0.
-function foldString(string, width) {
-  // In folded style, $k$ consecutive newlines output as $k+1$ newlines—
-  // unless they're before or after a more-indented line, or at the very
-  // beginning or end, in which case $k$ maps to $k$.
-  // Therefore, parse each chunk as newline(s) followed by a content line.
-  var lineRe = /(\n+)([^\n]*)/g;
-
-  // first line (possibly an empty line)
-  var result = (function () {
-    var nextLF = string.indexOf('\n');
-    nextLF = nextLF !== -1 ? nextLF : string.length;
-    lineRe.lastIndex = nextLF;
-    return foldLine(string.slice(0, nextLF), width);
-  }());
-  // If we haven't reached the first content line yet, don't add an extra \n.
-  var prevMoreIndented = string[0] === '\n' || string[0] === ' ';
-  var moreIndented;
-
-  // rest of the lines
-  var match;
-  while ((match = lineRe.exec(string))) {
-    var prefix = match[1], line = match[2];
-    moreIndented = (line[0] === ' ');
-    result += prefix
-      + (!prevMoreIndented && !moreIndented && line !== ''
-        ? '\n' : '')
-      + foldLine(line, width);
-    prevMoreIndented = moreIndented;
+      if (!state.noCompatMode) {
+        if (DEPRECATED_BOOLEANS_SYNTAX.indexOf(string) !== -1 || DEPRECATED_BASE60_SYNTAX.test(string)) {
+          return state.quotingType === QUOTING_TYPE_DOUBLE ? '"' + string + '"' : "'" + string + "'";
+        }
+      }
+      const indent = state.indent * Math.max(1, level);
+      const lineWidth = state.lineWidth === -1 ? -1 : Math.max(Math.min(state.lineWidth, 40), state.lineWidth - indent);
+      const singleLineOnly = iskey || // No block styles in flow mode.
+      state.flowLevel > -1 && level >= state.flowLevel;
+      function testAmbiguity(string2) {
+        return testImplicitResolving(state, string2);
+      }
+      switch (chooseScalarStyle(
+        string,
+        singleLineOnly,
+        state.indent,
+        lineWidth,
+        testAmbiguity,
+        state.quotingType,
+        state.forceQuotes && !iskey,
+        inblock
+      )) {
+        case STYLE_PLAIN:
+          return string;
+        case STYLE_SINGLE:
+          return "'" + string.replace(/'/g, "''") + "'";
+        case STYLE_LITERAL:
+          return "|" + blockHeader(string, state.indent) + dropEndingNewline(indentString(string, indent));
+        case STYLE_FOLDED:
+          return ">" + blockHeader(string, state.indent) + dropEndingNewline(indentString(foldString(string, lineWidth), indent));
+        case STYLE_DOUBLE:
+          return '"' + escapeString(string) + '"';
+        default:
+          throw new YAMLException2("impossible error: invalid scalar style");
+      }
+    })();
   }
-
-  return result;
-}
-
-// Greedy line breaking.
-// Picks the longest line under the limit each time,
-// otherwise settles for the shortest line over the limit.
-// NB. More-indented lines *cannot* be folded, as that would add an extra \n.
-function foldLine(line, width) {
-  if (line === '' || line[0] === ' ') return line;
-
-  // Since a more-indented line adds a \n, breaks can't be followed by a space.
-  var breakRe = / [^ ]/g; // note: the match index will always be <= length-2.
-  var match;
-  // start is an inclusive index. end, curr, and next are exclusive.
-  var start = 0, end, curr = 0, next = 0;
-  var result = '';
-
-  // Invariants: 0 <= start <= length-1.
-  //   0 <= curr <= next <= max(0, length-2). curr - start <= width.
-  // Inside the loop:
-  //   A match implies length >= 2, so curr and next are <= length-2.
-  while ((match = breakRe.exec(line))) {
-    next = match.index;
-    // maintain invariant: curr - start <= width
-    if (next - start > width) {
-      end = (curr > start) ? curr : next; // derive end <= length-2
-      result += '\n' + line.slice(start, end);
-      // skip the space that was output as \n
-      start = end + 1;                    // derive start <= length-1
+  function blockHeader(string, indentPerLevel) {
+    const indentIndicator = needIndentIndicator(string) ? String(indentPerLevel) : "";
+    const clip = string[string.length - 1] === "\n";
+    const keep = clip && (string[string.length - 2] === "\n" || string === "\n");
+    const chomp = keep ? "+" : clip ? "" : "-";
+    return indentIndicator + chomp + "\n";
+  }
+  function dropEndingNewline(string) {
+    return string[string.length - 1] === "\n" ? string.slice(0, -1) : string;
+  }
+  function foldString(string, width) {
+    const lineRe = /(\n+)([^\n]*)/g;
+    let result = (function() {
+      let nextLF = string.indexOf("\n");
+      nextLF = nextLF !== -1 ? nextLF : string.length;
+      lineRe.lastIndex = nextLF;
+      return foldLine(string.slice(0, nextLF), width);
+    })();
+    let prevMoreIndented = string[0] === "\n" || string[0] === " ";
+    let moreIndented;
+    let match;
+    while (match = lineRe.exec(string)) {
+      const prefix = match[1];
+      const line = match[2];
+      moreIndented = line[0] === " ";
+      result += prefix + (!prevMoreIndented && !moreIndented && line !== "" ? "\n" : "") + foldLine(line, width);
+      prevMoreIndented = moreIndented;
     }
-    curr = next;
+    return result;
   }
-
-  // By the invariants, start <= length-1, so there is something left over.
-  // It is either the whole string or a part starting from non-whitespace.
-  result += '\n';
-  // Insert a break if the remainder is too long and there is a break available.
-  if (line.length - start > width && curr > start) {
-    result += line.slice(start, curr) + '\n' + line.slice(curr + 1);
-  } else {
-    result += line.slice(start);
-  }
-
-  return result.slice(1); // drop extra \n joiner
-}
-
-// Escapes a double-quoted string.
-function escapeString(string) {
-  var result = '';
-  var char = 0;
-  var escapeSeq;
-
-  for (var i = 0; i < string.length; char >= 0x10000 ? i += 2 : i++) {
-    char = codePointAt(string, i);
-    escapeSeq = ESCAPE_SEQUENCES[char];
-
-    if (!escapeSeq && isPrintable(char)) {
-      result += string[i];
-      if (char >= 0x10000) result += string[i + 1];
+  function foldLine(line, width) {
+    if (line === "" || line[0] === " ") return line;
+    const breakRe = / [^ ]/g;
+    let match;
+    let start = 0;
+    let end;
+    let curr = 0;
+    let next = 0;
+    let result = "";
+    while (match = breakRe.exec(line)) {
+      next = match.index;
+      if (next - start > width) {
+        end = curr > start ? curr : next;
+        result += "\n" + line.slice(start, end);
+        start = end + 1;
+      }
+      curr = next;
+    }
+    result += "\n";
+    if (line.length - start > width && curr > start) {
+      result += line.slice(start, curr) + "\n" + line.slice(curr + 1);
     } else {
-      result += escapeSeq || encodeHex(char);
+      result += line.slice(start);
     }
+    return result.slice(1);
   }
-
-  return result;
-}
-
-function writeFlowSequence(state, level, object) {
-  var _result = '',
-      _tag    = state.tag,
-      index,
-      length,
-      value;
-
-  for (index = 0, length = object.length; index < length; index += 1) {
-    value = object[index];
-
-    if (state.replacer) {
-      value = state.replacer.call(object, String(index), value);
-    }
-
-    // Write only valid elements, put null instead of invalid elements.
-    if (writeNode(state, level, value, false, false) ||
-        (typeof value === 'undefined' &&
-         writeNode(state, level, null, false, false))) {
-
-      if (_result !== '') _result += ',' + (!state.condenseFlow ? ' ' : '');
-      _result += state.dump;
-    }
-  }
-
-  state.tag = _tag;
-  state.dump = '[' + _result + ']';
-}
-
-function writeBlockSequence(state, level, object, compact) {
-  var _result = '',
-      _tag    = state.tag,
-      index,
-      length,
-      value;
-
-  for (index = 0, length = object.length; index < length; index += 1) {
-    value = object[index];
-
-    if (state.replacer) {
-      value = state.replacer.call(object, String(index), value);
-    }
-
-    // Write only valid elements, put null instead of invalid elements.
-    if (writeNode(state, level + 1, value, true, true, false, true) ||
-        (typeof value === 'undefined' &&
-         writeNode(state, level + 1, null, true, true, false, true))) {
-
-      if (!compact || _result !== '') {
-        _result += generateNextLine(state, level);
+  function escapeString(string) {
+    let result = "";
+    let char = 0;
+    for (let i = 0; i < string.length; char >= 65536 ? i += 2 : i++) {
+      char = codePointAt(string, i);
+      const escapeSeq = ESCAPE_SEQUENCES[char];
+      if (!escapeSeq && isPrintable(char)) {
+        result += string[i];
+        if (char >= 65536) result += string[i + 1];
+      } else {
+        result += escapeSeq || encodeHex(char);
       }
-
+    }
+    return result;
+  }
+  function writeFlowSequence(state, level, object) {
+    let _result = "";
+    const _tag = state.tag;
+    for (let index = 0, length = object.length; index < length; index += 1) {
+      let value = object[index];
+      if (state.replacer) {
+        value = state.replacer.call(object, String(index), value);
+      }
+      if (writeNode(state, level, value, false, false) || typeof value === "undefined" && writeNode(state, level, null, false, false)) {
+        if (_result !== "") _result += "," + (!state.condenseFlow ? " " : "");
+        _result += state.dump;
+      }
+    }
+    state.tag = _tag;
+    state.dump = "[" + _result + "]";
+  }
+  function writeBlockSequence(state, level, object, compact) {
+    let _result = "";
+    const _tag = state.tag;
+    for (let index = 0, length = object.length; index < length; index += 1) {
+      let value = object[index];
+      if (state.replacer) {
+        value = state.replacer.call(object, String(index), value);
+      }
+      if (writeNode(state, level + 1, value, true, true, false, true) || typeof value === "undefined" && writeNode(state, level + 1, null, true, true, false, true)) {
+        if (!compact || _result !== "") {
+          _result += generateNextLine(state, level);
+        }
+        if (state.dump && CHAR_LINE_FEED === state.dump.charCodeAt(0)) {
+          _result += "-";
+        } else {
+          _result += "- ";
+        }
+        _result += state.dump;
+      }
+    }
+    state.tag = _tag;
+    state.dump = _result || "[]";
+  }
+  function writeFlowMapping(state, level, object) {
+    let _result = "";
+    const _tag = state.tag;
+    const objectKeyList = Object.keys(object);
+    for (let index = 0, length = objectKeyList.length; index < length; index += 1) {
+      let pairBuffer = "";
+      if (_result !== "") pairBuffer += ", ";
+      if (state.condenseFlow) pairBuffer += '"';
+      const objectKey = objectKeyList[index];
+      let objectValue = object[objectKey];
+      if (state.replacer) {
+        objectValue = state.replacer.call(object, objectKey, objectValue);
+      }
+      if (!writeNode(state, level, objectKey, false, false)) {
+        continue;
+      }
+      if (state.dump.length > 1024) pairBuffer += "? ";
+      pairBuffer += state.dump + (state.condenseFlow ? '"' : "") + ":" + (state.condenseFlow ? "" : " ");
+      if (!writeNode(state, level, objectValue, false, false)) {
+        continue;
+      }
+      pairBuffer += state.dump;
+      _result += pairBuffer;
+    }
+    state.tag = _tag;
+    state.dump = "{" + _result + "}";
+  }
+  function writeBlockMapping(state, level, object, compact) {
+    let _result = "";
+    const _tag = state.tag;
+    const objectKeyList = Object.keys(object);
+    if (state.sortKeys === true) {
+      objectKeyList.sort();
+    } else if (typeof state.sortKeys === "function") {
+      objectKeyList.sort(state.sortKeys);
+    } else if (state.sortKeys) {
+      throw new YAMLException2("sortKeys must be a boolean or a function");
+    }
+    for (let index = 0, length = objectKeyList.length; index < length; index += 1) {
+      let pairBuffer = "";
+      if (!compact || _result !== "") {
+        pairBuffer += generateNextLine(state, level);
+      }
+      const objectKey = objectKeyList[index];
+      let objectValue = object[objectKey];
+      if (state.replacer) {
+        objectValue = state.replacer.call(object, objectKey, objectValue);
+      }
+      if (!writeNode(state, level + 1, objectKey, true, true, true)) {
+        continue;
+      }
+      const explicitPair = state.tag !== null && state.tag !== "?" || state.dump && state.dump.length > 1024;
+      if (explicitPair) {
+        if (state.dump && CHAR_LINE_FEED === state.dump.charCodeAt(0)) {
+          pairBuffer += "?";
+        } else {
+          pairBuffer += "? ";
+        }
+      }
+      pairBuffer += state.dump;
+      if (explicitPair) {
+        pairBuffer += generateNextLine(state, level);
+      }
+      if (!writeNode(state, level + 1, objectValue, true, explicitPair)) {
+        continue;
+      }
       if (state.dump && CHAR_LINE_FEED === state.dump.charCodeAt(0)) {
-        _result += '-';
+        pairBuffer += ":";
       } else {
-        _result += '- ';
+        pairBuffer += ": ";
       }
-
-      _result += state.dump;
+      pairBuffer += state.dump;
+      _result += pairBuffer;
+    }
+    state.tag = _tag;
+    state.dump = _result || "{}";
+  }
+  function detectType(state, object, explicit) {
+    const typeList = explicit ? state.explicitTypes : state.implicitTypes;
+    for (let index = 0, length = typeList.length; index < length; index += 1) {
+      const type2 = typeList[index];
+      if ((type2.instanceOf || type2.predicate) && (!type2.instanceOf || typeof object === "object" && object instanceof type2.instanceOf) && (!type2.predicate || type2.predicate(object))) {
+        if (explicit) {
+          if (type2.multi && type2.representName) {
+            state.tag = type2.representName(object);
+          } else {
+            state.tag = type2.tag;
+          }
+        } else {
+          state.tag = "?";
+        }
+        if (type2.represent) {
+          const style = state.styleMap[type2.tag] || type2.defaultStyle;
+          let _result;
+          if (_toString.call(type2.represent) === "[object Function]") {
+            _result = type2.represent(object, style);
+          } else if (_hasOwnProperty.call(type2.represent, style)) {
+            _result = type2.represent[style](object, style);
+          } else {
+            throw new YAMLException2("!<" + type2.tag + '> tag resolver accepts not "' + style + '" style');
+          }
+          state.dump = _result;
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+  function writeNode(state, level, object, block, compact, iskey, isblockseq) {
+    state.tag = null;
+    state.dump = object;
+    if (!detectType(state, object, false)) {
+      detectType(state, object, true);
+    }
+    const type2 = _toString.call(state.dump);
+    const inblock = block;
+    if (block) {
+      block = state.flowLevel < 0 || state.flowLevel > level;
+    }
+    const objectOrArray = type2 === "[object Object]" || type2 === "[object Array]";
+    let duplicateIndex;
+    let duplicate;
+    if (objectOrArray) {
+      duplicateIndex = state.duplicates.indexOf(object);
+      duplicate = duplicateIndex !== -1;
+    }
+    if (state.tag !== null && state.tag !== "?" || duplicate || state.indent !== 2 && level > 0) {
+      compact = false;
+    }
+    if (duplicate && state.usedDuplicates[duplicateIndex]) {
+      state.dump = "*ref_" + duplicateIndex;
+    } else {
+      if (objectOrArray && duplicate && !state.usedDuplicates[duplicateIndex]) {
+        state.usedDuplicates[duplicateIndex] = true;
+      }
+      if (type2 === "[object Object]") {
+        if (block && Object.keys(state.dump).length !== 0) {
+          writeBlockMapping(state, level, state.dump, compact);
+          if (duplicate) {
+            state.dump = "&ref_" + duplicateIndex + state.dump;
+          }
+        } else {
+          writeFlowMapping(state, level, state.dump);
+          if (duplicate) {
+            state.dump = "&ref_" + duplicateIndex + " " + state.dump;
+          }
+        }
+      } else if (type2 === "[object Array]") {
+        if (block && state.dump.length !== 0) {
+          if (state.noArrayIndent && !isblockseq && level > 0) {
+            writeBlockSequence(state, level - 1, state.dump, compact);
+          } else {
+            writeBlockSequence(state, level, state.dump, compact);
+          }
+          if (duplicate) {
+            state.dump = "&ref_" + duplicateIndex + state.dump;
+          }
+        } else {
+          writeFlowSequence(state, level, state.dump);
+          if (duplicate) {
+            state.dump = "&ref_" + duplicateIndex + " " + state.dump;
+          }
+        }
+      } else if (type2 === "[object String]") {
+        if (state.tag !== "?") {
+          writeScalar(state, state.dump, level, iskey, inblock);
+        }
+      } else if (type2 === "[object Undefined]") {
+        return false;
+      } else {
+        if (state.skipInvalid) return false;
+        throw new YAMLException2("unacceptable kind of an object to dump " + type2);
+      }
+      if (state.tag !== null && state.tag !== "?") {
+        let tagStr = encodeURI(
+          state.tag[0] === "!" ? state.tag.slice(1) : state.tag
+        ).replace(/!/g, "%21");
+        if (state.tag[0] === "!") {
+          tagStr = "!" + tagStr;
+        } else if (tagStr.slice(0, 18) === "tag:yaml.org,2002:") {
+          tagStr = "!!" + tagStr.slice(18);
+        } else {
+          tagStr = "!<" + tagStr + ">";
+        }
+        state.dump = tagStr + " " + state.dump;
+      }
+    }
+    return true;
+  }
+  function getDuplicateReferences(object, state) {
+    const objects = [];
+    const duplicatesIndexes = [];
+    inspectNode(object, objects, duplicatesIndexes);
+    const length = duplicatesIndexes.length;
+    for (let index = 0; index < length; index += 1) {
+      state.duplicates.push(objects[duplicatesIndexes[index]]);
+    }
+    state.usedDuplicates = new Array(length);
+  }
+  function inspectNode(object, objects, duplicatesIndexes) {
+    if (object !== null && typeof object === "object") {
+      const index = objects.indexOf(object);
+      if (index !== -1) {
+        if (duplicatesIndexes.indexOf(index) === -1) {
+          duplicatesIndexes.push(index);
+        }
+      } else {
+        objects.push(object);
+        if (Array.isArray(object)) {
+          for (let i = 0, length = object.length; i < length; i += 1) {
+            inspectNode(object[i], objects, duplicatesIndexes);
+          }
+        } else {
+          const objectKeyList = Object.keys(object);
+          for (let i = 0, length = objectKeyList.length; i < length; i += 1) {
+            inspectNode(object[objectKeyList[i]], objects, duplicatesIndexes);
+          }
+        }
+      }
     }
   }
-
-  state.tag = _tag;
-  state.dump = _result || '[]'; // Empty sequence if no valid values.
-}
-
-function writeFlowMapping(state, level, object) {
-  var _result       = '',
-      _tag          = state.tag,
-      objectKeyList = Object.keys(object),
-      index,
-      length,
-      objectKey,
-      objectValue,
-      pairBuffer;
-
-  for (index = 0, length = objectKeyList.length; index < length; index += 1) {
-
-    pairBuffer = '';
-    if (_result !== '') pairBuffer += ', ';
-
-    if (state.condenseFlow) pairBuffer += '"';
-
-    objectKey = objectKeyList[index];
-    objectValue = object[objectKey];
-
+  function dump2(input, options) {
+    options = options || {};
+    const state = new State(options);
+    if (!state.noRefs) getDuplicateReferences(input, state);
+    let value = input;
     if (state.replacer) {
-      objectValue = state.replacer.call(object, objectKey, objectValue);
+      value = state.replacer.call({ "": value }, "", value);
     }
-
-    if (!writeNode(state, level, objectKey, false, false)) {
-      continue; // Skip this pair because of invalid key;
-    }
-
-    if (state.dump.length > 1024) pairBuffer += '? ';
-
-    pairBuffer += state.dump + (state.condenseFlow ? '"' : '') + ':' + (state.condenseFlow ? '' : ' ');
-
-    if (!writeNode(state, level, objectValue, false, false)) {
-      continue; // Skip this pair because of invalid value.
-    }
-
-    pairBuffer += state.dump;
-
-    // Both key and value are valid.
-    _result += pairBuffer;
+    if (writeNode(state, 0, value, true, true)) return state.dump + "\n";
+    return "";
   }
-
-  state.tag = _tag;
-  state.dump = '{' + _result + '}';
+  dumper.dump = dump2;
+  return dumper;
 }
-
-function writeBlockMapping(state, level, object, compact) {
-  var _result       = '',
-      _tag          = state.tag,
-      objectKeyList = Object.keys(object),
-      index,
-      length,
-      objectKey,
-      objectValue,
-      explicitPair,
-      pairBuffer;
-
-  // Allow sorting keys so that the output file is deterministic
-  if (state.sortKeys === true) {
-    // Default sorting
-    objectKeyList.sort();
-  } else if (typeof state.sortKeys === 'function') {
-    // Custom sort function
-    objectKeyList.sort(state.sortKeys);
-  } else if (state.sortKeys) {
-    // Something is wrong
-    throw new exception('sortKeys must be a boolean or a function');
+var hasRequiredJsYaml;
+function requireJsYaml() {
+  if (hasRequiredJsYaml) return jsYaml;
+  hasRequiredJsYaml = 1;
+  const loader2 = requireLoader();
+  const dumper2 = requireDumper();
+  function renamed(from, to) {
+    return function() {
+      throw new Error("Function yaml." + from + " is removed in js-yaml 4. Use yaml." + to + " instead, which is now safe by default.");
+    };
   }
-
-  for (index = 0, length = objectKeyList.length; index < length; index += 1) {
-    pairBuffer = '';
-
-    if (!compact || _result !== '') {
-      pairBuffer += generateNextLine(state, level);
-    }
-
-    objectKey = objectKeyList[index];
-    objectValue = object[objectKey];
-
-    if (state.replacer) {
-      objectValue = state.replacer.call(object, objectKey, objectValue);
-    }
-
-    if (!writeNode(state, level + 1, objectKey, true, true, true)) {
-      continue; // Skip this pair because of invalid key.
-    }
-
-    explicitPair = (state.tag !== null && state.tag !== '?') ||
-                   (state.dump && state.dump.length > 1024);
-
-    if (explicitPair) {
-      if (state.dump && CHAR_LINE_FEED === state.dump.charCodeAt(0)) {
-        pairBuffer += '?';
-      } else {
-        pairBuffer += '? ';
-      }
-    }
-
-    pairBuffer += state.dump;
-
-    if (explicitPair) {
-      pairBuffer += generateNextLine(state, level);
-    }
-
-    if (!writeNode(state, level + 1, objectValue, true, explicitPair)) {
-      continue; // Skip this pair because of invalid value.
-    }
-
-    if (state.dump && CHAR_LINE_FEED === state.dump.charCodeAt(0)) {
-      pairBuffer += ':';
-    } else {
-      pairBuffer += ': ';
-    }
-
-    pairBuffer += state.dump;
-
-    // Both key and value are valid.
-    _result += pairBuffer;
-  }
-
-  state.tag = _tag;
-  state.dump = _result || '{}'; // Empty mapping if no valid pairs.
-}
-
-function detectType(state, object, explicit) {
-  var _result, typeList, index, length, type, style;
-
-  typeList = explicit ? state.explicitTypes : state.implicitTypes;
-
-  for (index = 0, length = typeList.length; index < length; index += 1) {
-    type = typeList[index];
-
-    if ((type.instanceOf  || type.predicate) &&
-        (!type.instanceOf || ((typeof object === 'object') && (object instanceof type.instanceOf))) &&
-        (!type.predicate  || type.predicate(object))) {
-
-      if (explicit) {
-        if (type.multi && type.representName) {
-          state.tag = type.representName(object);
-        } else {
-          state.tag = type.tag;
-        }
-      } else {
-        state.tag = '?';
-      }
-
-      if (type.represent) {
-        style = state.styleMap[type.tag] || type.defaultStyle;
-
-        if (_toString.call(type.represent) === '[object Function]') {
-          _result = type.represent(object, style);
-        } else if (_hasOwnProperty.call(type.represent, style)) {
-          _result = type.represent[style](object, style);
-        } else {
-          throw new exception('!<' + type.tag + '> tag resolver accepts not "' + style + '" style');
-        }
-
-        state.dump = _result;
-      }
-
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// Serializes `object` and writes it to global `result`.
-// Returns true on success, or false on invalid object.
-//
-function writeNode(state, level, object, block, compact, iskey, isblockseq) {
-  state.tag = null;
-  state.dump = object;
-
-  if (!detectType(state, object, false)) {
-    detectType(state, object, true);
-  }
-
-  var type = _toString.call(state.dump);
-  var inblock = block;
-  var tagStr;
-
-  if (block) {
-    block = (state.flowLevel < 0 || state.flowLevel > level);
-  }
-
-  var objectOrArray = type === '[object Object]' || type === '[object Array]',
-      duplicateIndex,
-      duplicate;
-
-  if (objectOrArray) {
-    duplicateIndex = state.duplicates.indexOf(object);
-    duplicate = duplicateIndex !== -1;
-  }
-
-  if ((state.tag !== null && state.tag !== '?') || duplicate || (state.indent !== 2 && level > 0)) {
-    compact = false;
-  }
-
-  if (duplicate && state.usedDuplicates[duplicateIndex]) {
-    state.dump = '*ref_' + duplicateIndex;
-  } else {
-    if (objectOrArray && duplicate && !state.usedDuplicates[duplicateIndex]) {
-      state.usedDuplicates[duplicateIndex] = true;
-    }
-    if (type === '[object Object]') {
-      if (block && (Object.keys(state.dump).length !== 0)) {
-        writeBlockMapping(state, level, state.dump, compact);
-        if (duplicate) {
-          state.dump = '&ref_' + duplicateIndex + state.dump;
-        }
-      } else {
-        writeFlowMapping(state, level, state.dump);
-        if (duplicate) {
-          state.dump = '&ref_' + duplicateIndex + ' ' + state.dump;
-        }
-      }
-    } else if (type === '[object Array]') {
-      if (block && (state.dump.length !== 0)) {
-        if (state.noArrayIndent && !isblockseq && level > 0) {
-          writeBlockSequence(state, level - 1, state.dump, compact);
-        } else {
-          writeBlockSequence(state, level, state.dump, compact);
-        }
-        if (duplicate) {
-          state.dump = '&ref_' + duplicateIndex + state.dump;
-        }
-      } else {
-        writeFlowSequence(state, level, state.dump);
-        if (duplicate) {
-          state.dump = '&ref_' + duplicateIndex + ' ' + state.dump;
-        }
-      }
-    } else if (type === '[object String]') {
-      if (state.tag !== '?') {
-        writeScalar(state, state.dump, level, iskey, inblock);
-      }
-    } else if (type === '[object Undefined]') {
-      return false;
-    } else {
-      if (state.skipInvalid) return false;
-      throw new exception('unacceptable kind of an object to dump ' + type);
-    }
-
-    if (state.tag !== null && state.tag !== '?') {
-      // Need to encode all characters except those allowed by the spec:
-      //
-      // [35] ns-dec-digit    ::=  [#x30-#x39] /* 0-9 */
-      // [36] ns-hex-digit    ::=  ns-dec-digit
-      //                         | [#x41-#x46] /* A-F */ | [#x61-#x66] /* a-f */
-      // [37] ns-ascii-letter ::=  [#x41-#x5A] /* A-Z */ | [#x61-#x7A] /* a-z */
-      // [38] ns-word-char    ::=  ns-dec-digit | ns-ascii-letter | “-”
-      // [39] ns-uri-char     ::=  “%” ns-hex-digit ns-hex-digit | ns-word-char | “#”
-      //                         | “;” | “/” | “?” | “:” | “@” | “&” | “=” | “+” | “$” | “,”
-      //                         | “_” | “.” | “!” | “~” | “*” | “'” | “(” | “)” | “[” | “]”
-      //
-      // Also need to encode '!' because it has special meaning (end of tag prefix).
-      //
-      tagStr = encodeURI(
-        state.tag[0] === '!' ? state.tag.slice(1) : state.tag
-      ).replace(/!/g, '%21');
-
-      if (state.tag[0] === '!') {
-        tagStr = '!' + tagStr;
-      } else if (tagStr.slice(0, 18) === 'tag:yaml.org,2002:') {
-        tagStr = '!!' + tagStr.slice(18);
-      } else {
-        tagStr = '!<' + tagStr + '>';
-      }
-
-      state.dump = tagStr + ' ' + state.dump;
-    }
-  }
-
-  return true;
-}
-
-function getDuplicateReferences(object, state) {
-  var objects = [],
-      duplicatesIndexes = [],
-      index,
-      length;
-
-  inspectNode(object, objects, duplicatesIndexes);
-
-  for (index = 0, length = duplicatesIndexes.length; index < length; index += 1) {
-    state.duplicates.push(objects[duplicatesIndexes[index]]);
-  }
-  state.usedDuplicates = new Array(length);
-}
-
-function inspectNode(object, objects, duplicatesIndexes) {
-  var objectKeyList,
-      index,
-      length;
-
-  if (object !== null && typeof object === 'object') {
-    index = objects.indexOf(object);
-    if (index !== -1) {
-      if (duplicatesIndexes.indexOf(index) === -1) {
-        duplicatesIndexes.push(index);
-      }
-    } else {
-      objects.push(object);
-
-      if (Array.isArray(object)) {
-        for (index = 0, length = object.length; index < length; index += 1) {
-          inspectNode(object[index], objects, duplicatesIndexes);
-        }
-      } else {
-        objectKeyList = Object.keys(object);
-
-        for (index = 0, length = objectKeyList.length; index < length; index += 1) {
-          inspectNode(object[objectKeyList[index]], objects, duplicatesIndexes);
-        }
-      }
-    }
-  }
-}
-
-function dump$1(input, options) {
-  options = options || {};
-
-  var state = new State(options);
-
-  if (!state.noRefs) getDuplicateReferences(input, state);
-
-  var value = input;
-
-  if (state.replacer) {
-    value = state.replacer.call({ '': value }, '', value);
-  }
-
-  if (writeNode(state, 0, value, true, true)) return state.dump + '\n';
-
-  return '';
-}
-
-var dump_1 = dump$1;
-
-var dumper = {
-	dump: dump_1
-};
-
-function renamed(from, to) {
-  return function () {
-    throw new Error('Function yaml.' + from + ' is removed in js-yaml 4. ' +
-      'Use yaml.' + to + ' instead, which is now safe by default.');
+  jsYaml.Type = requireType();
+  jsYaml.Schema = requireSchema();
+  jsYaml.FAILSAFE_SCHEMA = requireFailsafe();
+  jsYaml.JSON_SCHEMA = requireJson();
+  jsYaml.CORE_SCHEMA = requireCore();
+  jsYaml.DEFAULT_SCHEMA = require_default();
+  jsYaml.load = loader2.load;
+  jsYaml.loadAll = loader2.loadAll;
+  jsYaml.dump = dumper2.dump;
+  jsYaml.YAMLException = requireException();
+  jsYaml.types = {
+    binary: requireBinary(),
+    float: requireFloat(),
+    map: requireMap(),
+    null: require_null(),
+    pairs: requirePairs(),
+    set: requireSet(),
+    timestamp: requireTimestamp(),
+    bool: requireBool(),
+    int: requireInt(),
+    merge: requireMerge(),
+    omap: requireOmap(),
+    seq: requireSeq(),
+    str: requireStr()
   };
+  jsYaml.safeLoad = renamed("safeLoad", "load");
+  jsYaml.safeLoadAll = renamed("safeLoadAll", "loadAll");
+  jsYaml.safeDump = renamed("safeDump", "dump");
+  return jsYaml;
 }
+var jsYamlExports = requireJsYaml();
+const yaml = /* @__PURE__ */ getDefaultExportFromCjs(jsYamlExports);
+const {
+  Type,
+  Schema,
+  FAILSAFE_SCHEMA,
+  JSON_SCHEMA,
+  CORE_SCHEMA,
+  DEFAULT_SCHEMA,
+  load,
+  loadAll,
+  dump,
+  YAMLException,
+  types,
+  safeLoad,
+  safeLoadAll,
+  safeDump
+} = yaml;
 
-
-var Type                = type;
-var Schema              = schema;
-var FAILSAFE_SCHEMA     = failsafe;
-var JSON_SCHEMA         = json;
-var CORE_SCHEMA         = core;
-var DEFAULT_SCHEMA      = _default;
-var load                = loader.load;
-var loadAll             = loader.loadAll;
-var dump                = dumper.dump;
-var YAMLException       = exception;
-
-// Re-export all types in case user wants to create custom schema
-var types = {
-  binary:    binary,
-  float:     js_yaml_float,
-  map:       map,
-  null:      _null,
-  pairs:     pairs,
-  set:       set,
-  timestamp: timestamp,
-  bool:      bool,
-  int:       js_yaml_int,
-  merge:     js_yaml_merge,
-  omap:      omap,
-  seq:       seq,
-  str:       str
-};
-
-// Removed functions from JS-YAML 3.0.x
-var safeLoad            = renamed('safeLoad', 'load');
-var safeLoadAll         = renamed('safeLoadAll', 'loadAll');
-var safeDump            = renamed('safeDump', 'dump');
-
-var jsYaml = {
-	Type: Type,
-	Schema: Schema,
-	FAILSAFE_SCHEMA: FAILSAFE_SCHEMA,
-	JSON_SCHEMA: JSON_SCHEMA,
-	CORE_SCHEMA: CORE_SCHEMA,
-	DEFAULT_SCHEMA: DEFAULT_SCHEMA,
-	load: load,
-	loadAll: loadAll,
-	dump: dump,
-	YAMLException: YAMLException,
-	types: types,
-	safeLoad: safeLoad,
-	safeLoadAll: safeLoadAll,
-	safeDump: safeDump
-};
-
-
+//# sourceMappingURL=js-yaml.mjs.map
 
 ;// CONCATENATED MODULE: ./src/submission-checks/contract-integrity.ts
 // Contract Integrity detector (ADR-010) — validates that Backstage
@@ -48500,7 +49040,7 @@ function asArray(value) {
 function parseDocs(content) {
     const docs = [];
     try {
-        jsYaml.loadAll(content, (doc) => {
+        yaml.loadAll(content, (doc) => {
             if (doc && typeof doc === "object")
                 docs.push(doc);
         });
@@ -48644,7 +49184,7 @@ function safe_deprecation_asArray(value) {
 function safe_deprecation_parseDocs(content) {
     const docs = [];
     try {
-        jsYaml.loadAll(content, (doc) => {
+        yaml.loadAll(content, (doc) => {
             if (doc && typeof doc === "object")
                 docs.push(doc);
         });
@@ -48966,8 +49506,8 @@ function detectPromotionCoherence(ctx) {
     };
 }
 
-// EXTERNAL MODULE: ./node_modules/@swc/core/index.js
-var _swc_core = __nccwpck_require__(5971);
+// EXTERNAL MODULE: ../../../../Komatik/Trailhead/node_modules/@swc/core/index.js
+var _swc_core = __nccwpck_require__(4659);
 ;// CONCATENATED MODULE: ./src/submission-checks/syntax-validity.ts
 // Real parse-based syntax validation for Gate 1 (no bracket-count fallback).
 // Parses full file content only — never a partial diff hunk (see submission-gate.md).
@@ -48975,6 +49515,47 @@ var _swc_core = __nccwpck_require__(5971);
 
 
 const PARSEABLE = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
+/** Parse real import nodes, never import-looking text in comments or templates. */
+function relativeImportSpecifiers(filename, content) {
+    const imports = new Set();
+    function add(value) {
+        if (typeof value === "string" && /^(?:\.\/|\.\.\/)/.test(value))
+            imports.add(value);
+    }
+    function visit(value) {
+        if (!value || typeof value !== "object")
+            return;
+        if (Array.isArray(value)) {
+            value.forEach(visit);
+            return;
+        }
+        const node = value;
+        if (["ImportDeclaration", "ExportAllDeclaration", "ExportNamedDeclaration"].includes(String(node.type))) {
+            add(node.source?.value);
+        }
+        if (node.type === "CallExpression") {
+            const callee = node.callee;
+            if (callee.type === "Import" ||
+                (callee.type === "Identifier" && callee.value === "require")) {
+                const args = node.arguments;
+                if (args[0]?.expression?.type === "StringLiteral")
+                    add(args[0].expression.value);
+            }
+        }
+        for (const [key, child] of Object.entries(node)) {
+            if (key !== "span")
+                visit(child);
+        }
+    }
+    try {
+        visit((0,_swc_core.parseSync)(content, parserOptionsFor(extensionOf(filename))));
+    }
+    catch {
+        // syntax_validity owns parse failures; an incomplete file is not proof of
+        // an unresolved import. In particular, never parse partial diff text here.
+    }
+    return [...imports];
+}
 function parserOptionsFor(ext) {
     const isTs = ext === ".ts" || ext === ".tsx";
     return {
@@ -48998,12 +49579,12 @@ function validateFileSyntax(filename, content) {
             JSON.parse(content);
         }
         else if (ext === ".yaml" || ext === ".yml") {
-            jsYaml.load(content);
+            yaml.load(content);
         }
         else if (ext === ".md" && content.startsWith("---")) {
             const end = content.indexOf("\n---", 3);
             if (end > 0)
-                jsYaml.load(content.slice(3, end));
+                yaml.load(content.slice(3, end));
         }
     }
     catch (error) {
@@ -49137,7 +49718,12 @@ const MOCK_PATTERNS = [
     /\bTODO:\s*implement\b/gi,
     /\bFIXME\b/g,
     /\bIn production,\s*use\b/i,
-    /\bplaceholder\b/gi,
+    /\bPLACEHOLDER_[A-Z0-9_]+\b/,
+    // Bare "placeholder" only — the word as an HTML/JSX attribute (placeholder="…"),
+    // a Tailwind utility/variant (placeholder-white/15, placeholder:text-sm), a CSS
+    // pseudo-element (::placeholder), a property access (input.placeholder), or an
+    // object key (placeholder: "…") is standard frontend vocabulary, not a stub.
+    /(?<![.:])\bplaceholder\b(?![=:-])/gi,
     /\blorem ipsum\b/gi,
 ];
 const SECRET_PATTERNS = [
@@ -49151,6 +49737,27 @@ const SECRET_PATTERNS = [
         pattern: /api[_-]?key\s*[:=]\s*['"][A-Za-z0-9_-]{32,}['"]/gi,
     },
 ];
+function isCiConfigurationPath(filename) {
+    return /^\.github\/(?:workflows|actions)\//.test(normalizePath(filename));
+}
+function isCredentialFixturePath(filename) {
+    return isTestPath(filename) || isCiConfigurationPath(filename);
+}
+function isObviouslyInertCiFixtureLine(line, filename) {
+    if (!isCiConfigurationPath(filename))
+        return false;
+    const assignment = /^\s*[\w.-]+\s*:\s*["']?([^"'#\s]+)["']?(?:\s*#.*)?$/.exec(line);
+    if (!assignment?.[1])
+        return false;
+    return /^(?:sk_(?:test|live)_)?(?:placeholder|example|dummy|fake|test|x{10,}|0{10,})$/i.test(assignment[1]);
+}
+function isObviouslyInertStripeFixture(patternName, match, filename) {
+    if (!isCredentialFixturePath(filename) || !patternName.startsWith("Stripe ")) {
+        return false;
+    }
+    const suffix = match.replace(/^sk_(?:test|live)_/i, "");
+    return /^(?:placeholder|example|dummy|fake|test|x{10,}|0{10,})$/i.test(suffix);
+}
 const HARDCODED_ENV_PATTERNS = [
     { name: "localhost with port", pattern: /(?:['"`])localhost:\d{2,5}(?:['"`])/g },
     {
@@ -49191,6 +49798,8 @@ function detectMockPlaceholder(ctx) {
     const hits = scanAddedContent(ctx.files, (line, filename) => {
         if (isTestPath(filename))
             return false;
+        if (isObviouslyInertCiFixtureLine(line, filename))
+            return false;
         if (/\.(md|txt)$/i.test(filename))
             return false;
         return MOCK_PATTERNS.some((re) => {
@@ -49210,9 +49819,9 @@ function detectMockPlaceholder(ctx) {
     });
 }
 function detectSecrets(ctx) {
-    const hits = scanAddedContent(ctx.files, (line) => SECRET_PATTERNS.some((entry) => {
+    const hits = scanAddedContent(ctx.files, (line, filename) => SECRET_PATTERNS.some((entry) => {
         entry.pattern.lastIndex = 0;
-        return entry.pattern.test(line);
+        return [...line.matchAll(entry.pattern)].some((match) => !isObviouslyInertStripeFixture(entry.name, match[0] ?? "", filename));
     }));
     if (hits.length === 0)
         return null;
@@ -49435,20 +50044,6 @@ function detectLargeFile(ctx) {
         suggested_action: "Split large changes into smaller PRs.",
     });
 }
-function extractRelativeImports(content) {
-    const imports = [];
-    const patterns = [
-        /\bimport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?['"](\.\.?[^'"]+)['"]/g,
-        /\brequire\(\s*['"](\.\.?[^'"]+)['"]\s*\)/g,
-    ];
-    for (const pattern of patterns) {
-        for (const match of content.matchAll(pattern)) {
-            if (match[1])
-                imports.push(match[1]);
-        }
-    }
-    return imports;
-}
 function resolveRelativeImport(fromFile, specifier, prPaths) {
     const clean = specifier.split("?")[0].split("#")[0];
     const baseDir = normalizePath(fromFile).split("/").slice(0, -1);
@@ -49467,8 +50062,17 @@ function resolveRelativeImport(fromFile, specifier, prPaths) {
         `${resolved}.js`,
         `${resolved}.jsx`,
         `${resolved}/index.ts`,
+        `${resolved}/index.tsx`,
         `${resolved}/index.js`,
+        `${resolved}/index.jsx`,
     ];
+    // TypeScript sources legitimately spell runtime ESM imports with .js/.mjs/.cjs.
+    if (resolved.endsWith(".js"))
+        candidates.push(resolved.slice(0, -3) + ".ts", resolved.slice(0, -3) + ".tsx");
+    if (resolved.endsWith(".mjs"))
+        candidates.push(resolved.slice(0, -4) + ".mts");
+    if (resolved.endsWith(".cjs"))
+        candidates.push(resolved.slice(0, -4) + ".cts");
     return candidates.some((c) => prPaths.has(c));
 }
 function detectImportResolution(ctx) {
@@ -49481,12 +50085,17 @@ function detectImportResolution(ctx) {
         return null;
     const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
     const known = new Set([...ctx.prPaths, ...ctx.repoPaths]);
+    for (const file of ctx.files) {
+        if (file.status === "removed")
+            known.delete(file.filename);
+    }
     const hits = [];
     for (const file of ctx.files) {
-        if (!codeExts.has(extensionOf(file.filename)))
+        if (!codeExts.has(extensionOf(file.filename)) ||
+            file.status === "removed" ||
+            typeof file.content !== "string")
             continue;
-        const content = fileContent(file);
-        for (const specifier of extractRelativeImports(content)) {
+        for (const specifier of relativeImportSpecifiers(file.filename, file.content)) {
             if (!resolveRelativeImport(file.filename, specifier, known)) {
                 hits.push(file.filename);
                 break;
@@ -49532,17 +50141,31 @@ function detectRlsNewTables(ctx) {
 function isRouteAllowlisted(path, allowlist) {
     return allowlist.some((entry) => path.includes(entry.replace(/^\//, "")));
 }
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function isRetiredRoute(path, content, allowlist) {
+    if (!isRouteAllowlisted(path, allowlist))
+        return false;
+    return /\bstatus\s*:\s*410\b/.test(content);
+}
 function detectAuthRouteAuth(ctx) {
     const routePattern = /(?:^|\/)(?:app\/api\/.+\/route|pages\/api\/.+)\.(?:ts|tsx|js|jsx)$/;
-    const authPattern = /\b(getUser|getSession|getServerSession|auth|requireAuth|withAuth)\s*\(/;
+    const helpers = [...new Set(ctx.authRouteHelpers)].filter((helper) => /^[A-Za-z_$][\w$]*$/.test(helper));
+    const authPattern = new RegExp(`\\b(?:${helpers.map(escapeRegExp).join("|")})\\s*\\(`);
     const hits = [];
     for (const file of ctx.files) {
         const normalized = normalizePath(file.filename);
         if (!routePattern.test(normalized))
             continue;
+        if (file.status === "removed")
+            continue;
         if (isRouteAllowlisted(normalized, ctx.authRouteAllowlist))
             continue;
-        if (!authPattern.test(fileContent(file)))
+        const content = fileContent(file);
+        if (isRetiredRoute(normalized, content, ctx.retiredRouteAllowlist))
+            continue;
+        if (helpers.length === 0 || !authPattern.test(content))
             hits.push(normalized);
     }
     if (hits.length === 0)
@@ -49715,6 +50338,14 @@ const DEFAULT_AUTH_ROUTE_ALLOWLIST = [
     "/api/health/",
     "/api/metrics/",
 ];
+const DEFAULT_AUTH_ROUTE_HELPERS = [
+    "getUser",
+    "getSession",
+    "getServerSession",
+    "auth",
+    "requireAuth",
+    "withAuth",
+];
 /** Package names declared in a package.json (legacy gate parity). */
 function declaredPackageNamesFromPackageJson(pkg) {
     const sections = [
@@ -49744,6 +50375,11 @@ function buildContext(options) {
         staleTerms,
         namingAllowlist: repoConfig?.submission?.naming_allowlist ?? {},
         authRouteAllowlist: repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
+        authRouteHelpers: [
+            ...DEFAULT_AUTH_ROUTE_HELPERS,
+            ...(repoConfig?.submission?.auth_route_helpers ?? []),
+        ],
+        retiredRouteAllowlist: repoConfig?.submission?.retired_route_allowlist ?? [],
         maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
         declaredPackages: declared,
         pathIgnorePatterns: repoConfig?.submission?.path_ignore ?? [],
@@ -49807,6 +50443,9 @@ const RED_LANE_FIX_CODES = new Set([
     "security.code_scanning",
     "risk.sensitive_files",
     "risk.supply_chain",
+    // Over-threshold risk on an agent PR resolves via human levers only
+    // (scope split or a recorded override), never an agent retry loop.
+    "risk.over_threshold",
 ]);
 /** Routine (yellow-lane) fix codes — agent should fix_and_retry. */
 const ROUTINE_FIX_CODES = new Set([
@@ -49816,6 +50455,10 @@ const ROUTINE_FIX_CODES = new Set([
     "policy.duplicate_logic",
     "ci.failed",
     "ci.missing",
+    // Severity-suffixed policy findings are the non-blocking tiers; the
+    // canonical blocking `policy.finding` stays red.
+    "policy.finding.warn",
+    "policy.finding.advisory",
 ]);
 function classifyFixLane(code) {
     if (RED_LANE_FIX_CODES.has(code))
@@ -49861,6 +50504,13 @@ function computeNextAction(args) {
 // Shared across the GitHub Action, MCP server, and GitHub App via the existing
 // prebuild copy pattern. Keep this module free of @actions/*, octokit, and Node
 // runtime imports so it stays portable.
+//
+// `trailhead.remediation.v1` is a consumed contract: fix codes are additive and
+// an existing code never changes meaning. Two rules the derivations below keep:
+// a fix's severity is the severity of the thing it describes (never the gate
+// decision that happens to surround it), and whatever actually produced the
+// verdict has a fix of its own — a block with no matching fix is the defect
+// ADR-011 §1 calls silence.
 
 
 
@@ -49951,8 +50601,12 @@ const factorCues = {
         triggerScore: 50,
         advisoryScore: 20,
         build: (factor) => {
-            const files = factor.detail?.file_count ?? 0;
-            const changes = factor.detail?.line_count ?? 0;
+            const files = factor.detail?.fileCount ??
+                factor.detail?.file_count ??
+                0;
+            const changes = factor.detail?.totalChanges ??
+                factor.detail?.line_count ??
+                0;
             return {
                 code: "policy.pr_scope",
                 severity: "warn",
@@ -50033,15 +50687,127 @@ function deriveCiFixes(ci) {
     }
     return fixes;
 }
-function derivePolicyFindingFixes(findings, severity) {
-    if (!findings || findings.length === 0)
+const SEVERITY_RANK = {
+    blocking: 3,
+    warn: 2,
+    advisory: 1,
+};
+const SEVERITY_TIERS = ["blocking", "warn", "advisory"];
+/** Canonical policy-finding code — kept for the highest tier present, so existing
+ * consumers of `policy.finding` keep seeing the findings that carry the verdict.
+ * Lower tiers get a severity-suffixed code (`policy.finding.warn`,
+ * `policy.finding.advisory`) because fixes are deduplicated by code. */
+const POLICY_FINDING_CODE = "policy.finding";
+/**
+ * ADR-011 §1: enumerate, never count. The title carries the finding titles
+ * themselves; the detail carries the full enumeration.
+ */
+function policyFindingTitle(titles) {
+    const label = titles.length === 1 ? "Policy finding" : "Policy findings";
+    const shown = titles.slice(0, 3);
+    return `${label}: ${shown.join("; ")}${titles.length > shown.length ? "; …" : ""}`;
+}
+function enumeratedFindingLine(finding) {
+    const evidence = finding.evidence ? ` — ${finding.evidence}` : "";
+    return `- \`${finding.id}\` ${finding.title}${evidence}`;
+}
+/**
+ * Policy findings, at their real severity.
+ *
+ * The gate decision is a property of the evaluation, not of any one finding:
+ * deriving each fix's severity from it promoted warn-level change notices (e.g.
+ * "Agent PR risk threshold tightened from 70 to 50") to `blocking`, telling
+ * consuming agents to fix something no code change can fix. When the evaluation
+ * carries `enumeratedFindings` (ADR-011 §1) those per-finding severities win and
+ * the gate decision is ignored; one fix is emitted per severity tier present.
+ * Without them there is no per-finding signal, so the legacy gate-derived
+ * severity stands.
+ */
+function derivePolicyFindingFixes(input) {
+    const enumerated = input.enumeratedFindings ?? [];
+    if (enumerated.length > 0) {
+        const tiers = SEVERITY_TIERS.map((severity) => ({
+            severity,
+            findings: enumerated.filter((finding) => finding.severity === severity),
+        })).filter((tier) => tier.findings.length > 0);
+        return tiers.map((tier, index) => RemediationFix.parse({
+            code: index === 0 ? POLICY_FINDING_CODE : `${POLICY_FINDING_CODE}.${tier.severity}`,
+            severity: tier.severity,
+            title: policyFindingTitle(tier.findings.map((finding) => finding.title)),
+            detail: tier.findings.map(enumeratedFindingLine).join("\n"),
+        }));
+    }
+    const findings = input.findings ?? [];
+    if (findings.length === 0)
         return [];
     return [
         RemediationFix.parse({
-            code: "policy.finding",
-            severity,
-            title: `${findings.length} policy finding${findings.length === 1 ? "" : "s"}`,
+            code: POLICY_FINDING_CODE,
+            severity: input.gateDecision === "block" ? "blocking" : "warn",
+            title: policyFindingTitle(findings),
             detail: findings.map((f) => `- ${f}`).join("\n"),
+        }),
+    ];
+}
+/** ADR-011 §3 override mechanism — mirrors `OVERRIDE_LABEL` in `src/override.ts`,
+ * inlined because override.ts is not part of the shared-source copy set. */
+const OVERRIDE_LABEL = "trailhead-override";
+const RISK_OVER_THRESHOLD_CODE = "risk.over_threshold";
+/** The prose `computeReleaseReady()` emits for the same condition — the fallback
+ * source of the pair when the caller has not threaded the numbers through. */
+const RELEASE_READY_RISK_REASON = /^Risk score (\d+(?:\.\d+)?) exceeds threshold (\d+(?:\.\d+)?)$/;
+function resolveRiskOverThreshold(evaluation) {
+    const { riskScore, riskThreshold } = evaluation;
+    if (riskScore !== undefined && riskThreshold !== undefined) {
+        return riskScore > riskThreshold
+            ? { score: riskScore, threshold: riskThreshold }
+            : null;
+    }
+    for (const reason of evaluation.releaseReadyReasons ?? []) {
+        const match = RELEASE_READY_RISK_REASON.exec(reason.trim());
+        if (!match)
+            continue;
+        const score = Number(match[1]);
+        const threshold = Number(match[2]);
+        if (Number.isFinite(score) && Number.isFinite(threshold) && score > threshold) {
+            return { score, threshold };
+        }
+    }
+    return null;
+}
+/**
+ * The machine-readable block cause when risk carries the verdict.
+ *
+ * Without it the fixes array named every finding except the one thing that
+ * actually blocked the PR, and neither of the two real levers — a smaller PR or
+ * a recorded override — appeared anywhere an agent could read them.
+ */
+function deriveRiskThresholdFixes(evaluation) {
+    if (evaluation.gateDecision !== "block")
+        return [];
+    // A recorded override (ADR-011 §3) leaves the decision at `block` while the
+    // release is ready on the record. Re-emitting the block cause as a blocking fix
+    // would flip `release_ready` back to false and undo the override.
+    if (evaluation.releaseReady === true)
+        return [];
+    const over = resolveRiskOverThreshold(evaluation);
+    if (!over)
+        return [];
+    const movers = [...(evaluation.riskFactors ?? [])]
+        .filter((factor) => factor.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+    const moversText = movers.length
+        ? movers.map((factor) => `${factor.type} ${factor.score}/100`).join(", ")
+        : "no single factor dominates — the composite carries the score";
+    return [
+        RemediationFix.parse({
+            code: RISK_OVER_THRESHOLD_CODE,
+            severity: "blocking",
+            title: `risk ${over.score} exceeds threshold ${over.threshold}`,
+            detail: `Composite risk score ${over.score} is above this PR's effective threshold of ${over.threshold}, so the gate blocks. Top risk factors: ${moversText}. No single file edit clears this: either the PR gets smaller (which lowers the factors above) or the risk is accepted on the record.`,
+            suggested_action: `Reduce PR scope — split the change so the score falls below ${over.threshold} — or record an override: add the \`${OVERRIDE_LABEL}\` label and post a PR comment \`${OVERRIDE_LABEL}: <rationale>\`.`,
+            autofix_eligible: false,
         }),
     ];
 }
@@ -50082,23 +50848,23 @@ function buildRemediation(input) {
         fixes.push(RemediationFix.parse({ ...built, severity }));
     }
     fixes.push(...deriveCiFixes(input.evaluation.ci));
-    fixes.push(...derivePolicyFindingFixes(input.evaluation.policyFindings, input.evaluation.gateDecision === "block" ? "blocking" : "warn"));
+    fixes.push(...derivePolicyFindingFixes({
+        findings: input.evaluation.policyFindings,
+        enumeratedFindings: input.evaluation.enumeratedFindings,
+        gateDecision: input.evaluation.gateDecision,
+    }));
+    fixes.push(...deriveRiskThresholdFixes(input.evaluation));
     fixes.push(...deriveSubmissionFixes(input.submissionChecks));
     // Deduplicate by code, keeping the highest severity occurrence.
-    const severityRank = {
-        blocking: 3,
-        warn: 2,
-        advisory: 1,
-    };
     const byCode = new Map();
     for (const fix of fixes) {
         const existing = byCode.get(fix.code);
-        if (!existing || severityRank[fix.severity] > severityRank[existing.severity]) {
+        if (!existing || SEVERITY_RANK[fix.severity] > SEVERITY_RANK[existing.severity]) {
             byCode.set(fix.code, fix);
         }
     }
     const dedupedFixes = Array.from(byCode.values()).sort((a, b) => {
-        const sev = severityRank[b.severity] - severityRank[a.severity];
+        const sev = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
         if (sev !== 0)
             return sev;
         return a.code.localeCompare(b.code);
@@ -50331,17 +51097,22 @@ async function fetchFromKomatikStore(params) {
         return null;
     return fetchEvaluationList(listUrl, params);
 }
-async function fetchFromSupabase(params) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey)
-        return null;
+/** Columns loop bookkeeping has always needed — guaranteed present in every store. */
+const SUPABASE_LOOP_SELECT = "id,remediation,loop_round,previous_evaluation_id,fixes_resolved,fixes_introduced,created_at";
+/**
+ * ADR-011 §1 adds the delta fields. `release_brief`/`enumerated_findings` land with the
+ * ADR-011 store migration, so a store that has not run it 400s on this select — hence the
+ * narrow-select retry below rather than one wide select that would take loop bookkeeping
+ * down with it.
+ */
+const SUPABASE_DELTA_SELECT = `${SUPABASE_LOOP_SELECT},risk_score,gate_decision,release_ready,enumerated_findings,release_brief`;
+async function fetchSupabaseRows(supabaseUrl, serviceRoleKey, params, select) {
     const url = new URL(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`);
     url.searchParams.set("repo_id", `eq.${params.repoId}`);
     url.searchParams.set("pr_number", `eq.${params.prNumber}`);
     url.searchParams.set("order", "created_at.desc");
     url.searchParams.set("limit", "10");
-    url.searchParams.set("select", "id,remediation,loop_round,previous_evaluation_id,fixes_resolved,fixes_introduced,created_at");
+    url.searchParams.set("select", select);
     const response = await fetch(url.toString(), {
         method: "GET",
         headers: {
@@ -50354,7 +51125,18 @@ async function fetchFromSupabase(params) {
     if (!response.ok)
         return null;
     const rows = (await response.json());
-    if (!Array.isArray(rows))
+    return Array.isArray(rows) ? rows : null;
+}
+async function fetchFromSupabase(params) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey)
+        return null;
+    let rows = await fetchSupabaseRows(supabaseUrl, serviceRoleKey, params, SUPABASE_DELTA_SELECT);
+    if (rows === null) {
+        rows = await fetchSupabaseRows(supabaseUrl, serviceRoleKey, params, SUPABASE_LOOP_SELECT);
+    }
+    if (rows === null)
         return null;
     return pickPreviousFromRows(rows, params.excludeEvaluationId);
 }
@@ -50446,10 +51228,11 @@ async function countRecentLabelOverrides(params) {
 }
 
 ;// CONCATENATED MODULE: ./src/override.ts
-const OVERRIDE_LABEL = "trailhead-override";
+
+const override_OVERRIDE_LABEL = "trailhead-override";
 const OVERRIDE_COMMENT_PATTERN = /^trailhead-override:\s*(.+)/im;
 function hasOverrideLabel(labels) {
-    return labels.some((label) => label.toLowerCase() === OVERRIDE_LABEL);
+    return labels.some((label) => label.toLowerCase() === override_OVERRIDE_LABEL);
 }
 function parseOverrideComment(comments) {
     for (let index = comments.length - 1; index >= 0; index -= 1) {
@@ -50464,9 +51247,53 @@ function parseOverrideComment(comments) {
     }
     return null;
 }
+const CI_FAILING_STATUSES = new Set(["fail", "missing", "stale"]);
+const CI_REQUIRED_CHECK_REASON = /^Required CI check "/;
+const CI_PENDING_REASON = /required CI check\(s\) still pending$/i;
+/**
+ * True when a computeReleaseReady() reason came from mechanical CI rather than
+ * risk/policy. ADR-011 §3: a `risk_only` override never clears these — getting
+ * past a red required check stays an admin-merge.
+ *
+ * Structural first: a reason naming a blocking check that CiSummary reports as
+ * fail/missing/stale is mechanical regardless of phrasing. The phrasing fallback
+ * fails closed — a reason that still reads as a CI reason but cannot be matched
+ * to a check (no CiSummary, renamed check, external CI manifest) keeps blocking.
+ *
+ * ADR-011 §2 composition: "blocking" is the check's disposition, not its
+ * `required` flag, so an input dispositioned `irrelevant`/`advisory` never
+ * produces a reason to retain, and a non-required input dispositioned `blocking`
+ * survives a risk_only override.
+ */
+function isMechanicalCiReason(reason, ci) {
+    const structural = ci?.checks.some((check) => checkCountsTowardBlocking(check) &&
+        CI_FAILING_STATUSES.has(check.status) &&
+        reason.includes(`"${check.name}"`));
+    if (structural)
+        return true;
+    if (ci && ci.pendingCount > 0 && CI_PENDING_REASON.test(reason))
+        return true;
+    return CI_REQUIRED_CHECK_REASON.test(reason) || CI_PENDING_REASON.test(reason);
+}
+function partitionOverrideReasons(reasons, ci) {
+    const overridden = [];
+    const retained = [];
+    for (const reason of reasons) {
+        if (isMechanicalCiReason(reason, ci))
+            retained.push(reason);
+        else
+            overridden.push(reason);
+    }
+    return { overridden, retained };
+}
 function buildLabelOverrideAudit(input) {
     const appliedAt = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const scope = input.scope ?? "full";
+    const reasons = [...input.releaseResult.reasons];
+    const { overridden, retained } = scope === "risk_only"
+        ? partitionOverrideReasons(reasons, input.ci)
+        : { overridden: reasons, retained: [] };
     return {
         source: "label",
         owner: input.parsed.author,
@@ -50474,12 +51301,13 @@ function buildLabelOverrideAudit(input) {
         linkedTicket: `override:pr#${input.prNumber}`,
         expiresAt,
         appliedAt,
-        changes: { releaseReady: true },
+        scope,
+        changes: retained.length === 0 ? { releaseReady: true } : {},
         preOverrideDecision: input.gateDecision,
         preOverrideReleaseReady: input.releaseResult.releaseReady,
-        preOverrideReasons: input.releaseResult.reasons.length > 0
-            ? [...input.releaseResult.reasons]
-            : undefined,
+        preOverrideReasons: reasons.length > 0 ? reasons : undefined,
+        overriddenReasons: overridden.length > 0 ? overridden : undefined,
+        retainedReasons: retained.length > 0 ? retained : undefined,
     };
 }
 function formatOverrideRejectionMessage(code) {
@@ -50488,16 +51316,20 @@ function formatOverrideRejectionMessage(code) {
             return ("The `trailhead-override` label is present but no valid override reason was found. " +
                 "Add a PR comment starting with `trailhead-override: <your reason>` " +
                 "(for example: `trailhead-override: emergency hotfix for prod outage`). " +
-                "The gate will re-evaluate on the next run after the comment is posted.");
+                "Then re-run the Trailhead job, or remove and re-add the label to trigger a fresh " +
+                "`pull_request` evaluation.");
         case "disabled":
             return ("The `trailhead-override` label is present but label overrides are disabled " +
-                "in this repo's `.trailhead.yml` (`override.enabled: false`).");
+                "in this repo's `.trailhead.yml` (`override.enabled: false`). Remove the label, or " +
+                "enable the policy in a reviewed config change and then re-run or reapply the label.");
         case "cap_exceeded":
             return ("The `trailhead-override` label is present but this repo has reached its weekly " +
-                "override cap. File an issue in [KomatikAI/trailhead](https://github.com/KomatikAI/trailhead) " +
-                "linking this PR and the override pattern before applying another override.");
+                "override cap. Remove the label, then file an issue in " +
+                "[KomatikAI/trailhead](https://github.com/KomatikAI/trailhead) linking this PR and " +
+                "the override pattern before applying another override.");
         case "not_needed":
-            return "The `trailhead-override` label is present but release is already ready — no override applied.";
+            return ("The `trailhead-override` label is present but release is already ready, so no " +
+                "override was applied. Remove the label to avoid leaving stale override intent on the PR.");
         default: {
             const _exhaustive = code;
             return _exhaustive;
@@ -50505,8 +51337,17 @@ function formatOverrideRejectionMessage(code) {
     }
 }
 function resolveLabelOverride(input) {
+    const parsed = parseOverrideComment(input.comments);
     if (!hasOverrideLabel(input.labels)) {
-        return { kind: "none" };
+        return parsed
+            ? {
+                kind: "revoked",
+                message: "A valid `trailhead-override: <reason>` comment is recorded, but the " +
+                    "`trailhead-override` label is absent, so no override is active. This is the " +
+                    "expected state after revocation. Add the label only if you intend to authorize " +
+                    "the recorded override; adding it triggers a fresh `pull_request:labeled` evaluation.",
+            }
+            : { kind: "none" };
     }
     if (!input.config.enabled) {
         return {
@@ -50516,9 +51357,12 @@ function resolveLabelOverride(input) {
         };
     }
     if (input.releaseResult.releaseReady) {
-        return { kind: "none" };
+        return {
+            kind: "rejected",
+            code: "not_needed",
+            message: formatOverrideRejectionMessage("not_needed"),
+        };
     }
-    const parsed = parseOverrideComment(input.comments);
     if (!parsed) {
         return {
             kind: "rejected",
@@ -50541,15 +51385,38 @@ function resolveLabelOverride(input) {
             prNumber: input.prNumber,
             releaseResult: input.releaseResult,
             gateDecision: input.gateDecision,
+            scope: input.config.scope,
+            ci: input.ci,
         }),
     };
 }
 function applyLabelOverrideToEvaluation(evaluation, audit) {
+    if ((audit.scope ?? "full") !== "risk_only") {
+        return {
+            ...evaluation,
+            releaseReady: true,
+            releaseReadyReasons: undefined,
+            policyOverride: audit,
+        };
+    }
+    // Re-partition against the evaluation's own CiSummary: it is the authoritative
+    // structural signal, and the audit may have been built without one.
+    const reasons = evaluation.releaseReadyReasons ?? audit.preOverrideReasons ?? [];
+    const { overridden, retained } = partitionOverrideReasons(reasons, evaluation.ci);
+    const releaseReady = retained.length === 0;
+    const { releaseReady: _clearedFlag, ...changesWithoutReleaseReady } = audit.changes;
     return {
         ...evaluation,
-        releaseReady: true,
-        releaseReadyReasons: undefined,
-        policyOverride: audit,
+        releaseReady,
+        releaseReadyReasons: retained.length > 0 ? retained : undefined,
+        policyOverride: {
+            ...audit,
+            changes: releaseReady
+                ? { ...audit.changes, releaseReady: true }
+                : changesWithoutReleaseReady,
+            overriddenReasons: overridden.length > 0 ? overridden : undefined,
+            retainedReasons: retained.length > 0 ? retained : undefined,
+        },
     };
 }
 
@@ -50892,7 +51759,1249 @@ function readTrustRuntime(env = process.env) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/ci-integrity.ts
+const YAML_MAPPING_ENTRY = /^[ \t]*(?:-[ \t]+)?(?:[A-Za-z0-9_.-]+|"[^"\r\n]*"|'(?:[^']|'')*')[ \t]*:(?:[ \t]|$)/;
+const YAML_DOCUMENT_BOUNDARY = /^[ \t]*(?:---|\.\.\.)[ \t]*(?:#.*)?$/;
+const YAML_BLOCK_HEADER = /^([>|])((?:[+-][1-9]?|[1-9][+-]?)?)$/;
+const YAML_ANCHOR_PROPERTY = /^&[^\s[\]{},]+$/;
+const YAML_TAG_PROPERTY = /^!(?:<[^>\r\n]+>|[^\s]+)$/;
+const SHELL_CONTINUATION = /(?:&&|\|\||\|&|\||\\)\s*$/;
+const YAML_DOUBLE_ESCAPES = {
+    "0": "\0",
+    a: "\x07",
+    b: "\b",
+    t: "\t",
+    "\t": "\t",
+    n: "\n",
+    v: "\v",
+    f: "\f",
+    r: "\r",
+    e: "\x1b",
+    " ": " ",
+    '"': '"',
+    "/": "/",
+    "\\": "\\",
+    N: "\x85",
+    _: "\xa0",
+    L: "\u2028",
+    P: "\u2029",
+};
+function parseYamlKey(text, start) {
+    if (text[start] === "'") {
+        let value = "";
+        for (let cursor = start + 1; cursor < text.length; cursor += 1) {
+            if (text[cursor] !== "'") {
+                value += text[cursor];
+                continue;
+            }
+            if (text[cursor + 1] === "'") {
+                value += "'";
+                cursor += 1;
+                continue;
+            }
+            return { value, end: cursor + 1 };
+        }
+        return undefined;
+    }
+    if (text[start] === '"') {
+        let value = "";
+        for (let cursor = start + 1; cursor < text.length; cursor += 1) {
+            const character = text[cursor];
+            if (character === '"')
+                return { value, end: cursor + 1 };
+            if (character !== "\\") {
+                value += character;
+                continue;
+            }
+            const escape = text[cursor + 1];
+            if (escape === undefined)
+                return undefined;
+            const hexLength = escape === "x" ? 2 : escape === "u" ? 4 : escape === "U" ? 8 : 0;
+            if (hexLength) {
+                const hex = text.slice(cursor + 2, cursor + 2 + hexLength);
+                if (!new RegExp(`^[0-9A-Fa-f]{${hexLength}}$`).test(hex))
+                    return undefined;
+                const codePoint = Number.parseInt(hex, 16);
+                if (codePoint > 0x10ffff)
+                    return undefined;
+                value += String.fromCodePoint(codePoint);
+                cursor += 1 + hexLength;
+                continue;
+            }
+            const decoded = YAML_DOUBLE_ESCAPES[escape];
+            if (decoded === undefined)
+                return undefined;
+            value += decoded;
+            cursor += 1;
+        }
+        return undefined;
+    }
+    let end = start;
+    while (end < text.length && !/[\s:]/.test(text[end]))
+        end += 1;
+    return end === start ? undefined : { value: text.slice(start, end), end };
+}
+function yamlStringTagEnd(text, start) {
+    if (text[start] === "!" && /[ \t]/.test(text[start + 1] ?? "")) {
+        return start + 1;
+    }
+    for (const tag of ["!!str", "!<tag:yaml.org,2002:str>"]) {
+        if (text.startsWith(tag, start) && /[ \t]/.test(text[start + tag.length] ?? "")) {
+            return start + tag.length;
+        }
+    }
+    return undefined;
+}
+function yamlKeyStartAfterProperties(text, start) {
+    let cursor = start;
+    let tagSeen = false;
+    let anchorSeen = false;
+    while (true) {
+        const tagEnd = yamlStringTagEnd(text, cursor);
+        if (tagEnd !== undefined) {
+            if (tagSeen)
+                return undefined;
+            tagSeen = true;
+            cursor = tagEnd;
+        }
+        else {
+            const anchor = text.slice(cursor).match(/^&[^\s[\]{},]+(?=[ \t])/);
+            if (!anchor)
+                break;
+            if (anchorSeen)
+                return undefined;
+            anchorSeen = true;
+            cursor += anchor[0].length;
+        }
+        while (/[ \t]/.test(text[cursor] ?? ""))
+            cursor += 1;
+    }
+    return cursor;
+}
+function yamlRunEntry(line, runKeyAliases) {
+    const prefix = line.match(/^([ \t]*(?:-[ \t]+)?)/)?.[1] ?? "";
+    const keyStart = yamlKeyStartAfterProperties(line, prefix.length);
+    if (keyStart === undefined)
+        return undefined;
+    const parsedKey = parseYamlKey(line, keyStart);
+    if (!parsedKey)
+        return undefined;
+    const keyAlias = parsedKey.value.match(/^\*([^\s[\]{},]+)$/)?.[1];
+    if (parsedKey.value !== "run" && (!keyAlias || !runKeyAliases?.has(keyAlias))) {
+        return undefined;
+    }
+    let cursor = parsedKey.end;
+    while (/[ \t]/.test(line[cursor] ?? ""))
+        cursor += 1;
+    if (line[cursor] !== ":")
+        return undefined;
+    cursor += 1;
+    if (cursor < line.length && !/[ \t]/.test(line[cursor]))
+        return undefined;
+    while (/[ \t]/.test(line[cursor] ?? ""))
+        cursor += 1;
+    return { keyIndent: prefix.length, value: line.slice(cursor) };
+}
+function decodedCompleteYamlRunValue(value) {
+    const trimmed = value.trimStart();
+    if (trimmed[0] !== "'" && trimmed[0] !== '"')
+        return undefined;
+    const parsed = parseYamlKey(trimmed, 0);
+    if (!parsed)
+        return undefined;
+    const suffix = trimmed.slice(parsed.end);
+    if (suffix !== "" && !/^[ \t]+#/.test(suffix))
+        return undefined;
+    return parsed.value;
+}
+function decodedYamlDoubleQuotedFragment(value) {
+    let decoded = "";
+    for (let cursor = 0; cursor < value.length; cursor += 1) {
+        const character = value[cursor];
+        if (character === '"')
+            break;
+        if (character !== "\\") {
+            decoded += character;
+            continue;
+        }
+        const escape = value[cursor + 1];
+        if (escape === undefined) {
+            decoded += "\\";
+            break;
+        }
+        const hexLength = escape === "x" ? 2 : escape === "u" ? 4 : escape === "U" ? 8 : 0;
+        if (hexLength) {
+            const hex = value.slice(cursor + 2, cursor + 2 + hexLength);
+            if (new RegExp(`^[0-9A-Fa-f]{${hexLength}}$`).test(hex)) {
+                const codePoint = Number.parseInt(hex, 16);
+                if (codePoint <= 0x10ffff) {
+                    decoded += String.fromCodePoint(codePoint);
+                    cursor += 1 + hexLength;
+                    continue;
+                }
+            }
+        }
+        const simple = YAML_DOUBLE_ESCAPES[escape];
+        if (simple !== undefined) {
+            decoded += simple;
+            cursor += 1;
+            continue;
+        }
+        // Invalid/incomplete YAML cannot safely manufacture shell syntax.
+        decoded += `\\${escape}`;
+        cursor += 1;
+    }
+    return decoded;
+}
+function shellCandidateForRunEntry(runEntry) {
+    const decoded = decodedCompleteYamlRunValue(runEntry.value);
+    if (decoded !== undefined)
+        return decoded;
+    const value = runEntry.value.trimStart();
+    if (value[0] === '"')
+        return decodedYamlDoubleQuotedFragment(value.slice(1));
+    return value[0] === "'" ? value.slice(1) : runEntry.value;
+}
+function isYamlRunKey(text, runKeyAliases) {
+    const trimmed = text.trim();
+    const keyStart = yamlKeyStartAfterProperties(trimmed, 0);
+    if (keyStart === undefined)
+        return false;
+    const parsedKey = parseYamlKey(trimmed, keyStart);
+    if (!parsedKey)
+        return false;
+    const keyAlias = parsedKey.value.match(/^\*([^\s[\]{},]+)$/)?.[1];
+    if (parsedKey.value !== "run" && (!keyAlias || !runKeyAliases?.has(keyAlias))) {
+        return false;
+    }
+    const suffix = trimmed.slice(parsedKey.end).trimStart();
+    return suffix === "" || suffix.startsWith("#");
+}
+/** Parse the complete YAML block-header surface accepted for a `run` value. */
+function yamlRunBlockScalarValue(runValue, keyIndent) {
+    // A YAML comment after a block header requires separating whitespace.
+    const value = runValue.replace(/[ \t]+#.*$/, "").trim();
+    const tokens = value.split(/[ \t]+/);
+    const header = tokens.pop()?.match(YAML_BLOCK_HEADER);
+    if (!header)
+        return undefined;
+    let anchorSeen = false;
+    let tagSeen = false;
+    for (const property of tokens) {
+        if (YAML_ANCHOR_PROPERTY.test(property) && !anchorSeen) {
+            anchorSeen = true;
+            continue;
+        }
+        if (YAML_TAG_PROPERTY.test(property) && !tagSeen) {
+            tagSeen = true;
+            continue;
+        }
+        return undefined;
+    }
+    const indentationIndicator = header[2].match(/[1-9]/)?.[0];
+    return {
+        style: header[1] === ">" ? "folded" : "literal",
+        keyIndent,
+        explicitContentIndent: indentationIndicator
+            ? keyIndent + Number(indentationIndicator)
+            : undefined,
+    };
+}
+function yamlExplicitRunKeyIndent(line, runKeyAliases) {
+    const match = line.match(/^([ \t]*(?:-[ \t]+)?)\?[ \t]+(.*)$/);
+    if (!match || !isYamlRunKey(match[2], runKeyAliases))
+        return undefined;
+    return match[1].length;
+}
+function yamlExplicitBlockRunKey(line) {
+    const match = line.match(/^([ \t]*(?:-[ \t]+)?)\?[ \t]+(.*)$/);
+    if (!match || !yamlRunBlockScalarValue(match[2], match[1].length)) {
+        return undefined;
+    }
+    return { keyIndent: match[1].length, contentLines: [] };
+}
+function yamlExplicitValue(line, expectedIndent) {
+    const match = line.match(/^([ \t]*):(?:[ \t]+(.*))?$/);
+    if (!match || match[1].length !== expectedIndent)
+        return undefined;
+    return { keyIndent: expectedIndent, value: match[2] ?? "" };
+}
+function hasYamlPlainComment(value) {
+    for (let index = 0; index < value.length; index += 1) {
+        if (value[index] === "#" && (index === 0 || /[ \t]/.test(value[index - 1]))) {
+            return true;
+        }
+    }
+    return false;
+}
+function multilineRunScalar(runEntry) {
+    const value = runEntry.value.trimStart();
+    if (!value)
+        return undefined;
+    if (value[0] === "'") {
+        if (parseYamlKey(value, 0))
+            return undefined;
+        return {
+            style: "single_quoted",
+            keyIndent: runEntry.keyIndent,
+            previousLineKind: "text",
+            previousHasSuppression: false,
+            rawQuotedValue: value,
+            addedIndexes: [],
+            physicalHasSuppression: false,
+        };
+    }
+    if (value[0] === '"') {
+        if (parseYamlKey(value, 0))
+            return undefined;
+        return {
+            style: "double_quoted",
+            keyIndent: runEntry.keyIndent,
+            previousLineKind: "text",
+            previousHasSuppression: false,
+            rawQuotedValue: value,
+            addedIndexes: [],
+            physicalHasSuppression: false,
+        };
+    }
+    if (hasYamlPlainComment(value))
+        return undefined;
+    return {
+        style: "plain",
+        keyIndent: runEntry.keyIndent,
+        previousLineKind: "text",
+        previousHasSuppression: false,
+        addedIndexes: [],
+        physicalHasSuppression: false,
+    };
+}
+function multilineShellFragment(line, style) {
+    const fragment = line.trimStart();
+    if (style === "double_quoted")
+        return decodedYamlDoubleQuotedFragment(fragment);
+    if (style === "single_quoted") {
+        const closing = fragment.lastIndexOf("'");
+        return (closing >= 0 ? fragment.slice(0, closing) : fragment).replace(/''/g, "'");
+    }
+    return line;
+}
+function closesMultilineQuotedScalar(line, style) {
+    const quote = style === "single_quoted" ? "'" : '"';
+    return parseYamlKey(`${quote}${line.trimStart()}`, 0) !== undefined;
+}
+function isYamlStructuralBoundary(line) {
+    return YAML_MAPPING_ENTRY.test(line) || YAML_DOCUMENT_BOUNDARY.test(line);
+}
+function shellCodeBeforeComment(line) {
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    let escaped = false;
+    for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (character === "\\" && !singleQuoted) {
+            escaped = true;
+            continue;
+        }
+        if (character === "'" && !doubleQuoted) {
+            singleQuoted = !singleQuoted;
+            continue;
+        }
+        if (character === '"' && !singleQuoted) {
+            doubleQuoted = !doubleQuoted;
+            continue;
+        }
+        if (character === "#" &&
+            !singleQuoted &&
+            !doubleQuoted &&
+            (index === 0 || /[\s;&|()]/.test(line[index - 1]))) {
+            return line.slice(0, index);
+        }
+    }
+    return line;
+}
+function continuesShellCommand(line) {
+    return SHELL_CONTINUATION.test(shellCodeBeforeComment(line).trimEnd());
+}
+function unquotedShellSyntax(line) {
+    let syntax = "";
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        if (singleQuoted) {
+            if (character === "'")
+                singleQuoted = false;
+            syntax += " ";
+            continue;
+        }
+        if (doubleQuoted) {
+            if (character === "\\" && /[$`"\\]/.test(line[index + 1] ?? "")) {
+                syntax += "  ";
+                index += 1;
+                continue;
+            }
+            if (character === '"')
+                doubleQuoted = false;
+            syntax += " ";
+            continue;
+        }
+        if (character === "\\") {
+            if (index + 1 < line.length) {
+                syntax += "  ";
+                index += 1;
+            }
+            else {
+                syntax += "\\";
+            }
+            continue;
+        }
+        if (character === "'") {
+            singleQuoted = true;
+            syntax += " ";
+            continue;
+        }
+        if (character === '"') {
+            doubleQuoted = true;
+            syntax += " ";
+            continue;
+        }
+        if (character === "#" && (index === 0 || /[\s;&|()]/.test(line[index - 1]))) {
+            break;
+        }
+        syntax += character;
+    }
+    return syntax;
+}
+/** Decode the static characters Bash concatenates into one command word. */
+function shellWordAt(candidate, start) {
+    let value = "";
+    let cursor = start;
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    let consumed = false;
+    while (cursor < candidate.length) {
+        const character = candidate[cursor];
+        if (singleQuoted) {
+            consumed = true;
+            if (character === "'")
+                singleQuoted = false;
+            else
+                value += character;
+            cursor += 1;
+            continue;
+        }
+        if (doubleQuoted) {
+            consumed = true;
+            if (character === '"') {
+                doubleQuoted = false;
+                cursor += 1;
+                continue;
+            }
+            if (character === "\\" && /[$`"\\\n]/.test(candidate[cursor + 1] ?? "")) {
+                value += candidate[cursor + 1];
+                cursor += 2;
+                continue;
+            }
+            value += character;
+            cursor += 1;
+            continue;
+        }
+        if (/\s|[;&|()<>]/.test(character))
+            break;
+        if (character === "#" && !consumed)
+            break;
+        if (character === "\\") {
+            consumed = true;
+            if (cursor + 1 >= candidate.length) {
+                return { value, end: cursor, closed: false };
+            }
+            value += candidate[cursor + 1];
+            cursor += 2;
+            continue;
+        }
+        if (character === "'") {
+            consumed = true;
+            singleQuoted = true;
+            cursor += 1;
+            continue;
+        }
+        if (character === '"') {
+            consumed = true;
+            doubleQuoted = true;
+            cursor += 1;
+            continue;
+        }
+        consumed = true;
+        value += character;
+        cursor += 1;
+    }
+    return consumed
+        ? { value, end: cursor, closed: !singleQuoted && !doubleQuoted }
+        : undefined;
+}
+function unquotedOrOperatorIndexes(candidate) {
+    const indexes = [];
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    for (let index = 0; index < candidate.length; index += 1) {
+        const character = candidate[index];
+        if (singleQuoted) {
+            if (character === "'")
+                singleQuoted = false;
+            continue;
+        }
+        if (doubleQuoted) {
+            if (character === "\\" && /[$`"\\\n]/.test(candidate[index + 1] ?? "")) {
+                index += 1;
+                continue;
+            }
+            if (character === '"')
+                doubleQuoted = false;
+            continue;
+        }
+        if (character === "\\") {
+            index += 1;
+            continue;
+        }
+        if (character === "'") {
+            singleQuoted = true;
+            continue;
+        }
+        if (character === '"') {
+            doubleQuoted = true;
+            continue;
+        }
+        if (character === "#" && (index === 0 || /[\s;&|()]/.test(candidate[index - 1]))) {
+            break;
+        }
+        if (candidate.startsWith("||", index)) {
+            indexes.push(index);
+            index += 1;
+        }
+    }
+    return indexes;
+}
+function trailingSplitOr(line) {
+    const candidate = line.trimStart().trimEnd();
+    let syntax = unquotedShellSyntax(candidate).trimEnd();
+    const escapedNewline = syntax.endsWith("\\") && candidate.endsWith("\\");
+    const joinedCandidate = escapedNewline ? candidate.slice(0, -1) : candidate;
+    if (escapedNewline)
+        syntax = syntax.slice(0, -1).trimEnd();
+    if (syntax.endsWith("||"))
+        return { kind: "or" };
+    if (!escapedNewline)
+        return undefined;
+    const operators = unquotedOrOperatorIndexes(joinedCandidate);
+    const operator = operators.at(-1);
+    if (operator !== undefined) {
+        let wordStart = operator + 2;
+        while (/\s/.test(joinedCandidate[wordStart] ?? ""))
+            wordStart += 1;
+        const word = shellWordAt(joinedCandidate, wordStart);
+        if ((!word || "true".startsWith(word.value)) &&
+            (!word || word.end === joinedCandidate.length)) {
+            return {
+                kind: "escaped_join",
+                joinedSyntax: joinedCandidate.slice(operator),
+            };
+        }
+    }
+    if (syntax.endsWith("|")) {
+        return { kind: "escaped_join", joinedSyntax: "|" };
+    }
+    return undefined;
+}
+function advanceSplitOr(line, pending) {
+    const candidate = line.trimStart().trimEnd();
+    const syntax = unquotedShellSyntax(candidate).trimEnd();
+    const escapedNewline = syntax.endsWith("\\") && candidate.endsWith("\\");
+    const part = escapedNewline ? candidate.slice(0, -1) : candidate;
+    const joinedSyntax = `${pending.kind === "or" ? "|| " : (pending.joinedSyntax ?? "")}${part}`;
+    if (!joinedSyntax.startsWith("||")) {
+        return escapedNewline && "||".startsWith(joinedSyntax)
+            ? {
+                completes: false,
+                next: { ...pending, joinedSyntax },
+            }
+            : { completes: false };
+    }
+    let wordStart = 2;
+    while (/\s/.test(joinedSyntax[wordStart] ?? ""))
+        wordStart += 1;
+    const word = shellWordAt(joinedSyntax, wordStart);
+    if (!word) {
+        return escapedNewline
+            ? { completes: false, next: { ...pending, joinedSyntax } }
+            : { completes: false, next: { kind: "or" } };
+    }
+    const wordIsComplete = word.value === "true" &&
+        word.closed &&
+        (!escapedNewline || word.end < joinedSyntax.length);
+    if (wordIsComplete)
+        return { completes: true };
+    if (escapedNewline &&
+        "true".startsWith(word.value) &&
+        word.end === joinedSyntax.length) {
+        return {
+            completes: false,
+            next: { ...pending, joinedSyntax },
+        };
+    }
+    return { completes: false };
+}
+function startsWithOrSuccessor(line) {
+    return /^\|\|(?=$|\s)/.test(unquotedShellSyntax(line).trimStart());
+}
+function yamlAliasInfo(patch) {
+    const info = {
+        runKeyAliases: new Set(),
+        suppressionValues: new Map(),
+    };
+    for (const rawLine of patch.split("\n")) {
+        if (rawLine.startsWith("-") ||
+            rawLine.startsWith("@@") ||
+            rawLine.startsWith("+++") ||
+            rawLine.startsWith("\\ No newline")) {
+            continue;
+        }
+        const line = rawLine.startsWith("+") || rawLine.startsWith(" ") ? rawLine.slice(1) : rawLine;
+        for (const match of line.matchAll(/&([^\s[\]{},]+)(?=[ \t]|$)/g)) {
+            const name = match[1];
+            const suffix = line.slice((match.index ?? 0) + match[0].length).trimStart();
+            if (/^(?:run|"run"|'run')(?=$|[ \t:#])/.test(suffix)) {
+                info.runKeyAliases.add(name);
+            }
+            const decoded = decodedCompleteYamlRunValue(suffix);
+            const candidate = decoded ?? suffix.replace(/[ \t]+#.*$/, "").trim();
+            if (hasSemanticOrTrue(candidate))
+                info.suppressionValues.set(name, candidate);
+        }
+    }
+    return info;
+}
+function yamlAliasName(value) {
+    return value.trim().match(/^\*([^\s[\]{},]+)(?:[ \t]+#.*)?$/)?.[1];
+}
+/**
+ * Retain new-file hunk context around additions. An allowlisted physical line
+ * is not safe when the preceding added/context line composes it into a larger
+ * shell command. At a non-file-start hunk boundary with no context, fail closed.
+ */
+function addedPatchLines(patch) {
+    if (!patch)
+        return [];
+    const additions = [];
+    const aliases = yamlAliasInfo(patch);
+    let continuationPending = false;
+    // MCP callers can provide a bare/truncated patch. Until a hunk header or
+    // unchanged context establishes a boundary, an exemption must fail closed.
+    let ambiguousHunkBoundary = true;
+    let ambiguousContextIndent;
+    let blockScalar;
+    let multilineScalar;
+    let explicitRunKeyIndent;
+    let explicitBlockRunKey;
+    let pendingSplitOr;
+    let ambiguousPrevious;
+    for (const rawLine of patch.split("\n")) {
+        const hunk = rawLine.match(/^@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/);
+        if (hunk) {
+            continuationPending = false;
+            ambiguousHunkBoundary = Number(hunk[1]) > 1;
+            ambiguousContextIndent = undefined;
+            blockScalar = undefined;
+            multilineScalar = undefined;
+            explicitRunKeyIndent = undefined;
+            explicitBlockRunKey = undefined;
+            pendingSplitOr = undefined;
+            ambiguousPrevious = undefined;
+            continue;
+        }
+        if (rawLine.startsWith("+++") || rawLine.startsWith("---"))
+            continue;
+        if (rawLine.startsWith("-") || rawLine.startsWith("\\ No newline"))
+            continue;
+        if (!rawLine.startsWith("+") && !rawLine.startsWith(" "))
+            continue;
+        const line = rawLine.slice(1);
+        const isAdded = rawLine.startsWith("+");
+        const trimmed = line.trim();
+        const indentation = line.length - line.trimStart().length;
+        const shellCode = shellCodeBeforeComment(line).trim();
+        const isBlankOrComment = shellCode.length === 0;
+        let lineInBlockScalar = false;
+        if (blockScalar) {
+            if (!trimmed) {
+                lineInBlockScalar = true;
+            }
+            else {
+                const minimumContentIndent = blockScalar.contentIndent ?? blockScalar.keyIndent + 1;
+                if (indentation >= minimumContentIndent) {
+                    lineInBlockScalar = true;
+                    blockScalar.contentIndent ??= indentation;
+                }
+                else {
+                    blockScalar = undefined;
+                    continuationPending = false;
+                    pendingSplitOr = undefined;
+                }
+            }
+        }
+        let lineInMultilineScalar = false;
+        let foldedFromMultilinePredecessor = false;
+        if (!lineInBlockScalar && multilineScalar) {
+            if (!trimmed) {
+                lineInMultilineScalar = true;
+            }
+            else if (indentation > multilineScalar.keyIndent) {
+                lineInMultilineScalar = true;
+                foldedFromMultilinePredecessor = multilineScalar.previousLineKind === "text";
+            }
+            else {
+                multilineScalar = undefined;
+                pendingSplitOr = undefined;
+            }
+        }
+        if (lineInMultilineScalar &&
+            multilineScalar?.style === "plain" &&
+            trimmed.startsWith("#")) {
+            lineInMultilineScalar = false;
+            foldedFromMultilinePredecessor = false;
+            multilineScalar = undefined;
+            continuationPending = false;
+            pendingSplitOr = undefined;
+        }
+        if (isBlankOrComment)
+            foldedFromMultilinePredecessor = false;
+        const foldedFromBlockPredecessor = Boolean(lineInBlockScalar &&
+            trimmed &&
+            !isBlankOrComment &&
+            blockScalar?.style === "folded" &&
+            blockScalar.previousLineKind === "text" &&
+            indentation === blockScalar.contentIndent);
+        let currentRunEntry;
+        if (!lineInBlockScalar && !lineInMultilineScalar) {
+            if (explicitBlockRunKey) {
+                if (!trimmed)
+                    continue;
+                if (indentation > explicitBlockRunKey.keyIndent) {
+                    explicitBlockRunKey.contentLines.push(trimmed);
+                    continue;
+                }
+                if (explicitBlockRunKey.contentLines.length === 1 &&
+                    isYamlRunKey(explicitBlockRunKey.contentLines[0], aliases.runKeyAliases)) {
+                    currentRunEntry = yamlExplicitValue(line, explicitBlockRunKey.keyIndent);
+                }
+                explicitBlockRunKey = undefined;
+            }
+            if (explicitRunKeyIndent !== undefined) {
+                if (isBlankOrComment)
+                    continue;
+                currentRunEntry = yamlExplicitValue(line, explicitRunKeyIndent);
+                explicitRunKeyIndent = undefined;
+            }
+            const explicitKeyIndent = yamlExplicitRunKeyIndent(line, aliases.runKeyAliases);
+            if (!currentRunEntry && explicitKeyIndent !== undefined) {
+                explicitRunKeyIndent = explicitKeyIndent;
+                continuationPending = false;
+                pendingSplitOr = undefined;
+                if (!isAdded && explicitKeyIndent === 0)
+                    ambiguousHunkBoundary = false;
+                continue;
+            }
+            const blockKey = yamlExplicitBlockRunKey(line);
+            if (!currentRunEntry && blockKey) {
+                explicitBlockRunKey = blockKey;
+                continuationPending = false;
+                pendingSplitOr = undefined;
+                if (!isAdded && blockKey.keyIndent === 0)
+                    ambiguousHunkBoundary = false;
+                continue;
+            }
+            currentRunEntry ??= yamlRunEntry(line, aliases.runKeyAliases);
+            const scalarDeclaration = currentRunEntry
+                ? yamlRunBlockScalarValue(currentRunEntry.value, currentRunEntry.keyIndent)
+                : undefined;
+            if (scalarDeclaration) {
+                blockScalar = {
+                    style: scalarDeclaration.style,
+                    keyIndent: scalarDeclaration.keyIndent,
+                    contentIndent: scalarDeclaration.explicitContentIndent,
+                    previousLineKind: "none",
+                    previousHasSuppression: false,
+                    logicalShell: "",
+                    addedIndexes: [],
+                    physicalHasSuppression: false,
+                };
+                continuationPending = false;
+                pendingSplitOr = undefined;
+                ambiguousPrevious = undefined;
+                // Only unchanged context (or the actual file start) proves that a
+                // declaration is YAML rather than text inside a scalar omitted from
+                // this hunk. Added lines cannot self-certify an ambiguous boundary.
+                if (!isAdded)
+                    ambiguousHunkBoundary = false;
+                continue;
+            }
+            if (isYamlStructuralBoundary(line)) {
+                continuationPending = false;
+                pendingSplitOr = undefined;
+                // An indented mapping-looking line can still be plain text inside an
+                // omitted scalar. Only a column-zero document/mapping boundary is
+                // absolute evidence; otherwise indentation decides whether folding
+                // could compose the current addition with context.
+                if (!isAdded && indentation === 0) {
+                    ambiguousHunkBoundary = false;
+                    ambiguousPrevious = undefined;
+                }
+            }
+        }
+        const runAlias = currentRunEntry ? yamlAliasName(currentRunEntry.value) : undefined;
+        const currentShellCandidate = currentRunEntry
+            ? ((runAlias ? aliases.suppressionValues.get(runAlias) : undefined) ??
+                shellCandidateForRunEntry(currentRunEntry))
+            : lineInMultilineScalar && multilineScalar
+                ? multilineShellFragment(line, multilineScalar.style)
+                : line;
+        const pendingAtLineStart = pendingSplitOr;
+        const splitProgress = !isBlankOrComment && pendingAtLineStart
+            ? advanceSplitOr(currentShellCandidate, pendingAtLineStart)
+            : undefined;
+        const splitCompletes = Boolean(!isBlankOrComment && pendingAtLineStart && splitProgress?.completes);
+        const truncatedLeadingOr = Boolean(isAdded &&
+            ambiguousHunkBoundary &&
+            !isBlankOrComment &&
+            startsWithOrSuccessor(currentShellCandidate));
+        if (splitCompletes && pendingAtLineStart?.sourceAddedIndex !== undefined) {
+            additions[pendingAtLineStart.sourceAddedIndex].splitSuppression = true;
+        }
+        const foldsFromAmbiguousPredecessor = Boolean(ambiguousHunkBoundary &&
+            !isBlankOrComment &&
+            ambiguousPrevious &&
+            ambiguousPrevious.indent === indentation &&
+            startsWithOrSuccessor(currentShellCandidate));
+        if (foldsFromAmbiguousPredecessor && ambiguousPrevious?.addedIndex !== undefined) {
+            additions[ambiguousPrevious.addedIndex].continuedToSuccessor = true;
+        }
+        if (foldedFromBlockPredecessor && blockScalar?.previousAddedIndex !== undefined) {
+            additions[blockScalar.previousAddedIndex].continuedToSuccessor = true;
+        }
+        if (foldedFromMultilinePredecessor &&
+            multilineScalar?.previousAddedIndex !== undefined) {
+            additions[multilineScalar.previousAddedIndex].continuedToSuccessor = true;
+        }
+        const composesPriorSuppression = Boolean((foldedFromBlockPredecessor && blockScalar?.previousHasSuppression) ||
+            (foldedFromMultilinePredecessor && multilineScalar?.previousHasSuppression) ||
+            (foldsFromAmbiguousPredecessor && ambiguousPrevious?.hasSuppression));
+        let currentAddedIndex;
+        if (rawLine.startsWith("+")) {
+            currentAddedIndex = additions.length;
+            additions.push({
+                line,
+                suppressionCandidate: currentRunEntry ? currentShellCandidate : undefined,
+                continuedFromPrevious: (ambiguousHunkBoundary &&
+                    (ambiguousContextIndent === undefined ||
+                        indentation === ambiguousContextIndent)) ||
+                    continuationPending ||
+                    foldedFromMultilinePredecessor ||
+                    foldedFromBlockPredecessor,
+                continuedToSuccessor: false,
+                composesPriorSuppression,
+                splitSuppression: (splitCompletes && isAdded) || truncatedLeadingOr,
+            });
+        }
+        const pendingAfterCurrentLine = (candidate) => {
+            if (splitProgress?.next) {
+                return {
+                    ...splitProgress.next,
+                    sourceAddedIndex: pendingAtLineStart?.sourceAddedIndex ?? currentAddedIndex,
+                };
+            }
+            const trailing = trailingSplitOr(candidate);
+            return trailing ? { ...trailing, sourceAddedIndex: currentAddedIndex } : undefined;
+        };
+        if (lineInBlockScalar && blockScalar) {
+            if (currentAddedIndex !== undefined) {
+                blockScalar.addedIndexes.push(currentAddedIndex);
+            }
+            blockScalar.physicalHasSuppression ||= hasSemanticOrTrue(currentShellCandidate);
+            const content = line.slice(blockScalar.contentIndent ?? indentation);
+            const separator = blockScalar.logicalShell
+                ? blockScalar.style === "folded"
+                    ? " "
+                    : "\n"
+                : "";
+            blockScalar.logicalShell += `${separator}${content}`;
+            if (!blockScalar.physicalHasSuppression &&
+                hasSemanticOrTrue(blockScalar.logicalShell)) {
+                for (const index of blockScalar.addedIndexes) {
+                    additions[index].splitSuppression = true;
+                }
+            }
+        }
+        if (lineInMultilineScalar && multilineScalar?.rawQuotedValue !== undefined) {
+            if (currentAddedIndex !== undefined) {
+                multilineScalar.addedIndexes.push(currentAddedIndex);
+            }
+            multilineScalar.physicalHasSuppression ||= hasSemanticOrTrue(currentShellCandidate);
+            multilineScalar.rawQuotedValue += `\n${line.trimStart()}`;
+            const parsed = parseYamlKey(multilineScalar.rawQuotedValue, 0);
+            if (parsed &&
+                !multilineScalar.physicalHasSuppression &&
+                hasSemanticOrTrue(parsed.value)) {
+                for (const index of multilineScalar.addedIndexes) {
+                    additions[index].splitSuppression = true;
+                }
+            }
+        }
+        if (isBlankOrComment) {
+            if (trimmed &&
+                ((lineInBlockScalar && blockScalar?.style === "folded") || lineInMultilineScalar)) {
+                // Folded YAML turns this into an inline shell comment, so it consumes
+                // rather than separates a pending RHS. Literal block newlines do not.
+                pendingSplitOr = undefined;
+            }
+            if (ambiguousHunkBoundary && !trimmed)
+                ambiguousPrevious = undefined;
+            if (lineInBlockScalar && blockScalar) {
+                blockScalar.previousLineKind = trimmed ? "text" : "blank";
+                blockScalar.previousAddedIndex =
+                    trimmed &&
+                        blockScalar.style === "folded" &&
+                        indentation === blockScalar.contentIndent
+                        ? currentAddedIndex
+                        : undefined;
+                blockScalar.previousHasSuppression = Boolean(trimmed &&
+                    blockScalar.style === "folded" &&
+                    indentation === blockScalar.contentIndent &&
+                    hasSemanticOrTrue(line));
+            }
+            if (lineInMultilineScalar && multilineScalar) {
+                multilineScalar.previousLineKind =
+                    trimmed && multilineScalar.style !== "plain" ? "text" : "blank";
+                multilineScalar.previousAddedIndex =
+                    trimmed && multilineScalar.style !== "plain" ? currentAddedIndex : undefined;
+                multilineScalar.previousHasSuppression = Boolean(trimmed && multilineScalar.style !== "plain" && hasSemanticOrTrue(line));
+                if (multilineScalar.style !== "plain" &&
+                    closesMultilineQuotedScalar(line, multilineScalar.style)) {
+                    multilineScalar = undefined;
+                }
+            }
+            // Comments and blanks neither consume a pending shell RHS nor establish
+            // that a non-file-start hunk is outside an omitted YAML scalar.
+            continue;
+        }
+        if (lineInBlockScalar && blockScalar) {
+            blockScalar.previousLineKind =
+                indentation === blockScalar.contentIndent ? "text" : "more_indented";
+            blockScalar.previousAddedIndex =
+                blockScalar.style === "folded" && blockScalar.previousLineKind === "text"
+                    ? currentAddedIndex
+                    : undefined;
+            blockScalar.previousHasSuppression =
+                blockScalar.style === "folded" &&
+                    blockScalar.previousLineKind === "text" &&
+                    hasSemanticOrTrue(line);
+            continuationPending = continuesShellCommand(line);
+            pendingSplitOr = pendingAfterCurrentLine(line);
+            continue;
+        }
+        if (lineInMultilineScalar && multilineScalar) {
+            multilineScalar.previousLineKind = "text";
+            multilineScalar.previousAddedIndex = currentAddedIndex;
+            multilineScalar.previousHasSuppression = hasSemanticOrTrue(line);
+            continuationPending = continuesShellCommand(line);
+            pendingSplitOr = pendingAfterCurrentLine(line);
+            if (multilineScalar.style !== "plain" &&
+                closesMultilineQuotedScalar(line, multilineScalar.style)) {
+                multilineScalar = undefined;
+            }
+            continue;
+        }
+        if (!isAdded && ambiguousHunkBoundary && ambiguousContextIndent === undefined) {
+            ambiguousContextIndent = indentation;
+        }
+        continuationPending = currentRunEntry
+            ? continuesShellCommand(currentRunEntry.value)
+            : (ambiguousHunkBoundary || !isYamlStructuralBoundary(line)) &&
+                continuesShellCommand(line);
+        if (currentRunEntry) {
+            multilineScalar = multilineRunScalar(currentRunEntry);
+            if (multilineScalar) {
+                multilineScalar.previousAddedIndex = currentAddedIndex;
+                multilineScalar.previousHasSuppression = hasSemanticOrTrue(currentShellCandidate);
+                multilineScalar.physicalHasSuppression = multilineScalar.previousHasSuppression;
+                if (currentAddedIndex !== undefined) {
+                    multilineScalar.addedIndexes.push(currentAddedIndex);
+                }
+            }
+        }
+        pendingSplitOr = pendingAfterCurrentLine(currentShellCandidate);
+        if (ambiguousHunkBoundary) {
+            ambiguousPrevious = {
+                indent: indentation,
+                hasSuppression: hasSemanticOrTrue(currentShellCandidate),
+                addedIndex: currentAddedIndex,
+            };
+        }
+    }
+    return additions;
+}
+/**
+ * ADR-012 D4: reviewed command shapes whose non-zero exit does not carry the
+ * workflow's test/build/deploy/verification outcome. Matching is deliberately
+ * full-line and fail-closed (see `suppressedCommand`); adding a benign shape is
+ * a data review, while every unlisted `|| true` remains blocking.
+ */
+const OR_TRUE_SUPPRESSION_ALLOWLIST = [
+    {
+        id: "trap-cleanup",
+        category: "cleanup",
+        justification: "Best-effort EXIT/INT/TERM resource cleanup does not decide CI success.",
+        wrapper: "trap",
+        commandPattern: /^(?:docker\s+(?:rm|stop|kill)\b|rm\b|rmdir\b|kill\b|pkill\b)/,
+    },
+    {
+        id: "gh-label-create-ensure",
+        category: "idempotent_ensure",
+        justification: "Creating an already-present GitHub label is an idempotent ensure.",
+        wrapper: "command",
+        commandPattern: /^gh\s+label\s+create\b/,
+    },
+    {
+        id: "directory-ensure",
+        category: "idempotent_ensure",
+        justification: "Parent-directory creation is an idempotent filesystem ensure.",
+        wrapper: "command",
+        commandPattern: /^(?:mkdir\s+(?:-p|--parents)\b|install\s+-d\b)/,
+    },
+    {
+        id: "count-fallback",
+        category: "count_fallback",
+        justification: "grep/rg count mode may return one when the valid count is zero.",
+        wrapper: "command",
+        commandPattern: /^(?:grep|rg)\b(?=.*\s(?:-[A-Za-z]*c[A-Za-z]*|--count)(?:\s|$))/,
+    },
+];
+const TRAP_SIGNALS = "(?:EXIT|INT|TERM)(?:\\s+(?:EXIT|INT|TERM))*";
+function unquotedOrTrueTokens(candidate) {
+    const matches = [];
+    for (const operator of unquotedOrOperatorIndexes(candidate)) {
+        let commandStart = operator + 2;
+        while (/\s/.test(candidate[commandStart] ?? ""))
+            commandStart += 1;
+        const word = shellWordAt(candidate, commandStart);
+        if (!word?.closed || word.value !== "true")
+            continue;
+        matches.push({ start: operator, end: word.end });
+    }
+    return matches;
+}
+function isRedirectionAmpersand(command, index) {
+    return command[index + 1] === ">" || /[<>]/.test(command[index - 1] ?? "");
+}
+function hasUnsafeShellComposition(command) {
+    if (command.includes("${{"))
+        return true;
+    let singleQuoted = false;
+    let doubleQuoted = false;
+    for (let index = 0; index < command.length; index += 1) {
+        const character = command[index];
+        if (singleQuoted) {
+            if (character === "'")
+                singleQuoted = false;
+            continue;
+        }
+        if (doubleQuoted) {
+            if (character === "\\" && /[$`"\\]/.test(command[index + 1] ?? "")) {
+                index += 1;
+                continue;
+            }
+            if (character === '"') {
+                doubleQuoted = false;
+                continue;
+            }
+            if (character === "`" || (character === "$" && command[index + 1] === "(")) {
+                return true;
+            }
+            continue;
+        }
+        if (character === "\\") {
+            index += 1;
+            continue;
+        }
+        if (character === "'") {
+            singleQuoted = true;
+            continue;
+        }
+        if (character === '"') {
+            doubleQuoted = true;
+            continue;
+        }
+        if (character === "`" ||
+            (character === "$" && command[index + 1] === "(") ||
+            ((character === "<" || character === ">") && command[index + 1] === "(") ||
+            character === ";" ||
+            character === "|" ||
+            character === "(" ||
+            character === ")" ||
+            character === "\n" ||
+            character === "\r" ||
+            (character === "&" && !isRedirectionAmpersand(command, index))) {
+            return true;
+        }
+    }
+    return singleQuoted || doubleQuoted;
+}
+function singleSuppressedCommand(candidate, wrapper) {
+    const matches = unquotedOrTrueTokens(candidate);
+    if (matches.length !== 1)
+        return null;
+    const match = matches[0];
+    const command = candidate.slice(0, match.start).trim();
+    const suffix = candidate.slice(match.end).trim();
+    // No compound command, pipeline, command/process substitution or second payload may
+    // hide behind an otherwise allowlisted prefix. Redirections (including 2>&1)
+    // remain valid because they do not compose another command.
+    if (!command || hasUnsafeShellComposition(command))
+        return null;
+    if (suffix && !suffix.startsWith("#"))
+        return null;
+    return { wrapper, command };
+}
+function normalizedShellCandidate(line) {
+    const runEntry = yamlRunEntry(line);
+    return ((runEntry ? shellCandidateForRunEntry(runEntry) : undefined) ??
+        line.replace(/^[ \t]*(?:-[ \t]+)?/, "")).trim();
+}
+function trapHandler(normalized) {
+    for (const quote of ["'", '"']) {
+        const escapedQuote = quote === '"' ? '\\"' : quote;
+        const trap = normalized.match(new RegExp(`^trap\\s+${escapedQuote}([^${escapedQuote}]*)${escapedQuote}\\s+${TRAP_SIGNALS}\\s*(?:#.*)?$`));
+        if (trap)
+            return trap[1];
+    }
+    return undefined;
+}
+function expandStaticActionsStrings(candidate) {
+    return candidate.replace(/\$\{\{\s*'((?:[^']|'')*)'\s*\}\}/g, (_expression, value) => value.replace(/''/g, "'"));
+}
+function hasSemanticOrTrue(line) {
+    const normalized = normalizedShellCandidate(line);
+    const executable = trapHandler(normalized) ?? normalized;
+    return (unquotedOrTrueTokens(executable).length > 0 ||
+        unquotedOrTrueTokens(expandStaticActionsStrings(executable)).length > 0);
+}
+function suppressedCommand(line) {
+    const normalized = normalizedShellCandidate(line);
+    const handler = trapHandler(normalized);
+    if (handler !== undefined)
+        return singleSuppressedCommand(handler, "trap");
+    return singleSuppressedCommand(normalized, "command");
+}
+function isAllowedOrTrueSuppression(line) {
+    const candidate = suppressedCommand(line);
+    if (!candidate)
+        return false;
+    return OR_TRUE_SUPPRESSION_ALLOWLIST.some((rule) => rule.wrapper === candidate.wrapper && rule.commandPattern.test(candidate.command));
+}
+/** Detect newly introduced CI bypasses, never unchanged or deleted context. */
+function detectCiIntegrity(files) {
+    const blockingPatterns = [];
+    const warningSignals = [];
+    let score = 0;
+    for (const file of files.filter((entry) => entry.filename.startsWith(".github/workflows/"))) {
+        const addedLines = addedPatchLines(file.patch);
+        const added = addedLines.map(({ line }) => line).join("\n");
+        if (addedLines.some(({ line, suppressionCandidate, continuedFromPrevious, continuedToSuccessor, composesPriorSuppression, splitSuppression, }) => splitSuppression ||
+            composesPriorSuppression ||
+            (hasSemanticOrTrue(suppressionCandidate ?? line) &&
+                (continuedFromPrevious ||
+                    continuedToSuccessor ||
+                    !isAllowedOrTrueSuppression(suppressionCandidate ?? line))))) {
+            blockingPatterns.push(`${file.filename}: workflow bypass pattern "|| true"`);
+            score += 45;
+        }
+        if (/^\s*continue-on-error:\s*true\b/m.test(added)) {
+            blockingPatterns.push(`${file.filename}: introduced "continue-on-error: true"`);
+            score += 45;
+        }
+        if (/^\s*if:\s*\$\{\{\s*always\(\)\s*\}\}/m.test(added)) {
+            warningSignals.push(`${file.filename}: always() condition added to workflow gate`);
+            score += 20;
+        }
+    }
+    for (const file of files.filter((entry) => /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/.test(entry.filename))) {
+        const additions = file.additions ?? 0;
+        const deletions = file.deletions ?? 0;
+        if (deletions > additions * 2 && deletions >= 10) {
+            warningSignals.push(`${file.filename}: heavy test deletion (${deletions} deleted / ${additions} added)`);
+            score += 25;
+        }
+    }
+    for (const file of files) {
+        const patch = file.patch ?? "";
+        if (!patch)
+            continue;
+        if (/^-\s*(branches|functions|lines|statements)\s*:\s*\d+/m.test(patch) &&
+            /^\+\s*(branches|functions|lines|statements)\s*:\s*\d+/m.test(patch)) {
+            warningSignals.push(`${file.filename}: coverage threshold definition changed`);
+            score += 20;
+        }
+    }
+    return {
+        score: Math.min(100, score),
+        blockingPatterns,
+        warningSignals,
+    };
+}
+
+;// CONCATENATED MODULE: ./src/github-pagination.ts
+/**
+ * Collect a GitHub REST endpoint page-by-page. A full final page is treated as
+ * incomplete when maxPages is reached so callers can surface truncated input.
+ */
+async function collectGitHubPages(fetchPage, options = {}) {
+    const perPage = Math.min(100, Math.max(1, options.perPage ?? 100));
+    const maxPages = Math.max(1, options.maxPages ?? 30);
+    const items = [];
+    for (let page = 1; page <= maxPages; page += 1) {
+        const pageItems = await fetchPage(page, perPage);
+        items.push(...pageItems);
+        if (pageItems.length < perPage) {
+            return { items, pages: page, complete: true };
+        }
+    }
+    return { items, pages: maxPages, complete: false };
+}
+/** Fetch every available JSON-array page from a GitHub REST URL. */
+async function fetchGitHubJsonPages(url, init, options = {}) {
+    return collectGitHubPages(async (page, perPage) => {
+        const pageUrl = new URL(url);
+        pageUrl.searchParams.set("per_page", String(perPage));
+        pageUrl.searchParams.set("page", String(page));
+        const response = await fetch(pageUrl, init);
+        if (!response.ok) {
+            throw new Error(`GitHub request failed: HTTP ${response.status}`);
+        }
+        const data = (await response.json());
+        if (!Array.isArray(data)) {
+            throw new Error("GitHub paginated response was not an array");
+        }
+        return data;
+    }, options);
+}
+
 ;// CONCATENATED MODULE: ./src/gate.ts
+
+
+
+
 
 
 
@@ -50937,30 +53046,39 @@ function parseDeclaredPackages(raw) {
 // PR diff fetching via @actions/github
 // ---------------------------------------------------------------------------
 async function fetchPrFilesFromApi(octokit, owner, repo, prNumber) {
-    const { data: files } = await octokit.rest.pulls.listFiles({
-        owner,
-        repo,
-        pull_number: prNumber,
-        per_page: 300,
-    });
-    if (files.length >= 300) {
-        core_warning("PR has 300+ files — risk analysis may be incomplete (GitHub API pagination limit)");
+    const result = await collectGitHubPages(async (page, perPage) => {
+        const { data } = await octokit.rest.pulls.listFiles({
+            owner,
+            repo,
+            pull_number: prNumber,
+            per_page: perPage,
+            page,
+        });
+        return data;
+    }, { perPage: 100, maxPages: 30 });
+    if (!result.complete) {
+        core_warning("PR file enumeration reached GitHub's 3,000-file API ceiling; risk analysis is incomplete.");
     }
-    return files.map((f) => ({
+    return result.items.map((f) => ({
         filename: f.filename,
         additions: f.additions,
         deletions: f.deletions,
         changes: f.changes,
         patch: f.patch,
+        status: f.status,
     }));
 }
 async function fetchPrFilesFromCommits(octokit, owner, repo, prNumber) {
-    const { data: commits } = await octokit.rest.pulls.listCommits({
-        owner,
-        repo,
-        pull_number: prNumber,
-        per_page: 250,
-    });
+    const { items: commits } = await collectGitHubPages(async (page, perPage) => {
+        const { data } = await octokit.rest.pulls.listCommits({
+            owner,
+            repo,
+            pull_number: prNumber,
+            per_page: perPage,
+            page,
+        });
+        return data;
+    }, { perPage: 100, maxPages: 3 });
     const fileMap = new Map();
     for (const commit of commits) {
         const { data: detail } = await octokit.rest.repos.getCommit({
@@ -50993,6 +53111,31 @@ const DRIFT_CHECK_FILE_THRESHOLD = 30;
 // If the API reports more than 2x the files the commits actually touch,
 // the merge-base is stale and we use the commit-derived list instead.
 const MERGE_BASE_DRIFT_RATIO = 2.0;
+const API_ROUTE_FILE = /(?:^|\/)(?:app\/api\/.+\/route|pages\/api\/.+)\.(?:ts|tsx|js|jsx)$/;
+async function hydrateChangedRouteContents(octokit, owner, repo, ref, files) {
+    const routes = files.filter((file) => file.status !== "removed" && API_ROUTE_FILE.test(file.filename.replace(/\\/g, "/")));
+    // Keep the request fan-out bounded while still avoiding serial latency on
+    // route-heavy PRs. Route bodies are the source of truth for auth checks.
+    const batchSize = 8;
+    for (let start = 0; start < routes.length; start += batchSize) {
+        await Promise.all(routes.slice(start, start + batchSize).map(async (file) => {
+            try {
+                const { data } = await octokit.rest.repos.getContent({
+                    owner,
+                    repo,
+                    path: file.filename,
+                    ref,
+                });
+                if (Array.isArray(data) || data.type !== "file" || !data.content)
+                    return;
+                file.content = Buffer.from(data.content, "base64").toString("utf8");
+            }
+            catch (error) {
+                core_debug(`Could not fetch current route body for ${file.filename}: ${error}`);
+            }
+        }));
+    }
+}
 async function fetchPrFiles(prNumber, token) {
     if (!token)
         return [];
@@ -51000,31 +53143,35 @@ async function fetchPrFiles(prNumber, token) {
         const octokit = getOctokit(token);
         const { owner, repo } = github_context.repo;
         const apiFiles = await fetchPrFilesFromApi(octokit, owner, repo, prNumber);
-        if (apiFiles.length <= DRIFT_CHECK_FILE_THRESHOLD) {
-            return apiFiles;
+        let selectedFiles = apiFiles;
+        if (apiFiles.length > DRIFT_CHECK_FILE_THRESHOLD) {
+            // GitHub's pulls.listFiles uses a merge-base diff that can include
+            // files from unrelated commits when the base branch has diverged
+            // from the PR branch point. Cross-check against the files the PR's
+            // commits actually touch and fall back when inflation is detected.
+            info(`PR reports ${apiFiles.length} files (>${DRIFT_CHECK_FILE_THRESHOLD}), ` +
+                `cross-checking against commit-level file list for merge-base drift.`);
+            let commitFiles = [];
+            try {
+                commitFiles = await fetchPrFilesFromCommits(octokit, owner, repo, prNumber);
+            }
+            catch (err) {
+                core_debug(`Commit-level file enumeration failed, using API list: ${err}`);
+            }
+            if (commitFiles.length > 0 &&
+                apiFiles.length > commitFiles.length * MERGE_BASE_DRIFT_RATIO) {
+                core_warning(`Merge-base drift: API reported ${apiFiles.length} files, ` +
+                    `but PR commits only touch ${commitFiles.length}. ` +
+                    `Using commit-derived file list to avoid inflated risk scores.`);
+                const apiByName = new Map(apiFiles.map((file) => [file.filename, file]));
+                selectedFiles = commitFiles.map((file) => ({
+                    ...file,
+                    patch: apiByName.get(file.filename)?.patch,
+                    status: apiByName.get(file.filename)?.status,
+                }));
+            }
         }
-        // GitHub's pulls.listFiles uses a merge-base diff that can include
-        // files from unrelated commits when the base branch has diverged
-        // from the PR branch point.  Cross-check against the files the PR's
-        // commits actually touch and fall back when inflation is detected.
-        info(`PR reports ${apiFiles.length} files (>${DRIFT_CHECK_FILE_THRESHOLD}), ` +
-            `cross-checking against commit-level file list for merge-base drift.`);
-        let commitFiles;
-        try {
-            commitFiles = await fetchPrFilesFromCommits(octokit, owner, repo, prNumber);
-        }
-        catch (err) {
-            core_debug(`Commit-level file enumeration failed, using API list: ${err}`);
-            return apiFiles;
-        }
-        if (commitFiles.length > 0 &&
-            apiFiles.length > commitFiles.length * MERGE_BASE_DRIFT_RATIO) {
-            core_warning(`Merge-base drift: API reported ${apiFiles.length} files, ` +
-                `but PR commits only touch ${commitFiles.length}. ` +
-                `Using commit-derived file list to avoid inflated risk scores.`);
-            return commitFiles;
-        }
-        return apiFiles;
+        return selectedFiles;
     }
     catch (error) {
         core_debug(`Failed to fetch PR files: ${error}`);
@@ -51298,44 +53445,9 @@ async function detectPrProvenance(prNumber, token) {
     }
 }
 function detectCiIntegrityRisk(files) {
-    const blockingPatterns = [];
-    const warningSignals = [];
-    let score = 0;
-    const workflowFiles = files.filter((f) => f.filename.startsWith(".github/workflows/"));
-    const testFiles = files.filter((f) => /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/.test(f.filename));
-    for (const file of workflowFiles) {
-        const patch = file.patch ?? "";
-        if (/\|\|\s*true/.test(patch)) {
-            blockingPatterns.push(`${file.filename}: workflow bypass pattern "|| true"`);
-            score += 45;
-        }
-        if (/^\+\s*continue-on-error:\s*true\b/m.test(patch)) {
-            blockingPatterns.push(`${file.filename}: introduced "continue-on-error: true"`);
-            score += 45;
-        }
-        if (/^\+\s*if:\s*\$\{\{\s*always\(\)\s*\}\}/m.test(patch)) {
-            warningSignals.push(`${file.filename}: always() condition added to workflow gate`);
-            score += 20;
-        }
-    }
-    for (const file of testFiles) {
-        if (file.deletions > file.additions * 2 && file.deletions >= 10) {
-            warningSignals.push(`${file.filename}: heavy test deletion (${file.deletions} deleted / ${file.additions} added)`);
-            score += 25;
-        }
-    }
-    for (const file of files) {
-        const patch = file.patch ?? "";
-        if (!patch)
-            continue;
-        if (/^-\s*(branches|functions|lines|statements)\s*:\s*\d+/m.test(patch) &&
-            /^\+\s*(branches|functions|lines|statements)\s*:\s*\d+/m.test(patch)) {
-            warningSignals.push(`${file.filename}: coverage threshold definition changed`);
-            score += 20;
-        }
-    }
+    const { score, blockingPatterns, warningSignals } = detectCiIntegrity(files);
     if (score === 0) {
-        return { factor: null, blockingPatterns: [] };
+        return { factor: null, blockingPatterns: [], warningSignals: [] };
     }
     const factor = {
         type: "ci_integrity",
@@ -51346,7 +53458,7 @@ function detectCiIntegrityRisk(files) {
             description: "CI confidence and workflow integrity signals",
         },
     };
-    return { factor, blockingPatterns };
+    return { factor, blockingPatterns, warningSignals };
 }
 function detectWorkflowSecurityRisk(files, allowUnpinnedActions) {
     const blockingPatterns = [];
@@ -51505,17 +53617,16 @@ async function detectPrScopeRisk(params) {
     });
     if (exempt) {
         info(`pr_scope: branch pair ${params.headRef ?? "?"} -> ${params.baseRef ?? "?"} matches an exempt rule — scope limits skipped`);
-        return { factor: null, findings: [], forceBlock: false };
     }
     const fileCount = params.files.length;
     const totalChanges = params.files.reduce((sum, f) => sum + f.changes, 0);
     const findings = [];
     let score = 0;
-    if (fileCount > cfg.max_files) {
+    if (!exempt && fileCount > cfg.max_files) {
         findings.push(`PR scope exceeds max_files (${fileCount} > ${cfg.max_files}).`);
         score += 45;
     }
-    if (totalChanges > cfg.max_changes) {
+    if (!exempt && totalChanges > cfg.max_changes) {
         findings.push(`PR scope exceeds max_changes (${totalChanges} > ${cfg.max_changes}).`);
         score += 45;
     }
@@ -51636,12 +53747,14 @@ async function enforceAgentPrPolicies(params) {
     const policy = params.repoConfig?.policies?.agent_prs;
     if (!policy?.enabled || !params.prNumber || !params.token)
         return null;
+    const prNumber = params.prNumber;
     const provenanceType = params.provenance?.type ?? "unknown";
     const isUnknownStrict = provenanceType === "unknown" && policy.strict_on_unknown_provenance;
     const shouldTreatAsAgent = isUnknownStrict || isAgentProvenanceType(provenanceType);
     if (!shouldTreatAsAgent)
         return null;
     const findings = [];
+    const notices = [];
     let adjustedRiskThreshold;
     let forceBlock = false;
     const mode = policy.mode ?? "block";
@@ -51651,7 +53764,16 @@ async function enforceAgentPrPolicies(params) {
     }
     if (policy.risk_threshold !== undefined &&
         policy.risk_threshold < params.currentRiskThreshold) {
-        if (enforce) {
+        const exemptContext = params.matchedContextName
+            ? policy.risk_threshold_exempt_contexts.includes(params.matchedContextName)
+            : false;
+        if (exemptContext) {
+            const notice = `Agent PR risk threshold exemption matched context "${params.matchedContextName}"; ` +
+                `retaining context threshold ${params.currentRiskThreshold}.`;
+            notices.push(notice);
+            info(notice);
+        }
+        else if (enforce) {
             adjustedRiskThreshold = policy.risk_threshold;
             findings.push(`Agent PR risk threshold tightened from ${params.currentRiskThreshold} to ${policy.risk_threshold}.`);
         }
@@ -51667,27 +53789,60 @@ async function enforceAgentPrPolicies(params) {
         ? matchesGlobs(f.filename, sensitivePatterns)
         : isSensitiveFile(f.filename, riskConfig)) || params.files.some((f) => isSensitiveFile(f.filename, riskConfig));
     if (!touchesSensitivePaths) {
-        return { adjustedRiskThreshold, forceBlock, findings };
+        return { adjustedRiskThreshold, forceBlock, findings, notices };
     }
     try {
         const octokit = getOctokit(params.token);
         const { owner, repo } = github_context.repo;
-        const { data: reviews } = await octokit.rest.pulls.listReviews({
-            owner,
-            repo,
-            pull_number: params.prNumber,
-            per_page: 100,
+        const reviewResult = await collectGitHubPages(async (page, perPage) => {
+            const { data } = await octokit.rest.pulls.listReviews({
+                owner,
+                repo,
+                pull_number: prNumber,
+                page,
+                per_page: perPage,
+            });
+            return data;
         });
-        const approvedBy = new Set(reviews
-            .filter((r) => r.state === "APPROVED")
-            .map((r) => r.user?.login)
-            .filter((u) => Boolean(u)));
+        if (!reviewResult.complete) {
+            core_warning("Agent PR approval check skipped because GitHub returned an incomplete review history.");
+            return { adjustedRiskThreshold, forceBlock, findings, notices };
+        }
+        const decisiveStates = new Set(["APPROVED", "CHANGES_REQUESTED", "DISMISSED"]);
+        const orderedReviews = [...reviewResult.items].sort((left, right) => {
+            const leftTime = Date.parse(left.submitted_at ?? "");
+            const rightTime = Date.parse(right.submitted_at ?? "");
+            const normalizedLeftTime = Number.isNaN(leftTime) ? 0 : leftTime;
+            const normalizedRightTime = Number.isNaN(rightTime) ? 0 : rightTime;
+            return normalizedLeftTime - normalizedRightTime || left.id - right.id;
+        });
+        const latestDecisionByReviewer = new Map();
+        for (const review of orderedReviews) {
+            const login = review.user?.login?.trim().toLowerCase();
+            const state = review.state.toUpperCase();
+            if (!login || !decisiveStates.has(state))
+                continue;
+            latestDecisionByReviewer.set(login, review);
+        }
+        const expectedHeadSha = params.headSha?.toLowerCase();
+        const prAuthorLogin = params.prAuthorLogin?.trim().toLowerCase();
+        const approvedBy = new Set([...latestDecisionByReviewer.entries()]
+            .filter(([login, review]) => {
+            if (login === prAuthorLogin)
+                return false;
+            if (review.state.toUpperCase() !== "APPROVED")
+                return false;
+            if (!expectedHeadSha)
+                return true;
+            return review.commit_id?.toLowerCase() === expectedHeadSha;
+        })
+            .map(([login]) => login));
         if (approvedBy.size < policy.required_approvals) {
             if (enforce)
                 forceBlock = true;
             findings.push(enforce
-                ? `Sensitive-path agent PR requires ${policy.required_approvals} approval(s); found ${approvedBy.size}.`
-                : `Sensitive-path agent PR would require ${policy.required_approvals} approval(s); found ${approvedBy.size} (warn mode; not blocking).`);
+                ? `Sensitive-path agent PR requires ${policy.required_approvals} current-head approval(s) from reviewer(s) other than the PR author; found ${approvedBy.size}.`
+                : `Sensitive-path agent PR would require ${policy.required_approvals} current-head approval(s) from reviewer(s) other than the PR author; found ${approvedBy.size} (warn mode; not blocking).`);
         }
         if (policy.require_code_owner_approval) {
             if (policy.code_owner_reviewers.length === 0) {
@@ -51698,7 +53853,7 @@ async function enforceAgentPrPolicies(params) {
                     : "Code-owner approval would be required for sensitive-path agent PRs, but no code_owner_reviewers are configured (warn mode; not blocking).");
             }
             else {
-                const hasCodeOwnerApproval = policy.code_owner_reviewers.some((r) => approvedBy.has(r));
+                const hasCodeOwnerApproval = policy.code_owner_reviewers.some((r) => approvedBy.has(r.trim().toLowerCase()));
                 if (!hasCodeOwnerApproval) {
                     if (enforce)
                         forceBlock = true;
@@ -51713,7 +53868,7 @@ async function enforceAgentPrPolicies(params) {
         core_debug(`Agent PR policy review check failed: ${error}`);
         // Fail-open remains the default: do not force block on API errors.
     }
-    return { adjustedRiskThreshold, forceBlock, findings };
+    return { adjustedRiskThreshold, forceBlock, findings, notices };
 }
 // ---------------------------------------------------------------------------
 // Health check (HTTP)
@@ -51968,18 +54123,147 @@ async function callGateApi(config, localEvaluation) {
         return null;
     }
 }
-// ---------------------------------------------------------------------------
-// PR context for v4 context matching
-// ---------------------------------------------------------------------------
-function getPrMatchContext() {
+/**
+ * Branch/label context derived from the triggering event payload alone.
+ *
+ * The payload is a SNAPSHOT taken when the event was created. It is the
+ * correct source for base/head refs (they cannot change without a new event)
+ * but NOT for labels — see resolvePrMatchContext. Kept as the fallback layer.
+ */
+function getPrMatchContext(metadata) {
     const pr = github_context.payload?.pull_request;
     return {
-        baseRef: pr?.base?.ref ?? github_context.ref?.replace("refs/heads/", "") ?? "main",
-        headRef: pr?.head?.ref ?? github_context.ref?.replace("refs/heads/", "") ?? "main",
-        labels: (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
+        baseRef: metadata?.baseRef ??
+            pr?.base?.ref ??
+            github_context.ref?.replace("refs/heads/", "") ??
+            "main",
+        headRef: metadata?.headRef ??
+            pr?.head?.ref ??
+            github_context.ref?.replace("refs/heads/", "") ??
+            "main",
+        labels: metadata?.labels ?? (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
     };
 }
-async function fetchPrCommentsForOverride(prNumber, token) {
+/**
+ * Read the PR's CURRENT labels from the API.
+ *
+ * Returns null — never [] — when the labels could not be read, so the caller
+ * can distinguish "this PR genuinely has no labels" (a valid live answer that
+ * must be honored, otherwise removing a label would never be seen) from "the
+ * live read failed" (fall back to the payload).
+ */
+async function fetchLivePrLabels(prNumber, token) {
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const { data: pr } = await octokit.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: prNumber,
+        });
+        const labels = pr
+            .labels;
+        if (!Array.isArray(labels))
+            return null;
+        return labels
+            .map((label) => (typeof label === "string" ? label : (label?.name ?? "")))
+            .filter(Boolean);
+    }
+    catch (error) {
+        core_debug(`Failed to read live labels for PR #${prNumber}: ${error}`);
+        return null;
+    }
+}
+/**
+ * PR context for every label consumer in this evaluation — merge-queue
+ * detection, v4 context matching, and the label override.
+ *
+ * Labels are read LIVE from the API rather than taken from the triggering
+ * event payload. A rerun of an earlier run replays that run's ORIGINAL
+ * payload, so a label applied after the run was created is invisible to the
+ * rerun. That made the sanctioned `trailhead-override` label unusable as a
+ * remedy: GitHub requires every check suite bearing a required context name
+ * to end green, and a failed suite can only be made green by rerunning it —
+ * which is exactly the path that could never see the new label. Applying the
+ * override then still left the PR unmergeable without an admin merge.
+ *
+ * Resolved at the START of evaluateGate, which also keeps it clear of the
+ * action's own `add-risk-labels` writes — those run after the evaluation.
+ */
+async function resolvePrMatchContext(input) {
+    const payloadCtx = getPrMatchContext(input.metadata);
+    // Explicit metadata wins, unchanged: the `evaluate-pr` backfill path builds
+    // it in main.ts from its own live pulls.get, so it is already current.
+    if (input.metadata?.labels)
+        return payloadCtx;
+    if (!input.prNumber || !input.token) {
+        if (payloadCtx.labels.length > 0) {
+            core_debug("No PR number or github-token available — using event payload labels for PR context.");
+        }
+        return payloadCtx;
+    }
+    const liveLabels = await fetchLivePrLabels(input.prNumber, input.token);
+    if (!liveLabels) {
+        core_warning(`Could not read live labels for PR #${input.prNumber} — falling back to the ` +
+            `triggering event's payload labels ` +
+            `(${payloadCtx.labels.length > 0 ? payloadCtx.labels.join(", ") : "none"}). ` +
+            `A label applied after this run's event was created — including ` +
+            `\`${override_OVERRIDE_LABEL}\` — is not visible to this evaluation.`);
+        return payloadCtx;
+    }
+    const payloadLabels = payloadCtx.labels;
+    const drifted = liveLabels.length !== payloadLabels.length ||
+        liveLabels.some((label) => !payloadLabels.includes(label));
+    if (drifted) {
+        info(`PR #${input.prNumber} labels changed since this run's triggering event — ` +
+            `using live labels [${liveLabels.join(", ") || "none"}] ` +
+            `instead of payload labels [${payloadLabels.join(", ") || "none"}].`);
+    }
+    return { ...payloadCtx, labels: liveLabels };
+}
+function payloadOverrideComments() {
+    // Only issue_comment payloads contain the same PR conversation surfaced by
+    // GraphQL PullRequest.comments. A pull_request_review_comment is a diff
+    // comment and must never be accepted as an override reason.
+    if (github_context.eventName !== "issue_comment")
+        return [];
+    const issue = github_context.payload?.issue;
+    if (!issue?.pull_request)
+        return [];
+    const comment = github_context.payload?.comment;
+    if (!comment?.body)
+        return [];
+    return [{ body: comment.body, author: comment.user?.login }];
+}
+/**
+ * ADR-012 D1: evaluate the override against the CURRENT PR state.
+ *
+ * There is exactly ONE live label read in an evaluation — resolvePrMatchContext,
+ * resolved at the top of evaluateGate — and its result is handed in here as
+ * `liveLabels`. This function therefore reads COMMENTS only. Reading labels a
+ * second time here (as an earlier draft did, via a GraphQL query alongside the
+ * REST `pulls.get`) produces two label truths per evaluation that can disagree:
+ * merge-queue detection and `contexts[].match.labels` would see one set and the
+ * override another.
+ *
+ * REST, not GraphQL: `issues.listComments` is the endpoint this path has always
+ * used, and it keeps the override working in environments where the GraphQL API
+ * is blocked or unavailable — a GraphQL-only override path would be fail-closed
+ * exactly there.
+ *
+ * A failed comment read warns and falls back to the triggering event's payload
+ * comment rather than refusing: degradation, not regression, matching the label
+ * fallback in resolvePrMatchContext.
+ */
+async function fetchOverridePrState(prNumber, token, liveLabels) {
+    const fallback = {
+        labels: liveLabels,
+        comments: payloadOverrideComments(),
+        source: "payload_fallback",
+        unavailableReason: token ? "api_error" : "missing_token",
+    };
+    if (!token)
+        return fallback;
     try {
         const octokit = getOctokit(token);
         const { owner, repo } = github_context.repo;
@@ -51989,73 +54273,426 @@ async function fetchPrCommentsForOverride(prNumber, token) {
             issue_number: prNumber,
             per_page: 100,
         });
-        return comments.map((comment) => ({
-            body: comment.body ?? "",
-            author: comment.user?.login ?? undefined,
-        }));
+        return {
+            labels: liveLabels,
+            comments: comments.map((comment) => ({
+                body: comment.body ?? "",
+                author: comment.user?.login ?? undefined,
+            })),
+            source: "live",
+        };
     }
     catch (error) {
-        core_debug(`Failed to fetch PR comments for override: ${error}`);
-        return [];
+        core_warning(`Could not read live PR comments for the override on PR #${prNumber} — falling ` +
+            `back to the triggering event's payload comment. ${error}`);
+        return fallback;
     }
 }
 async function applyLabelOverrideIfNeeded(input) {
     const overrideSettings = input.repoConfig?.override ?? {
         enabled: true,
         max_per_week: 5,
+        scope: "full",
     };
-    const comments = await fetchPrCommentsForOverride(input.prNumber, input.githubToken);
-    const recentOverrideCount = await countRecentLabelOverrides({
-        repoId: input.evaluation.repoId,
-        storeUrl: input.config.evaluationStoreUrl,
-        apiKey: input.config.trailheadApiKey,
-    });
-    if (recentOverrideCount === null) {
+    const labelPresent = hasOverrideLabel(input.overrideState.labels);
+    const commentPresent = Boolean(parseOverrideComment(input.overrideState.comments));
+    // A failed live read is a DEGRADATION, not a regression (#362): the payload
+    // still authorizes. What a frozen payload cannot do is supply an override
+    // reason it never carried — that, and only that, is `unavailable`.
+    if (input.overrideState.source === "payload_fallback" && !commentPresent) {
+        const message = input.overrideState.unavailableReason === "missing_token"
+            ? "The `trailhead-override` label is present, but no GitHub token was available " +
+                "to read this PR's comments and the triggering event's payload carried no " +
+                "override reason. Configure `github-token` and re-run."
+            : "The `trailhead-override` label is present, but this PR's comments could not " +
+                "be read from GitHub and the triggering event's payload carried no override " +
+                "reason. Restore API access and re-run.";
+        core_warning(`Label override unavailable: ${message}`);
+        return {
+            ...input.evaluation,
+            labelOverrideFeedback: {
+                status: "unavailable",
+                message,
+                source: "payload_fallback",
+            },
+        };
+    }
+    if (!labelPresent && !commentPresent) {
+        return input.evaluation;
+    }
+    const needsCapLookup = labelPresent &&
+        commentPresent &&
+        !input.releaseResult.releaseReady &&
+        overrideSettings.enabled;
+    const recentOverrideCount = needsCapLookup
+        ? await countRecentLabelOverrides({
+            repoId: input.evaluation.repoId,
+            storeUrl: input.config.evaluationStoreUrl,
+            apiKey: input.config.trailheadApiKey,
+        })
+        : null;
+    if (needsCapLookup && recentOverrideCount === null) {
         core_warning("Could not verify weekly override cap — proceeding without cap enforcement.");
     }
     const outcome = resolveLabelOverride({
-        labels: input.prMatchCtx.labels,
-        comments,
+        labels: input.overrideState.labels,
+        comments: input.overrideState.comments,
         config: {
             enabled: overrideSettings.enabled,
             maxPerWeek: overrideSettings.max_per_week,
+            scope: overrideSettings.scope,
         },
         recentOverrideCount,
         releaseResult: input.releaseResult,
         gateDecision: input.gateDecision,
         prNumber: input.prNumber,
+        ci: input.evaluation.ci,
     });
     if (outcome.kind === "applied") {
-        core_warning(`Label override applied by ${outcome.audit.owner}: ${outcome.audit.reason}`);
+        const applied = applyLabelOverrideToEvaluation(input.evaluation, outcome.audit);
+        const retained = applied.policyOverride?.retainedReasons ?? [];
+        // ADR-011 §3: a risk_only override never clears mechanical blocking inputs —
+        // say so, otherwise the warning reads as a full bypass that it is not.
+        const retainedNote = retained.length > 0 ? ` — ${retained.join("; ")}` : "";
+        const feedbackMessage = retained.length > 0
+            ? `Override recorded, but scope \`risk_only\` cannot clear mechanical CI: ${retained.join("; ")}. Fix those checks; bypassing them requires an extraordinary GitHub admin merge.`
+            : `Release override applied by \`${outcome.audit.owner}\`.`;
+        core_warning(`Label override applied by ${outcome.audit.owner} (scope ${outcome.audit.scope ?? "full"}): ` +
+            `${outcome.audit.reason}${retainedNote}`);
         return {
-            ...applyLabelOverrideToEvaluation(input.evaluation, outcome.audit),
+            ...applied,
             labelOverrideFeedback: {
-                status: "applied",
-                message: `Release override applied by \`${outcome.audit.owner}\`.`,
+                status: retained.length > 0 ? "partial" : "applied",
+                message: feedbackMessage,
+                source: input.overrideState.source,
+            },
+        };
+    }
+    if (outcome.kind === "revoked") {
+        info(`Label override inactive: ${outcome.message}`);
+        return {
+            ...input.evaluation,
+            labelOverrideFeedback: {
+                status: "revoked",
+                message: outcome.message,
+                source: input.overrideState.source,
             },
         };
     }
     if (outcome.kind === "rejected") {
         core_warning(`Label override rejected: ${outcome.message}`);
-        await postOverrideRejectionComment(input.prNumber, outcome.message, input.githubToken);
+        const message = outcome.message;
+        if (input.githubToken) {
+            await postOverrideRejectionComment(input.prNumber, message, input.githubToken);
+        }
+        // `not_needed` is advisory: the release is ALREADY ready, and the only
+        // action owed is removing a stale label. It must never become a
+        // policyFinding — app/src/verdict.ts ingests every policyFinding, so a
+        // rejection line there turns a green server-side verdict red.
+        const advisoryOnly = outcome.code === "not_needed";
+        const existingFindings = input.evaluation.policyFindings;
         return {
             ...input.evaluation,
-            policyFindings: [...(input.evaluation.policyFindings ?? []), outcome.message],
+            ...(advisoryOnly ? {} : { policyFindings: [...(existingFindings ?? []), message] }),
             labelOverrideFeedback: {
                 status: "rejected",
-                message: outcome.message,
+                message,
+                source: input.overrideState.source,
             },
         };
     }
     return input.evaluation;
 }
 // ---------------------------------------------------------------------------
+// ADR-011 — input relevance, enumerated findings, Release Brief
+// ---------------------------------------------------------------------------
+/**
+ * `applyInputRelevance` now lives in input-relevance.ts — both this module
+ * (the single-fetch path below) and `waitForChecks` in ci-orchestrator.ts
+ * (the poll loop's own blocking-set exit condition) need it, and the latter
+ * would otherwise have had to import gate.ts, an actual circular import
+ * (gate.ts already imports ci-orchestrator.ts). Re-exported here (via the
+ * import above) so every existing caller/import site keeps working
+ * unchanged.
+ */
+
+/** Budget for the brief inside a report that also becomes a check-run summary. */
+const BRIEF_MAX_CHARS = 20000;
+/**
+ * Detector messages are authored as `<file>: <message>`. Split them so the brief
+ * can carry the file as evidence; anything that does not look like a path prefix
+ * stays a whole title (never guess evidence that is not there).
+ */
+function splitDetectorMessage(message) {
+    const separator = message.indexOf(": ");
+    if (separator > 0) {
+        const head = message.slice(0, separator);
+        if (/[/.]/.test(head) && !/\s/.test(head)) {
+            return { title: message.slice(separator + 2).trim(), evidence: head };
+        }
+    }
+    return { title: message };
+}
+/**
+ * ADR-011 §1: "findings are enumerated, never counted" — the Case A fix. Every
+ * detector already returns its patterns as strings; this turns them into
+ * addressable findings instead of a `.length`.
+ */
+function enumerateDetectorFindings(idPrefix, messages, severity) {
+    return messages.map((message, index) => {
+        const { title, evidence } = splitDetectorMessage(message);
+        return {
+            id: `${idPrefix}/${index + 1}`,
+            title,
+            severity,
+            ...(evidence ? { evidence } : {}),
+        };
+    });
+}
+function briefVerdict(evaluation) {
+    const mode = evaluation.gateMode ?? "risk-only";
+    if (mode === "release-ready" || mode === "advisory") {
+        if (evaluation.releaseReady === false)
+            return "block";
+        return evaluation.gateDecision === "warn" ? "warn" : "allow";
+    }
+    return evaluation.gateDecision;
+}
+function briefTopMovers(factors) {
+    const movers = [...factors]
+        .filter((factor) => factor.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map((factor) => ({ factor: factor.type, score: factor.score }));
+    return movers.length > 0 ? movers : undefined;
+}
+/**
+ * ADR-011 §1's `delta`. Two independent sources, either of which may be absent:
+ * the id-diff against the previous stored evaluation (verdict/risk/findings), and
+ * the remediation loop's own fix bookkeeping. A missing or unreachable previous
+ * evaluation omits the delta — it never errors.
+ */
+function briefDelta(evaluation, previous) {
+    const parts = [
+        previous
+            ? formatEvaluationDelta({
+                ...(previous.gateDecision !== undefined
+                    ? { verdict: previous.gateDecision }
+                    : {}),
+                ...(previous.riskScore !== undefined
+                    ? { riskScore: previous.riskScore }
+                    : {}),
+                ...(previous.findingIds !== undefined
+                    ? { findingIds: previous.findingIds }
+                    : {}),
+            }, {
+                verdict: evaluation.gateDecision,
+                riskScore: evaluation.riskScore,
+                ...(evaluation.enumeratedFindings !== undefined
+                    ? { findingIds: evaluation.enumeratedFindings.map((f) => f.id) }
+                    : {}),
+            })
+            : undefined,
+        briefRemediationDelta(evaluation),
+    ].filter((part) => part !== undefined);
+    return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+function briefRemediationDelta(evaluation) {
+    const remediation = evaluation.remediation;
+    if (!remediation?.previous_evaluation_id)
+        return undefined;
+    const parts = [];
+    if (remediation.fixes_resolved.length > 0) {
+        parts.push(`resolved: ${remediation.fixes_resolved.join(", ")}`);
+    }
+    if (remediation.fixes_introduced.length > 0) {
+        parts.push(`introduced: ${remediation.fixes_introduced.join(", ")}`);
+    }
+    if (parts.length === 0)
+        parts.push("no change in findings");
+    return `round ${remediation.loop_round} vs previous evaluation — ${parts.join("; ")}`;
+}
+function briefActions(evaluation, findings, riskThreshold) {
+    const actions = [];
+    for (const check of evaluation.ci?.checks ?? []) {
+        if (!checkCountsTowardBlocking(check))
+            continue;
+        if (check.status !== "fail" &&
+            check.status !== "missing" &&
+            check.status !== "stale") {
+            continue;
+        }
+        actions.push({
+            kind: "fix",
+            detail: `CI input "${check.name}" is ${check.status.toUpperCase()} — fix it, or ` +
+                `classify it under \`contexts[].input_relevance\` if it is irrelevant to this branch pair.`,
+            ...(check.detailsUrl ? { link: check.detailsUrl } : {}),
+        });
+    }
+    for (const finding of findings) {
+        if (finding.severity !== "blocking")
+            continue;
+        actions.push({ kind: "fix", detail: `${finding.title} (\`${finding.id}\`)` });
+    }
+    const pending = evaluation.ci?.pendingCount ?? 0;
+    if (pending > 0) {
+        actions.push({
+            kind: "wait",
+            detail: `${pending} blocking CI check(s) still pending — the gate re-evaluates when they finish.`,
+        });
+    }
+    if (riskThreshold !== undefined &&
+        evaluation.riskScore > riskThreshold &&
+        !evaluation.policyOverride) {
+        actions.push({
+            kind: "override",
+            detail: `Risk ${evaluation.riskScore} exceeds threshold ${riskThreshold}. To accept it on ` +
+                `the record, first comment \`${override_OVERRIDE_LABEL}: <rationale>\`, then add the ` +
+                `\`${override_OVERRIDE_LABEL}\` label so the label event re-evaluates this PR.`,
+        });
+    }
+    return actions;
+}
+/**
+ * Project a GateEvaluation onto ADR-011 §1's Release Brief. Pure — no I/O, no
+ * mutation — so it can be rebuilt from any stored evaluation.
+ */
+function buildReleaseBrief(evaluation, riskThreshold, cannotEvaluateReason, previous) {
+    const findings = evaluation.enumeratedFindings ?? [];
+    const override = evaluation.policyOverride;
+    const overrideFeedback = evaluation.labelOverrideFeedback;
+    const delta = briefDelta(evaluation, previous);
+    return {
+        verdict: cannotEvaluateReason ? "cannot_evaluate" : briefVerdict(evaluation),
+        riskScore: evaluation.riskScore,
+        ...(riskThreshold !== undefined ? { riskThreshold } : {}),
+        ...(briefTopMovers(evaluation.riskFactors)
+            ? { topMovers: briefTopMovers(evaluation.riskFactors) }
+            : {}),
+        findings,
+        // Every input gets a row, including the ones that did not count, and every
+        // row states its reason (ADR-011 §1).
+        inputs: (evaluation.ci?.checks ?? []).map((check) => {
+            // No disposition attached means a summary built outside applyInputRelevance
+            // (or a pre-ADR-011 stored evaluation being re-rendered). Resolving against
+            // an empty policy table IS the default mapping, and keeps the reason column
+            // self-describing instead of blank.
+            const disposition = check.disposition ??
+                resolveDisposition({ name: check.name, status: check.status, required: check.required }, []);
+            return {
+                checkName: check.name,
+                status: check.status,
+                disposition: disposition.kind,
+                ...(disposition.reason ? { reason: disposition.reason } : {}),
+            };
+        }),
+        ...(delta ? { delta } : {}),
+        actions: briefActions(evaluation, findings, riskThreshold),
+        // ADR-011 §3 maps the audit's {owner, appliedAt, reason} onto {by, at, rationale}.
+        override: override
+            ? {
+                by: override.owner,
+                at: override.appliedAt,
+                scope: override.scope ?? "full",
+                rationale: override.reason,
+            }
+            : null,
+        ...(overrideFeedback &&
+            (overrideFeedback.status !== "applied" ||
+                overrideFeedback.source === "payload_fallback")
+            ? {
+                overrideStatus: {
+                    status: overrideFeedback.status,
+                    message: overrideFeedback.message,
+                    ...(overrideFeedback.source ? { source: overrideFeedback.source } : {}),
+                },
+            }
+            : {}),
+        ...(cannotEvaluateReason ? { cannotEvaluateReason } : {}),
+    };
+}
+// ---------------------------------------------------------------------------
+// ADR-011 §4 — availability stance
+// ---------------------------------------------------------------------------
+// The stance belongs to the matched context, which is only known *inside*
+// evaluateGate — but it has to be readable by main.ts's top-level catch, i.e.
+// after evaluateGate has already thrown. Stashing it here avoids loading and
+// re-matching the repo config a second time just to answer "open or closed?".
+let lastAvailabilityStance = null;
+let lastResolvedCheckContract = null;
+/**
+ * The availability stance of the context the most recent evaluation matched, or
+ * null when no context matched (or the run failed before matching). Null means
+ * "no per-context stance" — the caller keeps its action-input fail-mode.
+ */
+function getResolvedAvailabilityStance() {
+    return lastAvailabilityStance;
+}
+/** Test seam, and the reset evaluateGate performs on entry. */
+function setResolvedAvailabilityStance(stance) {
+    lastAvailabilityStance = stance;
+}
+/** Effective custom-check contract reached by the latest evaluation, for catch paths. */
+function getResolvedCheckContract() {
+    return lastResolvedCheckContract;
+}
+/** Test seam, and the reset/set performed by evaluateGate. */
+function setResolvedCheckContract(contract) {
+    lastResolvedCheckContract = contract;
+}
+/**
+ * ADR-011 §1: "silence is a bug." When the evaluation could not run at all there is
+ * no GateEvaluation to project, so the brief is built from the failure itself.
+ */
+function buildCannotEvaluateBrief(reason, stance) {
+    const actions = [
+        {
+            kind: "fix",
+            detail: "Resolve the failure above and re-run the Trailhead job. Until it runs, no " +
+                "risk score, no input dispositions and no findings exist for this commit.",
+        },
+        stance === "fail_closed"
+            ? {
+                kind: "wait",
+                detail: "Availability stance is fail_closed: no verdict means no merge. Break-glass " +
+                    "is a GitHub admin merge — visible and extraordinary, and it records nothing.",
+            }
+            : {
+                kind: "wait",
+                detail: "Availability stance is fail_open: Trailhead will publish a NEUTRAL " +
+                    "cannot-evaluate custom check when GitHub Checks access is available — it " +
+                    "does not block the merge and does not claim a verdict this run never " +
+                    "reached. A publication failure can still leave branch protection pending.",
+            },
+    ];
+    return {
+        verdict: "cannot_evaluate",
+        findings: [],
+        inputs: [],
+        actions,
+        override: null,
+        cannotEvaluateReason: reason,
+    };
+}
+// ---------------------------------------------------------------------------
 // Main evaluation entry point
 // ---------------------------------------------------------------------------
-async function evaluateGate(config, commitSha, prNumber) {
+async function evaluateGate(config, commitSha, prNumber, prMetadata) {
     const start = Date.now();
+    // Nothing is known about this run's availability stance until a context matches.
+    setResolvedAvailabilityStance(null);
+    setResolvedCheckContract(null);
+    // Labels are read live here, before anything consumes them, so merge-queue
+    // detection, context matching and the label override all see the same
+    // current truth rather than the triggering event's snapshot. This is the ONE
+    // live label read of an evaluation.
+    const prMatchCtx = await resolvePrMatchContext({
+        metadata: prMetadata,
+        prNumber,
+        token: config.githubToken,
+    });
     const isMergeQueue = github_context.eventName === "merge_group" ||
-        github_context.payload?.pull_request?.labels?.some((l) => l.name === "queue" || l.name.includes("merge-queue")) === true;
+        prMatchCtx.labels.some((label) => label === "queue" || label.includes("merge-queue"));
     if (isMergeQueue) {
         info("Merge queue detected — adjusting evaluation (skipping author_history)");
     }
@@ -52063,6 +54700,13 @@ async function evaluateGate(config, commitSha, prNumber) {
         prNumber ? fetchPrFiles(prNumber, config.githubToken) : Promise.resolve([]),
         loadRepoConfig(config.githubToken),
     ]);
+    const submissionMode = repoConfig?.submission?.mode ?? "block";
+    const submissionEnabled = config.submissionGate === true || repoConfig?.submission?.enabled === true;
+    if (submissionEnabled && config.githubToken) {
+        const octokit = getOctokit(config.githubToken);
+        const { owner, repo } = github_context.repo;
+        await hydrateChangedRouteContents(octokit, owner, repo, commitSha, files);
+    }
     const changedFiles = files.map((f) => f.filename);
     const [authorFactor, prAgeFactor, provenance, httpHealthChecks, vercelCheck, supabaseCheck, mcpCheck, securityAlerts,] = await Promise.all([
         prNumber && config.githubToken && !isMergeQueue
@@ -52087,12 +54731,24 @@ async function evaluateGate(config, commitSha, prNumber) {
             : Promise.resolve(null),
     ]);
     const gateMode = resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, config.gateMode);
-    const prMatchCtx = getPrMatchContext();
+    const resolvedCheckName = resolveCheckName(gateMode, config.checkName ?? repoConfig?.gate?.check_name);
+    setResolvedCheckContract({ name: resolvedCheckName, mode: gateMode });
+    // config.waitForChecks is tri-state: an explicit wait-for-checks input
+    // (true/false) always wins. Left unset, default to waiting on the
+    // EFFECTIVE gate mode resolved just above — which folds in .trailhead.yml
+    // — not the raw action input alone.
+    const waitForChecksEffective = config.waitForChecks ?? gateMode === "release-ready";
     const matchedContext = repoConfig?.contexts && repoConfig.contexts.length > 0
         ? matchContext(repoConfig.contexts, prMatchCtx)
         : null;
     if (matchedContext) {
         info(`Matched context "${matchedContext.matched.name}" for base=${prMatchCtx.baseRef}`);
+    }
+    // ADR-011 §4 — a per-branch-pair stance overrides the action-input fail-mode.
+    const availabilityStance = matchedContext?.context.availability ?? null;
+    setResolvedAvailabilityStance(availabilityStance);
+    if (availabilityStance) {
+        info(`Availability stance: ${availabilityStance} (context "${matchedContext?.matched.name}")`);
     }
     const effectiveEnvironment = config.environment ?? matchedContext?.matched.environment ?? undefined;
     const envConfig = effectiveEnvironment
@@ -52142,7 +54798,7 @@ async function evaluateGate(config, commitSha, prNumber) {
     }
     const ciIntegrityConfig = repoConfig?.policies?.ci_integrity;
     const ciIntegrity = ciIntegrityConfig?.enabled === false
-        ? { factor: null, blockingPatterns: [] }
+        ? { factor: null, blockingPatterns: [], warningSignals: [] }
         : detectCiIntegrityRisk(files);
     if (ciIntegrity.factor) {
         riskFactors.push(ciIntegrity.factor);
@@ -52251,6 +54907,11 @@ async function evaluateGate(config, commitSha, prNumber) {
         repoConfig,
         provenance,
         currentRiskThreshold: adjustedRiskThreshold,
+        matchedContextName: matchedContext?.matched.name,
+        headSha: commitSha,
+        prAuthorLogin: prMetadata
+            ? prMetadata.authorLogin
+            : github_context.payload?.pull_request?.user?.login,
     });
     if (agentPolicy?.adjustedRiskThreshold !== undefined) {
         adjustedRiskThreshold = agentPolicy.adjustedRiskThreshold;
@@ -52259,8 +54920,6 @@ async function evaluateGate(config, commitSha, prNumber) {
         policyFindings.push(...agentPolicy.findings);
     }
     let submissionChecks = [];
-    const submissionMode = repoConfig?.submission?.mode ?? "block";
-    const submissionEnabled = config.submissionGate === true || repoConfig?.submission?.enabled === true;
     if (submissionEnabled && files.length > 0) {
         for (const warning of getSubmissionConfigWarnings(repoConfig?.submission)) {
             core_warning(warning);
@@ -52287,6 +54946,8 @@ async function evaluateGate(config, commitSha, prNumber) {
             files: files.map((f) => ({
                 filename: f.filename,
                 patch: f.patch,
+                status: f.status,
+                content: f.content,
                 additions: f.additions,
             })),
             repoConfig,
@@ -52296,11 +54957,12 @@ async function evaluateGate(config, commitSha, prNumber) {
             declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
             catalogKnownEntities,
             repoPaths,
-            // promotion_coherence (ADR-010): branch topology from the Actions env.
-            promotion: process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
+            // promotion_coherence (ADR-010): use the fetched PR topology for
+            // evaluate-pr backfills, with the event-derived context as the normal path.
+            promotion: prMetadata || process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
                 ? {
-                    baseBranch: process.env.GITHUB_BASE_REF,
-                    headBranch: process.env.GITHUB_HEAD_REF,
+                    baseBranch: prMatchCtx.baseRef,
+                    headBranch: prMatchCtx.headRef,
                 }
                 : undefined,
             // close_on_ship_link: the PR body carries the `Closes task: <id>` convention.
@@ -52318,13 +54980,17 @@ async function evaluateGate(config, commitSha, prNumber) {
         repoConfig,
     });
     const sessionCfg = repoConfig?.policies?.session_correlation;
+    // Kept as its own list so ADR-011 §1 can enumerate the burst instead of
+    // burying it in the undifferentiated policyFindings prose.
+    const sessionCorrelationFindings = [];
     if (sessionCorrelation && sessionCfg) {
         const threshold = sessionCfg.threshold;
         if (sessionCorrelation.burstCount >= threshold) {
-            policyFindings.push(`Rapid-fire merge burst detected: ${sessionCorrelation.burstCount} merged PRs in ${sessionCorrelation.windowMinutes} minutes.`);
+            sessionCorrelationFindings.push(`Rapid-fire merge burst detected: ${sessionCorrelation.burstCount} merged PRs in ${sessionCorrelation.windowMinutes} minutes.`);
             if (sessionCfg.mode === "block") {
-                policyFindings.push("Session correlation policy is configured to block.");
+                sessionCorrelationFindings.push("Session correlation policy is configured to block.");
             }
+            policyFindings.push(...sessionCorrelationFindings);
         }
     }
     const healthChecks = [...httpHealthChecks];
@@ -52343,6 +55009,12 @@ async function evaluateGate(config, commitSha, prNumber) {
     const sensitiveEscalation = decideSensitiveFilesEscalation(riskFactors, repoConfig?.policies?.sensitive_files);
     if (sensitiveEscalation.reason)
         policyFindings.push(sensitiveEscalation.reason);
+    const sessionCorrelationBlocks = sessionCorrelation !== null &&
+        sessionCfg !== undefined &&
+        sessionCorrelation.burstCount >= sessionCfg.threshold &&
+        sessionCfg.mode === "block";
+    const submissionBlocks = submissionChecks.length > 0 &&
+        submissionGateShouldBlock(submissionChecks, submissionMode);
     const gateDecision = agentPolicy?.forceBlock === true ||
         sensitiveEscalation.block ||
         (ciIntegrity.blockingPatterns.length > 0 &&
@@ -52358,16 +55030,55 @@ async function evaluateGate(config, commitSha, prNumber) {
             (duplicateLogicConfig?.mode ?? "warn") === "block") ||
         ((crossRepoImpact.factor?.score ?? 0) >= 60 &&
             (repoConfig?.policies?.cross_repo_impact?.mode ?? "warn") === "block") ||
-        (sessionCorrelation &&
-            sessionCfg &&
-            sessionCorrelation.burstCount >= sessionCfg.threshold &&
-            sessionCfg.mode === "block") ||
-        (submissionChecks.length > 0 &&
-            submissionGateShouldBlock(submissionChecks, submissionMode))
+        sessionCorrelationBlocks ||
+        submissionBlocks
         ? "block"
         : sensitiveEscalation.warn && baselineDecision === "allow"
             ? "warn"
             : baselineDecision;
+    // ADR-011 §1 (Case A): the count-strings below stay for existing consumers, but
+    // the individual patterns are now carried through to the evaluation so the
+    // Release Brief can enumerate them instead of printing a bare number.
+    const enumeratedFindings = [
+        ...enumerateDetectorFindings("ci_integrity", ciIntegrity.blockingPatterns, "blocking"),
+        ...enumerateDetectorFindings("ci_integrity_warning", ciIntegrity.warningSignals, "warn"),
+        ...enumerateDetectorFindings("workflow_security", workflowSecurity.blockingPatterns, "blocking"),
+        ...enumerateDetectorFindings("workflow_security_warning", workflowSecurity.warnings, "warn"),
+        ...enumerateDetectorFindings("prompt_injection", promptInjection.blockingPatterns, "blocking"),
+        ...enumerateDetectorFindings("prompt_injection_warning", promptInjection.warnings, "warn"),
+        ...enumerateDetectorFindings("supply_chain", supplyChain.blockingPatterns, "blocking"),
+        ...enumerateDetectorFindings("supply_chain_warning", supplyChain.warnings, "warn"),
+        ...enumerateDetectorFindings("pr_scope", prScope.findings, "advisory"),
+        ...enumerateDetectorFindings("duplicate_logic", duplicateLogic.findings, "advisory"),
+        ...enumerateDetectorFindings("cross_repo_impact", crossRepoImpact.findings, "advisory"),
+        // The four block-capable sources below are not detector pattern lists, so
+        // they used to reach the evaluation as prose in `policyFindings` only. A
+        // BLOCK caused by any of them would then render as "No findings." — the
+        // exact silence ADR-011 §1 forbids.
+        ...enumerateDetectorFindings("agent_policy", agentPolicy?.findings ?? [], agentPolicy?.forceBlock === true ? "blocking" : "warn"),
+        ...enumerateDetectorFindings("agent_policy_notice", agentPolicy?.notices ?? [], "advisory"),
+        // A single escalation verdict, so its id is fixed rather than enumerated.
+        ...(sensitiveEscalation.reason
+            ? [
+                {
+                    id: "sensitive_files/0",
+                    title: sensitiveEscalation.reason,
+                    severity: sensitiveEscalation.block
+                        ? "blocking"
+                        : "warn",
+                },
+            ]
+            : []),
+        ...enumerateDetectorFindings("session_correlation", sessionCorrelationFindings, sessionCorrelationBlocks ? "blocking" : "warn"),
+        // `policyFindings` only ever carried the submission count; the per-check
+        // code/title/detail/severity is what a human actually needs.
+        ...submissionChecks.map((check, index) => ({
+            id: `submission/${check.code}/${index + 1}`,
+            title: check.title,
+            evidence: check.detail,
+            severity: check.severity,
+        })),
+    ];
     if (ciIntegrity.blockingPatterns.length > 0) {
         policyFindings.push(`CI integrity blocking patterns detected (${ciIntegrity.blockingPatterns.length}).`);
     }
@@ -52454,6 +55165,7 @@ async function evaluateGate(config, commitSha, prNumber) {
         evaluationMs: Date.now() - start,
         environment: effectiveEnvironment,
         policyFindings: policyFindings.length > 0 ? policyFindings : undefined,
+        enumeratedFindings: enumeratedFindings.length > 0 ? enumeratedFindings : undefined,
         pr: prNumber
             ? {
                 provenance: provenance ??
@@ -52474,6 +55186,7 @@ async function evaluateGate(config, commitSha, prNumber) {
         escalation_status: escalationStatus,
         trust_profile: trustProfile,
         gateMode,
+        resolvedCheckName,
         context: matchedContext?.matched,
         submissionChecks: submissionChecks.length > 0 ? submissionChecks : undefined,
         cross_repo_impact: crossRepoImpact.services.length > 0
@@ -52502,12 +55215,23 @@ async function evaluateGate(config, commitSha, prNumber) {
                 missing_required: "fail",
             };
             const excludeCheckNames = [
-                resolveCheckName(gateMode, repoConfig?.gate?.check_name ?? config.checkName),
+                resolvedCheckName,
                 "Trailhead",
                 "Trailhead — Release Ready",
             ];
             const ciManifest = config.ciManifest ?? null;
-            if (config.waitForChecks && ciConfig.required_checks.length > 0) {
+            const inputRelevance = matchedContext?.context.input_relevance ?? [];
+            // A repo can (and komatik does) declare blocking checks purely via
+            // `input_relevance`, with no `ci.required_checks` at all — every check
+            // then carries `required: false`, so gating the wait on
+            // `ciConfig.required_checks.length > 0` skipped the wait path entirely
+            // for exactly that shape, even in release-ready mode with
+            // wait-timeout-minutes configured (komatik run 32800812922). The
+            // decision to wait is `waitForChecksEffective` alone; what's actually
+            // pending is resolved against the input_relevance-aware blocking set
+            // (passed through so `waitForChecks`' own poll-exit condition uses it,
+            // not just `required_checks`).
+            if (waitForChecksEffective) {
                 ciSummary = await waitForChecks({
                     octokit,
                     owner,
@@ -52517,6 +55241,7 @@ async function evaluateGate(config, commitSha, prNumber) {
                     excludeCheckNames,
                     timeoutMinutes: config.waitTimeoutMinutes ?? 30,
                     manifest: ciManifest,
+                    inputRelevance,
                 });
             }
             else {
@@ -52528,6 +55253,12 @@ async function evaluateGate(config, commitSha, prNumber) {
                 });
                 ciSummary = evaluateRequiredChecks(checks, ciConfig, ciManifest);
             }
+            // ADR-011 §2 — resolve each input's disposition before anything reads the
+            // summary. With no input_relevance config this is a pure annotation pass.
+            // `waitForChecks` above already applied this internally (to decide when
+            // to stop polling); re-applying here is idempotent — same checks, same
+            // entries — and guarantees the non-wait branch gets identical treatment.
+            ciSummary = applyInputRelevance(ciSummary, inputRelevance);
             localEvaluation.ci = ciSummary;
         }
         catch (error) {
@@ -52554,12 +55285,17 @@ async function evaluateGate(config, commitSha, prNumber) {
         securityBlocked,
     });
     localEvaluation = applyReleaseReadyToEvaluation(localEvaluation, releaseResult, gateMode);
-    if (prNumber && config.githubToken && hasOverrideLabel(prMatchCtx.labels)) {
+    // Only reach for comments when there is override INTENT. The live labels
+    // resolved at the top of this evaluation are that signal; without the label
+    // there is nothing an override comment could authorize, and fetching 100
+    // comments on every PR evaluation is a rate-limit cost for no answer.
+    if (prNumber && hasOverrideLabel(prMatchCtx.labels)) {
+        const overrideState = await fetchOverridePrState(prNumber, config.githubToken, prMatchCtx.labels);
         localEvaluation = await applyLabelOverrideIfNeeded({
             evaluation: localEvaluation,
             config,
             repoConfig,
-            prMatchCtx,
+            overrideState,
             prNumber,
             releaseResult,
             gateDecision,
@@ -52591,23 +55327,25 @@ async function evaluateGate(config, commitSha, prNumber) {
         provenanceType: localEvaluation.pr?.provenance?.type,
     });
     localEvaluation.agentBriefMode = agentBriefMode;
+    // Fetched once, outside the remediation branch: ADR-011 §1's delta needs the
+    // previous evaluation even in repos that have remediation turned off.
+    let previousEvaluation = null;
+    if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
+        try {
+            previousEvaluation = await fetchPreviousEvaluationForPr({
+                repoId: localEvaluation.repoId,
+                prNumber,
+                excludeEvaluationId: localEvaluation.id,
+                storeUrl: config.evaluationStoreUrl,
+                apiKey: config.trailheadApiKey,
+            });
+        }
+        catch (error) {
+            core_debug(`Previous evaluation lookup failed: ${error}`);
+        }
+    }
     const remediationEnabled = remediationSettings?.enabled !== false;
     if (remediationEnabled) {
-        let previousEvaluation = null;
-        if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
-            try {
-                previousEvaluation = await fetchPreviousEvaluationForPr({
-                    repoId: localEvaluation.repoId,
-                    prNumber,
-                    excludeEvaluationId: localEvaluation.id,
-                    storeUrl: config.evaluationStoreUrl,
-                    apiKey: config.trailheadApiKey,
-                });
-            }
-            catch (error) {
-                core_debug(`Previous evaluation lookup failed: ${error}`);
-            }
-        }
         localEvaluation.remediation = buildRemediation({
             evaluation: {
                 id: localEvaluation.id,
@@ -52617,6 +55355,12 @@ async function evaluateGate(config, commitSha, prNumber) {
                 releaseReadyReasons: localEvaluation.releaseReadyReasons,
                 policyFindings: localEvaluation.policyFindings,
                 gateDecision: localEvaluation.gateDecision,
+                // Without these three, derivePolicyFindingFixes falls back to the
+                // gate-decision severity (warn findings surface as blocking) and
+                // risk.over_threshold has nothing to resolve in risk-only mode.
+                enumeratedFindings: localEvaluation.enumeratedFindings,
+                riskScore: localEvaluation.riskScore,
+                riskThreshold: adjustedRiskThreshold,
             },
             previousEvaluation,
             maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
@@ -52624,11 +55368,57 @@ async function evaluateGate(config, commitSha, prNumber) {
             submissionChecks,
         });
     }
+    // ADR-011 §1 — built last so it sees release-readiness, the override outcome
+    // and the remediation delta.
+    localEvaluation.releaseBrief = buildReleaseBrief(localEvaluation, adjustedRiskThreshold, undefined, previousEvaluation);
     return localEvaluation;
 }
 // ---------------------------------------------------------------------------
 // PR comment posting
 // ---------------------------------------------------------------------------
+/**
+ * Safety bound for anything handed to GitHub as a report body. Issue comments
+ * cap at 65536 characters and a check run's `output.summary` at 65535; one
+ * number under both leaves room for the comment marker.
+ */
+const MAX_GATE_REPORT_CHARS = 65000;
+const BRIEF_HEADING = "## Release Brief";
+const BRIEF_SEPARATOR = "\n\n---\n\n";
+/** Cut points that leave the surviving markdown structurally intact. */
+const SECTION_BOUNDARIES = ["\n\n#", "\n\n<details>", "\n\n"];
+/**
+ * Clamp a gate report to what GitHub will actually accept.
+ *
+ * `renderReleaseBrief` already caps the brief itself, but the legacy report
+ * appended below it is unbounded (the files-changed list alone grows with the
+ * PR). Only that tail is trimmed — the brief is the decision, so it survives
+ * intact — and the reader is told where the full detail still lives.
+ */
+function clampGateReport(report, maxChars = MAX_GATE_REPORT_CHARS) {
+    if (report.length <= maxChars)
+        return report;
+    const notice = `\n\n_…report truncated (${report.length - maxChars} chars over GitHub's ` +
+        `comment limit) — full detail in the stored evaluation / job summary._`;
+    const budget = maxChars - notice.length;
+    if (budget <= 0)
+        return report.slice(0, maxChars);
+    // Never cut into the brief: keep everything up to its trailing separator.
+    const briefStart = report.indexOf(BRIEF_HEADING);
+    const separator = briefStart >= 0 ? report.indexOf(BRIEF_SEPARATOR, briefStart) : -1;
+    const floor = separator >= 0 ? separator + BRIEF_SEPARATOR.length : 0;
+    if (floor >= budget)
+        return `${report.slice(0, budget)}${notice}`;
+    const head = report.slice(0, budget);
+    let cut = budget;
+    for (const boundary of SECTION_BOUNDARIES) {
+        const index = head.lastIndexOf(boundary);
+        if (index > floor) {
+            cut = index;
+            break;
+        }
+    }
+    return `${report.slice(0, cut).trimEnd()}${notice}`;
+}
 async function postOverrideRejectionComment(prNumber, message, token) {
     try {
         const octokit = getOctokit(token);
@@ -52637,7 +55427,7 @@ async function postOverrideRejectionComment(prNumber, message, token) {
         const body = `${MARKER}\n` +
             `### Trailhead override rejected\n\n` +
             `${message}\n\n` +
-            `_This comment is updated automatically when the \`trailhead-override\` label is present._`;
+            `_This comment is updated automatically when Trailhead detects override intent it cannot honor._`;
         const { data: comments } = await octokit.rest.issues.listComments({
             owner,
             repo,
@@ -52676,7 +55466,7 @@ async function postPrComment(report, prNumber, token) {
             per_page: 100,
         });
         const MARKER = "<!-- trailhead-gate-report -->";
-        const body = `${MARKER}\n${report}`;
+        const body = clampGateReport(`${MARKER}\n${report}`);
         const existing = comments.find((c) => c.body?.includes(MARKER));
         if (existing) {
             await octokit.rest.issues.updateComment({
@@ -52696,42 +55486,162 @@ async function postPrComment(report, prNumber, token) {
         }
     }
     catch (error) {
-        core_debug(`Failed to post PR comment: ${error}`);
+        // Fail-soft, but never silent: a missing gate comment is a visible gap in
+        // the record, so it belongs in the run log rather than in debug output.
+        core_warning(`Failed to post PR comment: ${error}`);
     }
 }
-// ---------------------------------------------------------------------------
-// GitHub Check Run
-// ---------------------------------------------------------------------------
-async function createCheckRun(evaluation, report, token, checkName) {
-    try {
-        const octokit = getOctokit(token);
-        const { owner, repo } = github_context.repo;
-        const mode = evaluation.gateMode ?? "risk-only";
-        const name = checkName ?? resolveCheckName(mode);
-        const conclusion = checkConclusionForEvaluation(evaluation);
-        const titleSuffix = mode === "release-ready"
+function checkRunOutput(evaluation, report, name) {
+    const mode = evaluation.gateMode ?? "risk-only";
+    const titleSuffix = evaluation.releaseBrief?.verdict === "cannot_evaluate"
+        ? evaluation.gateDecision === "allow"
+            ? "CANNOT EVALUATE (FAIL-OPEN)"
+            : "CANNOT EVALUATE (FAIL-CLOSED)"
+        : mode === "release-ready"
             ? evaluation.releaseReady
                 ? "RELEASE READY"
                 : "NOT READY"
             : evaluation.gateDecision.toUpperCase();
-        await octokit.rest.checks.create({
+    return {
+        title: `${name}: ${titleSuffix}`,
+        summary: clampGateReport(report),
+        ...(evaluation.storePersisted === false
+            ? { text: "Evaluation not persisted — dashboard incomplete." }
+            : {}),
+    };
+}
+/**
+ * ADR-012 D2/D3 concurrency hardening (train-37): the workflow's
+ * `cancel-in-progress` group guarantees at most one LIVE run per PR, but it
+ * cancels by START order — a run cancellation signal races the run's own
+ * remaining steps, so an older run that started before a newer, authoritative
+ * one is not guaranteed to die before it reaches this publish step. Without a
+ * completion-order guard, a slow older run finishing last can publish a
+ * stale conclusion AFTER the newer run already published a fresh one,
+ * stranding the PR on the stale check until another event re-triggers.
+ *
+ * Every publish tags its check run with `external_id` = the triggering
+ * workflow run id (monotonically increasing). Before publishing, this looks
+ * for an already-published check of the same name on the same head SHA whose
+ * `external_id` is a STRICTLY NEWER run id, and skips publishing if so — the
+ * newer run's verdict already stands and must not be overwritten by a late
+ * straggler. It never blocks on an OLDER unpublished run (that run's own
+ * guard — or the concurrency cancellation — handles it), and a lookup
+ * failure fails OPEN to publishing so a lone, ordinary evaluation is never
+ * held back by this safety net.
+ */
+async function findNewerPublishedRunId(input) {
+    if (!Number.isFinite(input.runId))
+        return undefined;
+    try {
+        const { data } = await input.octokit.rest.checks.listForRef({
+            owner: input.owner,
+            repo: input.repo,
+            ref: input.headSha,
+            check_name: input.name,
+            filter: "all",
+            per_page: 30,
+        });
+        let maxSeen;
+        for (const run of data.check_runs) {
+            const externalId = run.external_id;
+            if (!externalId)
+                continue;
+            const parsed = Number(externalId);
+            if (!Number.isFinite(parsed))
+                continue;
+            if (maxSeen === undefined || parsed > maxSeen)
+                maxSeen = parsed;
+        }
+        if (maxSeen !== undefined && maxSeen > input.runId)
+            return maxSeen;
+        return undefined;
+    }
+    catch (error) {
+        core_debug(`Could not check for a newer published run before publishing: ${error}`);
+        return undefined;
+    }
+}
+async function createCheckRun(evaluation, report, token, checkName, runId = github_context.runId) {
+    const mode = evaluation.gateMode ?? "risk-only";
+    const name = checkName ?? resolveCheckName(mode);
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        const supersededBy = await findNewerPublishedRunId({
+            octokit,
+            owner,
+            repo,
+            headSha: evaluation.commitSha,
+            name,
+            runId,
+        });
+        if (supersededBy !== undefined) {
+            info(`Skipping check publication for \`${name}\` on \`${evaluation.commitSha}\`: ` +
+                `this run (${runId}) was superseded by run ${supersededBy}, which already ` +
+                "published a newer evaluation for this PR revision. This is the intended " +
+                "last-write-wins outcome, not a failure.");
+            return {
+                published: false,
+                name,
+                headSha: evaluation.commitSha,
+                superseded: true,
+                supersededByRunId: supersededBy,
+            };
+        }
+        const conclusion = checkConclusionForEvaluation(evaluation);
+        const response = await octokit.rest.checks.create({
             owner,
             repo,
             name,
             head_sha: evaluation.commitSha,
             status: "completed",
             conclusion,
-            output: {
-                title: `${name}: ${titleSuffix}`,
-                summary: report,
-                ...(evaluation.storePersisted === false
-                    ? { text: "Evaluation not persisted — dashboard incomplete." }
-                    : {}),
-            },
+            ...(Number.isFinite(runId) ? { external_id: String(runId) } : {}),
+            output: checkRunOutput(evaluation, report, name),
         });
+        return {
+            published: true,
+            name,
+            headSha: evaluation.commitSha,
+            ...(response?.data?.id ? { checkRunId: response.data.id } : {}),
+            ...(response?.data?.check_suite?.id
+                ? { checkSuiteId: response.data.check_suite.id }
+                : {}),
+        };
     }
     catch (error) {
-        core_debug(`Failed to create check run: ${error}`);
+        // Fail-soft, but never silent — see postPrComment.
+        core_warning(`Failed to create check run: ${error}`);
+        return { published: false, name, headSha: evaluation.commitSha };
+    }
+}
+/**
+ * Refresh the newly-created custom check after publication lineage and store
+ * outcome are known. This keeps its rendered Release Brief identical to the
+ * action summary and PR comment without creating a second check context.
+ */
+async function updateCheckRunReport(publication, evaluation, report, token) {
+    if (!publication.published)
+        return false;
+    if (!publication.checkRunId) {
+        core_warning("Created custom check did not return an id; its report could not be refreshed.");
+        return false;
+    }
+    try {
+        const octokit = getOctokit(token);
+        const { owner, repo } = github_context.repo;
+        await octokit.rest.checks.update({
+            owner,
+            repo,
+            check_run_id: publication.checkRunId,
+            output: checkRunOutput(evaluation, report, publication.name),
+        });
+        return true;
+    }
+    catch (error) {
+        core_warning(`Failed to refresh check-run report: ${error}`);
+        return false;
     }
 }
 // ---------------------------------------------------------------------------
@@ -52886,6 +55796,25 @@ function buildScoreBar(score, threshold) {
     const bar = "█".repeat(filled) + "░".repeat(width - filled);
     return `\`${bar}\` ${score}/100 (threshold: ${threshold})`;
 }
+/** A directory segment that names a migrations directory: `migrations`, `migration`, `db_migrations`. */
+const MIGRATIONS_SEGMENT = /^[\w.-]*migrations?$/i;
+/**
+ * True only when the path genuinely lives under a migrations directory — the first
+ * two *directory* segments (never the filename) are what a repo layout puts it in.
+ *
+ * The bucket used to be earned by `/^(migrations?|supabase)/` on the top segment,
+ * which labelled every `supabase/**` file as schema: komatik#4041's six
+ * `supabase/functions/_shared/` edge-function files were narrated as
+ * "database/migrations/ changes (6 files)" on a PR carrying no migration at all.
+ * A split suggestion is guidance a reviewer acts on, so it names the repo's real
+ * layout or nothing.
+ */
+function isMigrationsPath(parts) {
+    return parts
+        .slice(0, -1)
+        .slice(0, 2)
+        .some((segment) => MIGRATIONS_SEGMENT.test(segment));
+}
 function suggestSplitBoundaries(files) {
     if (files.length < 5)
         return [];
@@ -52896,10 +55825,12 @@ function suggestSplitBoundaries(files) {
         if (parts[0] === ".github") {
             bucket = "CI/workflow";
         }
-        else if (/^(migrations?|supabase)/i.test(parts[0])) {
+        else if (isMigrationsPath(parts)) {
             bucket = "database/migrations";
         }
         else if (parts.length >= 2) {
+            // Everything else is labelled by its literal two-segment prefix, so the
+            // suggestion can only ever name a directory the PR actually touched.
             bucket = parts.slice(0, 2).join("/");
         }
         else {
@@ -53051,7 +55982,15 @@ function formatGateReport(evaluation, riskThreshold) {
             ? "✅"
             : "🚫"
         : decisionIcon(evaluation.gateDecision);
-    const threshold = riskThreshold ?? 70;
+    const brief = evaluation.releaseBrief;
+    // ADR-011 §1 — one threshold per report. `riskThreshold` is the caller's BASE
+    // input; the brief carries the threshold the evaluation was actually judged
+    // against (context/environment overrides, agent-PR policy, trust deltas). A
+    // live brief read "risk 53 (threshold 50)" over a legacy table saying
+    // "(threshold 70)" — the brief is the single source, and every threshold
+    // mention below reads from it.
+    const effectiveRiskThreshold = brief?.riskThreshold ?? riskThreshold;
+    const threshold = effectiveRiskThreshold ?? 70;
     const healthDisplay = evaluation.healthChecks.length > 0
         ? `${evaluation.healthScore}/100`
         : "n/a (not configured)";
@@ -53064,15 +56003,34 @@ function formatGateReport(evaluation, riskThreshold) {
             ? "RELEASE READY"
             : "NOT RELEASE READY"
         : evaluation.gateDecision.toUpperCase();
-    const lines = [
-        `## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`,
-        ``,
-    ];
+    const lines = [];
+    // ADR-011 §1 — the brief leads; the pre-existing report stays below it so the
+    // same `<!-- trailhead-gate-report -->` comment upgrades in place.
+    if (brief) {
+        lines.push(renderReleaseBrief(brief, {
+            // The same markdown becomes a check run's output.summary, which GitHub
+            // caps at 65535 characters; leave room for the report below.
+            maxChars: BRIEF_MAX_CHARS,
+            ...(evaluation.reportUrl ? { storedEvaluationUrl: evaluation.reportUrl } : {}),
+        }), ``, `---`, ``);
+    }
+    lines.push(`## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`, ``);
     if (mode === "release-ready" || mode === "advisory") {
-        lines.push(`| Dimension | Status |`, `|-----------|--------|`, `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`, `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`, ...(evaluation.sizeScore !== undefined
+        // ADR-011 §1 — once the brief leads, the legacy report stops repeating it.
+        // Verdict, risk-vs-threshold and the input table are the brief's job; stating
+        // them twice is the illegibility class ADR-011 exists to close, and is how a
+        // stale threshold survived next to the live one. Everything the brief does
+        // NOT carry (size, health, DORA, security, files, guidance, remediation,
+        // override feedback, footer) stays exactly where it was.
+        lines.push(`| Dimension | Status |`, `|-----------|--------|`, ...(brief
+            ? []
+            : [
+                `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
+                `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
+            ]), ...(evaluation.sizeScore !== undefined
             ? [`| Size / blast radius | ${evaluation.sizeScore}/100 (reported separately) |`]
-            : []), `| Health | ${healthDisplay} |`, `| Gate | ${evaluation.gateDecision.toUpperCase()} |`, ``);
-        if (evaluation.ci && evaluation.ci.checks.length > 0) {
+            : []), `| Health | ${healthDisplay} |`, ...(brief ? [] : [`| Gate | ${evaluation.gateDecision.toUpperCase()} |`]), ``);
+        if (!brief && evaluation.ci && evaluation.ci.checks.length > 0) {
             lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
             for (const check of evaluation.ci.checks) {
                 lines.push(`| ${formatCiCheckCell(check)} | ${formatCiStatusIcon(check.status)} ${check.status} |`);
@@ -53110,8 +56068,8 @@ function formatGateReport(evaluation, riskThreshold) {
             (evaluation.healthChecks.length > 0 ? healthBadge(evaluation.healthScore) : ""), ``, `| Metric | Score |`, `|--------|-------|`, `| Health | ${healthDisplay} |`, `| Risk   | ${evaluation.riskScore}/100 |`, ...(evaluation.sizeScore !== undefined
             ? [`| Size / blast radius | ${evaluation.sizeScore}/100 |`]
             : []), `| **Decision** | **${evaluation.gateDecision.toUpperCase()}** |`, ``);
-        if (riskThreshold !== undefined) {
-            lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+        if (effectiveRiskThreshold !== undefined) {
+            lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, effectiveRiskThreshold)}`, ``);
         }
     }
     if (evaluation.remediation && evaluation.agentBriefMode !== "off") {
@@ -53140,7 +56098,11 @@ function formatGateReport(evaluation, riskThreshold) {
             ? [`- Resolve SLA: \`${evaluation.escalation_status.resolve_sla_minutes}m\``]
             : []), ``);
     }
-    if (evaluation.policyFindings && evaluation.policyFindings.length > 0) {
+    // The brief enumerates these as `{id, title, evidence, severity}` findings; the
+    // legacy list is the count-string form ADR-011 §1 replaced. It stays on the
+    // evaluation (and in `release-brief-json`) for existing consumers, but a report
+    // that already carries the enumeration does not also print the counts.
+    if (!brief && evaluation.policyFindings && evaluation.policyFindings.length > 0) {
         const findingsBody = evaluation.policyFindings
             .map((finding) => `- ${finding}`)
             .join("\n");
@@ -53540,17 +56502,27 @@ function slackTextForEvaluation(evaluation, prUrl, eventLabel) {
     };
     const emoji = decisionEmoji[evaluation.gateDecision] ?? "";
     const prefix = eventLabel ? `[${eventLabel}] ` : "";
+    const ci = evaluation.ci;
+    const ciText = ci
+        ? ` | CI: ${ci.checks.filter((check) => check.status === "pass").length} passed, ${ci.failedCount} blocking failures, ${ci.pendingCount} blocking pending, ${ci.missingCount} missing`
+        : "";
     return (`${prefix}${emoji} Trailhead *${evaluation.gateDecision.toUpperCase()}* — ` +
         `risk ${evaluation.riskScore}/100` +
         (prUrl
             ? ` | <${prUrl}|PR #${evaluation.prNumber}>`
             : ` | ${evaluation.commitSha.substring(0, 7)}`) +
-        ` on \`${evaluation.repoId}\``);
+        ` on \`${evaluation.repoId}\`` +
+        ciText +
+        (evaluation.releaseReady === undefined
+            ? ""
+            : ` | Release ready: ${evaluation.releaseReady ? "yes" : "no"}`));
 }
 function buildLegacyWebhookPayload(evaluation, prUrl) {
     return {
         text: slackTextForEvaluation(evaluation, prUrl),
         decision: evaluation.gateDecision,
+        releaseReady: evaluation.releaseReady,
+        ci: evaluation.ci,
         riskScore: evaluation.riskScore,
         sizeScore: evaluation.sizeScore,
         healthScore: evaluation.healthScore,
@@ -53573,6 +56545,7 @@ function buildTrailheadEventPayload(evaluation, event, prUrl) {
         evaluationId: evaluation.id,
         decision: evaluation.gateDecision,
         releaseReady: evaluation.releaseReady,
+        ci: evaluation.ci,
         riskScore: evaluation.riskScore,
         sizeScore: evaluation.sizeScore,
         sizeFactors: evaluation.sizeFactors,
@@ -53760,15 +56733,50 @@ async function storeViaApi(url, evaluation, maxRetries = 3) {
     }
     return notStored;
 }
-async function storeViaSupabase(evaluation) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey) {
-        return false;
+/**
+ * Columns introduced by the ADR-011 store migration. A store that has not run it
+ * rejects the whole insert, so `storeViaSupabase` strips these and retries once
+ * rather than losing the evaluation over a narration-only column.
+ */
+const ADR011_STORE_COLUMNS = ["release_brief", "enumerated_findings"];
+/** PostgREST's schema-cache miss: `{"code":"PGRST204","message":"Could not find …"}`. */
+const UNKNOWN_COLUMN_CODE = "PGRST204";
+const UNKNOWN_COLUMN_MESSAGE = /could not find the '([^']+)' column/i;
+/**
+ * True only for PostgREST's column-not-found signature naming an ADR-011 column.
+ *
+ * A bare substring match would strip-and-retry on any 400 that happened to
+ * mention `release_brief` — a permission error, a constraint violation, a
+ * validation message — turning an unrelated failure into a silent data loss.
+ */
+function mentionsUnknownAdr011Column(body) {
+    const columns = ADR011_STORE_COLUMNS;
+    let code;
+    let message = body;
+    try {
+        const parsed = JSON.parse(body);
+        if (parsed !== null && typeof parsed === "object") {
+            const record = parsed;
+            if (typeof record.code === "string")
+                code = record.code;
+            if (typeof record.message === "string")
+                message = record.message;
+        }
     }
-    const restUrl = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`;
-    const row = buildEvaluationStoreRow(evaluation);
-    const response = await fetch(restUrl, {
+    catch {
+        // Not JSON — the textual signature below is all there is to go on.
+    }
+    // A different PostgREST code is a different failure, whatever it mentions.
+    if (code !== undefined && code !== UNKNOWN_COLUMN_CODE)
+        return false;
+    const named = UNKNOWN_COLUMN_MESSAGE.exec(message)?.[1];
+    if (named !== undefined)
+        return columns.includes(named);
+    // No recognisable message shape: only a bare PGRST204 naming a column counts.
+    return code === UNKNOWN_COLUMN_CODE && columns.some((column) => body.includes(column));
+}
+async function insertSupabaseRow(restUrl, serviceRoleKey, row) {
+    return fetch(restUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -53779,11 +56787,33 @@ async function storeViaSupabase(evaluation) {
         body: JSON.stringify(row),
         signal: AbortSignal.timeout(STORE_TIMEOUT_MS),
     });
+}
+async function storeViaSupabase(evaluation) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+        return false;
+    }
+    const restUrl = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/trailhead_evaluations`;
+    const row = buildEvaluationStoreRow(evaluation);
+    let response = await insertSupabaseRow(restUrl, serviceRoleKey, row);
     if (response.ok || response.status === 201) {
         info("Evaluation stored via direct Supabase insert");
         return true;
     }
-    const body = await response.text().catch(() => "");
+    let body = await response.text().catch(() => "");
+    if (response.status === 400 && mentionsUnknownAdr011Column(body)) {
+        const legacyRow = Object.fromEntries(Object.entries(row).filter(([key]) => !ADR011_STORE_COLUMNS.includes(key)));
+        core_warning("Evaluation store is missing the ADR-011 columns " +
+            `(${ADR011_STORE_COLUMNS.join(", ")}) — storing without the release brief. ` +
+            "Apply cloud/migrations/006_release_brief.sql to persist it.");
+        response = await insertSupabaseRow(restUrl, serviceRoleKey, legacyRow);
+        if (response.ok || response.status === 201) {
+            info("Evaluation stored via direct Supabase insert");
+            return true;
+        }
+        body = await response.text().catch(() => "");
+    }
     core_warning(`Supabase direct insert failed (HTTP ${response.status}): ${body}`);
     return false;
 }
@@ -53817,7 +56847,16 @@ function buildEvaluationStoreRow(evaluation) {
         fixes_resolved: remediation?.fixes_resolved ?? [],
         fixes_introduced: remediation?.fixes_introduced ?? [],
         pr: evaluation.pr ?? null,
-        policy_override: evaluation.policyOverride ?? null,
+        // ADR-011 §3 — an audit written before the scope field existed WAS a full
+        // override; store that explicitly so consumers never have to infer it.
+        policy_override: evaluation.policyOverride
+            ? { ...evaluation.policyOverride, scope: evaluation.policyOverride.scope ?? "full" }
+            : null,
+        // ADR-011 §1. The Cloud/Komatik path POSTs the whole GateEvaluation, so these
+        // ride along there for free; the direct-Supabase path is column-explicit and
+        // needs them named. See cloud/migrations/006_release_brief.sql.
+        release_brief: evaluation.releaseBrief ?? null,
+        enumerated_findings: evaluation.enumeratedFindings ?? null,
         gate_mode: evaluation.gateMode ?? null,
         submission_checks: evaluation.submissionChecks ?? null,
         policy_findings: evaluation.policyFindings ?? null,
@@ -54049,6 +57088,7 @@ async function meterDeployCheck(evaluation, config, user) {
 }
 
 ;// CONCATENATED MODULE: ./src/dora.ts
+
 
 
 function rateDeploymentFrequency(deploysPerWeek) {
@@ -54513,12 +57553,16 @@ async function computeChangeReworkRate(token, windowDays, servicePaths) {
         const sampleSize = Math.min(total, 30);
         for (const pr of mergedInWindow.slice(0, sampleSize)) {
             try {
-                const { data: files } = await octokit.rest.pulls.listFiles({
-                    owner,
-                    repo,
-                    pull_number: pr.number,
-                    per_page: 100,
-                });
+                const { items: files } = await collectGitHubPages(async (page, perPage) => {
+                    const { data } = await octokit.rest.pulls.listFiles({
+                        owner,
+                        repo,
+                        pull_number: pr.number,
+                        per_page: perPage,
+                        page,
+                    });
+                    return data;
+                }, { perPage: 100, maxPages: 30 });
                 prFiles.set(pr.number, new Set(files.map((f) => f.filename)));
             }
             catch {
@@ -54575,12 +57619,16 @@ async function filterPrsByServicePaths(octokit, owner, repo, prs, servicePaths) 
     const sampleSize = Math.min(prs.length, 30);
     for (const pr of prs.slice(0, sampleSize)) {
         try {
-            const { data: files } = await octokit.rest.pulls.listFiles({
-                owner,
-                repo,
-                pull_number: pr.number,
-                per_page: 100,
-            });
+            const { items: files } = await collectGitHubPages(async (page, perPage) => {
+                const { data } = await octokit.rest.pulls.listFiles({
+                    owner,
+                    repo,
+                    pull_number: pr.number,
+                    per_page: perPage,
+                    page,
+                });
+                return data;
+            }, { perPage: 100, maxPages: 30 });
             const touchesService = files.some((f) => pathPatterns.some((p) => p.test(f.filename)));
             if (touchesService) {
                 filtered.push(pr);
@@ -55151,7 +58199,7 @@ const cypressHealer = {
 
 ;// CONCATENATED MODULE: ./src/cloud-config.ts
 /** Default Trailhead Cloud API base URL (override with TRAILHEAD_CLOUD_API_BASE). */
-const DEFAULT_CLOUD_API_BASE = "https://api.trailhead.dev";
+const DEFAULT_CLOUD_API_BASE = "https://trailhead.komatik.xyz/api/cloud";
 function resolveCloudApiBase() {
     const fromEnv = process.env.TRAILHEAD_CLOUD_API_BASE?.trim();
     return (fromEnv || DEFAULT_CLOUD_API_BASE).replace(/\/$/, "");
@@ -55187,8 +58235,9 @@ function mapCircleCiJobStatus(status) {
         case "cancelled":
             return "cancelled";
         case "skipped":
-        case "not_run":
             return "skipped";
+        case "not_run":
+            return "pending";
         case "running":
         case "queued":
         case "on_hold":
@@ -55206,11 +58255,7 @@ function circleCiJobsToManifestJobs(jobs) {
     }));
 }
 function revisionMatches(revision, commitSha) {
-    if (!revision)
-        return false;
-    return (revision === commitSha ||
-        revision.startsWith(commitSha) ||
-        commitSha.startsWith(revision));
+    return /^[a-f0-9]{40}$/.test(commitSha) && revision === commitSha;
 }
 async function fetchCircleCiManifest(options) {
     const base = (options.apiUrl ?? "https://circleci.com/api/v2").replace(/\/$/, "");
@@ -55219,35 +58264,92 @@ async function fetchCircleCiManifest(options) {
         "Circle-Token": options.token,
         Accept: "application/json",
     };
-    const pipelinesRes = await fetch(`${base}/project/${slug}/pipeline`, { headers });
-    if (!pipelinesRes.ok)
+    if (!/^[a-f0-9]{40}$/.test(options.commitSha))
         return null;
-    const pipelinesBody = (await pipelinesRes.json());
-    const pipeline = pipelinesBody.items?.find((item) => revisionMatches(item.vcs?.revision, options.commitSha));
-    if (!pipeline)
+    try {
+        const origin = new URL(base);
+        if (origin.protocol !== "https:" || origin.username || origin.password)
+            return null;
+        const list = async (path, stopWhen) => {
+            const items = [];
+            const seen = new Set();
+            let token;
+            for (let page = 0; page < 10; page++) {
+                const url = new URL(`${base}${path}`);
+                if (token)
+                    url.searchParams.set("page-token", token);
+                const response = await fetch(url, {
+                    headers,
+                    redirect: "error",
+                    signal: AbortSignal.timeout(10_000),
+                });
+                if (!response.ok)
+                    throw new Error("CircleCI request failed");
+                const data = (await response.json());
+                if (!Array.isArray(data.items))
+                    throw new Error("Invalid CircleCI page");
+                items.push(...data.items);
+                if (stopWhen?.(items))
+                    return items;
+                if (!data.next_page_token)
+                    return items;
+                if (typeof data.next_page_token !== "string" || seen.has(data.next_page_token))
+                    throw new Error("Invalid CircleCI pagination");
+                token = data.next_page_token;
+                seen.add(token);
+            }
+            throw new Error("CircleCI pagination limit");
+        };
+        const pipelines = await list(`/project/${slug}/pipeline`, (items) => items.some((item) => revisionMatches(item.vcs?.revision, options.commitSha)));
+        const pipeline = pipelines.find((item) => revisionMatches(item.vcs?.revision, options.commitSha));
+        if (!pipeline?.id)
+            return null;
+        const workflows = await list(`/pipeline/${encodeURIComponent(pipeline.id)}/workflow`);
+        if (!workflows.length)
+            return null;
+        const jobs = new Map();
+        const severity = {
+            passed: 0,
+            skipped: 1,
+            ran: 2,
+            pending: 3,
+            cancelled: 4,
+            failed: 5,
+        };
+        // A rerun supersedes older instances of that same workflow. If timestamps
+        // are absent/invalid retain both conservatively instead of guessing.
+        const currentWorkflows = workflows.filter((workflow) => !workflows.some((other) => other.name &&
+            other.name === workflow.name &&
+            Date.parse(other.created_at ?? "") > Date.parse(workflow.created_at ?? "")));
+        for (const workflow of currentWorkflows) {
+            if (!workflow.id)
+                return null;
+            const workflowJobs = await list(`/workflow/${encodeURIComponent(workflow.id)}/job`);
+            if (!workflowJobs.length ||
+                workflowJobs.some((job) => !job ||
+                    typeof job.name !== "string" ||
+                    !job.name ||
+                    typeof job.status !== "string"))
+                return null;
+            for (const job of circleCiJobsToManifestJobs(workflowJobs)) {
+                if (!job.name)
+                    return null;
+                const key = job.name.toLowerCase();
+                const prior = jobs.get(key);
+                if (!prior || severity[job.outcome] > severity[prior.outcome])
+                    jobs.set(key, job);
+            }
+        }
+        return {
+            schema_version: 1,
+            commit_sha: options.commitSha,
+            workflow: `circleci:${pipeline.id}`,
+            jobs: [...jobs.values()],
+        };
+    }
+    catch {
         return null;
-    const workflowsRes = await fetch(`${base}/pipeline/${pipeline.id}/workflow`, {
-        headers,
-    });
-    if (!workflowsRes.ok)
-        return null;
-    const workflowsBody = (await workflowsRes.json());
-    const workflow = workflowsBody.items?.[0];
-    if (!workflow)
-        return null;
-    const jobsRes = await fetch(`${base}/workflow/${workflow.id}/job`, { headers });
-    if (!jobsRes.ok)
-        return null;
-    const jobsBody = (await jobsRes.json());
-    const jobs = jobsBody.items ?? [];
-    if (jobs.length === 0)
-        return null;
-    return {
-        schema_version: 1,
-        commit_sha: options.commitSha,
-        workflow: `circleci:${workflow.name}`,
-        jobs: circleCiJobsToManifestJobs(jobs),
-    };
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/ci-adapters/gitlab.ts
@@ -55284,26 +58386,70 @@ async function fetchGitLabCiManifest(options) {
     const projectId = encodeURIComponent(String(options.projectId));
     const sha = options.commitSha;
     const headers = { "PRIVATE-TOKEN": options.token };
-    const pipelinesRes = await fetch(`${base}/projects/${projectId}/pipelines?sha=${encodeURIComponent(sha)}`, { headers });
-    if (!pipelinesRes.ok)
+    if (!/^[a-f0-9]{40}$/.test(sha))
         return null;
-    const pipelines = (await pipelinesRes.json());
-    if (!Array.isArray(pipelines) || pipelines.length === 0)
+    try {
+        const origin = new URL(base);
+        if (origin.protocol !== "https:" || origin.username || origin.password)
+            return null;
+        const pipelinesRes = await fetch(`${base}/projects/${projectId}/pipelines?sha=${encodeURIComponent(sha)}`, { headers, redirect: "error", signal: AbortSignal.timeout(10_000) });
+        if (!pipelinesRes.ok)
+            return null;
+        const pipelines = (await pipelinesRes.json());
+        if (!Array.isArray(pipelines) || pipelines.length === 0)
+            return null;
+        const pipeline = pipelines[0];
+        if (pipeline.sha !== sha || !Number.isSafeInteger(pipeline.id) || pipeline.id < 1)
+            return null;
+        const jobs = [];
+        let page = 1;
+        for (; page <= 10; page++) {
+            const jobsRes = await fetch(`${base}/projects/${projectId}/pipelines/${pipeline.id}/jobs?per_page=100&page=${page}`, { headers, redirect: "error", signal: AbortSignal.timeout(10_000) });
+            if (!jobsRes.ok)
+                return null;
+            const batch = (await jobsRes.json());
+            if (!Array.isArray(batch))
+                return null;
+            jobs.push(...batch);
+            const next = jobsRes.headers.get("x-next-page");
+            if (!next)
+                break;
+            if (next !== String(page + 1))
+                return null;
+        }
+        if (page > 10 ||
+            jobs.length === 0 ||
+            jobs.some((job) => !job ||
+                typeof job.name !== "string" ||
+                !job.name ||
+                typeof job.status !== "string"))
+            return null;
+        const uniqueJobs = new Map();
+        const severity = {
+            passed: 0,
+            skipped: 1,
+            ran: 2,
+            pending: 3,
+            cancelled: 4,
+            failed: 5,
+        };
+        for (const job of gitLabJobsToManifestJobs(jobs)) {
+            const key = job.name.toLowerCase();
+            const prior = uniqueJobs.get(key);
+            if (!prior || severity[job.outcome] > severity[prior.outcome])
+                uniqueJobs.set(key, job);
+        }
+        return {
+            schema_version: 1,
+            commit_sha: sha,
+            workflow: `gitlab:${pipeline.id}`,
+            run_id: pipeline.id,
+            jobs: [...uniqueJobs.values()],
+        };
+    }
+    catch {
         return null;
-    const pipeline = pipelines[0];
-    const jobsRes = await fetch(`${base}/projects/${projectId}/pipelines/${pipeline.id}/jobs`, { headers });
-    if (!jobsRes.ok)
-        return null;
-    const jobs = (await jobsRes.json());
-    if (!Array.isArray(jobs) || jobs.length === 0)
-        return null;
-    return {
-        schema_version: 1,
-        commit_sha: sha,
-        workflow: `gitlab:${pipeline.id}`,
-        run_id: pipeline.id,
-        jobs: gitLabJobsToManifestJobs(jobs),
-    };
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/ci-manifest.ts
@@ -55431,16 +58577,29 @@ async function fetchCiExternalStatus(url, options = {}) {
         }
     }
     try {
-        const response = await fetch(fetchUrl, { headers });
+        const parsedUrl = new URL(fetchUrl);
+        if (parsedUrl.protocol !== "https:" || parsedUrl.username || parsedUrl.password)
+            return null;
+        const response = await fetch(fetchUrl, {
+            headers,
+            redirect: "error",
+            signal: AbortSignal.timeout(10_000),
+        });
         if (!response.ok)
             return null;
         const raw = await response.json();
+        let manifest;
         try {
-            return externalStatusToManifest(parseCiExternalWebhook(raw));
+            manifest = externalStatusToManifest(parseCiExternalWebhook(raw));
         }
         catch {
-            return parseCiManifest(raw);
+            manifest = parseCiManifest(raw);
         }
+        if (options.commitSha &&
+            (!/^[a-f0-9]{40}$/.test(options.commitSha) ||
+                manifest.commit_sha !== options.commitSha))
+            return null;
+        return manifest;
     }
     catch {
         return null;
@@ -55807,7 +58966,7 @@ async function executeAutofixRound(opts) {
 function ownerHint(content) {
     try {
         let owner;
-        jsYaml.loadAll(content, (doc) => {
+        yaml.loadAll(content, (doc) => {
             if (owner)
                 return;
             const spec = doc?.spec;
@@ -56357,6 +59516,9 @@ function resolveEvaluationTarget(context) {
 
 
 
+
+
+
 class PolicyOverrideError extends Error {
     constructor(message) {
         super(message);
@@ -56397,6 +59559,78 @@ function resolveFailMode(failModeInput, environment) {
         return explicitFailMode;
     }
     return environment === "production" ? "closed" : "open";
+}
+function isForkPullRequestContext() {
+    if (github_context.eventName !== "pull_request" &&
+        github_context.eventName !== "pull_request_review") {
+        return false;
+    }
+    const pullRequest = github_context.payload?.pull_request;
+    return pullRequest?.head?.repo?.fork === true;
+}
+function customCheckRecoveryGuidance(missingToken = false) {
+    if (isForkPullRequestContext()) {
+        if (github_context.eventName === "pull_request_review") {
+            return ("This is a fork `pull_request_review` event; its token is read-only and " +
+                "cannot publish the protected custom check. The no-checkout " +
+                "`pull_request_target` publisher does not receive review events and cannot " +
+                "repair this publication. Use an installed GitHub App or external publisher " +
+                "that listens to pull-request review webhooks with a write-capable installation " +
+                "token, and pin that App as the required-check source. Re-running this workflow " +
+                "cannot repair the permission boundary.");
+        }
+        return ("This is a fork `pull_request`; its token is read-only and cannot publish the " +
+            "protected custom check. Use the no-checkout `pull_request_target` publisher " +
+            "documented in `docs/getting-started.md`, or an installed GitHub App token and " +
+            "pin that App. Re-running or reapplying the override label in this workflow " +
+            "cannot repair the permission boundary.");
+    }
+    return missingToken
+        ? "Configure `github-token` and re-run the normal PR workflow."
+        : `Restore GitHub Checks access and re-run; applying or reapplying ` +
+            `\`${override_OVERRIDE_LABEL}\` triggers \`pull_request:labeled\`.`;
+}
+function checkReportRefreshFailureMessage(checkName, headSha, eventName) {
+    return (`Published custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`, ` +
+        "but its embedded Release Brief could not be refreshed with the publication record " +
+        "after two attempts. Branch protection can use the published conclusion, but the " +
+        "check body is stale. Use the job summary or PR comment for the final state, restore " +
+        "GitHub Checks update access, and re-run.");
+}
+/**
+ * Swap the gate-report section inside the assembled full report.
+ *
+ * The FUNCTION form of `String.prototype.replace` is mandatory here: with a
+ * string replacement, `$&`, `` $` ``, `$'`, `$$` and `$1` in the REPLACEMENT are
+ * expanded as patterns. Gate reports are arbitrary rendered markdown containing
+ * user/CI text, so a report holding a literal `$&` would silently duplicate the
+ * matched region into the published check and PR comment.
+ */
+function replaceGateReport(fullReport, previous, updated) {
+    return fullReport.replace(previous, () => updated);
+}
+/** Linear backoff base between D3 refresh attempts, in ms. */
+const CHECK_REPORT_RETRY_DELAY_MS = 500;
+function main_sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function refreshCheckReport(publication, evaluation, report, token, attempts) {
+    // Without an id there is nothing to update, and updateCheckRunReport would
+    // warn identically on every pass. Retrying that is pure noise.
+    if (!publication.published || !publication.checkRunId) {
+        return updateCheckRunReport(publication, evaluation, report, token);
+    }
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+        if (attempt > 0) {
+            // A refresh failure is usually a transient Checks API error or a
+            // secondary-rate-limit; an immediate retry re-hits the same window.
+            await main_sleep(CHECK_REPORT_RETRY_DELAY_MS * attempt);
+        }
+        if (await updateCheckRunReport(publication, evaluation, report, token)) {
+            return true;
+        }
+    }
+    return false;
 }
 function resolvePolicyOverride() {
     const overrideFailModeRaw = getInput("override-fail-mode");
@@ -56486,6 +59720,128 @@ async function runSelfHeal(config, prNumber) {
     }
     return results;
 }
+/**
+ * ADR-011 §4 — the matched context's availability stance wins over the action-input
+ * fail-mode. Absent a stance (no context matched, or the run failed before matching)
+ * behaviour is exactly what it was before ADR-011.
+ */
+function resolveEffectiveFailMode(environment) {
+    const stance = getResolvedAvailabilityStance();
+    if (stance === "fail_open")
+        return "open";
+    if (stance === "fail_closed")
+        return "closed";
+    return resolveFailMode(getInput("fail-mode"), environment);
+}
+/**
+ * Post (or edit in place) the cannot-evaluate Release Brief on the PR. Deliberately
+ * swallows every failure of its own: the caller is already reporting a real error and
+ * must not have it replaced by "could not post a comment".
+ */
+async function postCannotEvaluateBrief(error, failMode) {
+    try {
+        const githubToken = getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
+        // backfill/re-evaluation runs suppress PR comments (see evaluate-pr above).
+        const backfillMode = Boolean(getInput("evaluate-pr").trim());
+        const reason = String(error instanceof Error ? error.message : error);
+        const brief = buildCannotEvaluateBrief(reason, failMode === "open" ? "fail_open" : "fail_closed");
+        const { commitSha, prNumber } = resolveEvaluationTarget(github_context);
+        const resolvedContract = getResolvedCheckContract();
+        const gateModeInput = getInput("gate-mode");
+        const inputMode = gateModeInput === "release-ready" ||
+            gateModeInput === "advisory" ||
+            gateModeInput === "risk-only"
+            ? gateModeInput
+            : undefined;
+        // Failures can happen before evaluateGate has loaded .trailhead.yml (for
+        // example, while validating an action-level policy override). In that case
+        // branch protection still expects the repository-configured check contract,
+        // so resolve it here rather than silently falling back to the legacy name.
+        //
+        // This load is BEST-EFFORT and must never abort the rest of this function.
+        // Everything below it — the check publication and the PR comment that ADR-011
+        // §1 owes the PR — used to happen with no config load at all; letting a
+        // throw here escape into the outer catch would silently drop both.
+        let repoConfig = null;
+        if (!resolvedContract) {
+            try {
+                repoConfig = await loadRepoConfig(githubToken);
+            }
+            catch (configError) {
+                core_debug(`Could not load repo config while building the cannot-evaluate brief: ${configError}`);
+            }
+        }
+        const gateMode = resolvedContract?.mode ??
+            resolveGateMode(repoConfig?.gate?.mode, repoConfig?.schema_version ?? 1, inputMode);
+        const checkName = resolvedContract?.name ??
+            resolveCheckName(gateMode, getInput("check-name") || repoConfig?.gate?.check_name);
+        const failOpen = failMode === "open";
+        const evaluation = {
+            id: `dg-cannot-${commitSha.substring(0, 7) || "unknown"}-${Date.now()}`,
+            repoId: `${github_context.repo.owner}/${github_context.repo.repo}`,
+            commitSha,
+            prNumber,
+            healthScore: 0,
+            riskScore: 0,
+            gateDecision: failOpen ? "allow" : "block",
+            healthChecks: [],
+            riskFactors: [],
+            evaluationMs: 0,
+            gateMode,
+            resolvedCheckName: checkName,
+            releaseReady: failOpen,
+            releaseReadyReasons: failOpen ? undefined : [reason],
+            releaseBrief: brief,
+        };
+        let publication;
+        if (githubToken && !backfillMode) {
+            publication = await createCheckRun(evaluation, renderReleaseBrief(brief), githubToken, checkName);
+        }
+        const eventName = github_context.eventName || "unknown";
+        const message = publication
+            ? publication.published
+                ? `Published ${failOpen ? "fail-open" : "fail-closed"} cannot-evaluate custom check ` +
+                    `\`${checkName}\` on \`${commitSha}\` from \`${eventName}\`.`
+                : publication.superseded
+                    ? `Did not publish custom check \`${checkName}\` on \`${commitSha}\`: run ` +
+                        `${publication.supersededByRunId} already published a newer evaluation for ` +
+                        "this PR revision. No action needed."
+                    : `Could not publish custom check \`${checkName}\` on \`${commitSha}\` from ` +
+                        `\`${eventName}\`; this run cannot satisfy branch protection. ` +
+                        customCheckRecoveryGuidance()
+            : backfillMode
+                ? `Backfill mode did not publish custom check \`${checkName}\` on \`${commitSha}\`.`
+                : `No GitHub token was available to publish custom check \`${checkName}\` on ` +
+                    `\`${commitSha}\`; this run cannot satisfy branch protection. ` +
+                    customCheckRecoveryGuidance(true);
+        brief.requiredCheck = {
+            published: publication?.published ?? false,
+            reportRefreshed: publication?.published ?? false,
+            name: checkName,
+            headSha: commitSha,
+            eventName,
+            message,
+            ...(publication?.superseded ? { superseded: true } : {}),
+        };
+        let renderedBrief = renderReleaseBrief(brief);
+        if (publication?.published && githubToken) {
+            const reportRefreshed = await refreshCheckReport(publication, evaluation, renderedBrief, githubToken, 2);
+            if (!reportRefreshed) {
+                brief.requiredCheck.reportRefreshed = false;
+                brief.requiredCheck.message = checkReportRefreshFailureMessage(checkName, commitSha, eventName);
+                renderedBrief = renderReleaseBrief(brief);
+            }
+        }
+        setOutput("evaluation-json", JSON.stringify(evaluation));
+        setOutput("release-brief-json", JSON.stringify(brief));
+        if (githubToken && prNumber && !backfillMode) {
+            await postPrComment(renderedBrief, prNumber, githubToken);
+        }
+    }
+    catch (postError) {
+        core_debug(`Cannot-evaluate brief could not be posted: ${postError}`);
+    }
+}
 async function run() {
     try {
         initHealers();
@@ -56520,6 +59876,7 @@ async function run() {
         const context = github_context;
         const githubToken = getInput("github-token") || process.env.GITHUB_TOKEN || undefined;
         let { commitSha, prNumber } = resolveEvaluationTarget(context);
+        let evaluationPrMetadata;
         // Resolve on-demand targets before external CI so every check provider
         // queries the same commit as the gate.
         const evaluatePrInput = getInput("evaluate-pr").trim();
@@ -56540,6 +59897,12 @@ async function run() {
             });
             prNumber = parsedPr;
             commitSha = targetPr.head.sha;
+            evaluationPrMetadata = {
+                baseRef: targetPr.base.ref,
+                headRef: targetPr.head.ref,
+                labels: targetPr.labels.map((label) => label.name),
+                authorLogin: targetPr.user?.login,
+            };
             info(`evaluate-pr mode: PR #${parsedPr} (${targetPr.state}) @ ${commitSha.substring(0, 7)} ` +
                 `base=${targetPr.base.ref} — backfill/re-evaluation; PR comments, labels and autofix are skipped.`);
         }
@@ -56594,8 +59957,22 @@ async function run() {
             environment,
             securityGate: getInput("security-gate") !== "false",
             gateMode,
-            waitForChecks: getInput("wait-for-checks") === "true" ||
-                (gateMode === "release-ready" && getInput("wait-for-checks") !== "false"),
+            // Tri-state (true / false / undefined) on purpose: an explicit
+            // wait-for-checks input wins outright, but leaving it unset must NOT be
+            // resolved here against `gateMode` — that's only the raw `gate-mode`
+            // action input, which is commonly left unset when a repo picks
+            // release-ready mode via .trailhead.yml (gate.mode / schema_version)
+            // instead. Resolving the "release-ready -> wait by default" rule here
+            // against the unset input silently produced `false`, so evaluateGate
+            // skipped waitForChecks entirely and failed not-ready on the first
+            // still-in-flight required check — even with wait-timeout-minutes set.
+            // gate.ts resolves the effective default once it knows the real
+            // (input-or-config) gate mode.
+            waitForChecks: getInput("wait-for-checks") === "true"
+                ? true
+                : getInput("wait-for-checks") === "false"
+                    ? false
+                    : undefined,
             waitTimeoutMinutes: getInput("wait-timeout-minutes")
                 ? parseInt(getInput("wait-timeout-minutes"), 10)
                 : 30,
@@ -56619,7 +59996,7 @@ async function run() {
             core_warning(`Governed override active (${policyOverride.linkedTicket}) by ${policyOverride.owner}; expires ${policyOverride.expiresAt}.`);
         }
         info(`Evaluating deployment gate for ${commitSha.substring(0, 7)}`);
-        const evaluation = await evaluateGate(config, commitSha, prNumber);
+        const evaluation = await evaluateGate(config, commitSha, prNumber, evaluationPrMetadata);
         if (policyOverride && !evaluation.policyOverride) {
             evaluation.policyOverride = policyOverride;
         }
@@ -56772,6 +60149,9 @@ async function run() {
         setOutput("gate-decision", evaluation.gateDecision);
         setOutput("release-ready", evaluation.releaseReady !== undefined ? String(evaluation.releaseReady) : "");
         setOutput("evaluation-json", JSON.stringify(evaluation));
+        if (evaluation.releaseBrief) {
+            setOutput("release-brief-json", JSON.stringify(evaluation.releaseBrief));
+        }
         const verdict = buildGateVerdict(evaluation, {
             trustRuntime: readTrustRuntime(),
             agentId: resolveAgentProvenanceId(evaluation),
@@ -56781,7 +60161,7 @@ async function run() {
         if (evaluation.reportUrl) {
             setOutput("report-url", evaluation.reportUrl);
         }
-        const report = formatGateReport(evaluation, config.riskThreshold);
+        let report = formatGateReport(evaluation, config.riskThreshold);
         let securityReport = "";
         if (config.securityGate !== false && config.githubToken) {
             try {
@@ -56849,6 +60229,60 @@ async function run() {
         let cloudQuotaExceeded = false;
         let cloudSuspended = false;
         let cloudHardCapped = false;
+        const checkName = evaluation.resolvedCheckName ??
+            resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);
+        let checkPublication;
+        if (config.githubToken && !backfillMode) {
+            checkPublication = await createCheckRun(evaluation, fullReport, config.githubToken, checkName);
+        }
+        if (evaluation.releaseBrief) {
+            const eventName = context.eventName || "unknown";
+            const headSha = evaluation.commitSha;
+            const publicationMessage = checkPublication
+                ? checkPublication.published
+                    ? `Published custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
+                        "Branch protection must require this custom check from the token's " +
+                        "publishing GitHub App, not the workflow job name. For GITHUB_TOKEN, " +
+                        "that source is GitHub Actions."
+                    : checkPublication.superseded
+                        ? `Did not publish custom check \`${checkName}\` on \`${headSha}\`: run ` +
+                            `${checkPublication.supersededByRunId} already published a newer evaluation ` +
+                            "for this PR revision. No action needed."
+                        : `Could not publish custom check \`${checkName}\` on \`${headSha}\` from \`${eventName}\`. ` +
+                            "This evaluation cannot satisfy branch protection. " +
+                            customCheckRecoveryGuidance()
+                : backfillMode
+                    ? `Backfill mode did not publish custom check \`${checkName}\` on \`${headSha}\`. ` +
+                        "Run the normal PR workflow to satisfy branch protection."
+                    : `No GitHub token was available to publish custom check \`${checkName}\` on \`${headSha}\`. ` +
+                        customCheckRecoveryGuidance(true);
+            evaluation.releaseBrief.requiredCheck = {
+                published: checkPublication?.published ?? false,
+                reportRefreshed: checkPublication?.published ?? false,
+                name: checkName,
+                headSha,
+                eventName,
+                message: publicationMessage,
+                ...(checkPublication?.superseded ? { superseded: true } : {}),
+            };
+            const updatedReport = formatGateReport(evaluation, config.riskThreshold);
+            fullReport = replaceGateReport(fullReport, report, updatedReport);
+            report = updatedReport;
+        }
+        let checkReportRefreshed = false;
+        if (checkPublication?.published && config.githubToken) {
+            checkReportRefreshed = await refreshCheckReport(checkPublication, evaluation, fullReport, config.githubToken, 2);
+            if (!checkReportRefreshed && evaluation.releaseBrief?.requiredCheck) {
+                evaluation.releaseBrief.requiredCheck.reportRefreshed = false;
+                evaluation.releaseBrief.requiredCheck.message = checkReportRefreshFailureMessage(checkName, evaluation.commitSha, context.eventName || "unknown");
+                const refreshFailureReport = formatGateReport(evaluation, config.riskThreshold);
+                fullReport = replaceGateReport(fullReport, report, refreshFailureReport);
+                report = refreshFailureReport;
+            }
+        }
+        const checkReportBeforePersistence = fullReport;
+        // Persist only after the required-check publication record is attached, so
+        // the store, output, webhook, summary and PR comment all carry the same brief.
         if (config.evaluationStoreUrl) {
             const storeSecretInput = getInput("evaluation-store-secret");
             if (storeSecretInput && !process.env.EVALUATION_STORE_SECRET) {
@@ -56883,13 +60317,30 @@ async function run() {
         if (cloudFooterLine) {
             fullReport = `${fullReport}\n\n${cloudFooterLine}`;
         }
+        if (checkPublication?.published &&
+            config.githubToken &&
+            checkReportRefreshed &&
+            fullReport !== checkReportBeforePersistence) {
+            await refreshCheckReport(checkPublication, evaluation, fullReport, config.githubToken, 1);
+        }
+        // These outputs were first emitted before publication/persistence; replace
+        // them with the final D3 lineage and store record.
+        setOutput("evaluation-json", JSON.stringify(evaluation));
+        if (evaluation.releaseBrief) {
+            setOutput("release-brief-json", JSON.stringify(evaluation.releaseBrief));
+        }
         await summary.addRaw(fullReport).write();
-        const checkName = resolveCheckName(evaluation.gateMode ?? "risk-only", config.checkName);
-        if (config.githubToken && !backfillMode) {
+        // A superseded run's own evaluation is stale by definition (a newer run
+        // already published the authoritative check for this head SHA) — don't
+        // let its late-finishing PR comment or risk labels overwrite what the
+        // newer run already communicated. Branch protection was already handled
+        // by createCheckRun's completion-order guard; this closes the same race
+        // for the other two human-visible artifacts.
+        const isSupersededRun = checkPublication?.superseded === true;
+        if (config.githubToken && !backfillMode && !isSupersededRun) {
             if (prNumber) {
                 await postPrComment(fullReport, prNumber, config.githubToken);
             }
-            await createCheckRun(evaluation, fullReport, config.githubToken, checkName);
             if (prNumber && config.addRiskLabels && evaluation.gateMode !== "advisory") {
                 await managePrLabels(prNumber, evaluation.gateDecision, config.githubToken);
             }
@@ -56944,12 +60395,22 @@ async function run() {
         setFailed(blockReason);
     }
     catch (error) {
+        const environment = getInput("environment") || undefined;
+        const failMode = resolveEffectiveFailMode(environment);
         if (error instanceof PolicyOverrideError) {
+            // An unusable override is still a run that could not evaluate — ADR-011 §1
+            // owes the PR a brief here too, with the validation message as the reason.
+            // The availability stance is a repo/environment contract, not a property of
+            // which error was thrown: an invalid override in a fail-open repo publishes
+            // the same fail-open cannot-evaluate check as any other failure. (The job
+            // itself still fails via setFailed below either way.)
+            await postCannotEvaluateBrief(error, failMode);
             setFailed(`Invalid policy override: ${error.message}`);
             return;
         }
-        const environment = getInput("environment") || undefined;
-        const failMode = resolveFailMode(getInput("fail-mode"), environment);
+        // ADR-011 §1: "silence is a bug." A run that could not evaluate still owes the
+        // PR a brief. Best-effort — a posting failure must never mask the real error.
+        await postCannotEvaluateBrief(error, failMode);
         if (failMode === "open") {
             core_warning(`Trailhead evaluation failed — proceeding with deployment (fail-open). Error: ${error}`);
         }

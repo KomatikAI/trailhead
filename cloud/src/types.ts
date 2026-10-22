@@ -69,18 +69,22 @@ export const DigestSubscribePayload = z.object({
 
 export type DigestSubscribePayload = z.infer<typeof DigestSubscribePayload>;
 
-export const OrgSettingsPatch = z.object({
-  plan: z.enum(["free", "pro", "team"]).optional(),
-  seats: z.number().int().min(1).optional(),
-  sso: z
-    .object({
-      enabled: z.boolean(),
-      provider: z.enum(["saml", "oidc"]),
-      issuerUrl: z.string().url().optional(),
-      clientId: z.string().optional(),
-    })
-    .optional(),
-});
+/** Caller-editable org settings. `plan` and `seats` are deliberately absent:
+ *  they are billing state and must not be self-service (`plan` is written only
+ *  by the Stripe webhook / reconcile path). `.strict()` rejects them with a 400
+ *  instead of silently stripping them. */
+export const OrgSettingsPatch = z
+  .object({
+    sso: z
+      .object({
+        enabled: z.boolean(),
+        provider: z.enum(["saml", "oidc"]),
+        issuerUrl: z.string().url().optional(),
+        clientId: z.string().optional(),
+      })
+      .optional(),
+  })
+  .strict();
 
 export type OrgSettingsPatch = z.infer<typeof OrgSettingsPatch>;
 
@@ -172,6 +176,12 @@ export interface CreateOrgWithSubscriptionResult {
   org: OrgRecord;
   keySecret: string;
   keyRecord: ApiKeyRecord;
+}
+
+export interface CheckoutClaim {
+  sessionId: string;
+  expiresAt: string;
+  encryptKey: (key: string) => string;
 }
 
 export interface SubscriptionPatch {
@@ -266,6 +276,12 @@ export interface CloudStore {
   ): Promise<import("./tuning-digest.js").DetectorDowngradeRecord | null>;
 
   // --- Billing surface ---
+  /** Atomically provision a subscription, first key and encrypted one-time claim.
+   * Replaying a Checkout session must never issue another key or reset a claim. */
+  fulfillCheckout(
+    input: CreateOrgWithSubscriptionInput,
+    claim: CheckoutClaim,
+  ): Promise<string>;
   createOrgWithSubscription(
     input: CreateOrgWithSubscriptionInput,
   ): Promise<CreateOrgWithSubscriptionResult>;
@@ -278,6 +294,7 @@ export interface CloudStore {
    *  plan + key suspension. Returns the affected orgId. */
   upsertSubscriptionFromStripe(sub: UpsertSubscriptionInput): Promise<string>;
   setKeysSuspended(orgId: string, suspended: boolean): Promise<void>;
+  hasStripeEvent(eventId: string): Promise<boolean>;
   recordStripeEvent(
     eventId: string,
     eventType: string,
@@ -294,6 +311,7 @@ export interface CloudStore {
     expiresAt: string,
   ): Promise<void>;
   claimKey(sessionId: string): Promise<KeyClaimResult>;
+  /** Erase expired ciphertext, retaining session receipts to prevent replay. */
   purgeExpiredClaims(): Promise<number>;
   getSubscriptionForOrg(orgId: string): Promise<SubscriptionRecord | null>;
   listSubscriptions(): Promise<SubscriptionRecord[]>;

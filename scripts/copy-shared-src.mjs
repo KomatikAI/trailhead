@@ -44,6 +44,8 @@ const sharedFiles = [
   "trust-runtime.ts",
   "remediation-lanes.ts",
   "trailhead-events.ts",
+  "ci-integrity.ts",
+  "github-pagination.ts",
   "autofix-executor.ts",
   "autofix-builders.ts",
   "github-git-writer.ts",

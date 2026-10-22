@@ -1,6 +1,6 @@
 # Trailhead MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Trailhead's deployment gate capabilities as 26 tools for AI agents.
+A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Trailhead's deployment gate capabilities as 27 tools for AI agents.
 
 ## Tools
 
@@ -83,18 +83,18 @@ Add to `claude_desktop_config.json`:
 
 ## Environment Variables
 
-| Variable                     | Required For                                                      | Description                                              |
-| ---------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
-| `GITHUB_TOKEN`               | GitHub-backed tools (`get-dora-metrics`, `evaluate-policy`, etc.) | GitHub personal access token                             |
-| `VERCEL_TOKEN`               | `check-vercel-health`                                             | Vercel API token                                         |
-| `VERCEL_PROJECT_ID`          | `check-vercel-health`                                             | Vercel project identifier                                |
-| `SUPABASE_URL`               | `check-supabase-health`                                           | Supabase project URL                                     |
-| `SUPABASE_ANON_KEY`          | `check-supabase-health`                                           | Supabase anonymous key                                   |
-| `TRAILHEAD_OVERRIDES_JSON`   | `query-overrides`                                                 | File path to JSON array of override records              |
-| `TRAILHEAD_OVERRIDES_INLINE` | `query-overrides`                                                 | Inline JSON array of override records                    |
-| `TRAILHEAD_FEEDBACK_STORE`   | feedback/noise/tuning (local fallback)                            | File path used to persist detector feedback records      |
-| `TRAILHEAD_CLOUD_API_URL`    | feedback/noise/tuning (Cloud)                                     | Cloud API base URL (default `https://api.trailhead.dev`) |
-| `TRAILHEAD_API_KEY`          | feedback/noise/tuning (Cloud)                                     | Trailhead Cloud API key (Pro/Team)                       |
+| Variable                     | Required For                                                      | Description                                                            |
+| ---------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `GITHUB_TOKEN`               | GitHub-backed tools (`get-dora-metrics`, `evaluate-policy`, etc.) | GitHub personal access token                                           |
+| `VERCEL_TOKEN`               | `check-vercel-health`                                             | Vercel API token                                                       |
+| `VERCEL_PROJECT_ID`          | `check-vercel-health`                                             | Vercel project identifier                                              |
+| `SUPABASE_URL`               | `check-supabase-health`                                           | Supabase project URL                                                   |
+| `SUPABASE_ANON_KEY`          | `check-supabase-health`                                           | Supabase anonymous key                                                 |
+| `TRAILHEAD_OVERRIDES_JSON`   | `query-overrides`                                                 | File path to JSON array of override records                            |
+| `TRAILHEAD_OVERRIDES_INLINE` | `query-overrides`                                                 | Inline JSON array of override records                                  |
+| `TRAILHEAD_FEEDBACK_STORE`   | feedback/noise/tuning (local fallback)                            | File path used to persist detector feedback records                    |
+| `TRAILHEAD_CLOUD_API_URL`    | feedback/noise/tuning (Cloud)                                     | Cloud API base URL (default `https://trailhead.komatik.xyz/api/cloud`) |
+| `TRAILHEAD_API_KEY`          | feedback/noise/tuning (Cloud)                                     | Trailhead Cloud API key (Pro/Team)                                     |
 
 When `TRAILHEAD_CLOUD_API_URL` and `TRAILHEAD_API_KEY` are set, feedback tools POST to Cloud (`/v1/feedback`, `/v1/feedback/noise`, `/v1/feedback/tuning`) instead of the local file store.
 

@@ -39,7 +39,8 @@ export async function GET(req: Request): Promise<Response> {
       {
         error: "This key was already claimed.",
         code: "already_claimed",
-        message: "For a new key, rotate via the billing portal or contact support.",
+        message:
+          "For a new key, use the dashboard with a working key or contact support to recover access.",
       },
       { status: 410 },
     );

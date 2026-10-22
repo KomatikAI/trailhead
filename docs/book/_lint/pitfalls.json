@@ -1,0 +1,45 @@
+{
+  "schema": "komatik.book.pitfalls/1",
+  "pitfalls": [
+    {
+      "id": "append-landfill",
+      "gate": "book:lint --patch",
+      "expectation": "Reject undeclared trailing-only additions; knowledge must be filed into the existing structure."
+    },
+    {
+      "id": "anchor-mutation-or-deletion",
+      "gate": "book:lint --patch",
+      "expectation": "Reject a removed, renamed, reused, or silently replaced paragraph identifier without a valid authored redirect."
+    },
+    {
+      "id": "memory-confidence-laundering",
+      "gate": "book:lint",
+      "expectation": "Require memory-only and scratch-only claims to remain reported until a ratified source is attached."
+    },
+    {
+      "id": "dangling-wikilink",
+      "gate": "book:lint",
+      "expectation": "Reject a paragraph link that resolves to neither a live anchor nor a permanent redirect."
+    },
+    {
+      "id": "stale-generated-output",
+      "gate": "book:index --check",
+      "expectation": "Reject a patch when regenerated navigation or anchor indexes differ from the committed bytes."
+    },
+    {
+      "id": "bare-verification-bump",
+      "gate": "book:lint --patch",
+      "expectation": "Reject a verification-date-only edit that adds no evidence for the re-check."
+    },
+    {
+      "id": "sensitive-content-leakage",
+      "gate": "book:scan",
+      "expectation": "Reject secret values, personal contact details, and live infrastructure topology without reproducing matched content in diagnostics."
+    },
+    {
+      "id": "unresolved-provenance-source",
+      "gate": "book:lint",
+      "expectation": "Reject every paragraph or chapter pin whose source cannot be resolved in the reviewed repository snapshot or authored external-source lock."
+    }
+  ]
+}

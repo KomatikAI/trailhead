@@ -6,7 +6,7 @@ import { detectSafeDeprecation } from "./safe-deprecation.js";
 import { detectDestructiveChange } from "./destructive-change.js";
 import { detectClaimAnchoring } from "./claim-anchoring.js";
 import { detectPromotionCoherence } from "./promotion-coherence.js";
-import { validateFileSyntax } from "./syntax-validity.js";
+import { relativeImportSpecifiers, validateFileSyntax } from "./syntax-validity.js";
 import { matchesGlobs } from "../risk-engine.js";
 import { applyDetectorPolicy, artifactFileGlobs } from "./detector-policy.js";
 export { DEFAULT_RENAME_PATTERNS, OLD_NAME_PATTERNS } from "./policy-defaults.js";
@@ -21,7 +21,12 @@ const MOCK_PATTERNS = [
     /\bTODO:\s*implement\b/gi,
     /\bFIXME\b/g,
     /\bIn production,\s*use\b/i,
-    /\bplaceholder\b/gi,
+    /\bPLACEHOLDER_[A-Z0-9_]+\b/,
+    // Bare "placeholder" only — the word as an HTML/JSX attribute (placeholder="…"),
+    // a Tailwind utility/variant (placeholder-white/15, placeholder:text-sm), a CSS
+    // pseudo-element (::placeholder), a property access (input.placeholder), or an
+    // object key (placeholder: "…") is standard frontend vocabulary, not a stub.
+    /(?<![.:])\bplaceholder\b(?![=:-])/gi,
     /\blorem ipsum\b/gi,
 ];
 const SECRET_PATTERNS = [
@@ -35,6 +40,27 @@ const SECRET_PATTERNS = [
         pattern: /api[_-]?key\s*[:=]\s*['"][A-Za-z0-9_-]{32,}['"]/gi,
     },
 ];
+function isCiConfigurationPath(filename) {
+    return /^\.github\/(?:workflows|actions)\//.test(normalizePath(filename));
+}
+function isCredentialFixturePath(filename) {
+    return isTestPath(filename) || isCiConfigurationPath(filename);
+}
+function isObviouslyInertCiFixtureLine(line, filename) {
+    if (!isCiConfigurationPath(filename))
+        return false;
+    const assignment = /^\s*[\w.-]+\s*:\s*["']?([^"'#\s]+)["']?(?:\s*#.*)?$/.exec(line);
+    if (!assignment?.[1])
+        return false;
+    return /^(?:sk_(?:test|live)_)?(?:placeholder|example|dummy|fake|test|x{10,}|0{10,})$/i.test(assignment[1]);
+}
+function isObviouslyInertStripeFixture(patternName, match, filename) {
+    if (!isCredentialFixturePath(filename) || !patternName.startsWith("Stripe ")) {
+        return false;
+    }
+    const suffix = match.replace(/^sk_(?:test|live)_/i, "");
+    return /^(?:placeholder|example|dummy|fake|test|x{10,}|0{10,})$/i.test(suffix);
+}
 const HARDCODED_ENV_PATTERNS = [
     { name: "localhost with port", pattern: /(?:['"`])localhost:\d{2,5}(?:['"`])/g },
     {
@@ -75,6 +101,8 @@ export function detectMockPlaceholder(ctx) {
     const hits = scanAddedContent(ctx.files, (line, filename) => {
         if (isTestPath(filename))
             return false;
+        if (isObviouslyInertCiFixtureLine(line, filename))
+            return false;
         if (/\.(md|txt)$/i.test(filename))
             return false;
         return MOCK_PATTERNS.some((re) => {
@@ -94,9 +122,9 @@ export function detectMockPlaceholder(ctx) {
     });
 }
 export function detectSecrets(ctx) {
-    const hits = scanAddedContent(ctx.files, (line) => SECRET_PATTERNS.some((entry) => {
+    const hits = scanAddedContent(ctx.files, (line, filename) => SECRET_PATTERNS.some((entry) => {
         entry.pattern.lastIndex = 0;
-        return entry.pattern.test(line);
+        return [...line.matchAll(entry.pattern)].some((match) => !isObviouslyInertStripeFixture(entry.name, match[0] ?? "", filename));
     }));
     if (hits.length === 0)
         return null;
@@ -319,20 +347,6 @@ export function detectLargeFile(ctx) {
         suggested_action: "Split large changes into smaller PRs.",
     });
 }
-function extractRelativeImports(content) {
-    const imports = [];
-    const patterns = [
-        /\bimport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?['"](\.\.?[^'"]+)['"]/g,
-        /\brequire\(\s*['"](\.\.?[^'"]+)['"]\s*\)/g,
-    ];
-    for (const pattern of patterns) {
-        for (const match of content.matchAll(pattern)) {
-            if (match[1])
-                imports.push(match[1]);
-        }
-    }
-    return imports;
-}
 function resolveRelativeImport(fromFile, specifier, prPaths) {
     const clean = specifier.split("?")[0].split("#")[0];
     const baseDir = normalizePath(fromFile).split("/").slice(0, -1);
@@ -351,8 +365,17 @@ function resolveRelativeImport(fromFile, specifier, prPaths) {
         `${resolved}.js`,
         `${resolved}.jsx`,
         `${resolved}/index.ts`,
+        `${resolved}/index.tsx`,
         `${resolved}/index.js`,
+        `${resolved}/index.jsx`,
     ];
+    // TypeScript sources legitimately spell runtime ESM imports with .js/.mjs/.cjs.
+    if (resolved.endsWith(".js"))
+        candidates.push(resolved.slice(0, -3) + ".ts", resolved.slice(0, -3) + ".tsx");
+    if (resolved.endsWith(".mjs"))
+        candidates.push(resolved.slice(0, -4) + ".mts");
+    if (resolved.endsWith(".cjs"))
+        candidates.push(resolved.slice(0, -4) + ".cts");
     return candidates.some((c) => prPaths.has(c));
 }
 export function detectImportResolution(ctx) {
@@ -365,12 +388,17 @@ export function detectImportResolution(ctx) {
         return null;
     const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
     const known = new Set([...ctx.prPaths, ...ctx.repoPaths]);
+    for (const file of ctx.files) {
+        if (file.status === "removed")
+            known.delete(file.filename);
+    }
     const hits = [];
     for (const file of ctx.files) {
-        if (!codeExts.has(extensionOf(file.filename)))
+        if (!codeExts.has(extensionOf(file.filename)) ||
+            file.status === "removed" ||
+            typeof file.content !== "string")
             continue;
-        const content = fileContent(file);
-        for (const specifier of extractRelativeImports(content)) {
+        for (const specifier of relativeImportSpecifiers(file.filename, file.content)) {
             if (!resolveRelativeImport(file.filename, specifier, known)) {
                 hits.push(file.filename);
                 break;
@@ -416,17 +444,31 @@ export function detectRlsNewTables(ctx) {
 function isRouteAllowlisted(path, allowlist) {
     return allowlist.some((entry) => path.includes(entry.replace(/^\//, "")));
 }
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function isRetiredRoute(path, content, allowlist) {
+    if (!isRouteAllowlisted(path, allowlist))
+        return false;
+    return /\bstatus\s*:\s*410\b/.test(content);
+}
 export function detectAuthRouteAuth(ctx) {
     const routePattern = /(?:^|\/)(?:app\/api\/.+\/route|pages\/api\/.+)\.(?:ts|tsx|js|jsx)$/;
-    const authPattern = /\b(getUser|getSession|getServerSession|auth|requireAuth|withAuth)\s*\(/;
+    const helpers = [...new Set(ctx.authRouteHelpers)].filter((helper) => /^[A-Za-z_$][\w$]*$/.test(helper));
+    const authPattern = new RegExp(`\\b(?:${helpers.map(escapeRegExp).join("|")})\\s*\\(`);
     const hits = [];
     for (const file of ctx.files) {
         const normalized = normalizePath(file.filename);
         if (!routePattern.test(normalized))
             continue;
+        if (file.status === "removed")
+            continue;
         if (isRouteAllowlisted(normalized, ctx.authRouteAllowlist))
             continue;
-        if (!authPattern.test(fileContent(file)))
+        const content = fileContent(file);
+        if (isRetiredRoute(normalized, content, ctx.retiredRouteAllowlist))
+            continue;
+        if (helpers.length === 0 || !authPattern.test(content))
             hits.push(normalized);
     }
     if (hits.length === 0)

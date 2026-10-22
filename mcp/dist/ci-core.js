@@ -58,7 +58,9 @@ function statusFromManifestJob(job) {
     }
 }
 function applyManifestToCheck(check, manifest, configuredName) {
-    if (!manifest)
+    // A manifest fills gaps in the Checks API; it is not authority to replace a
+    // live failure or finish a still-running check, even with a claimed skip.
+    if (!manifest || check.status !== "missing")
         return check;
     const manifestJob = findManifestJob(manifest, configuredName);
     if (!manifestJob)
@@ -71,7 +73,7 @@ function applyManifestToCheck(check, manifest, configuredName) {
             conclusion: manifestJob.reason ?? check.conclusion,
         };
     }
-    if (manifestStatus && (check.status === "missing" || check.status === "pending")) {
+    if (manifestStatus) {
         return {
             ...check,
             status: manifestStatus,

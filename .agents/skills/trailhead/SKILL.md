@@ -65,7 +65,7 @@ When reviewing PRs or evaluating deploys, always check:
 
 ## MCP Tools
 
-Use these tools via the Trailhead MCP server (**26 tools**). Tools that don't require environment variables work with zero configuration.
+Use these tools via the Trailhead MCP server (**27 tools**). Tools that don't require environment variables work with zero configuration.
 
 **Cloud-backed feedback:** Set `TRAILHEAD_CLOUD_API_URL` + `TRAILHEAD_API_KEY` to persist feedback, noise charts, and tuning proposals to Trailhead Cloud instead of a local file store.
 

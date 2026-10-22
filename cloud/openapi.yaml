@@ -6,7 +6,7 @@ info:
     First-party evaluation store for Trailhead Cloud tier.
     Authenticate with `Authorization: Bearer <trailhead-api-key>`.
 servers:
-  - url: https://api.trailhead.dev
+  - url: https://trailhead.komatik.xyz/api/cloud
     description: Production
   - url: http://localhost:3101
     description: Local development

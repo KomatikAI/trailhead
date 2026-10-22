@@ -3,7 +3,9 @@ import {
   detectArtifactIntegrity,
   detectContextFreshness,
   detectExternalPackageDeps,
+  detectAuthRouteAuth,
   detectMockPlaceholder,
+  detectSecrets,
   detectSqlSyntaxBasic,
   detectSyntaxValidity,
 } from "../submission-checks/detectors.js";
@@ -23,6 +25,15 @@ function ctx(partial: Partial<SubmissionCheckContext>): SubmissionCheckContext {
     staleTerms: [],
     namingAllowlist: {},
     authRouteAllowlist: [],
+    authRouteHelpers: [
+      "getUser",
+      "getSession",
+      "getServerSession",
+      "auth",
+      "requireAuth",
+      "withAuth",
+    ],
+    retiredRouteAllowlist: [],
     maxFileLines: 1000,
     declaredPackages: new Set(),
     pathIgnorePatterns: [],
@@ -222,6 +233,211 @@ describe("mock_placeholder", () => {
       }),
     );
     expect(check?.code).toBe("mock_placeholder");
+  });
+
+  it("ignores CI fixture labels", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: ".github/workflows/ci.yml",
+            patch: "@@\n+          TEST_LABEL: placeholder\n",
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("still flags a placeholder used by a CI command", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: ".github/workflows/release.yml",
+            patch: "@@\n+      run: deploy placeholder\n",
+          },
+        ],
+      }),
+    );
+    expect(check?.code).toBe("mock_placeholder");
+  });
+
+  it("ignores the JSX/HTML placeholder attribute", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/components/CheckpointTimeline.tsx",
+            patch: '@@\n+          placeholder="Game title"\n',
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("ignores Tailwind placeholder utilities and variants", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/components/CheckpointTimeline.tsx",
+            patch:
+              '@@\n+          className="placeholder-white/15 placeholder:text-zinc-500"\n',
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("ignores CSS ::placeholder and placeholder property access", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/styles/form.css",
+            patch: "@@\n+input::placeholder { color: gray; }\n",
+          },
+          {
+            filename: "src/form.ts",
+            patch: '@@\n+input.placeholder = "Search";\n',
+          },
+          {
+            filename: "src/config.ts",
+            patch: '@@\n+const field = { placeholder: "Enter name" };\n',
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("still flags a bare placeholder comment", () => {
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/api.ts",
+            patch: "@@\n+// placeholder until real API lands\n",
+          },
+        ],
+      }),
+    );
+    expect(check?.code).toBe("mock_placeholder");
+  });
+
+  it("flags SCREAMING_CASE PLACEHOLDER_ constants", () => {
+    // The word pattern alone can't catch these (the underscore removes the
+    // trailing word boundary), and MOCK_ only covers the MOCK_ prefix.
+    const check = detectMockPlaceholder(
+      ctx({
+        files: [
+          {
+            filename: "src/api.ts",
+            patch: "@@\n+const PLACEHOLDER_RESPONSE = { ok: true };\n",
+          },
+        ],
+      }),
+    );
+    expect(check?.code).toBe("mock_placeholder");
+  });
+});
+
+describe("secrets fixture precision", () => {
+  it("ignores an explicitly inert Stripe fixture value", () => {
+    const check = detectSecrets(
+      ctx({
+        files: [
+          {
+            filename: ".github/workflows/ci.yml",
+            patch: "@@\n+          STRIPE_KEY: sk_test_placeholder\n",
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("still blocks a credential-shaped value in a test file", () => {
+    const credential = ["sk", "test", "51RealLookingToken1234567890"].join("_");
+    const check = detectSecrets(
+      ctx({
+        files: [
+          {
+            filename: "src/__tests__/billing.test.ts",
+            patch: `@@\n+const key = '${credential}';\n`,
+          },
+        ],
+      }),
+    );
+    expect(check?.code).toBe("secrets");
+  });
+});
+
+describe("auth_route_auth precision", () => {
+  it("recognizes a configured helper in the full current route body", () => {
+    const check = detectAuthRouteAuth(
+      ctx({
+        authRouteHelpers: ["getUser", "getLodgeAuthUser"],
+        files: [
+          {
+            filename: "apps/web/app/api/lodge/flow/route.ts",
+            patch:
+              "@@\n+export async function POST() {\n+  return Response.json({ ok: true });\n+}\n",
+            content:
+              "export async function POST() { const user = await getLodgeAuthUser(); return Response.json({ user }); }",
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
+  });
+
+  it("allows an explicitly retired route only when its current body returns 410", () => {
+    const retired = "apps/web/app/api/lodge/checkout/route.ts";
+    const allowed = detectAuthRouteAuth(
+      ctx({
+        retiredRouteAllowlist: ["/api/lodge/checkout"],
+        files: [
+          {
+            filename: retired,
+            content:
+              "export function POST() { return Response.json({}, { status: 410 }); }",
+          },
+        ],
+      }),
+    );
+    const unsafe = detectAuthRouteAuth(
+      ctx({
+        retiredRouteAllowlist: ["/api/lodge/checkout"],
+        files: [
+          {
+            filename: retired,
+            content: "export function POST() { return Response.json({ ok: true }); }",
+          },
+        ],
+      }),
+    );
+
+    expect(allowed).toBeNull();
+    expect(unsafe?.code).toBe("auth_route_auth");
+  });
+
+  it("does not scan a removed route", () => {
+    const check = detectAuthRouteAuth(
+      ctx({
+        files: [
+          {
+            filename: "apps/web/app/api/old/route.ts",
+            status: "removed",
+            patch: "@@\n-export function POST() {}\n",
+          },
+        ],
+      }),
+    );
+    expect(check).toBeNull();
   });
 });
 

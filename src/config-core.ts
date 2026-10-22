@@ -133,6 +133,51 @@ export function parseYaml(input: string): unknown {
   return root;
 }
 
+/**
+ * Non-fatal config warnings, emitted by the loader after a successful parse.
+ *
+ * ADR-011 §2 makes `reason` mandatory for `disposition: irrelevant`, but this is
+ * deliberately NOT a Zod refine: `parseRepoConfigContent` returns null for ANY
+ * schema violation, which drops the entire repo config back to hardcoded
+ * defaults. Degrading a whole config over one missing reason string is worse
+ * than narrating it, so the entry still parses and the Release Brief prints a
+ * placeholder reason (see MISSING_IRRELEVANT_REASON in input-relevance.ts).
+ */
+export function collectConfigWarnings(config: RepoConfigType): string[] {
+  const warnings: string[] = [];
+  const contextNameCounts = new Map<string, number>();
+  for (const context of config.contexts) {
+    contextNameCounts.set(context.name, (contextNameCounts.get(context.name) ?? 0) + 1);
+  }
+  for (const [name, count] of contextNameCounts) {
+    if (count <= 1) continue;
+    warnings.push(
+      `contexts: name "${name}" is configured ${count} times. Context names must be unique for deterministic policy exemptions.`,
+    );
+  }
+  for (const name of config.policies.agent_prs.risk_threshold_exempt_contexts) {
+    const count = contextNameCounts.get(name) ?? 0;
+    if (count === 1) continue;
+    warnings.push(
+      count === 0
+        ? `policies.agent_prs.risk_threshold_exempt_contexts: unknown context name "${name}"; the exemption will not apply.`
+        : `policies.agent_prs.risk_threshold_exempt_contexts: context name "${name}" is ambiguous because it is configured ${count} times; make context names unique.`,
+    );
+  }
+  for (const context of config.contexts) {
+    for (const entry of context.input_relevance) {
+      if (entry.disposition !== "irrelevant") continue;
+      if (entry.reason !== undefined && entry.reason.trim() !== "") continue;
+      warnings.push(
+        `contexts."${context.name}".input_relevance: pattern "${entry.pattern}" is ` +
+          `"disposition: irrelevant" with no reason. ADR-011 requires a reason for ` +
+          `irrelevant inputs; the Release Brief will show a placeholder until one is set.`,
+      );
+    }
+  }
+  return warnings;
+}
+
 export function parseRepoConfigContent(content: string): RepoConfigType | null {
   const raw = parseYaml(content);
   const parsed = RepoConfig.safeParse(raw);

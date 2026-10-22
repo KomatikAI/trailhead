@@ -25,7 +25,7 @@
         "required_status_checks": [
           {
             "context": "Trailhead — Release Ready",
-            "integration_id": null
+            "integration_id": 15368
           }
         ]
       }

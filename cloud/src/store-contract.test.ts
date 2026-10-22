@@ -123,6 +123,88 @@ describe.each(backends)("CloudStore contract [$name]", (backend) => {
     });
   }
 
+  const checkoutInput = {
+    orgName: "Checkout Inc",
+    plan: "pro" as const,
+    stripeCustomerId: "cus_checkout",
+    stripeSubscriptionId: "sub_checkout",
+    status: "active",
+  };
+  function checkoutClaim(
+    encryptKey: (key: string) => string = (key) => `encrypted:${key}`,
+  ) {
+    return {
+      sessionId: "cs_checkout",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      encryptKey,
+    };
+  }
+
+  it("rolls back all Checkout provisioning if claim encryption fails", async () => {
+    await expect(
+      store.fulfillCheckout(
+        checkoutInput,
+        checkoutClaim(() => {
+          throw new Error("encryption unavailable");
+        }),
+      ),
+    ).rejects.toThrow("encryption unavailable");
+    expect(await store.listSubscriptions()).toHaveLength(0);
+    expect(await store.claimKey("cs_checkout")).toBeNull();
+    const orgId = await store.fulfillCheckout(checkoutInput, checkoutClaim());
+    expect(await store.listManagedKeys(orgId)).toHaveLength(1);
+    expect(await store.claimKey("cs_checkout")).toEqual(
+      expect.objectContaining({ ciphertext: expect.stringContaining("encrypted:thk_") }),
+    );
+  });
+
+  it("serializes concurrent Checkout deliveries and never reopens a claimed key", async () => {
+    const ids = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        store.fulfillCheckout(checkoutInput, checkoutClaim()),
+      ),
+    );
+    expect(new Set(ids).size).toBe(1);
+    expect(await store.listSubscriptions()).toHaveLength(1);
+    expect(await store.listManagedKeys(ids[0])).toHaveLength(1);
+    await store.claimKey("cs_checkout");
+    expect(await store.fulfillCheckout(checkoutInput, checkoutClaim())).toBe(ids[0]);
+    expect(await store.claimKey("cs_checkout")).toEqual({ alreadyClaimed: true });
+  });
+
+  it("attaches Checkout delivery to a subscription recovered by reconcile", async () => {
+    const orgId = await store.upsertSubscriptionFromStripe(checkoutInput);
+    expect(await store.fulfillCheckout(checkoutInput, checkoutClaim())).toBe(orgId);
+    expect(await store.listSubscriptions()).toHaveLength(1);
+    expect(await store.listManagedKeys(orgId)).toHaveLength(1);
+  });
+
+  it("creates a suspended key when delayed Checkout belongs to a canceled subscription", async () => {
+    const orgId = await store.fulfillCheckout(
+      { ...checkoutInput, status: "canceled" },
+      checkoutClaim(),
+    );
+    const claim = await store.claimKey("cs_checkout");
+    const secret = (claim as { ciphertext: string }).ciphertext.slice(
+      "encrypted:".length,
+    );
+    expect((await store.getOrgForKey(secret))?.suspended).toBe(true);
+    expect((await store.getSubscriptionForOrg(orgId))?.status).toBe("canceled");
+  });
+
+  it("does not mint another key when Checkout replays after expired-secret cleanup", async () => {
+    const claim = {
+      ...checkoutClaim(),
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    };
+    const orgId = await store.fulfillCheckout(checkoutInput, claim);
+    expect(await store.purgeExpiredClaims()).toBe(1);
+    expect(await store.purgeExpiredClaims()).toBe(0);
+    expect(await store.fulfillCheckout(checkoutInput, checkoutClaim())).toBe(orgId);
+    expect(await store.listManagedKeys(orgId)).toHaveLength(1);
+    expect(await store.claimKey(claim.sessionId)).toEqual({ expired: true });
+  });
+
   it("resolves an org by hashed key; plaintext is never the lookup key", async () => {
     const { org, keySecret } = await newProOrg();
     expect(hashApiKey(keySecret)).not.toBe(keySecret);
@@ -233,6 +315,8 @@ describe.each(backends)("CloudStore contract [$name]", (backend) => {
 
     expect(await store.claimKey("cs_ok")).toEqual({ ciphertext: "cipher-ok" });
     expect(await store.claimKey("cs_ok")).toEqual({ alreadyClaimed: true });
+    await store.createKeyClaim("cs_ok", org.id, "replacement", future);
+    expect(await store.claimKey("cs_ok")).toEqual({ alreadyClaimed: true });
     expect(await store.claimKey("cs_missing")).toBeNull();
 
     const past = new Date(Date.now() - 1000).toISOString();
@@ -241,7 +325,7 @@ describe.each(backends)("CloudStore contract [$name]", (backend) => {
 
     const purged = await store.purgeExpiredClaims();
     expect(purged).toBeGreaterThanOrEqual(1);
-    expect(await store.claimKey("cs_exp")).toBeNull();
+    expect(await store.claimKey("cs_exp")).toEqual({ expired: true });
   });
 
   it("ingest is idempotent by evaluation id", async () => {

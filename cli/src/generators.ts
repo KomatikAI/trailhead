@@ -5,6 +5,67 @@ export type GateModeOption = "release-ready" | "risk-only" | "advisory";
 export type BranchModel = "main-only" | "progressive";
 export type AudienceId = "solo" | "team" | "agent" | "ops" | "custom";
 
+/**
+ * ADR-012 D2 trigger-set determinism contract, single-sourced here.
+ *
+ * These two fragments are what make "a label event always yields exactly
+ * one authoritative gate evaluation" true: the concurrency group makes the
+ * newest real gate event (any non-label event, or a `trailhead-override`
+ * labeled/unlabeled event) cancel any older one still in flight, while an
+ * unrelated label's isolated `github.run_id` group can neither cancel nor
+ * be cancelled by a real evaluation; the job `if` then skips execution for
+ * exactly the label events the concurrency group already isolated. Every
+ * shipped and documented workflow (CLI-generated, static examples,
+ * self-test, the reusable workflow, getting-started.md) MUST embed these
+ * two fragments byte-for-byte — `workflow-trigger-parity.test.ts` fails the
+ * build the moment one drifts, since a silently-diverged copy is exactly
+ * how a consuming repo (train-37's komatik promotion) loses the
+ * determinism guarantee without anyone noticing.
+ *
+ * The concurrency `group:` line legitimately varies only in its literal
+ * prefix (`trailhead-` vs `trailhead-reusable-`, to keep a reusable
+ * workflow's serialization from cancelling its caller) — everything from
+ * `${{ github.event.pull_request.number` onward is this suffix.
+ */
+export const TRAILHEAD_GATE_CONCURRENCY_SUFFIX =
+  "${{ github.event.pull_request.number || github.ref }}-${{ " +
+  "((github.event.action == 'labeled' || github.event.action == 'unlabeled') && " +
+  "github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}";
+
+/** The job-level filter that skips evaluation for every label event except `trailhead-override`. */
+export const TRAILHEAD_LABEL_JOB_IF =
+  "(github.event.action != 'labeled' && github.event.action != 'unlabeled') ||\n" +
+  "      github.event.label.name == 'trailhead-override'";
+
+/**
+ * Does `contents` (a workflow YAML or a doc embedding one) carry both
+ * determinism fragments byte-for-byte? Whitespace around the job `if`
+ * fragment's own newline/indentation is normalized before comparing so a
+ * differently-indented job (nested under a different key) still counts,
+ * but the fragment's own logic text must match exactly.
+ */
+export function checkWorkflowTriggerParity(contents: string): {
+  hasConcurrencySuffix: boolean;
+  hasLabelTypes: boolean;
+  hasJobIf: boolean;
+} {
+  const normalized = contents.replace(/[ \t]+/g, " ");
+  const normalizedJobIf = TRAILHEAD_LABEL_JOB_IF.replace(/[ \t]+/g, " ");
+  return {
+    hasConcurrencySuffix: contents.includes(TRAILHEAD_GATE_CONCURRENCY_SUFFIX),
+    hasLabelTypes:
+      /pull_request(?:_target)?:\s*\n(?:\s*\S.*\n)*?\s*types:\s*\[[^\]]*\blabeled\b[^\]]*\bunlabeled\b[^\]]*\]/.test(
+        contents,
+      ),
+    hasJobIf: normalized.includes(normalizedJobIf),
+  };
+}
+
+/** Mode-specific custom check emitted by the generated workflow when unset. */
+export function requiredCheckNameForGateMode(gateMode: GateModeOption): string {
+  return gateMode === "risk-only" ? "Trailhead" : "Trailhead — Release Ready";
+}
+
 export function parseCheckList(input: string, fallback: string[]): string[] {
   const list = input
     .split(",")
@@ -336,6 +397,7 @@ export interface WorkflowYmlOptions {
   gateMode: GateModeOption;
   waitForChecks: boolean;
   submissionGate?: boolean;
+  rerunOnReview?: boolean;
 }
 
 export function generateWorkflowYml(options: WorkflowYmlOptions): string {
@@ -344,7 +406,20 @@ export function generateWorkflowYml(options: WorkflowYmlOptions): string {
     "",
     "on:",
     "  pull_request:",
-    "    types: [opened, synchronize, reopened]",
+    "    types: [opened, synchronize, reopened, labeled, unlabeled]",
+  ];
+
+  if (options.rerunOnReview) {
+    lines.push("  pull_request_review:");
+    lines.push("    types: [submitted, dismissed]");
+  }
+
+  lines.push(
+    "",
+    "# Keep the newest real gate authoritative while unrelated label runs cannot cancel it.",
+    "concurrency:",
+    `  group: trailhead-\${{ github.workflow }}-${TRAILHEAD_GATE_CONCURRENCY_SUFFIX}`,
+    "  cancel-in-progress: true",
     "",
     "permissions:",
     "  contents: read",
@@ -354,6 +429,8 @@ export function generateWorkflowYml(options: WorkflowYmlOptions): string {
     "",
     "jobs:",
     "  trailhead:",
+    "    if: >-",
+    `      ${TRAILHEAD_LABEL_JOB_IF}`,
     "    runs-on: ubuntu-latest",
     "    steps:",
     "      - uses: actions/checkout@v4",
@@ -361,7 +438,7 @@ export function generateWorkflowYml(options: WorkflowYmlOptions): string {
     "      - uses: KomatikAI/trailhead@v4",
     "        id: gate",
     "        with:",
-  ];
+  );
 
   if (options.gateMode !== "risk-only") {
     lines.push(`          gate-mode: "${options.gateMode}"`);
@@ -626,6 +703,7 @@ export function writeInitArtifacts(profile: InitProfile, cwd = process.cwd()): v
     gateMode: profile.gateMode,
     waitForChecks: profile.gateMode === "release-ready",
     submissionGate: profile.submissionGate,
+    rerunOnReview: profile.agentPolicies,
   });
 
   const workflowPath = path.join(workflowDir, "trailhead.yml");

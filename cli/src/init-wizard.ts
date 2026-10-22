@@ -6,6 +6,7 @@ import {
   type InitProfile,
   parseCheckList,
   profileFromAudience,
+  requiredCheckNameForGateMode,
   writeInitArtifacts,
 } from "./generators.js";
 
@@ -404,6 +405,8 @@ export async function runInitWizard(args: string[]): Promise<number> {
     print(`  ${GREEN}✓${RESET} .github/workflows/trailhead.yml`);
   }
 
+  const requiredCheckName = requiredCheckNameForGateMode(profile.gateMode);
+
   print(`
 ${BOLD}${GREEN}Setup complete!${RESET}
 
@@ -412,7 +415,7 @@ ${BOLD}Preset:${RESET} ${profile.audience} · See presets/${profile.audience ===
 ${BOLD}Next steps:${RESET}
   1. Review the generated files
   2. Commit and push
-  3. Require ${BOLD}Trailhead — Release Ready${RESET} in branch protection
+  3. Require the ${BOLD}${requiredCheckName}${RESET} custom check from GitHub Actions in branch protection (not the workflow job name)
   4. trailhead doctor --offline
 
 ${DIM}Docs: docs/getting-started.md · https://github.com/KomatikAI/trailhead${RESET}

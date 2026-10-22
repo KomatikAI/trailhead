@@ -79,7 +79,11 @@ export function prPathSet(files: SubmissionFileInfo[]): Set<string> {
 }
 
 export function isTestPath(filename: string): boolean {
-  return /\/__tests__\/|\/test\/|\/fixtures\/|\.test\.|\.spec\./.test(filename);
+  const path = `/${normalizePath(filename).toLowerCase()}`;
+  return (
+    /\/(?:__tests__|__fixtures__|tests?|test-fixtures|fixtures)\//.test(path) ||
+    /\.(?:test|spec)\.[^./]+$/.test(path)
+  );
 }
 
 /** Default archived/stale path segments skipped by context_freshness. */

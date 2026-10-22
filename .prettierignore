@@ -3,3 +3,7 @@ node_modules/
 coverage/
 *.log
 licenses.txt
+docs/book/
+**/.next/
+**/*.tsbuildinfo
+site/next-env.d.ts

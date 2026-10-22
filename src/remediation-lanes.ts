@@ -14,6 +14,9 @@ export const RED_LANE_FIX_CODES = new Set([
   "security.code_scanning",
   "risk.sensitive_files",
   "risk.supply_chain",
+  // Over-threshold risk on an agent PR resolves via human levers only
+  // (scope split or a recorded override), never an agent retry loop.
+  "risk.over_threshold",
 ]);
 
 /** Routine (yellow-lane) fix codes — agent should fix_and_retry. */
@@ -24,6 +27,10 @@ export const ROUTINE_FIX_CODES = new Set([
   "policy.duplicate_logic",
   "ci.failed",
   "ci.missing",
+  // Severity-suffixed policy findings are the non-blocking tiers; the
+  // canonical blocking `policy.finding` stays red.
+  "policy.finding.warn",
+  "policy.finding.advisory",
 ]);
 
 export type RemediationLane = "red" | "yellow" | "unknown";

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { checkNameMatches } from "./ci-core.js";
-import { parseRepoConfigContent } from "./config-core.js";
+import { collectConfigWarnings, parseRepoConfigContent } from "./config-core.js";
 import { resolveCheckName } from "./release-ready.js";
 import type { GateMode, RepoConfig } from "./types.js";
 
@@ -86,7 +86,11 @@ export function validateConfigStructure(
   config: RepoConfig,
   configPath: string,
 ): DoctorFinding[] {
-  const findings: DoctorFinding[] = [];
+  const findings: DoctorFinding[] = collectConfigWarnings(config).map((message) => ({
+    severity: "warn",
+    code: "config_warning",
+    message,
+  }));
   const fileName = path.basename(configPath);
   const gateMode = config.gate.mode;
 
@@ -385,7 +389,11 @@ export function formatDoctorReport(report: DoctorReport): string {
   }
 
   lines.push(`Gate mode: ${report.gateMode}`);
-  lines.push(`Expected branch protection check: ${report.expectedCheckName}`);
+  lines.push(`Expected custom check name: ${report.expectedCheckName}`);
+  lines.push(
+    "Expected check source: GitHub Actions when using GITHUB_TOKEN; otherwise " +
+      "the token's publishing GitHub App (never the workflow job name).",
+  );
 
   if (report.configuredChecks.length > 0) {
     lines.push(`Configured CI checks: ${report.configuredChecks.join(", ")}`);

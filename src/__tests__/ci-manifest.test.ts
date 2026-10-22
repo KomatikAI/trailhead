@@ -42,6 +42,44 @@ describe("readCiManifestFile", () => {
 });
 
 describe("evaluateRequiredChecks with ci-manifest", () => {
+  it.each([
+    ["completed", "failure", "fail"],
+    ["completed", "cancelled", "fail"],
+    ["completed", "timed_out", "fail"],
+    ["in_progress", null, "pending"],
+    ["queued", null, "pending"],
+    ["completed", "success", "pass"],
+  ])(
+    "keeps live %s/%s authoritative over manifest outcomes",
+    (status, conclusion, expected) => {
+      for (const outcome of ["skipped", "passed", "failed"] as const) {
+        const checks = normalizeCheckRuns([
+          {
+            name: "Security audit",
+            status: status!,
+            conclusion,
+            details_url: "https://github.com/example/audit",
+          },
+        ]);
+        const result = evaluateRequiredChecks(
+          checks,
+          {
+            required_checks: ["Security audit"],
+            optional_checks: [],
+            missing_required: "fail",
+          },
+          parseCiManifest({
+            schema_version: 1,
+            jobs: [{ name: "Security audit", outcome, reason: "paths-filter" }],
+          }),
+        );
+        expect(result.checks[0].status).toBe(expected);
+        expect(result.checks[0].detailsUrl).toBe("https://github.com/example/audit");
+        expect(result.allRequiredPassed).toBe(expected === "pass");
+      }
+    },
+  );
+
   const apiChecks = normalizeCheckRuns([
     { name: "CI Gate", status: "completed", conclusion: "success" },
   ]);

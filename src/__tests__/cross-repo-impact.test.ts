@@ -49,6 +49,7 @@ const baseConfig = {
     agent_prs: {
       enabled: false,
       mode: "block" as const,
+      risk_threshold_exempt_contexts: [],
       required_approvals: 1,
       require_code_owner_approval: false,
       code_owner_reviewers: [],
