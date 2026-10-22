@@ -13,9 +13,12 @@ import {
   checkMcpHealth,
   postPrComment,
   createCheckRun,
+  updateCheckRunReport,
   managePrLabels,
   requestHighRiskReviewers,
   formatGateReport,
+  buildReleaseBrief,
+  MAX_GATE_REPORT_CHARS,
 } from "../gate.js";
 import { buildRemediation } from "../remediation.js";
 import type { GateEvaluation } from "../types.js";
@@ -25,6 +28,8 @@ const {
   mockCreateComment,
   mockUpdateComment,
   mockChecksCreate,
+  mockChecksUpdate,
+  mockChecksListForRef,
   mockCreateLabel,
   mockListLabelsOnIssue,
   mockRemoveLabel,
@@ -36,6 +41,8 @@ const {
   mockCreateComment: vi.fn(),
   mockUpdateComment: vi.fn(),
   mockChecksCreate: vi.fn(),
+  mockChecksUpdate: vi.fn(),
+  mockChecksListForRef: vi.fn(),
   mockCreateLabel: vi.fn(),
   mockListLabelsOnIssue: vi.fn(),
   mockRemoveLabel: vi.fn(),
@@ -71,6 +78,8 @@ vi.mock("@actions/github", () => ({
       },
       checks: {
         create: mockChecksCreate,
+        update: mockChecksUpdate,
+        listForRef: mockChecksListForRef,
       },
       pulls: {
         get: mockPullsGet,
@@ -376,6 +385,54 @@ describe("suggestSplitBoundaries", () => {
     expect(suggestions.length).toBeGreaterThanOrEqual(1);
     expect(suggestions[0]).toContain("src/components/");
     expect(suggestions[0]).toContain("separate PR");
+    // Files genuinely under a migrations directory keep the schema label.
+    expect(suggestions[0]).toContain("database/migrations");
+  });
+
+  it("labels every migrations directory layout as database/migrations", () => {
+    for (const prefix of ["migrations", "supabase/migrations", "db/migrations"]) {
+      const suggestions = suggestSplitBoundaries([
+        "src/components/Header.tsx",
+        "src/components/Footer.tsx",
+        "src/components/Nav.tsx",
+        `${prefix}/001.sql`,
+        `${prefix}/002.sql`,
+      ]);
+      expect(suggestions[0]).toContain("database/migrations");
+    }
+  });
+
+  // komatik#4041: six `supabase/functions/_shared/` files were narrated as
+  // "database/migrations/ changes (6 files)" on a PR carrying no schema change,
+  // because the bucket matched `supabase/**` wholesale.
+  it("labels supabase edge-function source by its real prefix, not as migrations", () => {
+    const files = [
+      "supabase/functions/_shared/auth.ts",
+      "supabase/functions/_shared/db.ts",
+      "supabase/functions/_shared/env.ts",
+      "supabase/functions/_shared/log.ts",
+      "supabase/functions/_shared/types.ts",
+      "supabase/functions/_shared/util.ts",
+      "pipeline-engine/src/run.ts",
+      "pipeline-engine/src/plan.ts",
+    ];
+    const suggestions = suggestSplitBoundaries(files);
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]).toContain("`supabase/functions/` changes (6 files)");
+    expect(suggestions[0]).toContain("`pipeline-engine/src/` changes (2 files)");
+    expect(suggestions.join("\n")).not.toContain("database/migrations");
+  });
+
+  it("does not treat a file merely named like a migration as a migrations directory", () => {
+    const suggestions = suggestSplitBoundaries([
+      "src/db/migration.ts",
+      "src/db/migrations.ts",
+      "src/db/client.ts",
+      "app/routes/home.tsx",
+      "app/routes/about.tsx",
+    ]);
+    expect(suggestions.join("\n")).not.toContain("database/migrations");
+    expect(suggestions[0]).toContain("src/db/");
   });
 
   it("groups .github files under CI/workflow", () => {
@@ -886,6 +943,8 @@ describe("formatGateReport", () => {
     const report = formatGateReport(evaluation);
     expect(report).toContain("Suggested split");
     expect(report).toContain("separate PR");
+    expect(report).toContain("`src/components/` changes (3 files)");
+    expect(report).toContain("`database/migrations/` changes (2 files)");
   });
 
   it("includes collapsed agent brief when remediation and agentBriefMode are set", () => {
@@ -1228,7 +1287,11 @@ describe("checkSupabaseHealth", () => {
 
 describe("createCheckRun", () => {
   beforeEach(() => {
-    mockChecksCreate.mockReset().mockResolvedValue({});
+    mockChecksCreate.mockReset().mockResolvedValue({
+      data: { id: 77, check_suite: { id: 88 } },
+    });
+    mockChecksUpdate.mockReset().mockResolvedValue({});
+    mockChecksListForRef.mockReset().mockResolvedValue({ data: { check_runs: [] } });
   });
 
   const baseEval: GateEvaluation = {
@@ -1244,7 +1307,7 @@ describe("createCheckRun", () => {
   };
 
   it("creates a check run with success conclusion for allow", async () => {
-    await createCheckRun(baseEval, "## Report", "ghp_test");
+    const publication = await createCheckRun(baseEval, "## Report", "ghp_test");
     expect(mockChecksCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         owner: "test-owner",
@@ -1259,6 +1322,13 @@ describe("createCheckRun", () => {
         }),
       }),
     );
+    expect(publication).toEqual({
+      published: true,
+      name: "Trailhead",
+      headSha: "abc1234567890",
+      checkRunId: 77,
+      checkSuiteId: 88,
+    });
   });
 
   it("includes persistence warning in check output when store failed", async () => {
@@ -1288,9 +1358,146 @@ describe("createCheckRun", () => {
 
   it("handles API errors gracefully", async () => {
     mockChecksCreate.mockRejectedValue(new Error("forbidden"));
+    await expect(createCheckRun(baseEval, "## Report", "ghp_test")).resolves.toEqual({
+      published: false,
+      name: "Trailhead",
+      headSha: "abc1234567890",
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Train-37 concurrency hardening: completion-order guard (ADR-012 D2/D3)
+  // -------------------------------------------------------------------------
+
+  it("tags the published check with the triggering run id", async () => {
+    await createCheckRun(baseEval, "## Report", "ghp_test", undefined, 42);
+    expect(mockChecksListForRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: "test-owner",
+        repo: "test-repo",
+        ref: "abc1234567890",
+        check_name: "Trailhead",
+      }),
+    );
+    expect(mockChecksCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ external_id: "42" }),
+    );
+  });
+
+  it("skips publishing when a newer run already published for this head SHA", async () => {
+    mockChecksListForRef.mockResolvedValue({
+      data: { check_runs: [{ external_id: "99" }] },
+    });
+    const publication = await createCheckRun(
+      baseEval,
+      "## Report",
+      "ghp_test",
+      undefined,
+      5,
+    );
+    expect(publication).toEqual({
+      published: false,
+      name: "Trailhead",
+      headSha: "abc1234567890",
+      superseded: true,
+      supersededByRunId: 99,
+    });
+    expect(mockChecksCreate).not.toHaveBeenCalled();
+  });
+
+  it("publishes when the only prior run is older", async () => {
+    mockChecksListForRef.mockResolvedValue({
+      data: { check_runs: [{ external_id: "3" }] },
+    });
+    const publication = await createCheckRun(
+      baseEval,
+      "## Report",
+      "ghp_test",
+      undefined,
+      10,
+    );
+    expect(publication.published).toBe(true);
+    expect(mockChecksCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ external_id: "10" }),
+    );
+  });
+
+  it("ignores check runs with a non-numeric or missing external_id", async () => {
+    mockChecksListForRef.mockResolvedValue({
+      data: { check_runs: [{ external_id: "" }, { external_id: "not-a-number" }, {}] },
+    });
+    const publication = await createCheckRun(
+      baseEval,
+      "## Report",
+      "ghp_test",
+      undefined,
+      10,
+    );
+    expect(publication.published).toBe(true);
+  });
+
+  it("fails open to publishing when the newer-run lookup errors", async () => {
+    mockChecksListForRef.mockRejectedValue(new Error("rate limited"));
+    const publication = await createCheckRun(
+      baseEval,
+      "## Report",
+      "ghp_test",
+      undefined,
+      10,
+    );
+    expect(publication.published).toBe(true);
+    expect(mockChecksCreate).toHaveBeenCalled();
+  });
+
+  it("does not look up prior runs or tag external_id when no run id is available", async () => {
+    // Default parameter reads github.context.runId, which the test mock leaves
+    // unset — the same shape a local/dry-run invocation without a real Actions
+    // run id would see.
+    await createCheckRun(baseEval, "## Report", "ghp_test");
+    expect(mockChecksListForRef).not.toHaveBeenCalled();
+    expect(mockChecksCreate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ external_id: expect.anything() }),
+    );
+  });
+
+  it("refreshes the same check run with the final publication brief", async () => {
+    const publication = await createCheckRun(
+      baseEval,
+      "## Initial report",
+      "ghp_test",
+      "Custom Gate",
+    );
+    const finalEvaluation: GateEvaluation = {
+      ...baseEval,
+      releaseBrief: {
+        verdict: "allow",
+        findings: [],
+        inputs: [],
+        actions: [],
+        override: null,
+        requiredCheck: {
+          published: true,
+          reportRefreshed: true,
+          name: "Custom Gate",
+          headSha: baseEval.commitSha,
+          eventName: "pull_request",
+          message: "Published the custom check.",
+        },
+      },
+    };
+
     await expect(
-      createCheckRun(baseEval, "## Report", "ghp_test"),
-    ).resolves.toBeUndefined();
+      updateCheckRunReport(publication, finalEvaluation, "## Final report", "ghp_test"),
+    ).resolves.toBe(true);
+    expect(mockChecksUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        check_run_id: 77,
+        output: expect.objectContaining({
+          title: "Custom Gate: ALLOW",
+          summary: "## Final report",
+        }),
+      }),
+    );
   });
 });
 
@@ -1440,6 +1647,104 @@ describe("postPrComment", () => {
   it("handles API errors gracefully without throwing", async () => {
     mockListComments.mockRejectedValue(new Error("GitHub API error"));
     await expect(postPrComment("## Report", 42, "ghp_test")).resolves.toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Report clamping (ADR-011 §1) — GitHub rejects an oversized body outright, so
+// the brief cap alone is not enough: the legacy report below it is unbounded.
+// ---------------------------------------------------------------------------
+
+describe("gate report clamping", () => {
+  beforeEach(() => {
+    mockListComments.mockReset().mockResolvedValue({ data: [] });
+    mockCreateComment.mockReset().mockResolvedValue({});
+    mockUpdateComment.mockReset().mockResolvedValue({});
+    mockChecksCreate.mockReset().mockResolvedValue({});
+  });
+
+  function oversizedReport(): string {
+    const evaluation: GateEvaluation = {
+      id: "dg-huge",
+      repoId: "test-owner/test-repo",
+      commitSha: "abc1234567890",
+      healthScore: 100,
+      riskScore: 90,
+      gateDecision: "block",
+      healthChecks: [],
+      riskFactors: [{ type: "sensitive_files", score: 100 }],
+      evaluationMs: 10,
+      gateMode: "release-ready",
+      releaseReady: false,
+      files: Array.from(
+        { length: 3000 },
+        (_, index) => `src/generated/module-${index}/index.ts`,
+      ),
+      enumeratedFindings: Array.from({ length: 40 }, (_, index) => ({
+        id: `ci_integrity/${index + 1}`,
+        title: `workflow bypass pattern #${index + 1}`,
+        evidence: ".github/workflows/ci.yml",
+        severity: "blocking" as const,
+      })),
+      policyFindings: ["CI integrity blocking patterns detected (40)."],
+    };
+    evaluation.releaseBrief = buildReleaseBrief(evaluation, 70);
+
+    const report = formatGateReport(evaluation, 70);
+    expect(report.length).toBeGreaterThan(MAX_GATE_REPORT_CHARS);
+    return report;
+  }
+
+  it("clamps a new PR comment under the limit, keeping the brief", async () => {
+    await postPrComment(oversizedReport(), 42, "ghp_test");
+
+    const body = mockCreateComment.mock.calls[0]?.[0]?.body as string;
+    expect(body.length).toBeLessThanOrEqual(MAX_GATE_REPORT_CHARS);
+    expect(body).toContain("## Release Brief");
+    expect(body).toContain("workflow bypass pattern #1");
+    expect(body).toContain("report truncated");
+    expect(body).toContain("full detail in the stored evaluation / job summary");
+    // The unbounded tail is what gave way, not the brief.
+    expect(body).not.toContain("src/generated/module-2999/index.ts");
+  });
+
+  it("clamps an edited PR comment on the same path", async () => {
+    mockListComments.mockResolvedValue({
+      data: [{ id: 999, body: "<!-- trailhead-gate-report -->\nold report" }],
+    });
+    await postPrComment(oversizedReport(), 42, "ghp_test");
+
+    const body = mockUpdateComment.mock.calls[0]?.[0]?.body as string;
+    expect(body.length).toBeLessThanOrEqual(MAX_GATE_REPORT_CHARS);
+    expect(body).toContain("## Release Brief");
+    expect(body).toContain("report truncated");
+  });
+
+  it("clamps the check-run summary GitHub caps at 65535", async () => {
+    const evaluation: GateEvaluation = {
+      id: "dg-huge",
+      repoId: "test-owner/test-repo",
+      commitSha: "abc1234567890",
+      healthScore: 100,
+      riskScore: 90,
+      gateDecision: "block",
+      healthChecks: [],
+      riskFactors: [],
+      evaluationMs: 10,
+    };
+    await createCheckRun(evaluation, oversizedReport(), "ghp_test");
+
+    const summary = mockChecksCreate.mock.calls[0]?.[0]?.output?.summary as string;
+    expect(summary.length).toBeLessThanOrEqual(MAX_GATE_REPORT_CHARS);
+    expect(summary).toContain("## Release Brief");
+    expect(summary).toContain("report truncated");
+  });
+
+  it("leaves a report that already fits completely untouched", async () => {
+    await postPrComment("## Release Brief\n\nsmall", 42, "ghp_test");
+
+    const body = mockCreateComment.mock.calls[0]?.[0]?.body as string;
+    expect(body).toBe("<!-- trailhead-gate-report -->\n## Release Brief\n\nsmall");
   });
 });
 

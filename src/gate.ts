@@ -3,11 +3,17 @@ import * as github from "@actions/github";
 import { GateApiResponse as GateApiResponseSchema } from "./types.js";
 import type {
   TrailheadConfig,
+  AvailabilityStance,
+  BriefAction,
+  BriefFinding,
+  BriefVerdict,
   GateApiResponse,
   GateDecision,
   GateEvaluation,
   HealthCheckResult,
   PrProvenance,
+  ReleaseBrief,
+  RemediationSeverity,
   RepoConfig,
   RiskFactor,
   GateMode,
@@ -32,10 +38,13 @@ import {
 import {
   applyReleaseReadyToEvaluation,
   checkConclusionForEvaluation,
+  checkCountsTowardBlocking,
   computeReleaseReady,
   resolveCheckName,
   shouldBlockMerge,
 } from "./release-ready.js";
+import { applyInputRelevance, resolveDisposition } from "./input-relevance.js";
+import { formatEvaluationDelta, renderReleaseBrief } from "./release-brief.js";
 import {
   computeRiskScore as computeRiskScoreShared,
   weightedAverageScores,
@@ -67,11 +76,15 @@ import {
   fetchPreviousEvaluationForPr,
   countRecentLabelOverrides,
 } from "./evaluation-history.js";
+import type { PreviousEvaluationSnapshot } from "./loop-bookkeeping.js";
 import {
   applyLabelOverrideToEvaluation,
   hasOverrideLabel,
+  OVERRIDE_LABEL,
+  parseOverrideComment,
   resolveLabelOverride,
 } from "./override.js";
+import type { PrComment } from "./override.js";
 import {
   runSubmissionGate,
   getSubmissionConfigWarnings,
@@ -82,6 +95,8 @@ import type { SubmissionCheckResult } from "./types.js";
 import { computeAgentTrustScore, strictnessFromTrust } from "./trust-score.js";
 import { parseAgentTrustMetrics } from "./agent-trust-metrics.js";
 import { readTrustRuntime } from "./trust-runtime.js";
+import { detectCiIntegrity } from "./ci-integrity.js";
+import { collectGitHubPages } from "./github-pagination.js";
 
 export {
   isSensitiveFile,
@@ -125,6 +140,8 @@ interface PrFileInfo {
   deletions: number;
   changes: number;
   patch?: string;
+  status?: string;
+  content?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -137,25 +154,33 @@ async function fetchPrFilesFromApi(
   repo: string,
   prNumber: number,
 ): Promise<PrFileInfo[]> {
-  const { data: files } = await octokit.rest.pulls.listFiles({
-    owner,
-    repo,
-    pull_number: prNumber,
-    per_page: 300,
-  });
+  const result = await collectGitHubPages(
+    async (page, perPage) => {
+      const { data } = await octokit.rest.pulls.listFiles({
+        owner,
+        repo,
+        pull_number: prNumber,
+        per_page: perPage,
+        page,
+      });
+      return data;
+    },
+    { perPage: 100, maxPages: 30 },
+  );
 
-  if (files.length >= 300) {
+  if (!result.complete) {
     core.warning(
-      "PR has 300+ files — risk analysis may be incomplete (GitHub API pagination limit)",
+      "PR file enumeration reached GitHub's 3,000-file API ceiling; risk analysis is incomplete.",
     );
   }
 
-  return files.map((f) => ({
+  return result.items.map((f) => ({
     filename: f.filename,
     additions: f.additions,
     deletions: f.deletions,
     changes: f.changes,
     patch: f.patch,
+    status: f.status,
   }));
 }
 
@@ -165,12 +190,19 @@ async function fetchPrFilesFromCommits(
   repo: string,
   prNumber: number,
 ): Promise<PrFileInfo[]> {
-  const { data: commits } = await octokit.rest.pulls.listCommits({
-    owner,
-    repo,
-    pull_number: prNumber,
-    per_page: 250,
-  });
+  const { items: commits } = await collectGitHubPages(
+    async (page, perPage) => {
+      const { data } = await octokit.rest.pulls.listCommits({
+        owner,
+        repo,
+        pull_number: prNumber,
+        per_page: perPage,
+        page,
+      });
+      return data;
+    },
+    { perPage: 100, maxPages: 3 },
+  );
 
   const fileMap = new Map<string, PrFileInfo>();
 
@@ -208,6 +240,44 @@ const DRIFT_CHECK_FILE_THRESHOLD = 30;
 // the merge-base is stale and we use the commit-derived list instead.
 const MERGE_BASE_DRIFT_RATIO = 2.0;
 
+const API_ROUTE_FILE =
+  /(?:^|\/)(?:app\/api\/.+\/route|pages\/api\/.+)\.(?:ts|tsx|js|jsx)$/;
+
+async function hydrateChangedRouteContents(
+  octokit: ReturnType<typeof github.getOctokit>,
+  owner: string,
+  repo: string,
+  ref: string,
+  files: PrFileInfo[],
+): Promise<void> {
+  const routes = files.filter(
+    (file) =>
+      file.status !== "removed" && API_ROUTE_FILE.test(file.filename.replace(/\\/g, "/")),
+  );
+
+  // Keep the request fan-out bounded while still avoiding serial latency on
+  // route-heavy PRs. Route bodies are the source of truth for auth checks.
+  const batchSize = 8;
+  for (let start = 0; start < routes.length; start += batchSize) {
+    await Promise.all(
+      routes.slice(start, start + batchSize).map(async (file) => {
+        try {
+          const { data } = await octokit.rest.repos.getContent({
+            owner,
+            repo,
+            path: file.filename,
+            ref,
+          });
+          if (Array.isArray(data) || data.type !== "file" || !data.content) return;
+          file.content = Buffer.from(data.content, "base64").toString("utf8");
+        } catch (error) {
+          core.debug(`Could not fetch current route body for ${file.filename}: ${error}`);
+        }
+      }),
+    );
+  }
+}
+
 async function fetchPrFiles(prNumber: number, token?: string): Promise<PrFileInfo[]> {
   if (!token) return [];
 
@@ -217,40 +287,44 @@ async function fetchPrFiles(prNumber: number, token?: string): Promise<PrFileInf
 
     const apiFiles = await fetchPrFilesFromApi(octokit, owner, repo, prNumber);
 
-    if (apiFiles.length <= DRIFT_CHECK_FILE_THRESHOLD) {
-      return apiFiles;
-    }
+    let selectedFiles = apiFiles;
 
-    // GitHub's pulls.listFiles uses a merge-base diff that can include
-    // files from unrelated commits when the base branch has diverged
-    // from the PR branch point.  Cross-check against the files the PR's
-    // commits actually touch and fall back when inflation is detected.
-    core.info(
-      `PR reports ${apiFiles.length} files (>${DRIFT_CHECK_FILE_THRESHOLD}), ` +
-        `cross-checking against commit-level file list for merge-base drift.`,
-    );
-
-    let commitFiles: PrFileInfo[];
-    try {
-      commitFiles = await fetchPrFilesFromCommits(octokit, owner, repo, prNumber);
-    } catch (err) {
-      core.debug(`Commit-level file enumeration failed, using API list: ${err}`);
-      return apiFiles;
-    }
-
-    if (
-      commitFiles.length > 0 &&
-      apiFiles.length > commitFiles.length * MERGE_BASE_DRIFT_RATIO
-    ) {
-      core.warning(
-        `Merge-base drift: API reported ${apiFiles.length} files, ` +
-          `but PR commits only touch ${commitFiles.length}. ` +
-          `Using commit-derived file list to avoid inflated risk scores.`,
+    if (apiFiles.length > DRIFT_CHECK_FILE_THRESHOLD) {
+      // GitHub's pulls.listFiles uses a merge-base diff that can include
+      // files from unrelated commits when the base branch has diverged
+      // from the PR branch point. Cross-check against the files the PR's
+      // commits actually touch and fall back when inflation is detected.
+      core.info(
+        `PR reports ${apiFiles.length} files (>${DRIFT_CHECK_FILE_THRESHOLD}), ` +
+          `cross-checking against commit-level file list for merge-base drift.`,
       );
-      return commitFiles;
+
+      let commitFiles: PrFileInfo[] = [];
+      try {
+        commitFiles = await fetchPrFilesFromCommits(octokit, owner, repo, prNumber);
+      } catch (err) {
+        core.debug(`Commit-level file enumeration failed, using API list: ${err}`);
+      }
+
+      if (
+        commitFiles.length > 0 &&
+        apiFiles.length > commitFiles.length * MERGE_BASE_DRIFT_RATIO
+      ) {
+        core.warning(
+          `Merge-base drift: API reported ${apiFiles.length} files, ` +
+            `but PR commits only touch ${commitFiles.length}. ` +
+            `Using commit-derived file list to avoid inflated risk scores.`,
+        );
+        const apiByName = new Map(apiFiles.map((file) => [file.filename, file]));
+        selectedFiles = commitFiles.map((file) => ({
+          ...file,
+          patch: apiByName.get(file.filename)?.patch,
+          status: apiByName.get(file.filename)?.status,
+        }));
+      }
     }
 
-    return apiFiles;
+    return selectedFiles;
   } catch (error) {
     core.debug(`Failed to fetch PR files: ${error}`);
     return [];
@@ -566,57 +640,15 @@ async function detectPrProvenance(
 interface CiIntegrityDetection {
   factor: RiskFactor | null;
   blockingPatterns: string[];
+  /** Surfaced (not only buried in factor.detail) so ADR-011 can enumerate them. */
+  warningSignals: string[];
 }
 
 function detectCiIntegrityRisk(files: PrFileInfo[]): CiIntegrityDetection {
-  const blockingPatterns: string[] = [];
-  const warningSignals: string[] = [];
-  let score = 0;
-
-  const workflowFiles = files.filter((f) => f.filename.startsWith(".github/workflows/"));
-  const testFiles = files.filter((f) =>
-    /\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__\/|\.cy\.(ts|js)$/.test(f.filename),
-  );
-
-  for (const file of workflowFiles) {
-    const patch = file.patch ?? "";
-    if (/\|\|\s*true/.test(patch)) {
-      blockingPatterns.push(`${file.filename}: workflow bypass pattern "|| true"`);
-      score += 45;
-    }
-    if (/^\+\s*continue-on-error:\s*true\b/m.test(patch)) {
-      blockingPatterns.push(`${file.filename}: introduced "continue-on-error: true"`);
-      score += 45;
-    }
-    if (/^\+\s*if:\s*\$\{\{\s*always\(\)\s*\}\}/m.test(patch)) {
-      warningSignals.push(`${file.filename}: always() condition added to workflow gate`);
-      score += 20;
-    }
-  }
-
-  for (const file of testFiles) {
-    if (file.deletions > file.additions * 2 && file.deletions >= 10) {
-      warningSignals.push(
-        `${file.filename}: heavy test deletion (${file.deletions} deleted / ${file.additions} added)`,
-      );
-      score += 25;
-    }
-  }
-
-  for (const file of files) {
-    const patch = file.patch ?? "";
-    if (!patch) continue;
-    if (
-      /^-\s*(branches|functions|lines|statements)\s*:\s*\d+/m.test(patch) &&
-      /^\+\s*(branches|functions|lines|statements)\s*:\s*\d+/m.test(patch)
-    ) {
-      warningSignals.push(`${file.filename}: coverage threshold definition changed`);
-      score += 20;
-    }
-  }
+  const { score, blockingPatterns, warningSignals } = detectCiIntegrity(files);
 
   if (score === 0) {
-    return { factor: null, blockingPatterns: [] };
+    return { factor: null, blockingPatterns: [], warningSignals: [] };
   }
 
   const factor: RiskFactor = {
@@ -629,7 +661,7 @@ function detectCiIntegrityRisk(files: PrFileInfo[]): CiIntegrityDetection {
     },
   };
 
-  return { factor, blockingPatterns };
+  return { factor, blockingPatterns, warningSignals };
 }
 
 // ---------------------------------------------------------------------------
@@ -901,7 +933,6 @@ export async function detectPrScopeRisk(params: {
     core.info(
       `pr_scope: branch pair ${params.headRef ?? "?"} -> ${params.baseRef ?? "?"} matches an exempt rule — scope limits skipped`,
     );
-    return { factor: null, findings: [], forceBlock: false };
   }
 
   const fileCount = params.files.length;
@@ -909,11 +940,11 @@ export async function detectPrScopeRisk(params: {
   const findings: string[] = [];
   let score = 0;
 
-  if (fileCount > cfg.max_files) {
+  if (!exempt && fileCount > cfg.max_files) {
     findings.push(`PR scope exceeds max_files (${fileCount} > ${cfg.max_files}).`);
     score += 45;
   }
-  if (totalChanges > cfg.max_changes) {
+  if (!exempt && totalChanges > cfg.max_changes) {
     findings.push(`PR scope exceeds max_changes (${totalChanges} > ${cfg.max_changes}).`);
     score += 45;
   }
@@ -1074,6 +1105,7 @@ interface AgentPolicyEnforcementResult {
   adjustedRiskThreshold?: number;
   forceBlock: boolean;
   findings: string[];
+  notices: string[];
 }
 
 async function enforceAgentPrPolicies(params: {
@@ -1083,9 +1115,13 @@ async function enforceAgentPrPolicies(params: {
   repoConfig: RepoConfig | null;
   provenance: PrProvenance | null;
   currentRiskThreshold: number;
+  matchedContextName?: string;
+  headSha?: string;
+  prAuthorLogin?: string;
 }): Promise<AgentPolicyEnforcementResult | null> {
   const policy = params.repoConfig?.policies?.agent_prs;
   if (!policy?.enabled || !params.prNumber || !params.token) return null;
+  const prNumber = params.prNumber;
 
   const provenanceType = params.provenance?.type ?? "unknown";
   const isUnknownStrict =
@@ -1094,6 +1130,7 @@ async function enforceAgentPrPolicies(params: {
   if (!shouldTreatAsAgent) return null;
 
   const findings: string[] = [];
+  const notices: string[] = [];
   let adjustedRiskThreshold: number | undefined;
   let forceBlock = false;
   const mode = policy.mode ?? "block";
@@ -1109,7 +1146,16 @@ async function enforceAgentPrPolicies(params: {
     policy.risk_threshold !== undefined &&
     policy.risk_threshold < params.currentRiskThreshold
   ) {
-    if (enforce) {
+    const exemptContext = params.matchedContextName
+      ? policy.risk_threshold_exempt_contexts.includes(params.matchedContextName)
+      : false;
+    if (exemptContext) {
+      const notice =
+        `Agent PR risk threshold exemption matched context "${params.matchedContextName}"; ` +
+        `retaining context threshold ${params.currentRiskThreshold}.`;
+      notices.push(notice);
+      core.info(notice);
+    } else if (enforce) {
       adjustedRiskThreshold = policy.risk_threshold;
       findings.push(
         `Agent PR risk threshold tightened from ${params.currentRiskThreshold} to ${policy.risk_threshold}.`,
@@ -1134,32 +1180,64 @@ async function enforceAgentPrPolicies(params: {
     ) || params.files.some((f) => isSensitiveFile(f.filename, riskConfig));
 
   if (!touchesSensitivePaths) {
-    return { adjustedRiskThreshold, forceBlock, findings };
+    return { adjustedRiskThreshold, forceBlock, findings, notices };
   }
 
   try {
     const octokit = github.getOctokit(params.token);
     const { owner, repo } = github.context.repo;
-    const { data: reviews } = await octokit.rest.pulls.listReviews({
-      owner,
-      repo,
-      pull_number: params.prNumber,
-      per_page: 100,
+    const reviewResult = await collectGitHubPages(async (page, perPage) => {
+      const { data } = await octokit.rest.pulls.listReviews({
+        owner,
+        repo,
+        pull_number: prNumber,
+        page,
+        per_page: perPage,
+      });
+      return data;
     });
+    if (!reviewResult.complete) {
+      core.warning(
+        "Agent PR approval check skipped because GitHub returned an incomplete review history.",
+      );
+      return { adjustedRiskThreshold, forceBlock, findings, notices };
+    }
 
+    const decisiveStates = new Set(["APPROVED", "CHANGES_REQUESTED", "DISMISSED"]);
+    const orderedReviews = [...reviewResult.items].sort((left, right) => {
+      const leftTime = Date.parse(left.submitted_at ?? "");
+      const rightTime = Date.parse(right.submitted_at ?? "");
+      const normalizedLeftTime = Number.isNaN(leftTime) ? 0 : leftTime;
+      const normalizedRightTime = Number.isNaN(rightTime) ? 0 : rightTime;
+      return normalizedLeftTime - normalizedRightTime || left.id - right.id;
+    });
+    const latestDecisionByReviewer = new Map<string, (typeof orderedReviews)[number]>();
+    for (const review of orderedReviews) {
+      const login = review.user?.login?.trim().toLowerCase();
+      const state = review.state.toUpperCase();
+      if (!login || !decisiveStates.has(state)) continue;
+      latestDecisionByReviewer.set(login, review);
+    }
+
+    const expectedHeadSha = params.headSha?.toLowerCase();
+    const prAuthorLogin = params.prAuthorLogin?.trim().toLowerCase();
     const approvedBy = new Set(
-      reviews
-        .filter((r) => r.state === "APPROVED")
-        .map((r) => r.user?.login)
-        .filter((u): u is string => Boolean(u)),
+      [...latestDecisionByReviewer.entries()]
+        .filter(([login, review]) => {
+          if (login === prAuthorLogin) return false;
+          if (review.state.toUpperCase() !== "APPROVED") return false;
+          if (!expectedHeadSha) return true;
+          return review.commit_id?.toLowerCase() === expectedHeadSha;
+        })
+        .map(([login]) => login),
     );
 
     if (approvedBy.size < policy.required_approvals) {
       if (enforce) forceBlock = true;
       findings.push(
         enforce
-          ? `Sensitive-path agent PR requires ${policy.required_approvals} approval(s); found ${approvedBy.size}.`
-          : `Sensitive-path agent PR would require ${policy.required_approvals} approval(s); found ${approvedBy.size} (warn mode; not blocking).`,
+          ? `Sensitive-path agent PR requires ${policy.required_approvals} current-head approval(s) from reviewer(s) other than the PR author; found ${approvedBy.size}.`
+          : `Sensitive-path agent PR would require ${policy.required_approvals} current-head approval(s) from reviewer(s) other than the PR author; found ${approvedBy.size} (warn mode; not blocking).`,
       );
     }
 
@@ -1173,7 +1251,7 @@ async function enforceAgentPrPolicies(params: {
         );
       } else {
         const hasCodeOwnerApproval = policy.code_owner_reviewers.some((r) =>
-          approvedBy.has(r),
+          approvedBy.has(r.trim().toLowerCase()),
         );
         if (!hasCodeOwnerApproval) {
           if (enforce) forceBlock = true;
@@ -1190,7 +1268,7 @@ async function enforceAgentPrPolicies(params: {
     // Fail-open remains the default: do not force block on API errors.
   }
 
-  return { adjustedRiskThreshold, forceBlock, findings };
+  return { adjustedRiskThreshold, forceBlock, findings, notices };
 }
 
 // ---------------------------------------------------------------------------
@@ -1479,7 +1557,21 @@ async function callGateApi(
 // PR context for v4 context matching
 // ---------------------------------------------------------------------------
 
-function getPrMatchContext(): PrMatchContext {
+export interface EvaluationPrMetadata {
+  baseRef: string;
+  headRef: string;
+  labels: string[];
+  authorLogin?: string;
+}
+
+/**
+ * Branch/label context derived from the triggering event payload alone.
+ *
+ * The payload is a SNAPSHOT taken when the event was created. It is the
+ * correct source for base/head refs (they cannot change without a new event)
+ * but NOT for labels — see resolvePrMatchContext. Kept as the fallback layer.
+ */
+function getPrMatchContext(metadata?: EvaluationPrMetadata): PrMatchContext {
   const pr = github.context.payload?.pull_request as
     | {
         base?: { ref?: string };
@@ -1489,16 +1581,178 @@ function getPrMatchContext(): PrMatchContext {
     | undefined;
 
   return {
-    baseRef: pr?.base?.ref ?? github.context.ref?.replace("refs/heads/", "") ?? "main",
-    headRef: pr?.head?.ref ?? github.context.ref?.replace("refs/heads/", "") ?? "main",
-    labels: (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
+    baseRef:
+      metadata?.baseRef ??
+      pr?.base?.ref ??
+      github.context.ref?.replace("refs/heads/", "") ??
+      "main",
+    headRef:
+      metadata?.headRef ??
+      pr?.head?.ref ??
+      github.context.ref?.replace("refs/heads/", "") ??
+      "main",
+    labels:
+      metadata?.labels ?? (pr?.labels ?? []).map((l) => l.name ?? "").filter(Boolean),
   };
 }
 
-async function fetchPrCommentsForOverride(
+/**
+ * Read the PR's CURRENT labels from the API.
+ *
+ * Returns null — never [] — when the labels could not be read, so the caller
+ * can distinguish "this PR genuinely has no labels" (a valid live answer that
+ * must be honored, otherwise removing a label would never be seen) from "the
+ * live read failed" (fall back to the payload).
+ */
+async function fetchLivePrLabels(
   prNumber: number,
   token: string,
-): Promise<Array<{ body: string; author?: string }>> {
+): Promise<string[] | null> {
+  try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+    const { data: pr } = await octokit.rest.pulls.get({
+      owner,
+      repo,
+      pull_number: prNumber,
+    });
+    const labels = (pr as { labels?: Array<{ name?: string } | string> | undefined })
+      .labels;
+    if (!Array.isArray(labels)) return null;
+    return labels
+      .map((label) => (typeof label === "string" ? label : (label?.name ?? "")))
+      .filter(Boolean);
+  } catch (error) {
+    core.debug(`Failed to read live labels for PR #${prNumber}: ${error}`);
+    return null;
+  }
+}
+
+/**
+ * PR context for every label consumer in this evaluation — merge-queue
+ * detection, v4 context matching, and the label override.
+ *
+ * Labels are read LIVE from the API rather than taken from the triggering
+ * event payload. A rerun of an earlier run replays that run's ORIGINAL
+ * payload, so a label applied after the run was created is invisible to the
+ * rerun. That made the sanctioned `trailhead-override` label unusable as a
+ * remedy: GitHub requires every check suite bearing a required context name
+ * to end green, and a failed suite can only be made green by rerunning it —
+ * which is exactly the path that could never see the new label. Applying the
+ * override then still left the PR unmergeable without an admin merge.
+ *
+ * Resolved at the START of evaluateGate, which also keeps it clear of the
+ * action's own `add-risk-labels` writes — those run after the evaluation.
+ */
+async function resolvePrMatchContext(input: {
+  metadata?: EvaluationPrMetadata;
+  prNumber?: number;
+  token?: string;
+}): Promise<PrMatchContext> {
+  const payloadCtx = getPrMatchContext(input.metadata);
+
+  // Explicit metadata wins, unchanged: the `evaluate-pr` backfill path builds
+  // it in main.ts from its own live pulls.get, so it is already current.
+  if (input.metadata?.labels) return payloadCtx;
+
+  if (!input.prNumber || !input.token) {
+    if (payloadCtx.labels.length > 0) {
+      core.debug(
+        "No PR number or github-token available — using event payload labels for PR context.",
+      );
+    }
+    return payloadCtx;
+  }
+
+  const liveLabels = await fetchLivePrLabels(input.prNumber, input.token);
+  if (!liveLabels) {
+    core.warning(
+      `Could not read live labels for PR #${input.prNumber} — falling back to the ` +
+        `triggering event's payload labels ` +
+        `(${payloadCtx.labels.length > 0 ? payloadCtx.labels.join(", ") : "none"}). ` +
+        `A label applied after this run's event was created — including ` +
+        `\`${OVERRIDE_LABEL}\` — is not visible to this evaluation.`,
+    );
+    return payloadCtx;
+  }
+
+  const payloadLabels = payloadCtx.labels;
+  const drifted =
+    liveLabels.length !== payloadLabels.length ||
+    liveLabels.some((label) => !payloadLabels.includes(label));
+  if (drifted) {
+    core.info(
+      `PR #${input.prNumber} labels changed since this run's triggering event — ` +
+        `using live labels [${liveLabels.join(", ") || "none"}] ` +
+        `instead of payload labels [${payloadLabels.join(", ") || "none"}].`,
+    );
+  }
+
+  return { ...payloadCtx, labels: liveLabels };
+}
+
+interface OverridePrState {
+  /**
+   * The one live label set resolved by resolvePrMatchContext — passed through
+   * so every override consumer reads the same labels as merge-queue detection
+   * and contexts[].match.labels.
+   */
+  labels: string[];
+  comments: PrComment[];
+  /** Where the COMMENTS came from. Labels always come from prMatchCtx. */
+  source: "live" | "payload_fallback";
+  unavailableReason?: "missing_token" | "api_error";
+}
+
+function payloadOverrideComments(): PrComment[] {
+  // Only issue_comment payloads contain the same PR conversation surfaced by
+  // GraphQL PullRequest.comments. A pull_request_review_comment is a diff
+  // comment and must never be accepted as an override reason.
+  if (github.context.eventName !== "issue_comment") return [];
+  const issue = github.context.payload?.issue as
+    | { pull_request?: Record<string, unknown> }
+    | undefined;
+  if (!issue?.pull_request) return [];
+  const comment = github.context.payload?.comment as
+    | { body?: string; user?: { login?: string } }
+    | undefined;
+  if (!comment?.body) return [];
+  return [{ body: comment.body, author: comment.user?.login }];
+}
+
+/**
+ * ADR-012 D1: evaluate the override against the CURRENT PR state.
+ *
+ * There is exactly ONE live label read in an evaluation — resolvePrMatchContext,
+ * resolved at the top of evaluateGate — and its result is handed in here as
+ * `liveLabels`. This function therefore reads COMMENTS only. Reading labels a
+ * second time here (as an earlier draft did, via a GraphQL query alongside the
+ * REST `pulls.get`) produces two label truths per evaluation that can disagree:
+ * merge-queue detection and `contexts[].match.labels` would see one set and the
+ * override another.
+ *
+ * REST, not GraphQL: `issues.listComments` is the endpoint this path has always
+ * used, and it keeps the override working in environments where the GraphQL API
+ * is blocked or unavailable — a GraphQL-only override path would be fail-closed
+ * exactly there.
+ *
+ * A failed comment read warns and falls back to the triggering event's payload
+ * comment rather than refusing: degradation, not regression, matching the label
+ * fallback in resolvePrMatchContext.
+ */
+async function fetchOverridePrState(
+  prNumber: number,
+  token: string | undefined,
+  liveLabels: string[],
+): Promise<OverridePrState> {
+  const fallback: OverridePrState = {
+    labels: liveLabels,
+    comments: payloadOverrideComments(),
+    source: "payload_fallback",
+    unavailableReason: token ? "api_error" : "missing_token",
+  };
+  if (!token) return fallback;
+
   try {
     const octokit = github.getOctokit(token);
     const { owner, repo } = github.context.repo;
@@ -1508,13 +1762,20 @@ async function fetchPrCommentsForOverride(
       issue_number: prNumber,
       per_page: 100,
     });
-    return comments.map((comment) => ({
-      body: comment.body ?? "",
-      author: comment.user?.login ?? undefined,
-    }));
+    return {
+      labels: liveLabels,
+      comments: comments.map((comment) => ({
+        body: comment.body ?? "",
+        author: comment.user?.login ?? undefined,
+      })),
+      source: "live",
+    };
   } catch (error) {
-    core.debug(`Failed to fetch PR comments for override: ${error}`);
-    return [];
+    core.warning(
+      `Could not read live PR comments for the override on PR #${prNumber} — falling ` +
+        `back to the triggering event's payload comment. ${error}`,
+    );
+    return fallback;
   }
 }
 
@@ -1522,73 +1783,474 @@ async function applyLabelOverrideIfNeeded(input: {
   evaluation: GateEvaluation;
   config: TrailheadConfig;
   repoConfig: RepoConfig | null;
-  prMatchCtx: PrMatchContext;
+  overrideState: OverridePrState;
   prNumber: number;
   releaseResult: ReturnType<typeof computeReleaseReady>;
   gateDecision: GateDecision;
-  githubToken: string;
+  githubToken?: string;
 }): Promise<GateEvaluation> {
   const overrideSettings = input.repoConfig?.override ?? {
     enabled: true,
     max_per_week: 5,
+    scope: "full" as const,
   };
 
-  const comments = await fetchPrCommentsForOverride(input.prNumber, input.githubToken);
-  const recentOverrideCount = await countRecentLabelOverrides({
-    repoId: input.evaluation.repoId,
-    storeUrl: input.config.evaluationStoreUrl,
-    apiKey: input.config.trailheadApiKey,
-  });
-  if (recentOverrideCount === null) {
+  const labelPresent = hasOverrideLabel(input.overrideState.labels);
+  const commentPresent = Boolean(parseOverrideComment(input.overrideState.comments));
+
+  // A failed live read is a DEGRADATION, not a regression (#362): the payload
+  // still authorizes. What a frozen payload cannot do is supply an override
+  // reason it never carried — that, and only that, is `unavailable`.
+  if (input.overrideState.source === "payload_fallback" && !commentPresent) {
+    const message =
+      input.overrideState.unavailableReason === "missing_token"
+        ? "The `trailhead-override` label is present, but no GitHub token was available " +
+          "to read this PR's comments and the triggering event's payload carried no " +
+          "override reason. Configure `github-token` and re-run."
+        : "The `trailhead-override` label is present, but this PR's comments could not " +
+          "be read from GitHub and the triggering event's payload carried no override " +
+          "reason. Restore API access and re-run.";
+    core.warning(`Label override unavailable: ${message}`);
+    return {
+      ...input.evaluation,
+      labelOverrideFeedback: {
+        status: "unavailable",
+        message,
+        source: "payload_fallback",
+      },
+    };
+  }
+
+  if (!labelPresent && !commentPresent) {
+    return input.evaluation;
+  }
+
+  const needsCapLookup =
+    labelPresent &&
+    commentPresent &&
+    !input.releaseResult.releaseReady &&
+    overrideSettings.enabled;
+  const recentOverrideCount = needsCapLookup
+    ? await countRecentLabelOverrides({
+        repoId: input.evaluation.repoId,
+        storeUrl: input.config.evaluationStoreUrl,
+        apiKey: input.config.trailheadApiKey,
+      })
+    : null;
+  if (needsCapLookup && recentOverrideCount === null) {
     core.warning(
       "Could not verify weekly override cap — proceeding without cap enforcement.",
     );
   }
 
   const outcome = resolveLabelOverride({
-    labels: input.prMatchCtx.labels,
-    comments,
+    labels: input.overrideState.labels,
+    comments: input.overrideState.comments,
     config: {
       enabled: overrideSettings.enabled,
       maxPerWeek: overrideSettings.max_per_week,
+      scope: overrideSettings.scope,
     },
     recentOverrideCount,
     releaseResult: input.releaseResult,
     gateDecision: input.gateDecision,
     prNumber: input.prNumber,
+    ci: input.evaluation.ci,
   });
 
   if (outcome.kind === "applied") {
+    const applied = applyLabelOverrideToEvaluation(input.evaluation, outcome.audit);
+    const retained = applied.policyOverride?.retainedReasons ?? [];
+    // ADR-011 §3: a risk_only override never clears mechanical blocking inputs —
+    // say so, otherwise the warning reads as a full bypass that it is not.
+    const retainedNote = retained.length > 0 ? ` — ${retained.join("; ")}` : "";
+    const feedbackMessage =
+      retained.length > 0
+        ? `Override recorded, but scope \`risk_only\` cannot clear mechanical CI: ${retained.join(
+            "; ",
+          )}. Fix those checks; bypassing them requires an extraordinary GitHub admin merge.`
+        : `Release override applied by \`${outcome.audit.owner}\`.`;
     core.warning(
-      `Label override applied by ${outcome.audit.owner}: ${outcome.audit.reason}`,
+      `Label override applied by ${outcome.audit.owner} (scope ${outcome.audit.scope ?? "full"}): ` +
+        `${outcome.audit.reason}${retainedNote}`,
     );
     return {
-      ...applyLabelOverrideToEvaluation(input.evaluation, outcome.audit),
+      ...applied,
       labelOverrideFeedback: {
-        status: "applied",
-        message: `Release override applied by \`${outcome.audit.owner}\`.`,
+        status: retained.length > 0 ? "partial" : "applied",
+        message: feedbackMessage,
+        source: input.overrideState.source,
+      },
+    };
+  }
+
+  if (outcome.kind === "revoked") {
+    core.info(`Label override inactive: ${outcome.message}`);
+    return {
+      ...input.evaluation,
+      labelOverrideFeedback: {
+        status: "revoked",
+        message: outcome.message,
+        source: input.overrideState.source,
       },
     };
   }
 
   if (outcome.kind === "rejected") {
     core.warning(`Label override rejected: ${outcome.message}`);
-    await postOverrideRejectionComment(
-      input.prNumber,
-      outcome.message,
-      input.githubToken,
-    );
+    const message = outcome.message;
+    if (input.githubToken) {
+      await postOverrideRejectionComment(input.prNumber, message, input.githubToken);
+    }
+    // `not_needed` is advisory: the release is ALREADY ready, and the only
+    // action owed is removing a stale label. It must never become a
+    // policyFinding — app/src/verdict.ts ingests every policyFinding, so a
+    // rejection line there turns a green server-side verdict red.
+    const advisoryOnly = outcome.code === "not_needed";
+    const existingFindings = input.evaluation.policyFindings;
     return {
       ...input.evaluation,
-      policyFindings: [...(input.evaluation.policyFindings ?? []), outcome.message],
+      ...(advisoryOnly ? {} : { policyFindings: [...(existingFindings ?? []), message] }),
       labelOverrideFeedback: {
         status: "rejected",
-        message: outcome.message,
+        message,
+        source: input.overrideState.source,
       },
     };
   }
 
   return input.evaluation;
+}
+
+// ---------------------------------------------------------------------------
+// ADR-011 — input relevance, enumerated findings, Release Brief
+// ---------------------------------------------------------------------------
+
+/**
+ * `applyInputRelevance` now lives in input-relevance.ts — both this module
+ * (the single-fetch path below) and `waitForChecks` in ci-orchestrator.ts
+ * (the poll loop's own blocking-set exit condition) need it, and the latter
+ * would otherwise have had to import gate.ts, an actual circular import
+ * (gate.ts already imports ci-orchestrator.ts). Re-exported here (via the
+ * import above) so every existing caller/import site keeps working
+ * unchanged.
+ */
+export { applyInputRelevance };
+
+/** Budget for the brief inside a report that also becomes a check-run summary. */
+const BRIEF_MAX_CHARS = 20000;
+
+/**
+ * Detector messages are authored as `<file>: <message>`. Split them so the brief
+ * can carry the file as evidence; anything that does not look like a path prefix
+ * stays a whole title (never guess evidence that is not there).
+ */
+function splitDetectorMessage(message: string): { title: string; evidence?: string } {
+  const separator = message.indexOf(": ");
+  if (separator > 0) {
+    const head = message.slice(0, separator);
+    if (/[/.]/.test(head) && !/\s/.test(head)) {
+      return { title: message.slice(separator + 2).trim(), evidence: head };
+    }
+  }
+  return { title: message };
+}
+
+/**
+ * ADR-011 §1: "findings are enumerated, never counted" — the Case A fix. Every
+ * detector already returns its patterns as strings; this turns them into
+ * addressable findings instead of a `.length`.
+ */
+export function enumerateDetectorFindings(
+  idPrefix: string,
+  messages: string[],
+  severity: RemediationSeverity,
+): BriefFinding[] {
+  return messages.map((message, index) => {
+    const { title, evidence } = splitDetectorMessage(message);
+    return {
+      id: `${idPrefix}/${index + 1}`,
+      title,
+      severity,
+      ...(evidence ? { evidence } : {}),
+    };
+  });
+}
+
+function briefVerdict(evaluation: GateEvaluation): BriefVerdict {
+  const mode = evaluation.gateMode ?? "risk-only";
+  if (mode === "release-ready" || mode === "advisory") {
+    if (evaluation.releaseReady === false) return "block";
+    return evaluation.gateDecision === "warn" ? "warn" : "allow";
+  }
+  return evaluation.gateDecision;
+}
+
+function briefTopMovers(
+  factors: RiskFactor[],
+): Array<{ factor: string; score: number }> | undefined {
+  const movers = [...factors]
+    .filter((factor) => factor.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map((factor) => ({ factor: factor.type, score: factor.score }));
+  return movers.length > 0 ? movers : undefined;
+}
+
+/**
+ * ADR-011 §1's `delta`. Two independent sources, either of which may be absent:
+ * the id-diff against the previous stored evaluation (verdict/risk/findings), and
+ * the remediation loop's own fix bookkeeping. A missing or unreachable previous
+ * evaluation omits the delta — it never errors.
+ */
+function briefDelta(
+  evaluation: GateEvaluation,
+  previous?: PreviousEvaluationSnapshot | null,
+): string | undefined {
+  const parts = [
+    previous
+      ? formatEvaluationDelta(
+          {
+            ...(previous.gateDecision !== undefined
+              ? { verdict: previous.gateDecision }
+              : {}),
+            ...(previous.riskScore !== undefined
+              ? { riskScore: previous.riskScore }
+              : {}),
+            ...(previous.findingIds !== undefined
+              ? { findingIds: previous.findingIds }
+              : {}),
+          },
+          {
+            verdict: evaluation.gateDecision,
+            riskScore: evaluation.riskScore,
+            ...(evaluation.enumeratedFindings !== undefined
+              ? { findingIds: evaluation.enumeratedFindings.map((f) => f.id) }
+              : {}),
+          },
+        )
+      : undefined,
+    briefRemediationDelta(evaluation),
+  ].filter((part): part is string => part !== undefined);
+
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function briefRemediationDelta(evaluation: GateEvaluation): string | undefined {
+  const remediation = evaluation.remediation;
+  if (!remediation?.previous_evaluation_id) return undefined;
+  const parts: string[] = [];
+  if (remediation.fixes_resolved.length > 0) {
+    parts.push(`resolved: ${remediation.fixes_resolved.join(", ")}`);
+  }
+  if (remediation.fixes_introduced.length > 0) {
+    parts.push(`introduced: ${remediation.fixes_introduced.join(", ")}`);
+  }
+  if (parts.length === 0) parts.push("no change in findings");
+  return `round ${remediation.loop_round} vs previous evaluation — ${parts.join("; ")}`;
+}
+
+function briefActions(
+  evaluation: GateEvaluation,
+  findings: BriefFinding[],
+  riskThreshold?: number,
+): BriefAction[] {
+  const actions: BriefAction[] = [];
+
+  for (const check of evaluation.ci?.checks ?? []) {
+    if (!checkCountsTowardBlocking(check)) continue;
+    if (
+      check.status !== "fail" &&
+      check.status !== "missing" &&
+      check.status !== "stale"
+    ) {
+      continue;
+    }
+    actions.push({
+      kind: "fix",
+      detail:
+        `CI input "${check.name}" is ${check.status.toUpperCase()} — fix it, or ` +
+        `classify it under \`contexts[].input_relevance\` if it is irrelevant to this branch pair.`,
+      ...(check.detailsUrl ? { link: check.detailsUrl } : {}),
+    });
+  }
+
+  for (const finding of findings) {
+    if (finding.severity !== "blocking") continue;
+    actions.push({ kind: "fix", detail: `${finding.title} (\`${finding.id}\`)` });
+  }
+
+  const pending = evaluation.ci?.pendingCount ?? 0;
+  if (pending > 0) {
+    actions.push({
+      kind: "wait",
+      detail: `${pending} blocking CI check(s) still pending — the gate re-evaluates when they finish.`,
+    });
+  }
+
+  if (
+    riskThreshold !== undefined &&
+    evaluation.riskScore > riskThreshold &&
+    !evaluation.policyOverride
+  ) {
+    actions.push({
+      kind: "override",
+      detail:
+        `Risk ${evaluation.riskScore} exceeds threshold ${riskThreshold}. To accept it on ` +
+        `the record, first comment \`${OVERRIDE_LABEL}: <rationale>\`, then add the ` +
+        `\`${OVERRIDE_LABEL}\` label so the label event re-evaluates this PR.`,
+    });
+  }
+
+  return actions;
+}
+
+/**
+ * Project a GateEvaluation onto ADR-011 §1's Release Brief. Pure — no I/O, no
+ * mutation — so it can be rebuilt from any stored evaluation.
+ */
+export function buildReleaseBrief(
+  evaluation: GateEvaluation,
+  riskThreshold?: number,
+  cannotEvaluateReason?: string,
+  previous?: PreviousEvaluationSnapshot | null,
+): ReleaseBrief {
+  const findings = evaluation.enumeratedFindings ?? [];
+  const override = evaluation.policyOverride;
+  const overrideFeedback = evaluation.labelOverrideFeedback;
+  const delta = briefDelta(evaluation, previous);
+
+  return {
+    verdict: cannotEvaluateReason ? "cannot_evaluate" : briefVerdict(evaluation),
+    riskScore: evaluation.riskScore,
+    ...(riskThreshold !== undefined ? { riskThreshold } : {}),
+    ...(briefTopMovers(evaluation.riskFactors)
+      ? { topMovers: briefTopMovers(evaluation.riskFactors) }
+      : {}),
+    findings,
+    // Every input gets a row, including the ones that did not count, and every
+    // row states its reason (ADR-011 §1).
+    inputs: (evaluation.ci?.checks ?? []).map((check) => {
+      // No disposition attached means a summary built outside applyInputRelevance
+      // (or a pre-ADR-011 stored evaluation being re-rendered). Resolving against
+      // an empty policy table IS the default mapping, and keeps the reason column
+      // self-describing instead of blank.
+      const disposition =
+        check.disposition ??
+        resolveDisposition(
+          { name: check.name, status: check.status, required: check.required },
+          [],
+        );
+      return {
+        checkName: check.name,
+        status: check.status,
+        disposition: disposition.kind,
+        ...(disposition.reason ? { reason: disposition.reason } : {}),
+      };
+    }),
+    ...(delta ? { delta } : {}),
+    actions: briefActions(evaluation, findings, riskThreshold),
+    // ADR-011 §3 maps the audit's {owner, appliedAt, reason} onto {by, at, rationale}.
+    override: override
+      ? {
+          by: override.owner,
+          at: override.appliedAt,
+          scope: override.scope ?? "full",
+          rationale: override.reason,
+        }
+      : null,
+    ...(overrideFeedback &&
+    (overrideFeedback.status !== "applied" ||
+      overrideFeedback.source === "payload_fallback")
+      ? {
+          overrideStatus: {
+            status: overrideFeedback.status,
+            message: overrideFeedback.message,
+            ...(overrideFeedback.source ? { source: overrideFeedback.source } : {}),
+          },
+        }
+      : {}),
+    ...(cannotEvaluateReason ? { cannotEvaluateReason } : {}),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// ADR-011 §4 — availability stance
+// ---------------------------------------------------------------------------
+
+// The stance belongs to the matched context, which is only known *inside*
+// evaluateGate — but it has to be readable by main.ts's top-level catch, i.e.
+// after evaluateGate has already thrown. Stashing it here avoids loading and
+// re-matching the repo config a second time just to answer "open or closed?".
+let lastAvailabilityStance: AvailabilityStance | null = null;
+let lastResolvedCheckContract: { name: string; mode: GateMode } | null = null;
+
+/**
+ * The availability stance of the context the most recent evaluation matched, or
+ * null when no context matched (or the run failed before matching). Null means
+ * "no per-context stance" — the caller keeps its action-input fail-mode.
+ */
+export function getResolvedAvailabilityStance(): AvailabilityStance | null {
+  return lastAvailabilityStance;
+}
+
+/** Test seam, and the reset evaluateGate performs on entry. */
+export function setResolvedAvailabilityStance(stance: AvailabilityStance | null): void {
+  lastAvailabilityStance = stance;
+}
+
+/** Effective custom-check contract reached by the latest evaluation, for catch paths. */
+export function getResolvedCheckContract(): { name: string; mode: GateMode } | null {
+  return lastResolvedCheckContract;
+}
+
+/** Test seam, and the reset/set performed by evaluateGate. */
+export function setResolvedCheckContract(
+  contract: { name: string; mode: GateMode } | null,
+): void {
+  lastResolvedCheckContract = contract;
+}
+
+/**
+ * ADR-011 §1: "silence is a bug." When the evaluation could not run at all there is
+ * no GateEvaluation to project, so the brief is built from the failure itself.
+ */
+export function buildCannotEvaluateBrief(
+  reason: string,
+  stance: AvailabilityStance,
+): ReleaseBrief {
+  const actions: BriefAction[] = [
+    {
+      kind: "fix",
+      detail:
+        "Resolve the failure above and re-run the Trailhead job. Until it runs, no " +
+        "risk score, no input dispositions and no findings exist for this commit.",
+    },
+    stance === "fail_closed"
+      ? {
+          kind: "wait",
+          detail:
+            "Availability stance is fail_closed: no verdict means no merge. Break-glass " +
+            "is a GitHub admin merge — visible and extraordinary, and it records nothing.",
+        }
+      : {
+          kind: "wait",
+          detail:
+            "Availability stance is fail_open: Trailhead will publish a NEUTRAL " +
+            "cannot-evaluate custom check when GitHub Checks access is available — it " +
+            "does not block the merge and does not claim a verdict this run never " +
+            "reached. A publication failure can still leave branch protection pending.",
+        },
+  ];
+
+  return {
+    verdict: "cannot_evaluate",
+    findings: [],
+    inputs: [],
+    actions,
+    override: null,
+    cannotEvaluateReason: reason,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1599,14 +2261,25 @@ export async function evaluateGate(
   config: TrailheadConfig,
   commitSha: string,
   prNumber?: number,
+  prMetadata?: EvaluationPrMetadata,
 ): Promise<GateEvaluation> {
   const start = Date.now();
+  // Nothing is known about this run's availability stance until a context matches.
+  setResolvedAvailabilityStance(null);
+  setResolvedCheckContract(null);
+  // Labels are read live here, before anything consumes them, so merge-queue
+  // detection, context matching and the label override all see the same
+  // current truth rather than the triggering event's snapshot. This is the ONE
+  // live label read of an evaluation.
+  const prMatchCtx = await resolvePrMatchContext({
+    metadata: prMetadata,
+    prNumber,
+    token: config.githubToken,
+  });
 
   const isMergeQueue =
     github.context.eventName === "merge_group" ||
-    (
-      github.context.payload?.pull_request?.labels as Array<{ name: string }> | undefined
-    )?.some((l) => l.name === "queue" || l.name.includes("merge-queue")) === true;
+    prMatchCtx.labels.some((label) => label === "queue" || label.includes("merge-queue"));
 
   if (isMergeQueue) {
     core.info("Merge queue detected — adjusting evaluation (skipping author_history)");
@@ -1616,6 +2289,14 @@ export async function evaluateGate(
     prNumber ? fetchPrFiles(prNumber, config.githubToken) : Promise.resolve([]),
     loadRepoConfig(config.githubToken),
   ]);
+  const submissionMode = repoConfig?.submission?.mode ?? "block";
+  const submissionEnabled =
+    config.submissionGate === true || repoConfig?.submission?.enabled === true;
+  if (submissionEnabled && config.githubToken) {
+    const octokit = github.getOctokit(config.githubToken);
+    const { owner, repo } = github.context.repo;
+    await hydrateChangedRouteContents(octokit, owner, repo, commitSha, files);
+  }
   const changedFiles = files.map((f) => f.filename);
 
   const [
@@ -1655,7 +2336,16 @@ export async function evaluateGate(
     repoConfig?.schema_version ?? 1,
     config.gateMode,
   );
-  const prMatchCtx = getPrMatchContext();
+  const resolvedCheckName = resolveCheckName(
+    gateMode,
+    config.checkName ?? repoConfig?.gate?.check_name,
+  );
+  setResolvedCheckContract({ name: resolvedCheckName, mode: gateMode });
+  // config.waitForChecks is tri-state: an explicit wait-for-checks input
+  // (true/false) always wins. Left unset, default to waiting on the
+  // EFFECTIVE gate mode resolved just above — which folds in .trailhead.yml
+  // — not the raw action input alone.
+  const waitForChecksEffective = config.waitForChecks ?? gateMode === "release-ready";
   const matchedContext =
     repoConfig?.contexts && repoConfig.contexts.length > 0
       ? matchContext(repoConfig.contexts, prMatchCtx)
@@ -1664,6 +2354,15 @@ export async function evaluateGate(
   if (matchedContext) {
     core.info(
       `Matched context "${matchedContext.matched.name}" for base=${prMatchCtx.baseRef}`,
+    );
+  }
+
+  // ADR-011 §4 — a per-branch-pair stance overrides the action-input fail-mode.
+  const availabilityStance = matchedContext?.context.availability ?? null;
+  setResolvedAvailabilityStance(availabilityStance);
+  if (availabilityStance) {
+    core.info(
+      `Availability stance: ${availabilityStance} (context "${matchedContext?.matched.name}")`,
     );
   }
 
@@ -1733,7 +2432,7 @@ export async function evaluateGate(
   const ciIntegrityConfig = repoConfig?.policies?.ci_integrity;
   const ciIntegrity =
     ciIntegrityConfig?.enabled === false
-      ? { factor: null, blockingPatterns: [] }
+      ? { factor: null, blockingPatterns: [], warningSignals: [] }
       : detectCiIntegrityRisk(files);
   if (ciIntegrity.factor) {
     riskFactors.push(ciIntegrity.factor);
@@ -1870,6 +2569,15 @@ export async function evaluateGate(
     repoConfig,
     provenance,
     currentRiskThreshold: adjustedRiskThreshold,
+    matchedContextName: matchedContext?.matched.name,
+    headSha: commitSha,
+    prAuthorLogin: prMetadata
+      ? prMetadata.authorLogin
+      : (
+          github.context.payload?.pull_request as
+            | { user?: { login?: string } }
+            | undefined
+        )?.user?.login,
   });
   if (agentPolicy?.adjustedRiskThreshold !== undefined) {
     adjustedRiskThreshold = agentPolicy.adjustedRiskThreshold;
@@ -1879,9 +2587,6 @@ export async function evaluateGate(
   }
 
   let submissionChecks: SubmissionCheckResult[] = [];
-  const submissionMode = repoConfig?.submission?.mode ?? "block";
-  const submissionEnabled =
-    config.submissionGate === true || repoConfig?.submission?.enabled === true;
   if (submissionEnabled && files.length > 0) {
     for (const warning of getSubmissionConfigWarnings(repoConfig?.submission)) {
       core.warning(warning);
@@ -1912,6 +2617,8 @@ export async function evaluateGate(
       files: files.map((f) => ({
         filename: f.filename,
         patch: f.patch,
+        status: f.status,
+        content: f.content,
         additions: f.additions,
       })),
       repoConfig,
@@ -1921,12 +2628,13 @@ export async function evaluateGate(
       declaredPackages: parseDeclaredPackages(process.env.TRAILHEAD_DECLARED_PACKAGES),
       catalogKnownEntities,
       repoPaths,
-      // promotion_coherence (ADR-010): branch topology from the Actions env.
+      // promotion_coherence (ADR-010): use the fetched PR topology for
+      // evaluate-pr backfills, with the event-derived context as the normal path.
       promotion:
-        process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
+        prMetadata || process.env.GITHUB_BASE_REF || process.env.GITHUB_HEAD_REF
           ? {
-              baseBranch: process.env.GITHUB_BASE_REF,
-              headBranch: process.env.GITHUB_HEAD_REF,
+              baseBranch: prMatchCtx.baseRef,
+              headBranch: prMatchCtx.headRef,
             }
           : undefined,
       // close_on_ship_link: the PR body carries the `Closes task: <id>` convention.
@@ -1946,15 +2654,21 @@ export async function evaluateGate(
     repoConfig,
   });
   const sessionCfg = repoConfig?.policies?.session_correlation;
+  // Kept as its own list so ADR-011 §1 can enumerate the burst instead of
+  // burying it in the undifferentiated policyFindings prose.
+  const sessionCorrelationFindings: string[] = [];
   if (sessionCorrelation && sessionCfg) {
     const threshold = sessionCfg.threshold;
     if (sessionCorrelation.burstCount >= threshold) {
-      policyFindings.push(
+      sessionCorrelationFindings.push(
         `Rapid-fire merge burst detected: ${sessionCorrelation.burstCount} merged PRs in ${sessionCorrelation.windowMinutes} minutes.`,
       );
       if (sessionCfg.mode === "block") {
-        policyFindings.push("Session correlation policy is configured to block.");
+        sessionCorrelationFindings.push(
+          "Session correlation policy is configured to block.",
+        );
       }
+      policyFindings.push(...sessionCorrelationFindings);
     }
   }
 
@@ -1980,6 +2694,15 @@ export async function evaluateGate(
   );
   if (sensitiveEscalation.reason) policyFindings.push(sensitiveEscalation.reason);
 
+  const sessionCorrelationBlocks =
+    sessionCorrelation !== null &&
+    sessionCfg !== undefined &&
+    sessionCorrelation.burstCount >= sessionCfg.threshold &&
+    sessionCfg.mode === "block";
+  const submissionBlocks =
+    submissionChecks.length > 0 &&
+    submissionGateShouldBlock(submissionChecks, submissionMode);
+
   const gateDecision =
     agentPolicy?.forceBlock === true ||
     sensitiveEscalation.block ||
@@ -1996,16 +2719,100 @@ export async function evaluateGate(
       (duplicateLogicConfig?.mode ?? "warn") === "block") ||
     ((crossRepoImpact.factor?.score ?? 0) >= 60 &&
       (repoConfig?.policies?.cross_repo_impact?.mode ?? "warn") === "block") ||
-    (sessionCorrelation &&
-      sessionCfg &&
-      sessionCorrelation.burstCount >= sessionCfg.threshold &&
-      sessionCfg.mode === "block") ||
-    (submissionChecks.length > 0 &&
-      submissionGateShouldBlock(submissionChecks, submissionMode))
+    sessionCorrelationBlocks ||
+    submissionBlocks
       ? ("block" as GateDecision)
       : sensitiveEscalation.warn && baselineDecision === "allow"
         ? ("warn" as GateDecision)
         : baselineDecision;
+
+  // ADR-011 §1 (Case A): the count-strings below stay for existing consumers, but
+  // the individual patterns are now carried through to the evaluation so the
+  // Release Brief can enumerate them instead of printing a bare number.
+  const enumeratedFindings: BriefFinding[] = [
+    ...enumerateDetectorFindings(
+      "ci_integrity",
+      ciIntegrity.blockingPatterns,
+      "blocking",
+    ),
+    ...enumerateDetectorFindings(
+      "ci_integrity_warning",
+      ciIntegrity.warningSignals,
+      "warn",
+    ),
+    ...enumerateDetectorFindings(
+      "workflow_security",
+      workflowSecurity.blockingPatterns,
+      "blocking",
+    ),
+    ...enumerateDetectorFindings(
+      "workflow_security_warning",
+      workflowSecurity.warnings,
+      "warn",
+    ),
+    ...enumerateDetectorFindings(
+      "prompt_injection",
+      promptInjection.blockingPatterns,
+      "blocking",
+    ),
+    ...enumerateDetectorFindings(
+      "prompt_injection_warning",
+      promptInjection.warnings,
+      "warn",
+    ),
+    ...enumerateDetectorFindings(
+      "supply_chain",
+      supplyChain.blockingPatterns,
+      "blocking",
+    ),
+    ...enumerateDetectorFindings("supply_chain_warning", supplyChain.warnings, "warn"),
+    ...enumerateDetectorFindings("pr_scope", prScope.findings, "advisory"),
+    ...enumerateDetectorFindings("duplicate_logic", duplicateLogic.findings, "advisory"),
+    ...enumerateDetectorFindings(
+      "cross_repo_impact",
+      crossRepoImpact.findings,
+      "advisory",
+    ),
+    // The four block-capable sources below are not detector pattern lists, so
+    // they used to reach the evaluation as prose in `policyFindings` only. A
+    // BLOCK caused by any of them would then render as "No findings." — the
+    // exact silence ADR-011 §1 forbids.
+    ...enumerateDetectorFindings(
+      "agent_policy",
+      agentPolicy?.findings ?? [],
+      agentPolicy?.forceBlock === true ? "blocking" : "warn",
+    ),
+    ...enumerateDetectorFindings(
+      "agent_policy_notice",
+      agentPolicy?.notices ?? [],
+      "advisory",
+    ),
+    // A single escalation verdict, so its id is fixed rather than enumerated.
+    ...(sensitiveEscalation.reason
+      ? [
+          {
+            id: "sensitive_files/0",
+            title: sensitiveEscalation.reason,
+            severity: sensitiveEscalation.block
+              ? ("blocking" as const)
+              : ("warn" as const),
+          },
+        ]
+      : []),
+    ...enumerateDetectorFindings(
+      "session_correlation",
+      sessionCorrelationFindings,
+      sessionCorrelationBlocks ? "blocking" : "warn",
+    ),
+    // `policyFindings` only ever carried the submission count; the per-check
+    // code/title/detail/severity is what a human actually needs.
+    ...submissionChecks.map((check, index) => ({
+      id: `submission/${check.code}/${index + 1}`,
+      title: check.title,
+      evidence: check.detail,
+      severity: check.severity,
+    })),
+  ];
 
   if (ciIntegrity.blockingPatterns.length > 0) {
     policyFindings.push(
@@ -2125,6 +2932,7 @@ export async function evaluateGate(
     evaluationMs: Date.now() - start,
     environment: effectiveEnvironment,
     policyFindings: policyFindings.length > 0 ? policyFindings : undefined,
+    enumeratedFindings: enumeratedFindings.length > 0 ? enumeratedFindings : undefined,
     pr: prNumber
       ? {
           provenance:
@@ -2147,6 +2955,7 @@ export async function evaluateGate(
     escalation_status: escalationStatus,
     trust_profile: trustProfile,
     gateMode,
+    resolvedCheckName,
     context: matchedContext?.matched,
     submissionChecks: submissionChecks.length > 0 ? submissionChecks : undefined,
     cross_repo_impact:
@@ -2177,13 +2986,24 @@ export async function evaluateGate(
         missing_required: "fail" as const,
       };
       const excludeCheckNames = [
-        resolveCheckName(gateMode, repoConfig?.gate?.check_name ?? config.checkName),
+        resolvedCheckName,
         "Trailhead",
         "Trailhead — Release Ready",
       ];
       const ciManifest = config.ciManifest ?? null;
+      const inputRelevance = matchedContext?.context.input_relevance ?? [];
 
-      if (config.waitForChecks && ciConfig.required_checks.length > 0) {
+      // A repo can (and komatik does) declare blocking checks purely via
+      // `input_relevance`, with no `ci.required_checks` at all — every check
+      // then carries `required: false`, so gating the wait on
+      // `ciConfig.required_checks.length > 0` skipped the wait path entirely
+      // for exactly that shape, even in release-ready mode with
+      // wait-timeout-minutes configured (komatik run 32800812922). The
+      // decision to wait is `waitForChecksEffective` alone; what's actually
+      // pending is resolved against the input_relevance-aware blocking set
+      // (passed through so `waitForChecks`' own poll-exit condition uses it,
+      // not just `required_checks`).
+      if (waitForChecksEffective) {
         ciSummary = await waitForChecks({
           octokit,
           owner,
@@ -2193,6 +3013,7 @@ export async function evaluateGate(
           excludeCheckNames,
           timeoutMinutes: config.waitTimeoutMinutes ?? 30,
           manifest: ciManifest,
+          inputRelevance,
         });
       } else {
         const checks = await fetchCheckRuns(octokit, {
@@ -2203,6 +3024,12 @@ export async function evaluateGate(
         });
         ciSummary = evaluateRequiredChecks(checks, ciConfig, ciManifest);
       }
+      // ADR-011 §2 — resolve each input's disposition before anything reads the
+      // summary. With no input_relevance config this is a pure annotation pass.
+      // `waitForChecks` above already applied this internally (to decide when
+      // to stop polling); re-applying here is idempotent — same checks, same
+      // entries — and guarantees the non-wait branch gets identical treatment.
+      ciSummary = applyInputRelevance(ciSummary, inputRelevance);
       localEvaluation.ci = ciSummary;
     } catch (error) {
       core.warning(`CI orchestration failed (non-blocking): ${error}`);
@@ -2235,12 +3062,21 @@ export async function evaluateGate(
     gateMode,
   );
 
-  if (prNumber && config.githubToken && hasOverrideLabel(prMatchCtx.labels)) {
+  // Only reach for comments when there is override INTENT. The live labels
+  // resolved at the top of this evaluation are that signal; without the label
+  // there is nothing an override comment could authorize, and fetching 100
+  // comments on every PR evaluation is a rate-limit cost for no answer.
+  if (prNumber && hasOverrideLabel(prMatchCtx.labels)) {
+    const overrideState = await fetchOverridePrState(
+      prNumber,
+      config.githubToken,
+      prMatchCtx.labels,
+    );
     localEvaluation = await applyLabelOverrideIfNeeded({
       evaluation: localEvaluation,
       config,
       repoConfig,
-      prMatchCtx,
+      overrideState,
       prNumber,
       releaseResult,
       gateDecision,
@@ -2276,23 +3112,25 @@ export async function evaluateGate(
   });
   localEvaluation.agentBriefMode = agentBriefMode;
 
+  // Fetched once, outside the remediation branch: ADR-011 §1's delta needs the
+  // previous evaluation even in repos that have remediation turned off.
+  let previousEvaluation: PreviousEvaluationSnapshot | null = null;
+  if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
+    try {
+      previousEvaluation = await fetchPreviousEvaluationForPr({
+        repoId: localEvaluation.repoId,
+        prNumber,
+        excludeEvaluationId: localEvaluation.id,
+        storeUrl: config.evaluationStoreUrl,
+        apiKey: config.trailheadApiKey,
+      });
+    } catch (error) {
+      core.debug(`Previous evaluation lookup failed: ${error}`);
+    }
+  }
+
   const remediationEnabled = remediationSettings?.enabled !== false;
   if (remediationEnabled) {
-    let previousEvaluation = null;
-    if (prNumber && (config.evaluationStoreUrl || process.env.SUPABASE_URL)) {
-      try {
-        previousEvaluation = await fetchPreviousEvaluationForPr({
-          repoId: localEvaluation.repoId,
-          prNumber,
-          excludeEvaluationId: localEvaluation.id,
-          storeUrl: config.evaluationStoreUrl,
-          apiKey: config.trailheadApiKey,
-        });
-      } catch (error) {
-        core.debug(`Previous evaluation lookup failed: ${error}`);
-      }
-    }
-
     localEvaluation.remediation = buildRemediation({
       evaluation: {
         id: localEvaluation.id,
@@ -2302,6 +3140,12 @@ export async function evaluateGate(
         releaseReadyReasons: localEvaluation.releaseReadyReasons,
         policyFindings: localEvaluation.policyFindings,
         gateDecision: localEvaluation.gateDecision,
+        // Without these three, derivePolicyFindingFixes falls back to the
+        // gate-decision severity (warn findings surface as blocking) and
+        // risk.over_threshold has nothing to resolve in risk-only mode.
+        enumeratedFindings: localEvaluation.enumeratedFindings,
+        riskScore: localEvaluation.riskScore,
+        riskThreshold: adjustedRiskThreshold,
       },
       previousEvaluation,
       maxLoopRounds: remediationSettings?.max_loop_rounds ?? 3,
@@ -2312,12 +3156,73 @@ export async function evaluateGate(
     });
   }
 
+  // ADR-011 §1 — built last so it sees release-readiness, the override outcome
+  // and the remediation delta.
+  localEvaluation.releaseBrief = buildReleaseBrief(
+    localEvaluation,
+    adjustedRiskThreshold,
+    undefined,
+    previousEvaluation,
+  );
+
   return localEvaluation;
 }
 
 // ---------------------------------------------------------------------------
 // PR comment posting
 // ---------------------------------------------------------------------------
+
+/**
+ * Safety bound for anything handed to GitHub as a report body. Issue comments
+ * cap at 65536 characters and a check run's `output.summary` at 65535; one
+ * number under both leaves room for the comment marker.
+ */
+export const MAX_GATE_REPORT_CHARS = 65000;
+
+const BRIEF_HEADING = "## Release Brief";
+const BRIEF_SEPARATOR = "\n\n---\n\n";
+
+/** Cut points that leave the surviving markdown structurally intact. */
+const SECTION_BOUNDARIES = ["\n\n#", "\n\n<details>", "\n\n"];
+
+/**
+ * Clamp a gate report to what GitHub will actually accept.
+ *
+ * `renderReleaseBrief` already caps the brief itself, but the legacy report
+ * appended below it is unbounded (the files-changed list alone grows with the
+ * PR). Only that tail is trimmed — the brief is the decision, so it survives
+ * intact — and the reader is told where the full detail still lives.
+ */
+export function clampGateReport(
+  report: string,
+  maxChars: number = MAX_GATE_REPORT_CHARS,
+): string {
+  if (report.length <= maxChars) return report;
+
+  const notice =
+    `\n\n_…report truncated (${report.length - maxChars} chars over GitHub's ` +
+    `comment limit) — full detail in the stored evaluation / job summary._`;
+  const budget = maxChars - notice.length;
+  if (budget <= 0) return report.slice(0, maxChars);
+
+  // Never cut into the brief: keep everything up to its trailing separator.
+  const briefStart = report.indexOf(BRIEF_HEADING);
+  const separator = briefStart >= 0 ? report.indexOf(BRIEF_SEPARATOR, briefStart) : -1;
+  const floor = separator >= 0 ? separator + BRIEF_SEPARATOR.length : 0;
+  if (floor >= budget) return `${report.slice(0, budget)}${notice}`;
+
+  const head = report.slice(0, budget);
+  let cut = budget;
+  for (const boundary of SECTION_BOUNDARIES) {
+    const index = head.lastIndexOf(boundary);
+    if (index > floor) {
+      cut = index;
+      break;
+    }
+  }
+
+  return `${report.slice(0, cut).trimEnd()}${notice}`;
+}
 
 export async function postOverrideRejectionComment(
   prNumber: number,
@@ -2332,7 +3237,7 @@ export async function postOverrideRejectionComment(
       `${MARKER}\n` +
       `### Trailhead override rejected\n\n` +
       `${message}\n\n` +
-      `_This comment is updated automatically when the \`trailhead-override\` label is present._`;
+      `_This comment is updated automatically when Trailhead detects override intent it cannot honor._`;
 
     const { data: comments } = await octokit.rest.issues.listComments({
       owner,
@@ -2379,7 +3284,7 @@ export async function postPrComment(
       per_page: 100,
     });
     const MARKER = "<!-- trailhead-gate-report -->";
-    const body = `${MARKER}\n${report}`;
+    const body = clampGateReport(`${MARKER}\n${report}`);
 
     const existing = comments.find((c) => c.body?.includes(MARKER));
 
@@ -2399,7 +3304,9 @@ export async function postPrComment(
       });
     }
   } catch (error) {
-    core.debug(`Failed to post PR comment: ${error}`);
+    // Fail-soft, but never silent: a missing gate comment is a visible gap in
+    // the record, so it belongs in the run log rather than in debug output.
+    core.warning(`Failed to post PR comment: ${error}`);
   }
 }
 
@@ -2407,44 +3314,201 @@ export async function postPrComment(
 // GitHub Check Run
 // ---------------------------------------------------------------------------
 
-export async function createCheckRun(
+export interface CheckRunPublication {
+  published: boolean;
+  name: string;
+  headSha: string;
+  checkRunId?: number;
+  checkSuiteId?: number;
+  /**
+   * True when this run deliberately did NOT publish because a strictly
+   * newer run (by `external_id` / workflow run id) already published a
+   * completed check for the same name + head SHA. See
+   * `findNewerPublishedRunId` — this is the completion-order guard that
+   * backs up the concurrency group's start-order cancellation (train-37).
+   */
+  superseded?: boolean;
+  /** The run id that superseded this one, when `superseded` is true. */
+  supersededByRunId?: number;
+}
+
+function checkRunOutput(
   evaluation: GateEvaluation,
   report: string,
-  token: string,
-  checkName?: string,
-): Promise<void> {
-  try {
-    const octokit = github.getOctokit(token);
-    const { owner, repo } = github.context.repo;
-
-    const mode = evaluation.gateMode ?? "risk-only";
-    const name = checkName ?? resolveCheckName(mode);
-    const conclusion = checkConclusionForEvaluation(evaluation);
-
-    const titleSuffix =
-      mode === "release-ready"
+  name: string,
+): { title: string; summary: string; text?: string } {
+  const mode = evaluation.gateMode ?? "risk-only";
+  const titleSuffix =
+    evaluation.releaseBrief?.verdict === "cannot_evaluate"
+      ? evaluation.gateDecision === "allow"
+        ? "CANNOT EVALUATE (FAIL-OPEN)"
+        : "CANNOT EVALUATE (FAIL-CLOSED)"
+      : mode === "release-ready"
         ? evaluation.releaseReady
           ? "RELEASE READY"
           : "NOT READY"
         : evaluation.gateDecision.toUpperCase();
 
-    await octokit.rest.checks.create({
+  return {
+    title: `${name}: ${titleSuffix}`,
+    summary: clampGateReport(report),
+    ...(evaluation.storePersisted === false
+      ? { text: "Evaluation not persisted — dashboard incomplete." }
+      : {}),
+  };
+}
+
+/**
+ * ADR-012 D2/D3 concurrency hardening (train-37): the workflow's
+ * `cancel-in-progress` group guarantees at most one LIVE run per PR, but it
+ * cancels by START order — a run cancellation signal races the run's own
+ * remaining steps, so an older run that started before a newer, authoritative
+ * one is not guaranteed to die before it reaches this publish step. Without a
+ * completion-order guard, a slow older run finishing last can publish a
+ * stale conclusion AFTER the newer run already published a fresh one,
+ * stranding the PR on the stale check until another event re-triggers.
+ *
+ * Every publish tags its check run with `external_id` = the triggering
+ * workflow run id (monotonically increasing). Before publishing, this looks
+ * for an already-published check of the same name on the same head SHA whose
+ * `external_id` is a STRICTLY NEWER run id, and skips publishing if so — the
+ * newer run's verdict already stands and must not be overwritten by a late
+ * straggler. It never blocks on an OLDER unpublished run (that run's own
+ * guard — or the concurrency cancellation — handles it), and a lookup
+ * failure fails OPEN to publishing so a lone, ordinary evaluation is never
+ * held back by this safety net.
+ */
+async function findNewerPublishedRunId(input: {
+  octokit: ReturnType<typeof github.getOctokit>;
+  owner: string;
+  repo: string;
+  headSha: string;
+  name: string;
+  runId: number;
+}): Promise<number | undefined> {
+  if (!Number.isFinite(input.runId)) return undefined;
+  try {
+    const { data } = await input.octokit.rest.checks.listForRef({
+      owner: input.owner,
+      repo: input.repo,
+      ref: input.headSha,
+      check_name: input.name,
+      filter: "all",
+      per_page: 30,
+    });
+    let maxSeen: number | undefined;
+    for (const run of data.check_runs) {
+      const externalId = (run as { external_id?: string | null }).external_id;
+      if (!externalId) continue;
+      const parsed = Number(externalId);
+      if (!Number.isFinite(parsed)) continue;
+      if (maxSeen === undefined || parsed > maxSeen) maxSeen = parsed;
+    }
+    if (maxSeen !== undefined && maxSeen > input.runId) return maxSeen;
+    return undefined;
+  } catch (error) {
+    core.debug(`Could not check for a newer published run before publishing: ${error}`);
+    return undefined;
+  }
+}
+
+export async function createCheckRun(
+  evaluation: GateEvaluation,
+  report: string,
+  token: string,
+  checkName?: string,
+  runId: number = github.context.runId,
+): Promise<CheckRunPublication> {
+  const mode = evaluation.gateMode ?? "risk-only";
+  const name = checkName ?? resolveCheckName(mode);
+  try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+
+    const supersededBy = await findNewerPublishedRunId({
+      octokit,
+      owner,
+      repo,
+      headSha: evaluation.commitSha,
+      name,
+      runId,
+    });
+    if (supersededBy !== undefined) {
+      core.info(
+        `Skipping check publication for \`${name}\` on \`${evaluation.commitSha}\`: ` +
+          `this run (${runId}) was superseded by run ${supersededBy}, which already ` +
+          "published a newer evaluation for this PR revision. This is the intended " +
+          "last-write-wins outcome, not a failure.",
+      );
+      return {
+        published: false,
+        name,
+        headSha: evaluation.commitSha,
+        superseded: true,
+        supersededByRunId: supersededBy,
+      };
+    }
+
+    const conclusion = checkConclusionForEvaluation(evaluation);
+
+    const response = await octokit.rest.checks.create({
       owner,
       repo,
       name,
       head_sha: evaluation.commitSha,
       status: "completed",
       conclusion,
-      output: {
-        title: `${name}: ${titleSuffix}`,
-        summary: report,
-        ...(evaluation.storePersisted === false
-          ? { text: "Evaluation not persisted — dashboard incomplete." }
-          : {}),
-      },
+      ...(Number.isFinite(runId) ? { external_id: String(runId) } : {}),
+      output: checkRunOutput(evaluation, report, name),
     });
+    return {
+      published: true,
+      name,
+      headSha: evaluation.commitSha,
+      ...(response?.data?.id ? { checkRunId: response.data.id } : {}),
+      ...(response?.data?.check_suite?.id
+        ? { checkSuiteId: response.data.check_suite.id }
+        : {}),
+    };
   } catch (error) {
-    core.debug(`Failed to create check run: ${error}`);
+    // Fail-soft, but never silent — see postPrComment.
+    core.warning(`Failed to create check run: ${error}`);
+    return { published: false, name, headSha: evaluation.commitSha };
+  }
+}
+
+/**
+ * Refresh the newly-created custom check after publication lineage and store
+ * outcome are known. This keeps its rendered Release Brief identical to the
+ * action summary and PR comment without creating a second check context.
+ */
+export async function updateCheckRunReport(
+  publication: CheckRunPublication,
+  evaluation: GateEvaluation,
+  report: string,
+  token: string,
+): Promise<boolean> {
+  if (!publication.published) return false;
+  if (!publication.checkRunId) {
+    core.warning(
+      "Created custom check did not return an id; its report could not be refreshed.",
+    );
+    return false;
+  }
+
+  try {
+    const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
+    await octokit.rest.checks.update({
+      owner,
+      repo,
+      check_run_id: publication.checkRunId,
+      output: checkRunOutput(evaluation, report, publication.name),
+    });
+    return true;
+  } catch (error) {
+    core.warning(`Failed to refresh check-run report: ${error}`);
+    return false;
   }
 }
 
@@ -2638,6 +3702,27 @@ function buildScoreBar(score: number, threshold: number): string {
   return `\`${bar}\` ${score}/100 (threshold: ${threshold})`;
 }
 
+/** A directory segment that names a migrations directory: `migrations`, `migration`, `db_migrations`. */
+const MIGRATIONS_SEGMENT = /^[\w.-]*migrations?$/i;
+
+/**
+ * True only when the path genuinely lives under a migrations directory — the first
+ * two *directory* segments (never the filename) are what a repo layout puts it in.
+ *
+ * The bucket used to be earned by `/^(migrations?|supabase)/` on the top segment,
+ * which labelled every `supabase/**` file as schema: komatik#4041's six
+ * `supabase/functions/_shared/` edge-function files were narrated as
+ * "database/migrations/ changes (6 files)" on a PR carrying no migration at all.
+ * A split suggestion is guidance a reviewer acts on, so it names the repo's real
+ * layout or nothing.
+ */
+function isMigrationsPath(parts: string[]): boolean {
+  return parts
+    .slice(0, -1)
+    .slice(0, 2)
+    .some((segment) => MIGRATIONS_SEGMENT.test(segment));
+}
+
 export function suggestSplitBoundaries(files: string[]): string[] {
   if (files.length < 5) return [];
 
@@ -2648,9 +3733,11 @@ export function suggestSplitBoundaries(files: string[]): string[] {
 
     if (parts[0] === ".github") {
       bucket = "CI/workflow";
-    } else if (/^(migrations?|supabase)/i.test(parts[0])) {
+    } else if (isMigrationsPath(parts)) {
       bucket = "database/migrations";
     } else if (parts.length >= 2) {
+      // Everything else is labelled by its literal two-segment prefix, so the
+      // suggestion can only ever name a directory the PR actually touched.
       bucket = parts.slice(0, 2).join("/");
     } else {
       bucket = parts[0];
@@ -2857,7 +3944,15 @@ export function formatGateReport(
         ? "✅"
         : "🚫"
       : decisionIcon(evaluation.gateDecision);
-  const threshold = riskThreshold ?? 70;
+  const brief = evaluation.releaseBrief;
+  // ADR-011 §1 — one threshold per report. `riskThreshold` is the caller's BASE
+  // input; the brief carries the threshold the evaluation was actually judged
+  // against (context/environment overrides, agent-PR policy, trust deltas). A
+  // live brief read "risk 53 (threshold 50)" over a legacy table saying
+  // "(threshold 70)" — the brief is the single source, and every threshold
+  // mention below reads from it.
+  const effectiveRiskThreshold = brief?.riskThreshold ?? riskThreshold;
+  const threshold = effectiveRiskThreshold ?? 70;
   const healthDisplay =
     evaluation.healthChecks.length > 0
       ? `${evaluation.healthScore}/100`
@@ -2875,26 +3970,51 @@ export function formatGateReport(
         : "NOT RELEASE READY"
       : evaluation.gateDecision.toUpperCase();
 
-  const lines: string[] = [
-    `## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`,
-    ``,
-  ];
+  const lines: string[] = [];
+
+  // ADR-011 §1 — the brief leads; the pre-existing report stays below it so the
+  // same `<!-- trailhead-gate-report -->` comment upgrades in place.
+  if (brief) {
+    lines.push(
+      renderReleaseBrief(brief, {
+        // The same markdown becomes a check run's output.summary, which GitHub
+        // caps at 65535 characters; leave room for the report below.
+        maxChars: BRIEF_MAX_CHARS,
+        ...(evaluation.reportUrl ? { storedEvaluationUrl: evaluation.reportUrl } : {}),
+      }),
+      ``,
+      `---`,
+      ``,
+    );
+  }
+
+  lines.push(`## ${icon} Trailhead — ${headline}${envLabel}${contextLabel}`, ``);
 
   if (mode === "release-ready" || mode === "advisory") {
+    // ADR-011 §1 — once the brief leads, the legacy report stops repeating it.
+    // Verdict, risk-vs-threshold and the input table are the brief's job; stating
+    // them twice is the illegibility class ADR-011 exists to close, and is how a
+    // stale threshold survived next to the live one. Everything the brief does
+    // NOT carry (size, health, DORA, security, files, guidance, remediation,
+    // override feedback, footer) stays exactly where it was.
     lines.push(
       `| Dimension | Status |`,
       `|-----------|--------|`,
-      `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
-      `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
+      ...(brief
+        ? []
+        : [
+            `| **Release Ready** | **${evaluation.releaseReady ? "YES" : "NO"}** |`,
+            `| Risk | ${evaluation.riskScore}/100 (threshold ${threshold}) |`,
+          ]),
       ...(evaluation.sizeScore !== undefined
         ? [`| Size / blast radius | ${evaluation.sizeScore}/100 (reported separately) |`]
         : []),
       `| Health | ${healthDisplay} |`,
-      `| Gate | ${evaluation.gateDecision.toUpperCase()} |`,
+      ...(brief ? [] : [`| Gate | ${evaluation.gateDecision.toUpperCase()} |`]),
       ``,
     );
 
-    if (evaluation.ci && evaluation.ci.checks.length > 0) {
+    if (!brief && evaluation.ci && evaluation.ci.checks.length > 0) {
       lines.push(`### CI Checks`, ``, `| Check | Status |`, `|-------|--------|`);
       for (const check of evaluation.ci.checks) {
         lines.push(
@@ -2948,8 +4068,11 @@ export function formatGateReport(
       ``,
     );
 
-    if (riskThreshold !== undefined) {
-      lines.push(`**Risk:** ${buildScoreBar(evaluation.riskScore, riskThreshold)}`, ``);
+    if (effectiveRiskThreshold !== undefined) {
+      lines.push(
+        `**Risk:** ${buildScoreBar(evaluation.riskScore, effectiveRiskThreshold)}`,
+        ``,
+      );
     }
   }
 
@@ -3014,7 +4137,11 @@ export function formatGateReport(
     );
   }
 
-  if (evaluation.policyFindings && evaluation.policyFindings.length > 0) {
+  // The brief enumerates these as `{id, title, evidence, severity}` findings; the
+  // legacy list is the count-string form ADR-011 §1 replaced. It stays on the
+  // evaluation (and in `release-brief-json`) for existing consumers, but a report
+  // that already carries the enumeration does not also print the counts.
+  if (!brief && evaluation.policyFindings && evaluation.policyFindings.length > 0) {
     const findingsBody = evaluation.policyFindings
       .map((finding) => `- ${finding}`)
       .join("\n");

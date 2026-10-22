@@ -367,6 +367,68 @@ async function storeViaApi(
   return notStored;
 }
 
+/**
+ * Columns introduced by the ADR-011 store migration. A store that has not run it
+ * rejects the whole insert, so `storeViaSupabase` strips these and retries once
+ * rather than losing the evaluation over a narration-only column.
+ */
+export const ADR011_STORE_COLUMNS = ["release_brief", "enumerated_findings"] as const;
+
+/** PostgREST's schema-cache miss: `{"code":"PGRST204","message":"Could not find …"}`. */
+const UNKNOWN_COLUMN_CODE = "PGRST204";
+const UNKNOWN_COLUMN_MESSAGE = /could not find the '([^']+)' column/i;
+
+/**
+ * True only for PostgREST's column-not-found signature naming an ADR-011 column.
+ *
+ * A bare substring match would strip-and-retry on any 400 that happened to
+ * mention `release_brief` — a permission error, a constraint violation, a
+ * validation message — turning an unrelated failure into a silent data loss.
+ */
+export function mentionsUnknownAdr011Column(body: string): boolean {
+  const columns = ADR011_STORE_COLUMNS as readonly string[];
+
+  let code: string | undefined;
+  let message = body;
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed !== null && typeof parsed === "object") {
+      const record = parsed as { code?: unknown; message?: unknown };
+      if (typeof record.code === "string") code = record.code;
+      if (typeof record.message === "string") message = record.message;
+    }
+  } catch {
+    // Not JSON — the textual signature below is all there is to go on.
+  }
+
+  // A different PostgREST code is a different failure, whatever it mentions.
+  if (code !== undefined && code !== UNKNOWN_COLUMN_CODE) return false;
+
+  const named = UNKNOWN_COLUMN_MESSAGE.exec(message)?.[1];
+  if (named !== undefined) return columns.includes(named);
+
+  // No recognisable message shape: only a bare PGRST204 naming a column counts.
+  return code === UNKNOWN_COLUMN_CODE && columns.some((column) => body.includes(column));
+}
+
+async function insertSupabaseRow(
+  restUrl: string,
+  serviceRoleKey: string,
+  row: Record<string, unknown>,
+): Promise<Response> {
+  return fetch(restUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      Prefer: "resolution=merge-duplicates",
+    },
+    body: JSON.stringify(row),
+    signal: AbortSignal.timeout(STORE_TIMEOUT_MS),
+  });
+}
+
 async function storeViaSupabase(evaluation: GateEvaluation): Promise<boolean> {
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -378,24 +440,34 @@ async function storeViaSupabase(evaluation: GateEvaluation): Promise<boolean> {
 
   const row = buildEvaluationStoreRow(evaluation);
 
-  const response = await fetch(restUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      Prefer: "resolution=merge-duplicates",
-    },
-    body: JSON.stringify(row),
-    signal: AbortSignal.timeout(STORE_TIMEOUT_MS),
-  });
+  let response = await insertSupabaseRow(restUrl, serviceRoleKey, row);
 
   if (response.ok || response.status === 201) {
     core.info("Evaluation stored via direct Supabase insert");
     return true;
   }
 
-  const body = await response.text().catch(() => "");
+  let body = await response.text().catch(() => "");
+
+  if (response.status === 400 && mentionsUnknownAdr011Column(body)) {
+    const legacyRow = Object.fromEntries(
+      Object.entries(row).filter(
+        ([key]) => !(ADR011_STORE_COLUMNS as readonly string[]).includes(key),
+      ),
+    );
+    core.warning(
+      "Evaluation store is missing the ADR-011 columns " +
+        `(${ADR011_STORE_COLUMNS.join(", ")}) — storing without the release brief. ` +
+        "Apply cloud/migrations/006_release_brief.sql to persist it.",
+    );
+    response = await insertSupabaseRow(restUrl, serviceRoleKey, legacyRow);
+    if (response.ok || response.status === 201) {
+      core.info("Evaluation stored via direct Supabase insert");
+      return true;
+    }
+    body = await response.text().catch(() => "");
+  }
+
   core.warning(`Supabase direct insert failed (HTTP ${response.status}): ${body}`);
   return false;
 }
@@ -432,7 +504,16 @@ export function buildEvaluationStoreRow(
     fixes_resolved: remediation?.fixes_resolved ?? [],
     fixes_introduced: remediation?.fixes_introduced ?? [],
     pr: evaluation.pr ?? null,
-    policy_override: evaluation.policyOverride ?? null,
+    // ADR-011 §3 — an audit written before the scope field existed WAS a full
+    // override; store that explicitly so consumers never have to infer it.
+    policy_override: evaluation.policyOverride
+      ? { ...evaluation.policyOverride, scope: evaluation.policyOverride.scope ?? "full" }
+      : null,
+    // ADR-011 §1. The Cloud/Komatik path POSTs the whole GateEvaluation, so these
+    // ride along there for free; the direct-Supabase path is column-explicit and
+    // needs them named. See cloud/migrations/006_release_brief.sql.
+    release_brief: evaluation.releaseBrief ?? null,
+    enumerated_findings: evaluation.enumeratedFindings ?? null,
     gate_mode: evaluation.gateMode ?? null,
     submission_checks: evaluation.submissionChecks ?? null,
     policy_findings: evaluation.policyFindings ?? null,

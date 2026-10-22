@@ -16,7 +16,9 @@ describe("resolveKomatikListUrl", () => {
   });
 
   it("returns null for unrelated store URLs", () => {
-    expect(resolveKomatikListUrl("https://api.trailhead.dev/v1/evaluations")).toBeNull();
+    expect(
+      resolveKomatikListUrl("https://trailhead.komatik.xyz/api/cloud/v1/evaluations"),
+    ).toBeNull();
   });
 });
 
@@ -79,7 +81,7 @@ describe("fetchPreviousEvaluationForPr", () => {
       repoId: "KomatikAI/komatik",
       prNumber: 42,
       excludeEvaluationId: "eval-current",
-      storeUrl: "https://api.trailhead.dev/v1/evaluations",
+      storeUrl: "https://trailhead.komatik.xyz/api/cloud/v1/evaluations",
       apiKey: "th_test_key",
     });
 

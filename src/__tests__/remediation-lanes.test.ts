@@ -33,6 +33,13 @@ describe("classifyFixLane", () => {
     expect(classifyFixLane("submission.context_freshness")).toBe("yellow");
     expect(classifyFixLane("ci.failed")).toBe("yellow");
   });
+
+  it("classifies the ADR-011 remediation codes", () => {
+    expect(classifyFixLane("risk.over_threshold")).toBe("red");
+    expect(classifyFixLane("policy.finding")).toBe("red");
+    expect(classifyFixLane("policy.finding.warn")).toBe("yellow");
+    expect(classifyFixLane("policy.finding.advisory")).toBe("yellow");
+  });
 });
 
 describe("isAgentProvenanceType", () => {

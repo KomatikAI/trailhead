@@ -1,5 +1,10 @@
 # Phase 2 Rollout Kit
 
+> **Archived pre-ADR-012 snapshot — reference only.** These workflows and rulesets
+> require native `Trailhead` workflow-job contexts, use v3, and do not implement live
+> override triggers. Do not deploy them. Current enforcement uses the top-level v4
+> policy-pack rulesets and `docs/getting-started.md` custom-check workflow contract.
+
 This pack operationalizes policy into enforced merge and promotion controls.
 
 ## Included Artifacts
@@ -13,7 +18,7 @@ This pack operationalizes policy into enforced merge and promotion controls.
 - `pilots/` - concrete low/medium/high pilot bundles with per-repo rulesets/workflows/baselines
 - `pilots-renamed/` - renamed-repo scope pack with wave plan and baseline targets
 
-## How to Use
+## Historical sequence
 
 1. Pick pilot repos and complete `pilot-enforcement-checklist.md`.
 2. Apply branch/ruleset controls from `required-checks-and-deployments.md`.

@@ -60,8 +60,9 @@ function render(state: ClaimState) {
       return (
         <ErrorPanel title="This key was already claimed">
           {state.message} Lost the key?{" "}
-          <a href="mailto:support@komatik.ai">Contact support</a> to rotate it, or open
-          the billing portal from your <a href="/dashboard">dashboard</a>.
+          <a href="mailto:support@komatik.ai">Contact support</a> to recover access. If
+          you still have a working key, create a replacement in your{" "}
+          <a href="/dashboard">dashboard</a>.
         </ErrorPanel>
       );
 

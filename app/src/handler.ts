@@ -11,6 +11,7 @@ import { matchContext, resolveGateMode } from "./context-matcher.js";
 import { evaluateDeploymentGate } from "./deployment-gate.js";
 import { isInFreezeWindow, type FileInfo } from "./risk-engine.js";
 import type { ContextCiConfig, RepoConfig } from "./types.js";
+import { fetchGitHubJsonPages } from "./github-pagination.js";
 
 // ---------------------------------------------------------------------------
 // Configuration from environment
@@ -130,12 +131,23 @@ async function fetchChangedFilesFromApi(
   repo: string,
   prNumber: number,
 ): Promise<FileInfo[]> {
-  const res = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=300`,
+  const result = await fetchGitHubJsonPages<FileInfo>(
+    `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`,
     { headers: ghHeaders(token) },
+    { perPage: 100, maxPages: 30 },
   );
-  if (!res.ok) return [];
-  return (await res.json()) as FileInfo[];
+  if (!result.complete) {
+    process.stdout.write(
+      JSON.stringify({
+        level: "warn",
+        msg: "PR file enumeration reached GitHub's 3,000-file API ceiling",
+        service: "trailhead-app",
+        ts: new Date().toISOString(),
+        fileCount: result.items.length,
+      }) + "\n",
+    );
+  }
+  return result.items;
 }
 
 async function fetchChangedFilesFromCommits(
@@ -144,12 +156,11 @@ async function fetchChangedFilesFromCommits(
   repo: string,
   prNumber: number,
 ): Promise<FileInfo[]> {
-  const commitsRes = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/commits?per_page=250`,
+  const { items: commits } = await fetchGitHubJsonPages<{ sha: string }>(
+    `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/commits`,
     { headers: ghHeaders(token) },
+    { perPage: 100, maxPages: 3 },
   );
-  if (!commitsRes.ok) return [];
-  const commits = (await commitsRes.json()) as Array<{ sha: string }>;
 
   const fileMap = new Map<string, FileInfo>();
   for (const commit of commits) {

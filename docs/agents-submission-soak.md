@@ -30,13 +30,13 @@ Evaluations before the v4.5.1/v4.5.2 stack shipped are **not** usable for the so
 
 ## Required consumer stack
 
-| Layer            | Requirement                                                                   |
-| ---------------- | ----------------------------------------------------------------------------- |
-| Trailhead Action | `@v4.5.2` (or newer); `submission-gate: "true"`                               |
-| Store            | `evaluation-store-url: https://komatik.ai/api/trailhead/store`                |
-| Komatik prod     | Analytics columns migration applied; store mapper deployed                    |
-| `.trailhead.yml` | `presets/agent-docs.yml` or equivalent `risk.non_source_globs`                |
-| Pins             | Explicit `@v4.5.x` tags — audit with `scripts/check-fleet-trailhead-pins.mjs` |
+| Layer            | Requirement                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| Trailhead Action | `@v4.5.2` (or newer); `submission-gate: "true"`                                                             |
+| Store            | `evaluation-store-url: https://komatik.ai/api/trailhead/store`                                              |
+| Komatik prod     | Analytics columns migration applied; store mapper deployed                                                  |
+| `.trailhead.yml` | `presets/agent-docs.yml` or equivalent `risk.non_source_globs`                                              |
+| Pins             | Reviewed release tag or its full immutable commit SHA — audit with `scripts/check-fleet-trailhead-pins.mjs` |
 
 ## Content-type calibration (`risk.non_source_globs`)
 
@@ -75,8 +75,41 @@ Optional env:
 - `SOAK_REPO` (default `KomatikAI/agents`)
 - `SOAK_FP_THRESHOLD` (default `0.10`)
 - `SOAK_MIN_PRS` (default `30`)
+- `SOAK_SINCE` (default `2026-06-06T00:00:00Z`; move forward after calibration changes)
+- `SOAK_REVIEW_FILE` — JSON array of human classifications, bound to each exact
+  evaluation. Without reviewed evidence the report cannot declare flip-readiness.
 
-Flip when output shows `Flip-ready: YES` — meaning ≥30 distinct PRs with `submission_checks` populated and submission FP rate < 10%.
+The script uses current finding severities, not a nonexistent `passed` flag.
+A finding is not automatically a false positive. Each sampled PR needs one
+classification (`clean`, `true_positive`, or `false_positive`) from a reviewer:
+
+```json
+[
+  {
+    "repo_id": "KomatikAI/agents",
+    "pr_number": 123,
+    "commit_sha": "0123456789012345678901234567890123456789",
+    "evaluated_at": "2026-10-21T10:00:00Z",
+    "reviewed_at": "2026-10-21T11:00:00Z",
+    "classification": "false_positive",
+    "reviewer": "maintainer-login",
+    "evidence_url": "https://github.com/KomatikAI/agents/pull/123"
+  }
+]
+```
+
+The example is a schema illustration, not soak evidence. For a PR containing
+multiple findings, classify it as `false_positive` if any non-advisory finding
+is false; otherwise `true_positive`. `clean` requires no non-advisory findings
+and review that submission checks actually ran. Re-evaluations invalidate prior
+classifications, even on the same commit. Invalid or unreviewed rows, stale/future
+timestamps and a possibly truncated 200-row response prevent readiness. A complete
+bounded sample is required; a truncated store response must be collected and
+reviewed separately before using this report for an enforcement decision.
+
+`Flip-ready: YES` requires at least 30 reviewed post-baseline PRs, no unresolved
+classifications and a false-positive PR rate strictly below 10%. Exit 1 means
+not ready or unavailable evidence. The script never changes enforcement itself.
 
 ### Manual SQL (latest eval per PR)
 

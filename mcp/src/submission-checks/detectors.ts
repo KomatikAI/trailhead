@@ -21,7 +21,7 @@ import { detectSafeDeprecation } from "./safe-deprecation.js";
 import { detectDestructiveChange } from "./destructive-change.js";
 import { detectClaimAnchoring } from "./claim-anchoring.js";
 import { detectPromotionCoherence } from "./promotion-coherence.js";
-import { validateFileSyntax } from "./syntax-validity.js";
+import { relativeImportSpecifiers, validateFileSyntax } from "./syntax-validity.js";
 import { matchesGlobs } from "../risk-engine.js";
 import { applyDetectorPolicy, artifactFileGlobs } from "./detector-policy.js";
 export { DEFAULT_RENAME_PATTERNS, OLD_NAME_PATTERNS } from "./policy-defaults.js";
@@ -37,7 +37,12 @@ const MOCK_PATTERNS = [
   /\bTODO:\s*implement\b/gi,
   /\bFIXME\b/g,
   /\bIn production,\s*use\b/i,
-  /\bplaceholder\b/gi,
+  /\bPLACEHOLDER_[A-Z0-9_]+\b/,
+  // Bare "placeholder" only — the word as an HTML/JSX attribute (placeholder="…"),
+  // a Tailwind utility/variant (placeholder-white/15, placeholder:text-sm), a CSS
+  // pseudo-element (::placeholder), a property access (input.placeholder), or an
+  // object key (placeholder: "…") is standard frontend vocabulary, not a stub.
+  /(?<![.:])\bplaceholder\b(?![=:-])/gi,
   /\blorem ipsum\b/gi,
 ];
 
@@ -52,6 +57,35 @@ const SECRET_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
     pattern: /api[_-]?key\s*[:=]\s*['"][A-Za-z0-9_-]{32,}['"]/gi,
   },
 ];
+
+function isCiConfigurationPath(filename: string): boolean {
+  return /^\.github\/(?:workflows|actions)\//.test(normalizePath(filename));
+}
+
+function isCredentialFixturePath(filename: string): boolean {
+  return isTestPath(filename) || isCiConfigurationPath(filename);
+}
+
+function isObviouslyInertCiFixtureLine(line: string, filename: string): boolean {
+  if (!isCiConfigurationPath(filename)) return false;
+  const assignment = /^\s*[\w.-]+\s*:\s*["']?([^"'#\s]+)["']?(?:\s*#.*)?$/.exec(line);
+  if (!assignment?.[1]) return false;
+  return /^(?:sk_(?:test|live)_)?(?:placeholder|example|dummy|fake|test|x{10,}|0{10,})$/i.test(
+    assignment[1],
+  );
+}
+
+function isObviouslyInertStripeFixture(
+  patternName: string,
+  match: string,
+  filename: string,
+): boolean {
+  if (!isCredentialFixturePath(filename) || !patternName.startsWith("Stripe ")) {
+    return false;
+  }
+  const suffix = match.replace(/^sk_(?:test|live)_/i, "");
+  return /^(?:placeholder|example|dummy|fake|test|x{10,}|0{10,})$/i.test(suffix);
+}
 
 const HARDCODED_ENV_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
   { name: "localhost with port", pattern: /(?:['"`])localhost:\d{2,5}(?:['"`])/g },
@@ -102,6 +136,7 @@ export function detectMockPlaceholder(
 ): SubmissionCheckResult | null {
   const hits = scanAddedContent(ctx.files, (line, filename) => {
     if (isTestPath(filename)) return false;
+    if (isObviouslyInertCiFixtureLine(line, filename)) return false;
     if (/\.(md|txt)$/i.test(filename)) return false;
     return MOCK_PATTERNS.some((re) => {
       re.lastIndex = 0;
@@ -120,10 +155,12 @@ export function detectMockPlaceholder(
 }
 
 export function detectSecrets(ctx: SubmissionCheckContext): SubmissionCheckResult | null {
-  const hits = scanAddedContent(ctx.files, (line) =>
+  const hits = scanAddedContent(ctx.files, (line, filename) =>
     SECRET_PATTERNS.some((entry) => {
       entry.pattern.lastIndex = 0;
-      return entry.pattern.test(line);
+      return [...line.matchAll(entry.pattern)].some(
+        (match) => !isObviouslyInertStripeFixture(entry.name, match[0] ?? "", filename),
+      );
     }),
   );
   if (hits.length === 0) return null;
@@ -390,20 +427,6 @@ export function detectLargeFile(
   });
 }
 
-function extractRelativeImports(content: string): string[] {
-  const imports: string[] = [];
-  const patterns = [
-    /\bimport\s+(?:type\s+)?(?:[^'"]+\s+from\s+)?['"](\.\.?[^'"]+)['"]/g,
-    /\brequire\(\s*['"](\.\.?[^'"]+)['"]\s*\)/g,
-  ];
-  for (const pattern of patterns) {
-    for (const match of content.matchAll(pattern)) {
-      if (match[1]) imports.push(match[1]);
-    }
-  }
-  return imports;
-}
-
 function resolveRelativeImport(
   fromFile: string,
   specifier: string,
@@ -424,8 +447,15 @@ function resolveRelativeImport(
     `${resolved}.js`,
     `${resolved}.jsx`,
     `${resolved}/index.ts`,
+    `${resolved}/index.tsx`,
     `${resolved}/index.js`,
+    `${resolved}/index.jsx`,
   ];
+  // TypeScript sources legitimately spell runtime ESM imports with .js/.mjs/.cjs.
+  if (resolved.endsWith(".js"))
+    candidates.push(resolved.slice(0, -3) + ".ts", resolved.slice(0, -3) + ".tsx");
+  if (resolved.endsWith(".mjs")) candidates.push(resolved.slice(0, -4) + ".mts");
+  if (resolved.endsWith(".cjs")) candidates.push(resolved.slice(0, -4) + ".cts");
   return candidates.some((c) => prPaths.has(c));
 }
 
@@ -440,12 +470,19 @@ export function detectImportResolution(
   if (!ctx.repoPaths) return null;
   const codeExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
   const known = new Set<string>([...ctx.prPaths, ...ctx.repoPaths]);
+  for (const file of ctx.files) {
+    if (file.status === "removed") known.delete(file.filename);
+  }
   const hits: string[] = [];
 
   for (const file of ctx.files) {
-    if (!codeExts.has(extensionOf(file.filename))) continue;
-    const content = fileContent(file);
-    for (const specifier of extractRelativeImports(content)) {
+    if (
+      !codeExts.has(extensionOf(file.filename)) ||
+      file.status === "removed" ||
+      typeof file.content !== "string"
+    )
+      continue;
+    for (const specifier of relativeImportSpecifiers(file.filename, file.content)) {
       if (!resolveRelativeImport(file.filename, specifier, known)) {
         hits.push(file.filename);
         break;
@@ -501,20 +538,34 @@ function isRouteAllowlisted(path: string, allowlist: string[]): boolean {
   return allowlist.some((entry) => path.includes(entry.replace(/^\//, "")));
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isRetiredRoute(path: string, content: string, allowlist: string[]): boolean {
+  if (!isRouteAllowlisted(path, allowlist)) return false;
+  return /\bstatus\s*:\s*410\b/.test(content);
+}
+
 export function detectAuthRouteAuth(
   ctx: SubmissionCheckContext,
 ): SubmissionCheckResult | null {
   const routePattern =
     /(?:^|\/)(?:app\/api\/.+\/route|pages\/api\/.+)\.(?:ts|tsx|js|jsx)$/;
-  const authPattern =
-    /\b(getUser|getSession|getServerSession|auth|requireAuth|withAuth)\s*\(/;
+  const helpers = [...new Set(ctx.authRouteHelpers)].filter((helper) =>
+    /^[A-Za-z_$][\w$]*$/.test(helper),
+  );
+  const authPattern = new RegExp(`\\b(?:${helpers.map(escapeRegExp).join("|")})\\s*\\(`);
   const hits: string[] = [];
 
   for (const file of ctx.files) {
     const normalized = normalizePath(file.filename);
     if (!routePattern.test(normalized)) continue;
+    if (file.status === "removed") continue;
     if (isRouteAllowlisted(normalized, ctx.authRouteAllowlist)) continue;
-    if (!authPattern.test(fileContent(file))) hits.push(normalized);
+    const content = fileContent(file);
+    if (isRetiredRoute(normalized, content, ctx.retiredRouteAllowlist)) continue;
+    if (helpers.length === 0 || !authPattern.test(content)) hits.push(normalized);
   }
 
   if (hits.length === 0) return null;

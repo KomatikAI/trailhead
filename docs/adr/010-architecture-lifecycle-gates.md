@@ -1,6 +1,6 @@
 # ADR-010: Architecture & Lifecycle Gates
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-01
 **Author:** Trailhead team
 

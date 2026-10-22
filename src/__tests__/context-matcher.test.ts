@@ -8,6 +8,7 @@ const contexts: TrailheadContext[] = [
     match: { base_branch: ["dev"], head_branch: [], labels: [] },
     thresholds: { risk: 70 },
     ci: { required_checks: ["Build"], optional_checks: [], missing_required: "fail" },
+    input_relevance: [],
   },
   {
     name: "promotion",
@@ -19,6 +20,7 @@ const contexts: TrailheadContext[] = [
       optional_checks: [],
       missing_required: "fail",
     },
+    input_relevance: [],
   },
 ];
 
@@ -59,6 +61,7 @@ describe("matchContext", () => {
         match: { base_branch: [], head_branch: [], labels: ["hotfix"] },
         thresholds: {},
         ci: { required_checks: [], optional_checks: [], missing_required: "fail" },
+        input_relevance: [],
       },
       ...contexts,
     ];

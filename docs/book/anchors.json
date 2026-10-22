@@ -1,0 +1,446 @@
+{
+  "schema": "komatik.book.anchors/1",
+  "anchors": {
+    "p-trailhead-action-is-the-primary-gate": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "heading": "Action is the primary gate",
+      "status": "current",
+      "since": "2026-04-09",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:1"
+      ]
+    },
+    "p-trailhead-agent-policy-starts-with-provenance": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "heading": "Agent policy starts with provenance",
+      "status": "current",
+      "since": "2026-05-29",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:244"
+      ]
+    },
+    "p-trailhead-app-protects-deployments": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "heading": "App protects deployments",
+      "status": "current",
+      "since": "2026-04-10",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:12"
+      ]
+    },
+    "p-trailhead-availability-is-an-explicit-policy": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "heading": "Availability is explicit policy",
+      "status": "current",
+      "since": "2026-04-10",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:12",
+        "pr:53",
+        "pr:348"
+      ]
+    },
+    "p-trailhead-brief-enumerates-actionable-findings": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "heading": "Brief enumerates actionable findings",
+      "status": "current",
+      "since": "2026-08-09",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:348"
+      ]
+    },
+    "p-trailhead-can-backfill-historical-evaluations": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "heading": "Historical PRs can be evaluated safely",
+      "status": "current",
+      "since": "2026-07-18",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:279"
+      ]
+    },
+    "p-trailhead-ci-integrity-scans-added-behavior": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "heading": "CI integrity scans added behavior",
+      "status": "current",
+      "since": "2026-08-26",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:345",
+        "pr:359"
+      ]
+    },
+    "p-trailhead-ci-status-and-relevance-differ": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "heading": "CI status and relevance differ",
+      "status": "current",
+      "since": "2026-08-09",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:348"
+      ]
+    },
+    "p-trailhead-cli-configures-and-diagnoses": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "heading": "CLI configures and diagnoses",
+      "status": "current",
+      "since": "2026-05-27",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:220"
+      ]
+    },
+    "p-trailhead-close-on-ship-reconnects-work": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "heading": "Close-on-ship reconnects work",
+      "status": "current",
+      "since": "2026-07-18",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:301"
+      ]
+    },
+    "p-trailhead-cloud-adds-durable-organization-memory": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "heading": "Cloud adds durable organization memory",
+      "status": "current",
+      "since": "2026-05-24",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6",
+        "pr:314",
+        "pr:315"
+      ]
+    },
+    "p-trailhead-complete-pr-files": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "heading": "Large PRs require complete files",
+      "status": "current",
+      "since": "2026-07-22",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:345"
+      ]
+    },
+    "p-trailhead-current-release-docs-need-supersession": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Release docs need supersession",
+      "status": "current",
+      "since": "2026-08-09",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:349",
+        "commit:622c6e9255f1b124f3c0aea4102eb87d1e54b162"
+      ]
+    },
+    "p-trailhead-dev-repairs": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "heading": "Post-release repairs live on dev",
+      "status": "current",
+      "since": "2026-08-26",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:357",
+        "pr:358",
+        "pr:359"
+      ]
+    },
+    "p-trailhead-evaluation-failure-must-speak": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "heading": "Evaluation failure must speak",
+      "status": "current",
+      "since": "2026-08-09",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:348"
+      ]
+    },
+    "p-trailhead-history-added-coach-and-fixer": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Coach and Fixer closed the loop",
+      "status": "current",
+      "since": "2026-05-27",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "commit:7fa9803444117335f3a6847d498614fff9f36e52",
+        "pr:244",
+        "pr:261"
+      ]
+    },
+    "p-trailhead-history-added-lifecycle-gates": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Lifecycle gates expanded the evidence boundary",
+      "status": "current",
+      "since": "2026-06-02",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:263",
+        "pr:273"
+      ]
+    },
+    "p-trailhead-history-became-trailhead": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "DeployGuard became Trailhead",
+      "status": "current",
+      "since": "2026-04-29",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:16",
+        "pr:35"
+      ]
+    },
+    "p-trailhead-history-calibrated-real-fleet-data": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Real fleet data drove calibration",
+      "status": "current",
+      "since": "2026-06-06",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:280",
+        "pr:284"
+      ]
+    },
+    "p-trailhead-history-cloud-became-a-product": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Cloud became a product",
+      "status": "current",
+      "since": "2026-07-02",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:314",
+        "pr:315",
+        "pr:321"
+      ]
+    },
+    "p-trailhead-history-founded-as-deployguard": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Founded as DeployGuard",
+      "status": "current",
+      "since": "2026-04-09",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:1",
+        "pr:10",
+        "pr:12",
+        "pr:14"
+      ]
+    },
+    "p-trailhead-history-v4-unified-release-readiness": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Version four unified release readiness",
+      "status": "current",
+      "since": "2026-05-24",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:214",
+        "commit:eea5848a4d978b7e77f0b598d0bf27bbfdd731c6",
+        "pr:216",
+        "pr:217",
+        "pr:218"
+      ]
+    },
+    "p-trailhead-history-v46-closed-reconciliation-gaps": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Version 4.6 closed reconciliation gaps",
+      "status": "current",
+      "since": "2026-07-18",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:279",
+        "pr:301",
+        "pr:328",
+        "pr:345"
+      ]
+    },
+    "p-trailhead-history-v47-made-decisions-readable": {
+      "chapter": "process/project-history",
+      "path": "process/project-history.md",
+      "heading": "Version 4.7 made decisions readable",
+      "status": "current",
+      "since": "2026-08-09",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:348",
+        "pr:349"
+      ]
+    },
+    "p-trailhead-mcp-makes-evidence-agent-readable": {
+      "chapter": "platform/product-surfaces",
+      "path": "platform/product-surfaces.md",
+      "heading": "MCP makes evidence agent-readable",
+      "status": "current",
+      "since": "2026-05-29",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:10",
+        "pr:246"
+      ]
+    },
+    "p-trailhead-observes-health-and-delivery-outcomes": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "heading": "Health and delivery outcomes remain evidence",
+      "status": "current",
+      "since": "2026-04-10",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:8",
+        "pr:12"
+      ]
+    },
+    "p-trailhead-pr-evidence-follows-head-sha": {
+      "chapter": "infra/safety-and-observability",
+      "path": "infra/safety-and-observability.md",
+      "heading": "PR evidence follows the head SHA",
+      "status": "current",
+      "since": "2026-07-21",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:328"
+      ]
+    },
+    "p-trailhead-readable-remediation": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "heading": "Remediation serves agents and humans",
+      "status": "current",
+      "since": "2026-05-27",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "commit:7fa9803444117335f3a6847d498614fff9f36e52",
+        "commit:b7b0f56a63606f74e7f63a06f05baeaa932653b8",
+        "pr:234"
+      ]
+    },
+    "p-trailhead-release-ready-is-composite": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "heading": "Release Ready is composite",
+      "status": "current",
+      "since": "2026-05-24",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:214"
+      ]
+    },
+    "p-trailhead-repairs-stay-reviewable": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "heading": "Repairs stay reviewable",
+      "status": "current",
+      "since": "2026-06-02",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:269",
+        "pr:273"
+      ]
+    },
+    "p-trailhead-risk-engine-is-shared": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "heading": "One risk engine serves every surface",
+      "status": "current",
+      "since": "2026-04-10",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:12"
+      ]
+    },
+    "p-trailhead-risk-override-boundary": {
+      "chapter": "engine/release-ready-decision",
+      "path": "engine/release-ready-decision.md",
+      "heading": "Risk override cannot green red tests",
+      "status": "current",
+      "since": "2026-08-09",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:348"
+      ]
+    },
+    "p-trailhead-submission-gate-checks-the-handoff": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "heading": "Submission gate checks the handoff",
+      "status": "current",
+      "since": "2026-05-29",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:244",
+        "pr:246"
+      ]
+    },
+    "p-trailhead-trust-learns-from-outcomes": {
+      "chapter": "fleet/agent-governance",
+      "path": "fleet/agent-governance.md",
+      "heading": "Trust learns from outcomes",
+      "status": "current",
+      "since": "2026-05-30",
+      "verified": "2026-08-26",
+      "confidence": "ratified",
+      "sources": [
+        "pr:261"
+      ]
+    }
+  },
+  "redirects": {}
+}

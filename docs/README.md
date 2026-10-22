@@ -177,6 +177,10 @@ policies:
     enabled: true
     mode: block # use warn for advisory-only measurement
     risk_threshold: 60
+    # Keep named promotion contexts on their context-specific threshold.
+    # Approval and sensitive-path requirements remain enforced.
+    risk_threshold_exempt_contexts: ["production-promotion"]
+    # Only distinct, latest-state approvals on the current PR head count.
     required_approvals: 2
     require_code_owner_approval: true
     code_owner_reviewers: ["platform-owner"]
@@ -246,7 +250,7 @@ Each evaluation produces a span with risk score, health score, gate decision, an
 
 See **[evaluation-storage.md](evaluation-storage.md)** for the full guide. Summary:
 
-1. **Trailhead Cloud (Pro/Team)** — set `trailhead-api-key` in the Action; evaluations POST to `https://api.trailhead.dev/v1/evaluations`.
+1. **Trailhead Cloud (Pro/Team)** — set `trailhead-api-key` in the Action; evaluations POST to `https://trailhead.komatik.xyz/api/cloud/v1/evaluations`.
 2. **Bring-your-own-store** — POST JSON to `evaluation-store-url` with `evaluation-store-secret` as Bearer token.
 3. **Supabase fallback** — direct REST insert when primary store fails and `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set.
 
@@ -278,6 +282,7 @@ Example:
 | [agents-submission-soak.md](./agents-submission-soak.md) | B4 agents dogfood — flip criterion + measurement |
 | [komatik-hosted-store.md](./komatik-hosted-store.md)     | Fleet warehouse at komatik.ai                    |
 | [agent-trust-metrics.md](./agent-trust-metrics.md)       | Trust loop implementers                          |
+| [release-brief.md](./release-brief.md)                   | Release owners — brief contract, input relevance |
 | [verdict.md](./verdict.md)                               | Collector integrators                            |
 | [migration-v3-to-v4.md](./migration-v3-to-v4.md)         | Upgrading from `@v3`                             |
 

@@ -1259,7 +1259,7 @@ Single API key replaces evaluation-store-url + secret for cloud tier.
     release: "v4.1",
     title: "Auto-config store URL from API key",
     body: `## Summary
-Resolve https://api.trailhead.dev/v1/evaluations from trailhead-api-key.
+Resolve https://trailhead.komatik.xyz/api/cloud/v1/evaluations from trailhead-api-key.
 
 ## Acceptance criteria
 - [ ] No manual store URL for cloud consumers`,

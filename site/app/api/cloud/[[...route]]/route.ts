@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { handle } from "hono/vercel";
-import { createCloudApp } from "trailhead-cloud";
+import { createCloudApp } from "trailhead-cloud/app";
 import { getBillingStore } from "@/lib/cloudStore";
 
 /**
@@ -24,7 +24,11 @@ function getHandler(): Promise<(req: Request) => Response | Promise<Response>> {
     handlerPromise = (async () => {
       const store = await getBillingStore();
       const cloudApp = createCloudApp({ store });
-      const root = new Hono().route("/api/cloud", cloudApp as unknown as Hono);
+      const root = new Hono();
+      // The standalone API serves a static dashboard at a different path.
+      // Under Next, always send visitors to the site's dashboard route.
+      root.get("/api/cloud/dashboard", (c) => c.redirect("/dashboard"));
+      root.route("/api/cloud", cloudApp as unknown as Hono);
       return handle(root) as (req: Request) => Response | Promise<Response>;
     })();
   }

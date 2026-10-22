@@ -27,6 +27,15 @@ const DEFAULT_AUTH_ROUTE_ALLOWLIST = [
   "/api/metrics/",
 ];
 
+const DEFAULT_AUTH_ROUTE_HELPERS = [
+  "getUser",
+  "getSession",
+  "getServerSession",
+  "auth",
+  "requireAuth",
+  "withAuth",
+];
+
 /** Package names declared in a package.json (legacy gate parity). */
 export function declaredPackageNamesFromPackageJson(
   pkg: Record<string, unknown>,
@@ -88,6 +97,11 @@ function buildContext(options: SubmissionEngineOptions): SubmissionCheckContext 
     namingAllowlist: repoConfig?.submission?.naming_allowlist ?? {},
     authRouteAllowlist:
       repoConfig?.submission?.auth_route_allowlist ?? DEFAULT_AUTH_ROUTE_ALLOWLIST,
+    authRouteHelpers: [
+      ...DEFAULT_AUTH_ROUTE_HELPERS,
+      ...(repoConfig?.submission?.auth_route_helpers ?? []),
+    ],
+    retiredRouteAllowlist: repoConfig?.submission?.retired_route_allowlist ?? [],
     maxFileLines: repoConfig?.submission?.max_file_lines ?? 1000,
     declaredPackages: declared,
     pathIgnorePatterns: repoConfig?.submission?.path_ignore ?? [],

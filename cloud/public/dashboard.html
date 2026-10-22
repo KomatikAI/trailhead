@@ -338,7 +338,11 @@
     <div class="config-bar">
       <label>
         API Base
-        <input type="text" id="apiBase" placeholder="https://api.trailhead.dev" />
+        <input
+          type="text"
+          id="apiBase"
+          placeholder="https://trailhead.komatik.xyz/api/cloud"
+        />
       </label>
       <label>
         API Key
@@ -520,7 +524,7 @@
     <script>
       const DEFAULT_BASE = window.location.origin.includes("localhost")
         ? window.location.origin
-        : "https://api.trailhead.dev";
+        : "https://trailhead.komatik.xyz/api/cloud";
 
       function authHeaders() {
         return {

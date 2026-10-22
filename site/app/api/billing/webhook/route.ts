@@ -46,10 +46,13 @@ export async function POST(req: Request): Promise<Response> {
 
   try {
     const store = await getBillingStore();
-    const result = await handleStripeEvent(event, store);
+    const result = await handleStripeEvent(event, store, (id) =>
+      stripe.subscriptions.retrieve(id),
+    );
     return Response.json({ received: true, ...result });
   } catch (err) {
-    // Return 500 so Stripe retries — the insert-first ledger makes replay safe.
+    // Return 500 so Stripe retries; atomic fulfillment makes replay safe and
+    // the event ledger records completion only after its effects succeed.
     console.error(`[webhook] Handler error for ${event.type} (${event.id}):`, err);
     return Response.json(
       { error: err instanceof Error ? err.message : "Handler error" },

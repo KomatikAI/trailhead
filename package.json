@@ -1,6 +1,6 @@
 {
   "name": "trailhead",
-  "version": "4.6.1",
+  "version": "4.7.1",
   "private": true,
   "description": "Release readiness gate for GitHub PRs — waits for CI, scores code risk, checks production health, and blocks merges that are not release-ready.",
   "license": "MIT",
@@ -30,7 +30,7 @@
     "@actions/core": "^3.0.1",
     "@actions/github": "^9.1.1",
     "@swc/core": "^1.15.40",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.2.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
@@ -38,13 +38,13 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.8.0",
     "@vercel/ncc": "^0.38.4",
-    "@vitest/coverage-v8": "^4.1.6",
+    "@vitest/coverage-v8": "^4.1.12",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.3",
     "tsx": "^4.22.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.59.3",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.12"
   }
 }

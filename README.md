@@ -1,6 +1,5 @@
 # Trailhead
 
-[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Trailhead-green?logo=github)](https://github.com/marketplace/actions/trailhead)
 [![CI](https://github.com/KomatikAI/trailhead/actions/workflows/ci.yml/badge.svg)](https://github.com/KomatikAI/trailhead/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -43,6 +42,14 @@ cp presets/solo.yml .trailhead.yml
 name: Trailhead
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  # Required when agent PR approval or code-owner approval policy is enabled.
+  pull_request_review:
+    types: [submitted, dismissed]
+
+concurrency:
+  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -52,14 +59,36 @@ permissions:
 
 jobs:
   gate:
+    if: >-
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: KomatikAI/trailhead@v4
         with:
           gate-mode: release-ready
           wait-for-checks: "true"
           risk-threshold: "70"
 ```
+
+Require the custom **Trailhead — Release Ready** check from GitHub Actions in branch
+protection—not the workflow job name—and select GitHub Actions as the expected source.
+Label activity is filtered so only
+`trailhead-override` changes re-evaluate the gate.
+
+The generated concurrency group makes the newest real gate authoritative, preventing an
+older labeled evaluation from finishing after a newer revocation. It isolates unrelated
+label activity by run id because GitHub applies concurrency before the job filter. See
+[`docs/getting-started.md`](docs/getting-started.md) for the migration rationale.
+
+Public fork PRs need the documented no-checkout `pull_request_target` publisher (or a
+GitHub App token); fork `pull_request` tokens are read-only and cannot publish the
+protected custom check. Workflow-namespaced concurrency keeps that publisher separate
+from the ordinary read-only fork run. Because `pull_request_target` does not receive review
+events, fork policies that enforce approvals require an installed App/external publisher that
+listens to review webhooks; see [`docs/getting-started.md`](docs/getting-started.md).
 
 Configure required CI checks in `.trailhead.yml`:
 
@@ -416,6 +445,11 @@ policies:
     # "block" preserves legacy enforcement; "warn" reports would-block findings only.
     mode: block
     risk_threshold: 60
+    # Exact context names where the context threshold remains authoritative.
+    # Approval and sensitive-path requirements still apply.
+    risk_threshold_exempt_contexts: ["master-promotion"]
+    # Counts each reviewer's latest decisive state on the current PR head;
+    # approvals from the PR author, stale heads, or dismissed reviews do not count.
     required_approvals: 2
     require_code_owner_approval: true
     code_owner_reviewers: ["platform-owner"]
@@ -446,6 +480,12 @@ policies:
     max_changes: 2000
     mode: warn
     require_plan_for_agent_prs: true
+    # Branch pairs use anchored, case-insensitive globs. A single * does not
+    # cross '/', so this matches promotion/train-28 but not nested train paths.
+    # Specify both sides: an empty head_branch or base_branch list is a wildcard.
+    exempt:
+      - head_branch: ["promotion/train-*"]
+        base_branch: ["master"]
   duplicate_logic:
     enabled: true
     mode: warn
@@ -537,6 +577,13 @@ name: Trailhead
 on:
   pull_request:
     branches: [main, staging]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+concurrency:
+  group: trailhead-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -544,17 +591,22 @@ permissions:
   pull-requests: write
   security-events: read
 
-concurrency:
-  group: trailhead-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   gate:
+    # pull_request_review does not inherit pull_request's branches filter.
+    if: >-
+      (github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'staging') &&
+      ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'trailhead-override')
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: KomatikAI/trailhead@v4
         id: gate
         with:
+          gate-mode: release-ready
+          wait-for-checks: "true"
           risk-threshold: "75"
           warn-threshold: "55"
           health-check-urls: "https://myapp.com/api/health"

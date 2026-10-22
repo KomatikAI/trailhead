@@ -15,6 +15,10 @@ describe("cloud-config", () => {
     expect(resolveCloudApiBase()).toBe(DEFAULT_CLOUD_API_BASE);
   });
 
+  it("defaults to the hosted Trailhead Cloud endpoint", () => {
+    expect(DEFAULT_CLOUD_API_BASE).toBe("https://trailhead.komatik.xyz/api/cloud");
+  });
+
   it("respects TRAILHEAD_CLOUD_API_BASE override", () => {
     process.env.TRAILHEAD_CLOUD_API_BASE = "https://cloud.example.com/";
     expect(resolveCloudApiBase()).toBe("https://cloud.example.com");
@@ -42,9 +46,9 @@ describe("cloud-config", () => {
   });
 
   it("maps cloud evaluation URL to deploy-events", () => {
-    expect(resolveDeployEventsUrl("https://api.trailhead.dev/v1/evaluations")).toBe(
-      "https://api.trailhead.dev/v1/deploy-events",
-    );
+    expect(
+      resolveDeployEventsUrl("https://trailhead.komatik.xyz/api/cloud/v1/evaluations"),
+    ).toBe("https://trailhead.komatik.xyz/api/cloud/v1/deploy-events");
   });
 
   it("maps legacy BYOS store URL to deploy-event", () => {

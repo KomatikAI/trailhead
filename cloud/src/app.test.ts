@@ -278,6 +278,46 @@ describe("Trailhead Cloud API", () => {
     expect(res.status).toBe(403);
   });
 
+  it.each([{ plan: "team" }, { plan: "free" }, { seats: 500 }])(
+    "rejects self-service billing fields in org settings (%j)",
+    async (patch) => {
+      const before = await app.request("/v1/org/settings", { headers: authHeaders() });
+      const beforeBody = (await before.json()) as {
+        settings: { plan: string; seats: number };
+      };
+
+      const res = await app.request("/v1/org/settings", {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify(patch),
+      });
+      expect(res.status).toBe(400);
+
+      const after = await app.request("/v1/org/settings", { headers: authHeaders() });
+      const afterBody = (await after.json()) as {
+        settings: { plan: string; seats: number };
+      };
+      expect(afterBody.settings.plan).toBe(beforeBody.settings.plan);
+      expect(afterBody.settings.seats).toBe(beforeBody.settings.seats);
+    },
+  );
+
+  it("does not unlock Team-only SSO via a plan field in the same request", async () => {
+    const res = await app.request("/v1/org/settings", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        plan: "team",
+        sso: { enabled: true, provider: "oidc", issuerUrl: "https://idp.example.com" },
+      }),
+    });
+    expect(res.status).toBe(400);
+    const settings = await app.request("/v1/org/settings", { headers: authHeaders() });
+    const body = (await settings.json()) as { settings: { plan: string; sso?: unknown } };
+    expect(body.settings.plan).not.toBe("team");
+    expect(body.settings.sso).toBeUndefined();
+  });
+
   it("returns tuning digest v1 for a repo", async () => {
     await app.request("/v1/evaluations", {
       method: "POST",

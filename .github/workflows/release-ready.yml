@@ -3,9 +3,20 @@
 # Consumers:
 #   jobs:
 #     release-ready:
+#       permissions:
+#         contents: read
+#         pull-requests: write
+#         checks: write
+#         security-events: read
 #       uses: KomatikAI/trailhead/.github/workflows/release-ready.yml@v4
 #       secrets:
 #         evaluation-store-secret: ${{ secrets.TRAILHEAD_STORE_SECRET }}
+#
+# The caller owns PR triggers. Include pull_request activity types labeled and
+# unlabeled, and filter those actions to the trailhead-override label as shown
+# in docs/getting-started.md. In branch protection, require the custom check named
+# by check-name (default Trailhead for risk-only, Trailhead — Release Ready otherwise),
+# not the caller workflow job name.
 #
 name: Trailhead Release Ready
 
@@ -16,6 +27,10 @@ on:
         description: "release-ready | advisory | risk-only"
         type: string
         default: "release-ready"
+      check-name:
+        description: "Custom protected check name; empty uses the gate-mode default"
+        type: string
+        default: ""
       risk-threshold:
         description: "Block when risk score exceeds this value (0-100)"
         type: string
@@ -53,6 +68,10 @@ permissions:
 
 jobs:
   trailhead:
+    # A distinct prefix keeps called-job serialization from canceling its caller.
+    concurrency:
+      group: trailhead-reusable-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ ((github.event.action == 'labeled' || github.event.action == 'unlabeled') && github.event.label.name != 'trailhead-override') && github.run_id || 'gate' }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -60,6 +79,7 @@ jobs:
       - uses: KomatikAI/trailhead@v4
         with:
           gate-mode: ${{ inputs.gate-mode }}
+          check-name: ${{ inputs.check-name }}
           risk-threshold: ${{ inputs.risk-threshold }}
           wait-for-checks: ${{ inputs.wait-for-checks }}
           wait-timeout-minutes: ${{ inputs.wait-timeout-minutes }}

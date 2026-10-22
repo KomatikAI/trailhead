@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import type Stripe from "stripe";
 import { getStripeClient } from "@/lib/stripe";
 import { countActiveKeys, getBillingStore } from "@/lib/cloudStore";
@@ -12,8 +13,10 @@ import { ownedPriceIds, planForPriceId, type PaidPlan } from "@/lib/plans";
  *  - list Stripe subscriptions for OUR products (price ids we own)
  *  - missing local row      → repair from Stripe truth (upsertSubscriptionFromStripe)
  *  - status/plan/period drift → resync (updateSubscriptionByStripeId)
+ *  - active sub whose org_settings.plan disagrees with Stripe → re-sync the
+ *    org plan (repairs any plan write that bypassed billing)
  *  - active sub, zero active keys → needs_attention log line
- *  - purge expired unclaimed key_claims
+ *  - erase expired claim ciphertext, preserving session receipts against replay
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +28,9 @@ function idOf(v: string | { id: string } | null | undefined): string | null {
 }
 
 function periodEndIso(sub: Stripe.Subscription): string | null {
-  const end = (sub as unknown as { current_period_end?: number }).current_period_end;
+  const end =
+    sub.items?.data?.[0]?.current_period_end ??
+    (sub as unknown as { current_period_end?: number }).current_period_end;
   return typeof end === "number" ? new Date(end * 1000).toISOString() : null;
 }
 
@@ -35,11 +40,17 @@ function planOf(sub: Stripe.Subscription): PaidPlan | null {
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
+function secretMatches(token: string, secret: string): boolean {
+  const a = Buffer.from(token);
+  const b = Buffer.from(secret);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export async function GET(req: Request): Promise<Response> {
   const auth = req.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   const secret = process.env.CRON_SECRET;
-  if (!secret || token !== secret) {
+  if (!secret || !secretMatches(token, secret)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -61,6 +72,7 @@ export async function GET(req: Request): Promise<Response> {
     scanned: 0,
     repaired: 0,
     resynced: 0,
+    planRepaired: 0,
     needsAttention: 0,
     claimsPurged: 0,
   };
@@ -110,6 +122,20 @@ export async function GET(req: Request): Promise<Response> {
         console.warn(
           `[reconcile] resynced ${sub.id}: ${local.status}→${sub.status}, ${local.plan}→${plan}`,
         );
+      }
+
+      // Stripe is the only writer of the org plan. An active sub whose org
+      // plan disagrees (e.g. a plan written outside billing) is re-synced even
+      // when the subscription row itself shows no drift.
+      if (ACTIVE_STATUSES.has(sub.status) && resolvedOrgId) {
+        const settings = await store.getOrgSettings(resolvedOrgId);
+        if (settings.plan !== plan) {
+          await store.updateSubscriptionByStripeId(sub.id, { plan });
+          summary.planRepaired += 1;
+          console.warn(
+            `[reconcile] plan drift: org ${resolvedOrgId} had ${settings.plan}, Stripe sub ${sub.id} is ${plan}`,
+          );
+        }
       }
 
       // Active sub but no usable key → flag for attention (contract flow 5).
