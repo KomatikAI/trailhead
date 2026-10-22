@@ -420,13 +420,22 @@ export function detectRlsNewTables(ctx) {
     const sqlFiles = ctx.files.filter((f) => extensionOf(f.filename) === ".sql");
     const corpus = sqlFiles.map((f) => fileContent(f)).join("\n");
     const hits = [];
-    const createTable = /\bCREATE\s+(?!TEMP(?:ORARY)?\s+)TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?((?:"?[A-Za-z_][\w$]*"?\.)?"?[A-Za-z_][\w$]*"?)/gi;
+    const identifier = String.raw `(?:"(?:[^"]|"")+"|[A-Za-z_][\w$]*)`;
+    const relation = `(?:(${identifier})\\s*\\.\\s*)?(${identifier})`;
+    const createTable = new RegExp(`\\bCREATE\\s+(?!TEMP(?:ORARY)?\\s+)TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?${relation}`, "gi");
+    const enableRls = new RegExp(`\\bALTER\\s+TABLE\\s+(?:ONLY\\s+)?${relation}\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY\\b`, "gi");
+    const normalizeIdentifier = (value) => value.startsWith('"') ? value.slice(1, -1).replace(/""/g, '"') : value.toLowerCase();
+    // Supabase's default schema is public. Explicit schemas must match; enabling
+    // other.widgets cannot protect public.widgets. Quoted names remain case-sensitive.
+    const relationKey = (match) => JSON.stringify([
+        normalizeIdentifier(match[1] ?? "public"),
+        normalizeIdentifier(match[2]),
+    ]);
+    const protectedTables = new Set([...corpus.matchAll(enableRls)].map(relationKey));
     for (const file of sqlFiles) {
         const content = fileContent(file);
         for (const match of content.matchAll(createTable)) {
-            const table = match[1]?.replace(/"/g, "") ?? "";
-            const pattern = new RegExp(`ALTER\\s+TABLE\\s+(?:ONLY\\s+)?["']?${table.split(".").pop()}["']?\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i");
-            if (!pattern.test(corpus))
+            if (!protectedTables.has(relationKey(match)))
                 hits.push(file.filename);
         }
     }
@@ -529,7 +538,9 @@ function stripSqlComments(content) {
     return content.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
 }
 function countPlpgsqlBlockBegins(sql) {
-    const re = /\bBEGIN\b(?!\s+(?:TRANSACTION|WORK)\b)/gi;
+    // A bare BEGIN; starts a SQL transaction, not a PL/pgSQL block. COMMIT
+    // closes it, so it must not be counted as requiring an END statement.
+    const re = /\bBEGIN\b(?!\s*(?:;|(?:TRANSACTION|WORK)\b))/gi;
     return (sql.match(re) || []).length;
 }
 function countPlpgsqlBlockEnds(sql) {
