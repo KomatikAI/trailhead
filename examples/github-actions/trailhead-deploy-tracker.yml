@@ -1,91 +1,33 @@
-# Records a successful production deploy against the latest Trailhead evaluation
-# for the same commit, so trend dashboards can compute correlation (false positive
-# rate, warned → incident, etc.).
-#
-# Matching strategy:
-# 1. Primary — exact commit_sha match for this repo
-# 2. Optional fallback — latest evaluation within TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS
-#    (use only when deploy SHA differs from gate SHA, e.g. merge commits)
-#
-# Prerequisites:
-# - Supabase (or compatible) table with trailhead_evaluations including optional
-#   deploy_outcome, deployed_at, incident_url columns.
-# - GitHub secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-#
-# Copy to .github/workflows/ and set `branches` to your production branch.
-
+# Copy this workflow AND scripts/record-deploy-correlation.mjs into your repository.
+# The deployment provider must publish GitHub deployment_status events with the
+# full deployed SHA, production_environment=true and environment=Production.
+# A push, green build or successful gate alone is not a successful deployment.
 name: Trailhead deploy correlation
 
 on:
-  push:
-    branches:
-      - main
+  deployment_status:
 
 permissions:
   contents: read
 
 jobs:
   record-deploy:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.production_environment == true
     runs-on: ubuntu-latest
     steps:
-      - name: Mark evaluation deployed (success)
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Execute reviewed collector code, never the deployed candidate checkout.
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Correlate observed successful deployment
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          REPO_ID: ${{ github.repository }}
-          COMMIT_SHA: ${{ github.sha }}
+          TRAILHEAD_PRODUCTION_ENVIRONMENT: ${{ vars.TRAILHEAD_PRODUCTION_ENVIRONMENT }}
+          # Optional, 0 (disabled) to 24 hours. Ambiguous windows do not write.
           TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS: ${{ vars.TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS }}
-        run: |
-          set -euo pipefail
-          REST="${SUPABASE_URL%/}/rest/v1/trailhead_evaluations"
-          DEPLOYED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-
-          fetch_eval_row() {
-            local query="$1"
-            curl -sS -G "${REST}" \
-              --data-urlencode "select=id,gate_decision,release_ready" \
-              --data-urlencode "repo_id=eq.${REPO_ID}" \
-              ${query} \
-              --data-urlencode "order=created_at.desc" \
-              --data-urlencode "limit=1" \
-              -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}"
-          }
-
-          MATCH="$(fetch_eval_row "commit_sha=eq.${COMMIT_SHA}")"
-          EVAL_ID="$(echo "${MATCH}" | jq -r '.[0].id // empty')"
-          GATE_DECISION="$(echo "${MATCH}" | jq -r '.[0].gate_decision // empty')"
-          RELEASE_READY="$(echo "${MATCH}" | jq -r '.[0].release_ready // empty')"
-
-          if [ -z "${EVAL_ID}" ] && [ -n "${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS:-}" ]; then
-            CUTOFF="$(date -u -d "-${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS} hours" '+%Y-%m-%dT%H:%M:%SZ')"
-            echo "No exact SHA match — trying fallback window (${TRAILHEAD_DEPLOY_MATCH_WINDOW_HOURS}h since ${CUTOFF})"
-            MATCH="$(fetch_eval_row "created_at=gte.${CUTOFF}")"
-            EVAL_ID="$(echo "${MATCH}" | jq -r '.[0].id // empty')"
-            GATE_DECISION="$(echo "${MATCH}" | jq -r '.[0].gate_decision // empty')"
-            RELEASE_READY="$(echo "${MATCH}" | jq -r '.[0].release_ready // empty')"
-          fi
-
-          if [ -z "${EVAL_ID}" ]; then
-            echo "No trailhead_evaluations row for commit ${COMMIT_SHA} — nothing to update."
-            exit 0
-          fi
-
-          if [ "${GATE_DECISION}" = "block" ] || [ "${RELEASE_READY}" = "false" ]; then
-            echo "Skipping deploy correlation for ${EVAL_ID} — gate was ${GATE_DECISION} (release_ready=${RELEASE_READY})."
-            exit 0
-          fi
-
-          CODE="$(curl -sS -o /tmp/patch_body -w "%{http_code}" -X PATCH "${REST}?id=eq.${EVAL_ID}" \
-            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-            -H "Content-Type: application/json" \
-            -H "Prefer: return=minimal" \
-            -d "{\"deploy_outcome\":\"success\",\"deployed_at\":\"${DEPLOYED_AT}\"}")"
-
-          if [ "${CODE}" = "204" ] || [ "${CODE}" = "200" ]; then
-            echo "Updated evaluation ${EVAL_ID} with deploy_outcome=success"
-          else
-            echo "PATCH failed HTTP ${CODE}: $(cat /tmp/patch_body)"
-            exit 1
-          fi
+        run: node scripts/record-deploy-correlation.mjs

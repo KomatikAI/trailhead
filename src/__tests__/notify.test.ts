@@ -100,6 +100,34 @@ describe("sendWebhook", () => {
     expect(body.text).toContain("abc1234");
   });
 
+  it("includes CI counts and false readiness in legacy and semantic payloads", async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response("ok", { status: 200 }));
+    const ci = {
+      checks: [
+        { name: "Build", status: "pass" as const, required: true },
+        { name: "Test", status: "fail" as const, required: true },
+      ],
+      allRequiredPassed: false,
+      failedCount: 1,
+      pendingCount: 0,
+      missingCount: 0,
+    };
+    await deliverWebhooks(
+      "https://hooks.example/events",
+      makeEvaluation({ ci, releaseReady: false }),
+      ["block", "trailhead.blocked"],
+      { riskThreshold: 70 },
+    );
+    expect(fetch).toHaveBeenCalledTimes(2);
+    for (const call of vi.mocked(fetch).mock.calls) {
+      const body = JSON.parse(call[1]!.body as string);
+      expect(body.ci).toEqual(ci);
+      expect(body.releaseReady).toBe(false);
+      expect(body.text).toContain("CI: 1 passed, 1 blocking failures");
+      expect(body.text).toContain("Release ready: no");
+    }
+  });
+
   it("handles non-200 response gracefully (fail-open)", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(new Response("error", { status: 500 }));
     await expect(

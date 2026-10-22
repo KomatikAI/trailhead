@@ -56,9 +56,18 @@ contexts:
 
 ## Step 3: Update branch protection
 
-1. Remove separate required checks for CI Gate + Trailhead (if both were required).
-2. Add single required check: **`Trailhead — Release Ready`**
-3. Keep CI jobs running — Trailhead reads their check results via GitHub Checks API.
+1. Keep existing required checks and review restrictions while validating the new gate.
+2. Add the custom **`Trailhead — Release Ready`** check from its verified publishing
+   GitHub App. Confirm failed, missing and pending CI results on the actual PR head.
+3. After repository-specific calibration and review, remove only redundant legacy
+   aggregate checks. Keep independent security and production-evidence checks.
+4. Keep CI jobs running — Trailhead reads their check results via GitHub Checks API.
+
+The dual CI Gate + legacy Trailhead pattern is deprecated for new v4 setups;
+there is no automatic removal date for existing protections. Migration is
+verification-based, not a version-triggered permission to weaken branch rules.
+`risk-only` remains an explicit compatibility option and does not enforce CI.
+See the [branch protection setup guide](./branch-protection-setup.md).
 
 ## Step 4: Enable CI wait (optional)
 
