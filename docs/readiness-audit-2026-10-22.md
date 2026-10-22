@@ -8,8 +8,8 @@ audit, not a claim that every historical epic has passed all acceptance criteria
 ## Release decision
 
 **Not ready to declare all major issues closed.** This branch repairs confirmed
-code defects, but production promotion, live billing verification, the operator
-approval workflow, Lodge evidence and promotion calibration remain open.
+code defects, but production promotion, live billing verification, fleet adoption,
+Lodge evidence and promotion calibration remain open.
 
 | Priority | Finding                                                  | Evidence / disposition                                                                                                                                                                                                                                                                          |
 | -------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ approval workflow, Lodge evidence and promotion calibration remain open.
 | High     | Delayed Checkout could provision before payment          | Require paid/no-payment-required status; handle async payment success explicitly. Stripe endpoint must subscribe to that event.                                                                                                                                                                 |
 | High     | Live billing configuration unverified                    | Stripe connector still returns UNAUTHORIZED after user reauthorization. Required Vercel env names exist, but shared production/preview scope requires mode verification. No secret values were read. Checkout, portal, webhook and reconcile need a real test-mode canary before live sign-off. |
 | High     | Gate false blocks on generated source text (#366)        | Import resolution now reads real syntax nodes instead of matching imports inside string templates. Covers aliases, re-exports, dynamic imports and TypeScript runtime extensions.                                                                                                               |
-| High     | Promotion approval deadlock (#355)                       | PR #357 preserved sensitive-path approvals. Use a distinct automation author and human reviewer. No identity/credential changes or policy weakening performed.                                                                                                                                  |
+| Resolved | Promotion approval deadlock (#355)                       | Closed after verifying the bot identity check in Komatik promote.yml and bot-authored promotion #5002. Sensitive-path approval requirements remain intact.                                                                                                                                      |
 | High     | Lodge commercial readiness (#343)                        | Draft #346 was closed unmerged. Live credit enforcement, debit/refund/top-up and deployment-target evidence remain required.                                                                                                                                                                    |
 | High     | Enforcement calibration (#350)                           | Latest recorded evidence still includes corrections; three consecutive clean promotions are not demonstrated. Do not flip enforcement on this audit alone.                                                                                                                                      |
 | Resolved | Database public API exposure                             | Read-only production queries verify all 13 public tables have RLS enabled, zero public policies as designed, and all applicable plain-Postgres migrations (001, 005_org_preferences, 007) applied. Other migration files explicitly opt out of this schema.                                     |
@@ -56,8 +56,8 @@ approval workflow, Lodge evidence and promotion calibration remain open.
   could pass while security-guard failed because no required CI names matched.
   CI now also runs on promotion PRs. Tests fail each required job individually
   and remove each job to verify that neither condition produces release-ready.
-- Human security review is still required for workflow changes under
-  `docs/SECURITY-GUARD.md`; an automated code review does not grant that label.
+- Human security review of commit `02d771f` was explicitly approved before
+  applying `security-reviewed`. Required CI and Release Ready passed before merge.
 - The submission auth heuristic initially flags four routes because it expects
   user/session helpers. Manual review verifies the actual boundaries: Stripe
   `constructEvent` signature verification, cron `secretMatches` with a timing-safe
@@ -104,27 +104,52 @@ paid org without a subscription. This is **not evidence of successful billing**.
 
 ## Remaining exit checks before design work
 
-1. Merge this fix branch only after its CI and review pass.
+1. Merge the fleet/soak audit follow-up only after its CI and review pass.
 2. Reconcile the diverged dev/staging/main histories, preserving release commits;
    promote through staging and verify the actual Vercel production source.
 3. Verify separate test/live Stripe configuration, webhook events, products/prices,
    portal settings, payment → claim → ingest, cancellation/reactivation and cron.
-4. Resolve #355 with a distinct automation author and human approval.
+4. Preserve the distinct promotion author and human approval boundaries verified
+   for #355; the identity deadlock is resolved.
 5. Complete #343's Lodge evidence and #350's real promotion calibration.
 6. Audit fleet pins/soak for #229; do not infer fleet adoption from a merged engine fix.
 
 ## Issue inventory
 
-Two evidence-backed closures are recorded below. Other historical work remains
+### Follow-up after PR #370 merged
+
+PR #370 merged into dev at `c2f4c45a3a6888aad80f9bf143d8323d2654c6be`
+after human approval of `02d771f`, successful security-guard, required CI and
+Release Ready. Its dev Vercel preview returned 200 from `/api/cloud/health`.
+Production promotion and the live billing canary remain outstanding.
+
+Issue #355 is now closed: Komatik's trusted promotion workflow verifies a
+dedicated bot identity distinct from the dispatcher. Merged promotion #5002
+was authored by `komatik-agents`. This resolves the self-approval impossibility;
+it does not prove every promotion received a sensitive-path review.
+
+The read-only fleet audit found six active consumers on the exact v4.8.0 commit,
+Agents and Kindling on v4.6.0, and Frontier archived. The snapshot is recorded in
+`fleet-pin-audit-2026-10-22.json`. The audit now accepts verified SHA pins and
+inspects all workflow names. #229 remains open: pin drift, successful consumer
+evaluations and reviewed false-positive evidence still need resolution.
+
+The soak script previously used a `passed` field absent from current findings
+and inferred false-positive rates without classifications. It now requires
+human classifications tied to each exact post-baseline evaluation, rejects
+incomplete evidence, and does not change enforcement. #350 and #343 remain open.
+
+Four evidence-backed closures (#353, #355, #356 and #366) are recorded in this audit.
+Other historical work remains
 open pending acceptance verification; an implementation or a green test suite
 alone is not enough to close an epic. Older enhancements are not automatically
 website launch blockers.
 
 | Issue                                                     | Title                                                                                                                        | Disposition                                                                                                            |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| [#366](https://github.com/KomatikAI/trailhead/issues/366) | import_resolution detector false-positives on tsconfig path-alias imports (@/...)                                            | Fix in this branch; keep open until merged and released.                                                               |
+| [#366](https://github.com/KomatikAI/trailhead/issues/366) | import_resolution detector false-positives on tsconfig path-alias imports (@/...)                                            | Closed by merged PR #370; production promotion remains outstanding.                                                    |
 | [#356](https://github.com/KomatikAI/trailhead/issues/356) | release-ready: deploy-completeness blind spot — master push automates migrations + Edge Functions but not the Fly worker leg | Closed after verifying production worker automation and release evidence.                                              |
-| [#355](https://github.com/KomatikAI/trailhead/issues/355) | agent_prs required_approvals is unsatisfiable on operator-token train PRs (author == only eligible approver)                 | Major operational blocker: promotion author must differ from approving human; do not waive sensitive-path approvals.   |
+| [#355](https://github.com/KomatikAI/trailhead/issues/355) | agent_prs required_approvals is unsatisfiable on operator-token train PRs (author == only eligible approver)                 | Closed: dedicated bot author is enforced and observed in promotion #5002; sensitive-path approvals remain required.    |
 | [#350](https://github.com/KomatikAI/trailhead/issues/350) | ADR-011 Stage 1: Release Brief calibration log (komatik promotions)                                                          | Major enforcement prerequisite: three consecutive zero-correction promotions not evidenced.                            |
 | [#353](https://github.com/KomatikAI/trailhead/issues/353) | release-ready: skipped blocking checks block promotion PRs whose diff legitimately path-filters them away                    | Closed: merged PR #352 and regression suite verify skipped-input handling.                                             |
 | [#343](https://github.com/KomatikAI/trailhead/issues/343) | Gate Lodge production on verified credit economics and canary evidence                                                       | Major Lodge release blocker: evidence contract and coordinated paid canaries remain unimplemented/unverified.          |

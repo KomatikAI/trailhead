@@ -223,7 +223,13 @@ MCP: `validate-submission` runs the same engine locally.
 
 **Not included by default:** fleet-only checks (`soul_integrity`, stale naming) — those need `KOMATIK_INSTANCE=true`. See [advanced-fleet.md](./advanced-fleet.md).
 
-Pin an explicit Action version in CI (e.g. `KomatikAI/trailhead@v4.5.2`), not only `@v4`. Audit fleet pins: `node scripts/check-fleet-trailhead-pins.mjs`.
+Pin a reviewed Action release, preferably its full commit SHA. Audit fleet pins
+with `node scripts/check-fleet-trailhead-pins.mjs --json`. The audit currently
+expects v4.8.0 and resolves its release commit, accepting that tag or exact SHA.
+Set `EXPECTED_VERSION` to audit a different reviewed release. It checks every
+YAML workflow in the nine configured consumer repositories, explicitly skips
+archived repositories, and reports API/file failures as incomplete evidence.
+This is a pin audit, not proof of all fleet rollout or soak acceptance criteria.
 
 ---
 

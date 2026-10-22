@@ -1,0 +1,114 @@
+{
+  "expected": "@v4.8.0",
+  "expectedSha": "9fe8e8ad089d258f83f030a260ae06123e32d66f",
+  "results": [
+    {
+      "name": "komatik",
+      "pins": [
+        {
+          "workflow": ".github/workflows/trailhead.yml",
+          "ref": "9fe8e8ad089d258f83f030a260ae06123e32d66f"
+        }
+      ],
+      "issues": [],
+      "default_branch": "dev",
+      "commit_sha": "283c940280ad446790e7f030a0527d58d7075fe3"
+    },
+    {
+      "name": "agents",
+      "pins": [
+        {
+          "workflow": ".github/workflows/ci.yml",
+          "ref": "v4.6.0"
+        }
+      ],
+      "issues": [
+        ".github/workflows/ci.yml: v4.6.0 (expected v4.8.0 or 9fe8e8ad089d258f83f030a260ae06123e32d66f)"
+      ],
+      "default_branch": "main",
+      "commit_sha": "2a7af4aa06243d822f347275c05bd4a49e3fed91"
+    },
+    {
+      "name": "cairn",
+      "pins": [
+        {
+          "workflow": ".github/workflows/trailhead.yml",
+          "ref": "9fe8e8ad089d258f83f030a260ae06123e32d66f"
+        }
+      ],
+      "issues": [],
+      "default_branch": "dev",
+      "commit_sha": "c4ab1d97b7a48c2d6ee757a41ee2849581f8c005"
+    },
+    {
+      "name": "frontier",
+      "pins": [],
+      "issues": [],
+      "default_branch": "dev",
+      "archived": true
+    },
+    {
+      "name": "kindling",
+      "pins": [
+        {
+          "workflow": ".github/workflows/trailhead.yml",
+          "ref": "v4.6.0"
+        }
+      ],
+      "issues": [
+        ".github/workflows/trailhead.yml: v4.6.0 (expected v4.8.0 or 9fe8e8ad089d258f83f030a260ae06123e32d66f)"
+      ],
+      "default_branch": "dev",
+      "commit_sha": "8aa240190f8ecb604f9fd13da238231e8e7f8884"
+    },
+    {
+      "name": "pack",
+      "pins": [
+        {
+          "workflow": ".github/workflows/trailhead.yml",
+          "ref": "9fe8e8ad089d258f83f030a260ae06123e32d66f"
+        }
+      ],
+      "issues": [],
+      "default_branch": "dev",
+      "commit_sha": "76cab3e233b6e3b2639140a6894ed14a87092249"
+    },
+    {
+      "name": "slipstream",
+      "pins": [
+        {
+          "workflow": ".github/workflows/trailhead.yml",
+          "ref": "9fe8e8ad089d258f83f030a260ae06123e32d66f"
+        }
+      ],
+      "issues": [],
+      "default_branch": "dev",
+      "commit_sha": "2c5b4570463dff3454cdd546f75a4198b697721a"
+    },
+    {
+      "name": "sundog",
+      "pins": [
+        {
+          "workflow": ".github/workflows/trailhead.yml",
+          "ref": "9fe8e8ad089d258f83f030a260ae06123e32d66f"
+        }
+      ],
+      "issues": [],
+      "default_branch": "dev",
+      "commit_sha": "b7e8934a52a19fe144330c2842aa43d4b05093dc"
+    },
+    {
+      "name": "trace",
+      "pins": [
+        {
+          "workflow": ".github/workflows/trailhead.yml",
+          "ref": "9fe8e8ad089d258f83f030a260ae06123e32d66f"
+        }
+      ],
+      "issues": [],
+      "default_branch": "dev",
+      "commit_sha": "6a8b9cf8db8d6179c9daa615f0d3194adc37a35a"
+    }
+  ],
+  "failing": 2
+}
