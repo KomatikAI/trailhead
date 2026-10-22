@@ -75,7 +75,10 @@ jobs:
 2. For each `required_checks` entry, match a live check by name.
 3. If no live check exists, look up the job in `ci-manifest.json`.
 4. **`skipped` + `paths-filter`** → treat as **skip** (does not block release-ready).
-5. Live check results win for jobs that **ran** and published a check run.
+5. Live check results win for jobs that published a check run, including failures,
+   cancellations and checks still queued or running. A manifest cannot turn these
+   into successful or skipped checks. Manifests supply outcomes only for checks
+   absent from the API; use distinct names for independent external provider jobs.
 
 ## Policy pack example
 

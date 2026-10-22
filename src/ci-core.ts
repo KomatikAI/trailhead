@@ -83,7 +83,9 @@ function applyManifestToCheck(
   manifest: CiManifest | undefined,
   configuredName: string,
 ): CiCheck {
-  if (!manifest) return check;
+  // A manifest fills gaps in the Checks API; it is not authority to replace a
+  // live failure or finish a still-running check, even with a claimed skip.
+  if (!manifest || check.status !== "missing") return check;
   const manifestJob = findManifestJob(manifest, configuredName);
   if (!manifestJob) return check;
 
@@ -95,7 +97,7 @@ function applyManifestToCheck(
       conclusion: manifestJob.reason ?? check.conclusion,
     };
   }
-  if (manifestStatus && (check.status === "missing" || check.status === "pending")) {
+  if (manifestStatus) {
     return {
       ...check,
       status: manifestStatus,
