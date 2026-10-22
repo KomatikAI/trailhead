@@ -1,5 +1,7 @@
 import pg from "pg";
-import { createMemoryStore, createPgStore, type CloudStore } from "trailhead-cloud";
+import { createMemoryStore } from "trailhead-cloud/store";
+import { createPgStore } from "trailhead-cloud/pg-store";
+import type { CloudStore } from "trailhead-cloud/types";
 
 /**
  * The real `trailhead-cloud` package (cloud/src/types.ts) exposes a single

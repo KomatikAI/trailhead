@@ -254,6 +254,11 @@ export interface CreateOrgWithSubscriptionResult {
     keySecret: string;
     keyRecord: ApiKeyRecord;
 }
+export interface CheckoutClaim {
+    sessionId: string;
+    expiresAt: string;
+    encryptKey: (key: string) => string;
+}
 export interface SubscriptionPatch {
     plan?: "pro" | "team";
     status?: string;
@@ -319,6 +324,9 @@ export interface CloudStore {
     listDetectorDowngrades(orgId: string): Promise<import("./tuning-digest.js").DetectorDowngradeRecord[]>;
     recordDetectorDowngrade(orgId: string, record: import("./tuning-digest.js").DetectorDowngradeRecord): Promise<import("./tuning-digest.js").DetectorDowngradeRecord>;
     revertDetectorDowngrade(orgId: string, detectorCode: string, revertedBy: string): Promise<import("./tuning-digest.js").DetectorDowngradeRecord | null>;
+    /** Atomically provision a subscription, first key and encrypted one-time claim.
+     * Replaying a Checkout session must never issue another key or reset a claim. */
+    fulfillCheckout(input: CreateOrgWithSubscriptionInput, claim: CheckoutClaim): Promise<string>;
     createOrgWithSubscription(input: CreateOrgWithSubscriptionInput): Promise<CreateOrgWithSubscriptionResult>;
     updateSubscriptionByStripeId(stripeSubscriptionId: string, patch: SubscriptionPatch): Promise<string | null>;
     /** Idempotent reconcile: resolve org by stripe_customer_id (create a minimal
@@ -326,6 +334,7 @@ export interface CloudStore {
      *  plan + key suspension. Returns the affected orgId. */
     upsertSubscriptionFromStripe(sub: UpsertSubscriptionInput): Promise<string>;
     setKeysSuspended(orgId: string, suspended: boolean): Promise<void>;
+    hasStripeEvent(eventId: string): Promise<boolean>;
     recordStripeEvent(eventId: string, eventType: string, payload: unknown): Promise<boolean>;
     /** Rollback for the insert-first idempotency ledger: delete the ledger row
      *  when webhook processing throws AFTER recordStripeEvent, so Stripe's retry
@@ -333,6 +342,7 @@ export interface CloudStore {
     removeStripeEvent(eventId: string): Promise<void>;
     createKeyClaim(sessionId: string, orgId: string, ciphertext: string, expiresAt: string): Promise<void>;
     claimKey(sessionId: string): Promise<KeyClaimResult>;
+    /** Erase expired ciphertext, retaining session receipts to prevent replay. */
     purgeExpiredClaims(): Promise<number>;
     getSubscriptionForOrg(orgId: string): Promise<SubscriptionRecord | null>;
     listSubscriptions(): Promise<SubscriptionRecord[]>;

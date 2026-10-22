@@ -23,7 +23,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/**/*.test.ts", "src/**/__tests__/**"],
+    files: ["src/**/*.test.ts", "src/**/__tests__/**", "site/__tests__/**"],
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
     },
@@ -34,6 +34,8 @@ export default tseslint.config(
       "cli/dist/",
       "node_modules/",
       "coverage/",
+      "**/.next/**",
+      "site/next-env.d.ts",
       "scripts/",
       "mcp/",
       "app/",

@@ -1,6 +1,7 @@
 import type {
   ApiKeyRecord,
   CloudStore,
+  CheckoutClaim,
   CreateOrgWithSubscriptionInput,
   CreateOrgWithSubscriptionResult,
   DeployEventPayload,
@@ -65,6 +66,66 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
   const subscriptions = new Map<string, SubscriptionRecord>(); // by stripeSubscriptionId
   const stripeEvents = new Set<string>();
   const keyClaims = new Map<string, KeyClaim>();
+
+  function createSubscription(
+    input: CreateOrgWithSubscriptionInput,
+    claim?: CheckoutClaim,
+  ): CreateOrgWithSubscriptionResult {
+    const secret = generateApiKey();
+    const ciphertext = claim?.encryptKey(secret);
+    const orgId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const org: OrgRecord = { id: orgId, name: input.orgName, createdAt: now };
+    orgs.set(orgId, org);
+    orgSettings.set(orgId, {
+      plan: input.plan,
+      seats: PLANS[input.plan].seatsIncluded,
+      seatsUsed: 1,
+    });
+
+    const subscription: SubscriptionRecord = {
+      id: crypto.randomUUID(),
+      orgId,
+      stripeCustomerId: input.stripeCustomerId,
+      stripeSubscriptionId: input.stripeSubscriptionId,
+      plan: input.plan,
+      status: input.status,
+      currentPeriodEnd: input.currentPeriodEnd ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    subscriptions.set(subscription.stripeSubscriptionId, subscription);
+
+    const keyId = `key_${crypto.randomUUID()}`;
+    const keyRecord: ApiKeyRecord = {
+      keyId,
+      key: secret,
+      orgId,
+      orgName: input.orgName,
+      label: input.keyLabel ?? "Primary key",
+      suspended: !UNSUSPEND_STATUSES.has(input.status),
+    };
+    storeKey(keyRecord);
+    managedKeys.set(keyId, {
+      id: keyId,
+      orgId,
+      key: secret,
+      label: keyRecord.label ?? "Primary key",
+      keyPreview: maskApiKey(secret),
+      createdAt: now,
+      revokedAt: null,
+    });
+
+    if (claim && ciphertext)
+      keyClaims.set(claim.sessionId, {
+        sessionId: claim.sessionId,
+        orgId,
+        ciphertext,
+        expiresAt: claim.expiresAt,
+        claimedAt: null,
+      });
+    return { org, keySecret: secret, keyRecord };
+  }
 
   function ensureOrg(orgId: string, orgName: string): OrgRecord {
     const existing = orgs.get(orgId);
@@ -401,51 +462,45 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
     async createOrgWithSubscription(
       input: CreateOrgWithSubscriptionInput,
     ): Promise<CreateOrgWithSubscriptionResult> {
-      const orgId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      const org: OrgRecord = { id: orgId, name: input.orgName, createdAt: now };
-      orgs.set(orgId, org);
-      orgSettings.set(orgId, {
-        plan: input.plan,
-        seats: PLANS[input.plan].seatsIncluded,
-        seatsUsed: 1,
-      });
+      return createSubscription(input);
+    },
 
-      const subscription: SubscriptionRecord = {
-        id: crypto.randomUUID(),
-        orgId,
-        stripeCustomerId: input.stripeCustomerId,
-        stripeSubscriptionId: input.stripeSubscriptionId,
-        plan: input.plan,
-        status: input.status,
-        currentPeriodEnd: input.currentPeriodEnd ?? null,
-        createdAt: now,
-        updatedAt: now,
-      };
-      subscriptions.set(subscription.stripeSubscriptionId, subscription);
-
+    async fulfillCheckout(
+      input: CreateOrgWithSubscriptionInput,
+      claim: CheckoutClaim,
+    ): Promise<string> {
+      const prior = keyClaims.get(claim.sessionId);
+      if (prior) return prior.orgId;
+      const existing = subscriptions.get(input.stripeSubscriptionId);
+      if (!existing) return createSubscription(input, claim).org.id;
       const secret = generateApiKey();
-      const keyId = `key_${crypto.randomUUID()}`;
-      const keyRecord: ApiKeyRecord = {
+      const ciphertext = claim.encryptKey(secret);
+      const keyId = "key_" + crypto.randomUUID();
+      storeKey({
         keyId,
         key: secret,
-        orgId,
-        orgName: input.orgName,
-        label: input.keyLabel ?? "Primary key",
-        suspended: false,
-      };
-      storeKey(keyRecord);
+        orgId: existing.orgId,
+        orgName: orgs.get(existing.orgId)?.name ?? input.orgName,
+        label: input.keyLabel ?? "Initial key",
+        suspended: !UNSUSPEND_STATUSES.has(existing.status),
+      });
       managedKeys.set(keyId, {
         id: keyId,
-        orgId,
+        orgId: existing.orgId,
         key: secret,
-        label: keyRecord.label ?? "Primary key",
+        label: input.keyLabel ?? "Initial key",
         keyPreview: maskApiKey(secret),
-        createdAt: now,
+        createdAt: new Date().toISOString(),
         revokedAt: null,
       });
-
-      return { org, keySecret: secret, keyRecord };
+      keyClaims.set(claim.sessionId, {
+        sessionId: claim.sessionId,
+        orgId: existing.orgId,
+        ciphertext,
+        expiresAt: claim.expiresAt,
+        claimedAt: null,
+      });
+      return existing.orgId;
     },
 
     async updateSubscriptionByStripeId(
@@ -529,6 +584,10 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       setKeySuspension(orgId, suspended);
     },
 
+    async hasStripeEvent(eventId: string): Promise<boolean> {
+      return stripeEvents.has(eventId);
+    },
+
     async recordStripeEvent(
       eventId: string,
       _eventType: string,
@@ -549,6 +608,7 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       ciphertext: string,
       expiresAt: string,
     ): Promise<void> {
+      if (keyClaims.has(sessionId)) return;
       keyClaims.set(sessionId, {
         sessionId,
         orgId,
@@ -563,16 +623,20 @@ export function createMemoryStore(seedKeys: ApiKeyRecord[] = []): CloudStore {
       if (!claim) return null;
       if (claim.claimedAt) return { alreadyClaimed: true };
       if (new Date(claim.expiresAt).getTime() <= Date.now()) return { expired: true };
+      const ciphertext = claim.ciphertext;
       claim.claimedAt = new Date().toISOString();
-      return { ciphertext: claim.ciphertext };
+      claim.ciphertext = "";
+      return { ciphertext };
     },
 
     async purgeExpiredClaims(): Promise<number> {
       const now = Date.now();
       let purged = 0;
-      for (const [sessionId, claim] of keyClaims) {
-        if (!claim.claimedAt && new Date(claim.expiresAt).getTime() <= now) {
-          keyClaims.delete(sessionId);
+      for (const claim of keyClaims.values()) {
+        if (claim.ciphertext && new Date(claim.expiresAt).getTime() <= now) {
+          // Keep the session receipt: removing it allows a later webhook to
+          // provision another key. Only the encrypted secret is disposable.
+          claim.ciphertext = "";
           purged += 1;
         }
       }
